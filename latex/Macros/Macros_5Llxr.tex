@@ -1,0 +1,79 @@
+\newcommand\strict{basic}
+\newcommand\expsub{substitution constructor}
+
+%Rewriting specific===========================
+
+\newcommand{\Sim}[1]{\sim_{#1}\;}
+\newcommand{\Rewmod}[2]{\rightarrow_{#1/#2}\;}
+\newcommand{\Rewmodn}[2]{\rightarrow^{*}_{#1/#2}\;}
+
+\newcommand{\LRewplus}[1]{\; \mbox{}_{#1}^{+}{\longleftarrow}\;}
+\newcommand{\LRew}[1]{\; \mbox{}_{#1}{\longleftarrow}}
+\newcommand{\LRewn}[1]{\; {\mbox{}_{#1\,}}^{*}{\longleftarrow}}
+\newcommand{\RLRewn}[1]{{\longleftrightarrow}^{*}_{#1}}
+\newcommand{\RLRew}[1]{{\longleftrightarrow}_{#1}}
+
+
+\newcommand{\ssubst}[3]{\subst{#1}{#3}{#2}}
+%\newcommand{\isubst}[2]{\{ #1 \backslash #2 \} }
+
+
+
+%Terms===========================
+
+\renewcommand\t{\textsf{r}}
+\newcommand\xt{\textsf{xr}}
+\newcommand{\weak}[2]{\mathcal{W}_{#1}(#2)}
+\newcommand{\app}[4]{#1\; #3}
+
+\newcommand{\clos}[2]{#2 {#1}}
+\newcommand{\trip}[3]{\cuti{}{#2} {#1}}
+
+%\newcommand{\clos}[2]{#1\langle #2\rangle}
+%\newcommand{\trip}[3]{#1 =_{#3} #2}
+%\newcommand{\iclos}[2]{#1[#2]}
+\newcommand{\con}[4]{\mathcal{C}_{#1}^{#2\,|\,#3}(#4)}
+
+\newcommand{\weakapp}[5]{\weak {#1}{\app {#2}{} {#4}{}}}
+
+\newcommand{\wf}{\mbox{ \textsf{linear}}}
+
+%Equations======================
+\newcommand{\ac}{\textsf{A}_{\textsf{c}}}
+\newcommand{\ccu}{\textsf{C}_{\textsf{c}}}
+\newcommand{\ccd}{\textsf{P}_{\textsf{c}}}
+\newcommand{\cw}{\textsf{P}_{\textsf{w}}}
+\newcommand{\com}{\textsf{P}_{\textsf{s}}}
+\newcommand{\cs}{\textsf{P}_\textsf{cs}}
+
+
+%Rules============================
+
+\newcommand\Abs{\textsf{Abs}}
+\newcommand\Appi{\textsf{App1}}
+\newcommand\Appii{\textsf{App2}}
+\newcommand\Var{\textsf{Var}} 
+\newcommand\Weaki{\textsf{Weak1}}
+\newcommand\Weakii{\textsf{Weak2}}
+\newcommand\Cont{\textsf{Cont}}
+\newcommand\Comp{\textsf{Comp}}
+\newcommand\WAbs{\textsf{WAbs}}
+\newcommand\WAppi{\textsf{WApp1}}
+\newcommand\WAppii{\textsf{WApp2}}
+\newcommand\WSubs{\textsf{WSubs}} 
+\newcommand\Merge{\textsf{Merge}}
+\newcommand\Cross{\textsf{Cross}}
+\newcommand\CAbs{\textsf{CAbs}}
+\newcommand\CAppi{\textsf{CApp1}} 
+\newcommand\CAppii{\textsf{CApp2}} 
+\newcommand\CSubs{\textsf{CSubs}}
+
+%Translation=================
+
+\newcommand{\ord}[1]{{#1}}
+
+%sn-x=========================
+\newcommand\multip[2]{\mathcal M_{#1}({#2})}
+\newcommand\Tcomplex[1]{\mathcal {T}\!\textsf{x} ({#1})}
+\newcommand\pol[1]{\mathcal P({#1})}
+\newcommand\polname{\mathcal P}

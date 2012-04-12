@@ -1,0 +1,206 @@
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2011.4.5)  18 APR 2011 16:52
+entering extended mode
+ %&-line parsing enabled.
+**/home/lengrand/Documents/Eurecaml/latex/prooftree.tex
+(/home/lengrand/Documents/Eurecaml/latex/prooftree.tex
+LaTeX2e <2009/09/24>
+Babel <v3.8l> and hyphenation patterns for english, usenglishmax, dumylang, noh
+yphenation, loaded.
+(/usr/share/texmf-texlive/tex/latex/base/article.cls
+Document Class: article 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/share/texmf-texlive/tex/latex/base/size10.clo
+File: size10.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/usr/share/texmf-texlive/tex/generic/babel/babel.sty
+Package: babel 2008/07/06 v3.8l The Babel package
+
+(/usr/share/texmf-texlive/tex/generic/babel/english.ldf
+Language: english 2005/03/30 v3.3o English support from the babel system
+
+(/usr/share/texmf-texlive/tex/generic/babel/babel.def
+File: babel.def 2008/07/06 v3.8l Babel common definitions
+\babel@savecnt=\count87
+\U@D=\dimen103
+)
+\l@british = a dialect from \language\l@english 
+\l@UKenglish = a dialect from \language\l@english 
+\l@canadian = a dialect from \language\l@american 
+\l@australian = a dialect from \language\l@british 
+\l@newzealand = a dialect from \language\l@british 
+))
+(/usr/share/texmf-texlive/tex/latex/base/fontenc.sty
+Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
+
+(/usr/share/texmf-texlive/tex/latex/base/t1enc.def
+File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
+LaTeX Font Info:    Redeclaring font encoding T1 on input line 43.
+))
+(/usr/share/texmf-texlive/tex/latex/base/inputenc.sty
+Package: inputenc 2008/03/30 v1.1d Input encoding file
+\inpenc@prehook=\toks14
+\inpenc@posthook=\toks15
+
+(/usr/share/texmf-texlive/tex/latex/base/ansinew.def
+File: ansinew.def 2008/03/30 v1.1d Input encoding file
+))
+(/usr/share/texmf-texlive/tex/latex/tools/array.sty
+Package: array 2008/09/09 v2.4c Tabular extension package (FMi)
+\col@sep=\dimen104
+\extrarowheight=\dimen105
+\NC@list=\toks16
+\extratabsurround=\skip43
+\backup@length=\skip44
+)
+(/usr/share/texmf-texlive/tex/latex/ntgclass/a4.sty
+Package: a4 2004/04/15 v1.2g A4 based page layout
+)
+(/usr/share/texmf-texlive/tex/latex/tools/theorem.sty
+Package: theorem 1995/11/23 v2.2c Theorem extension package (FMi)
+\theorem@style=\toks17
+\theorem@bodyfont=\toks18
+\theorempreskipamount=\skip45
+\theorempostskipamount=\skip46
+
+(/usr/share/texmf-texlive/tex/latex/tools/thp.sty
+File: thp.sty 1995/11/23 v2.2c Theorem extension package (FMi)
+)) (./Common/theorems.sty
+\c@theorem=\count88
+\c@definition=\count89
+\c@example=\count90
+)
+(./Common/prooftree.sty
+\proofrulebreadth=\dimen106
+\proofdotseparation=\dimen107
+\proofrulebaseline=\dimen108
+\proofdotnumber=\count91
+\shortenproofleft=\dimen109
+\shortenproofright=\dimen110
+\proofbelowshift=\dimen111
+\proofabove=\box26
+\proofbelow=\box27
+\proofrulename=\box28
+\proofrulenamel=\box29
+)
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2000/07/18 v2.13 AMS math features
+\@mathmargin=\skip47
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texmf-texlive/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01
+
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0
+\@emptytoks=\toks19
+\ex@=\dimen112
+))
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d
+\pmbraise@=\dimen113
+)
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsopn.sty
+Package: amsopn 1999/12/14 v2.01 operator names
+)
+\inf@bad=\count92
+LaTeX Info: Redefining \frac on input line 211.
+\uproot@=\count93
+\leftroot@=\count94
+LaTeX Info: Redefining \overline on input line 307.
+\classnum@=\count95
+\DOTSCASE@=\count96
+LaTeX Info: Redefining \ldots on input line 379.
+LaTeX Info: Redefining \dots on input line 382.
+LaTeX Info: Redefining \cdots on input line 467.
+\Mathstrutbox@=\box30
+\strutbox@=\box31
+\big@size=\dimen114
+LaTeX Font Info:    Redeclaring font encoding OML on input line 567.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 568.
+\macc@depth=\count97
+\c@MaxMatrixCols=\count98
+\dotsspace@=\muskip10
+\c@parentequation=\count99
+\dspbrk@lvl=\count100
+\tag@help=\toks20
+\row@=\count101
+\column@=\count102
+\maxfields@=\count103
+\andhelp@=\toks21
+\eqnshift@=\dimen115
+\alignsep@=\dimen116
+\tagshift@=\dimen117
+\tagwidth@=\dimen118
+\totwidth@=\dimen119
+\lineht@=\dimen120
+\@envbody=\toks22
+\multlinegap=\skip48
+\multlinetaggap=\skip49
+\mathdisplay@stack=\toks23
+LaTeX Info: Redefining \[ on input line 2666.
+LaTeX Info: Redefining \] on input line 2667.
+)
+(/usr/share/texmf-texlive/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2009/06/22 v3.00
+
+(/usr/share/texmf-texlive/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2009/06/22 v3.00 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 96.
+))
+(./Common/Macros_Main.tex
+\c@warning=\count104
+) (./Macros/Macros_1Basics.tex)
+(./Macros/Macros_1HOC.tex) (./Macros/Macros_2LJNJ.tex) (./Macros/Macros_PMT.tex
+) (./prooftree.aux)
+\openout1 = `prooftree.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+ (./eurecaml.tex
+LaTeX Font Info:    Try loading font information for U+msa on input line 1.
+
+(/usr/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2009/06/22 v3.00 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 1.
+
+(/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2009/06/22 v3.00 AMS symbols B
+)) [1
+
+] (./system.tex)
+[2] (./prooftree.aux) ) 
+Here is how much of TeX's memory you used:
+ 2286 strings out of 495062
+ 23075 string characters out of 1182645
+ 79141 words of memory out of 3000000
+ 5446 multiletter control sequences out of 15000+50000
+ 7564 words of font info for 25 fonts, out of 3000000 for 9000
+ 28 hyphenation exceptions out of 8191
+ 27i,15n,24p,416b,212s stack positions out of 5000i,500n,10000p,200000b,50000s
+
+Output written on prooftree.dvi (2 pages, 3900 bytes).

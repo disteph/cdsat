@@ -1,0 +1,55 @@
+
+\begin{definition}[Formulae]\strut
+\[
+\begin{array}{ll}
+P&= p\mid A\andP B \mid A\orP B\\
+N&= \non p\mid A\andN B \mid A\orN B\\
+A,B&= P\mid N
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}[Negation]
+\strut\[
+\begin{array}{|ll|ll|}
+\hline
+\non {(p)}&\eqdef \non p& \non {(\non p)}&\eqdef p  \\
+\non{(A\andP B)}&\eqdef \non A \orN\non B&\non{(A\andN B)}&\eqdef \non A \orP\non B    \\
+\non{(A\orP B)}&\eqdef \non A \andN\non B&\non{(A\orN B)}&\eqdef \non A \andP\non B    \\
+\hline
+\end{array}
+\]
+
+\end{definition}
+
+\begin{definition}[System]
+$$
+\begin{array}{|c|}
+\upline\\
+\infer{\DerOSPos{\Gamma}{A\andP B}{\Delta}}
+{\DerOSPos{\Gamma}{A}{\Delta}\qquad \DerOSPos{\Gamma}{B}{\Delta}}
+\qquad
+\infer{\DerOSPos{\Gamma}{A_1\orP A_2}{\Delta}}
+{\DerOSPos{\Gamma}{A_i}{\Delta}}
+\\\\
+\infer{\DerOSPos{\Gamma,p}{p}{\Delta}}
+{}
+\\\\
+\infer[N\mbox{ negative}]{\DerOSPos \Gam N{\Delta}}{\DerOSNeg \Gam N{\Delta}}
+\\\midline\\
+\infer{\DerOSNeg{\Gamma}{A\andN B,\Pi}{\Delta}}
+{\DerOSNeg{\Gamma}{A,\Pi}{\Delta}\qquad \DerOSNeg{\Gamma}{B,\Pi}{\Delta}}
+\qquad
+\infer{\DerOSNeg{\Gamma}{A_1\orN A_2,\Pi}{\Delta}}
+{\DerOSNeg{\Gamma}{A_1,A_2,\Pi}{\Delta}}
+\\\\
+\infer[P\mbox{ positive}]{\DerOSNeg \Gam {P,\Pi}}{\DerOSNeg {\Gam} {\Pi}{\Delta,P}}
+\qquad
+\infer[\non p\mbox{ negative atom}]{\DerOSNeg \Gam {\non p,\Pi}}{\DerOSNeg {\Gam,p} {\Pi}{\Delta}}
+\\\midline\\
+\infer{\DerOSNeg {\Gam} {}{\Delta,P}}{\DerOSPos {\Gam} {P}{\Delta,P}}
+\\
+\downline
+\end{array}
+$$
+\end{definition}

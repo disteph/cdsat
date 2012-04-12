@@ -1,0 +1,82 @@
+\newcommand\CPS{\textsf{CPS}}
+
+%Moggi's lC
+\newcommand\letinC[3]{\textsf{let }#2=#1\textsf{ in }{#3}}
+
+\newcommand\bv{\beta_{\textsf V}}
+\newcommand\ev{\eta_{\textsf V}}
+\newcommand\evp{\eta'_{\textsf V}}
+
+
+\newcommand\bl{{\textsf {B}}}
+\newcommand\letC{{\textsf {let}}_{\textsf V}}
+\newcommand\appleti{{\textsf {let}}_1}
+\newcommand\appletii{{\textsf {let}}_2}
+\newcommand\etalet{\eta_{\textsf {let}}}
+\newcommand\letnesting{{\textsf {assoc}}}
+
+%\newcommand\lCx{\lambda_{{\textsf C}\textsf{x}}}
+\newcommand\lCb{\lambda_{{\textsf C}\beta}}
+\newcommand\lCbe{\lambda_{{\textsf C}\beta\eta}}
+
+%CPS-translations
+\renewcommand\Re[1]{\mathcal{R}(#1)}
+\newcommand\ReV[1]{\mathcal{R}_{\textsf V}(#1)}
+\newcommand\Fi[1]{\mathcal{F}(#1)}
+\newcommand\FiV[1]{\mathcal{F}_{\textsf V}(#1)}
+
+\newcommand\Fis[2]{{#1}\colon_{\!\!\mathcal{F}}{#2}}
+\newcommand\FisV[1]{{#1}^{\mathcal F}}
+\newcommand\Rey[2]{{#1}\colon_{\!\!\mathcal{R}}{#2}}
+\newcommand\ReyV[1]{{#1}^{\mathcal R}}
+
+\newcommand\Fisback[1]{{#1}^{{\mathcal F}{\textsf {back}}}}
+\newcommand\Fisbackname{{\mathcal F}{\textsf {back}}}
+
+
+%Calculs CPS
+\newcommand\lav{$\lambda_{\textsf {EvalArg}}$}
+\newcommand\lContR{$\lambda^{\mathcal R}_{\CPS}$}
+\newcommand\lContF{$\lambda^{\mathcal F}_{\CPS}$}
+\newcommand\lContp{$\lambda_{\CPS}^+$}
+
+\newcommand\lContRb{\lambda^{\mathcal R}_{\CPS\beta}}
+\newcommand\lContRbe{\lambda^{\mathcal R}_{\CPS\beta\eta}}
+\newcommand\lContFb{\lambda^{\mathcal F}_{\CPS\beta}}
+\newcommand\lContFbe{\lambda^{\mathcal F}_{\CPS\beta\eta}}
+
+\newcommand\lif[1]{\Uparrow{#1}}
+\newcommand\lifname{\Uparrow}
+
+%For later
+
+\newcommand\lContfb{\lambda^{f}_{\CPS\beta}}
+\newcommand\lContfbe{\lambda^{f}_{\CPS\beta\eta}}
+
+\newcommand\nnot[1]{{#1}^{\bullet}}
+
+\newcommand\liFf[1]{\uparrow{#1}}
+\newcommand\liFfname{\uparrow}
+
+\newcommand\cps[2]{{#1}\colon{#2}}
+\newcommand\cpsV[1]{{#1}^{\dag}}
+
+\newcommand\spc[1]{{#1}^{{\textsf {back}}}}
+\newcommand\spcname{{(\_)}^{{\textsf {back}}}}
+
+\newcommand\lContf{$\lambda^{f}_{\CPS}$}
+
+\newcommand\lCont{\lambda_{\CPS}}
+
+\newcommand\lConti{\lambda_{\textsf{cont}1}}
+\newcommand\lContii{\lambda_{\textsf{cont2}}}
+
+%To and from Moggi's C
+
+\newcommand\Tii[1]{{#1}^{\sharp}}
+\newcommand\Tiii[1]{{#1}^\natural}
+\newcommand\Ti[1]{{#1}^\flat}
+
+%\newcommand\Tiname{{(\_)}^\flat}
+%\newcommand\Tiiname{{(\_)}^\sharp}
+%\newcommand\Tiiiname{{(\_)}^\natural}
