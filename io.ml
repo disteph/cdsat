@@ -9,6 +9,7 @@ let write_to_file = fun filename s ->
     close_out chan; 
 ;;
 
+(* converts a file to a string with its contents *)
 
 let read_from_file filename =
   let lines = ref "" in
@@ -50,6 +51,7 @@ let rec print_list = function
     [] -> ();
   | s::l -> print_string (s^" "); print_list l;;
 
+(* lex a cnf file to list of lists of literals, with auxiliary argument *)
 	     
 let rec parse_cnf cnf_so_far = function
     []     -> List.rev cnf_so_far
@@ -63,16 +65,22 @@ let rec parse_cnf cnf_so_far = function
     in parse_clause [] true l
 ;;
 
+(* lex a cnf file to list of lists of literals *)
+
 let rec parse_cnf_file = function
     []     -> []
   | "cnf"::_::_::l -> parse_cnf [] l
   | a::l -> parse_cnf_file l
 ;;
 
+(* parse a literals from boolean (for sign) and string *)
+
 let generate_atom = function
     (true,t)  -> Und(PosAtomU (t, []))
   | (false,t) -> Und(NegAtomU (t, []))
 ;;
+
+(* parse a clause from list of literal descriptions *)
 
 let rec generate_clause =  function
     t::[] -> generate_atom t
@@ -83,6 +91,7 @@ let rec generate_clause =  function
   | []    -> Pos(AndP(Pos(PosAtom ("p",[])),Neg(NegAtom ("p",[]))))
 ;;
 
+(* parse a cnf from list of clause descriptions *)
 
 let rec generate_cnf =  function
     t::[] -> generate_clause t
