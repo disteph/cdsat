@@ -1,8 +1,8 @@
 open Sequents;;
 include Sequents;;
 
-(* Active le debug (affichage des fails) *)
-let debug = 0;;
+(* Activates debug mode (displays fails, etc) *)
+let debug = 2;;
 let failcount = ref 0;;
 let tiredcount = ref 0;;
 let successcount = ref 0;;
@@ -46,6 +46,9 @@ let throwsuccess s=
 ;;
 
 
+(*
+Updating a continuation in order to merge previous tired points (x) with newly obtained tired points (y).
+*)
 
 let make_new_cont cont x = function
     Success(prooftree) -> cont (Success(prooftree))
@@ -54,12 +57,13 @@ let make_new_cont cont x = function
 
 
 (*
- * Fonction principale 
- * delta = les formules restantes a analyser 
- * gammatomN = Atoms negatifs trouves
- * gammaformP = Formules positives trouves
- * gammaformPSaved = Formules sauvegardees (continuation)
- * Renvoie un Success(Prooftree) si la preuve est faite
+ * Main Search function 
+ * delta = Formulae to be asynchronously decomposed 
+ * gammatomN = negative atoms found in asynchronous phase (negation symbol not stored)
+ * gammaformP = positive formulae found in asynchronous phase (focus to be placed on them later)
+ * gammaformPSaved = positive formulae on which focus has been placed more times than remaining formulae in gammaformP 
+ * (These other formulae have priority for focus -> ensures fairness)
+ * Returns Success(Prooftree) if a proof is found
  *)
 
 let rec lk_solve cont inloop = function

@@ -1,13 +1,11 @@
 (* 
- * Un term est une variable ('p') ou une fonction avec des arguments ('f(a,b)')
- * On peut imbriquer les fonctions, bien entendu.
+ * A term is either a variableor a function symbol applied to arguments
  *)
 type term = V of string | C of string*(term list);;
 
 
 (*
- * Une formule peut etre positive ou negative.
- * Elle est composee d'atomes ou de Et(form1, form2) ou de Ou(form1, form2)
+ * A formula is either positive, negative or undefined
  *)
 type formula = Pos of posFormula | Neg of negFormula | Und of undFormula
 and
@@ -30,7 +28,7 @@ and
 
 
 (* 
- * perp inverse la polarité d'une expression
+ * perp is the negation; it inverses the polarity of a formula
  *)
 let rec
     perp: formula->formula = function
@@ -56,7 +54,7 @@ and
 ;;
 
 (*
- * Check les deux listes pour trouver une concordance
+ * Syntactic equality test on two terms and two term lists
  *)
 let rec 
     equalsT l = function
@@ -79,7 +77,7 @@ and
 
 
 (*
- * Verifie la concordance entre deux formules.
+ * Syntactic equality between formulae.
  *)
 let rec
     equalsP l = function
@@ -109,7 +107,7 @@ and
 ;;
 
 (*
-Forces polarity 
+Forces polarity of predicate 'at' to be positive (if pos is true) or negative (if pos is false)
 *)
 
 let rec
@@ -139,6 +137,11 @@ and
       |	Und n -> forcepolU at pos n
 ;;
 
+
+(*
+Forces polarity of undefined to be positive or negative
+*)
+
 let make_pos = function
     	NegAtomU(f,tl) -> PosAtom(f,tl)
       |	PosAtomU(f,tl) -> PosAtom(f,tl)
@@ -154,7 +157,11 @@ let make_neg = function
 ;;
 
 
-(* Affiche une term list *)
+(* 
+PRETTY-PRINTING (to Latex syntax)
+*)
+
+(* Displays a term list *)
 let rec printtl = function
     [] -> ""
   | t::[] -> printt(t);
@@ -166,6 +173,7 @@ and
 ;;
 
 
+(* Displays a formula *)
 let rec printformula = function
     Neg(a) -> printformulaN(a)
   | Pos(a) -> printformulaP(a)

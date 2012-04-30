@@ -33,7 +33,7 @@ let my_f2 = Pos(
 )
 ;;
 
-(* !p(x) \/+ p(x) : tourne en boucle si recherche de preuve en profondeur*)
+(* !p(x) \/+ p(x) : infinite computation if proof-search is depth-first*)
 let my_f3 = Pos(
   OrP(
     Neg(
@@ -95,7 +95,7 @@ let my_f5 = Pos(
 )
 ;; 
 
-(* (!a \/+ !b) pas prouvable - algo naif tourne en boucle *)
+(* (!a \/+ !b) not provable - naive algorithm goes into infinite computation *)
 let my_f6 = Pos(
   OrP(
     Neg(
@@ -137,8 +137,8 @@ write_to_file "latex/eurecaml.tex" (printanswer (go my_f1)^"\\vspace{30pt}"^
 let treatfile filename = print_list  (list_from_string (read_from_file(filename)) [] 0);;
 *)
 
-let treatfile filename =  print_string ((read_from_file(filename)));;
-let treatfile filename = print_endline(printformula (perp(generate_cnf(parse_cnf_file (list_from_string (read_from_file(filename)) [] 0)))));;
+(* let treatfile filename =  print_string ((read_from_file(filename)));; *)
+(* let treatfile filename = print_endline(printformula (perp(generate_cnf(parse_cnf_file (list_from_string (read_from_file(filename)) [] 0)))));; *)
 let treatfile filename = go (perp(generate_cnf(parse_cnf_file (list_from_string (read_from_file(filename)) [] 0))));;
 
 
@@ -151,6 +151,6 @@ let treatdir a =
 
 (* treatdir("sat-2002-beta/generated/gen-9/gen-9.1");; *)
 
-treatfile "test.cnf";;
+(*treatfile "test.cnf";;*)
 (* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 

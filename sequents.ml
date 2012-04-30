@@ -3,25 +3,33 @@ include Zipper;;
 open Formulae;;
 include Formulae;;
 
-(* List d'atomes negatifs * FormuleFocusee * Liste de formules positives * Formules positives saved*)
+(* Zipper of (negative) atoms * Formula in Focus * Zipper of positive formulae * List of positive formulae on which focus has been placed more times than others*)
+(* Zipper of (negative) atoms * Formulae to inverse * Zipper of positive formulae * List of positive formulae on which focus has been placed more times than others*)
 type seq = 
     EntF of (((string*(term list)) ref) zipper)*formula*((posFormula ref) zipper)*((posFormula ref) list)
   | EntUF of (((string*(term list)) ref) zipper)*(formula zipper)*((posFormula ref) zipper)*((posFormula ref) list);;
 
 (*
- * Structure d'arbre de preuve
+ * Type of proof-trees
  *)
 type prooftree = 
     Axiom of seq 
   | OnePre of seq*prooftree 
   | TwoPre of seq*prooftree*prooftree
 ;;
+
 (*
- * Renvoie un proovtree si le théorême est vrai
+ * Type of answers. 
+ * In case of fail, we indicate the points where we got tired (a zipper of computations that have been halted, using weak reduction of OCaml))
  *)
 type answer = Success of prooftree | Fail of (((unit -> answer)* seq) zipper);;
 
 
+(*
+  PRETTY-PRINTING (in Latex syntax)
+ *)
+
+(* Displays sequent *)
 
 let rec printseq = function
     EntUF(atomsN, unfocused, formuP, formuPSaved)
@@ -38,7 +46,7 @@ let rec printseq = function
         (printl true (function x -> printformulaP (!x)) formuPSaved)^"}"
 ;;
 
-(* Affiche un prooftree en latex *)
+(* Displays prooftree *)
 let rec printprooftree = function
     OnePre (a,b) -> "\\infer {"^(printseq a)^"}{"^printprooftree(b)^"}";
   | TwoPre (a,b,c) -> "\\infer {"^(printseq a)^
@@ -48,6 +56,7 @@ let rec printprooftree = function
 ;;
 
 
+(* Displays answer *)
 let printanswer = function
     Success( p ) -> "$$"^printprooftree p^"$$";
   | Fail(x) -> "\\textsf {FAIL} \\\\"^printzipper (function (y, z) -> "$$"^(printseq z)^"$$") " " (x)

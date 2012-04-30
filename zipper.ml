@@ -102,7 +102,7 @@ let rec is_in_list x = function
 
 
 
-(* transforms list and zipper *)
+(* transforms list and zipper (higher-order) *)
 
 let rec
     applylist  transform = function
@@ -115,6 +115,9 @@ let applyzipper  transform = function
 ;;
 
 
+(* PRETTY-PRINTING *)
+
+(* if b, head is left-most *)
 
 let rec printl b pprint = function
     [] -> ""
