@@ -1,2 +1,2 @@
-./eurecaml.out && cd latex && pdflatex prooftree.tex && acroread prooftree.pdf && cd ..
+./main.out && cd latex && pdflatex Main.tex && acroread Main.pdf & cd ..
 

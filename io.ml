@@ -1,7 +1,6 @@
-  open Search;;
-  include Search;;
-
-  open Printf;;
+open Formulae;;
+open Sequents;;
+open Printf;;
 
 let write_to_file = fun filename s ->
   let chan = open_out filename in 
@@ -39,7 +38,7 @@ let rec list_from_string s list_so_far n =
 	       match s.[n] with
 		   ' '  -> begin
 		     list_from_string s (word_so_far::list_so_far) n
-		       end
+		   end
 		 | '\n' -> list_from_string s (word_so_far::list_so_far) n
 		 | c    -> word_from_string s (word_so_far^(Char.escaped c)) (n+1)
 	     end
@@ -52,7 +51,7 @@ let rec print_list = function
   | s::l -> print_string (s^" "); print_list l;;
 
 (* lex a cnf file to list of lists of literals, with auxiliary argument *)
-	     
+
 let rec parse_cnf cnf_so_far = function
     []     -> List.rev cnf_so_far
   | "0"::l -> parse_cnf cnf_so_far l
@@ -73,30 +72,46 @@ let rec parse_cnf_file = function
   | a::l -> parse_cnf_file l
 ;;
 
-(* parse a literals from boolean (for sign) and string *)
 
-let generate_atom = function
-    (true,t)  -> Und(PosAtomU (t, []))
-  | (false,t) -> Und(NegAtomU (t, []))
-;;
 
-(* parse a clause from list of literal descriptions *)
 
-let rec generate_clause =  function
-    t::[] -> generate_atom t
-(*    | t::l  -> if (Random.bool())*)
-  | t::l  -> if (false)  
-    then Pos(OrP((generate_atom t),(generate_clause l)))
-    else Neg(OrN((generate_atom t),(generate_clause l)))
-  | []    -> Pos(AndP(Pos(PosAtom ("p",[])),Neg(NegAtom ("p",[]))))
-;;
+module Generate =
+  functor (F:FormulaImplem) ->
+    (struct
 
-(* parse a cnf from list of clause descriptions *)
+       (* parse a literals from boolean (for sign) and string *)
 
-let rec generate_cnf =  function
-    t::[] -> generate_clause t
-  | t::l  -> if (true)  
-    then Pos(AndP((generate_clause t),(generate_cnf l)))
-    else Neg(AndN((generate_clause t),(generate_cnf l)))
-  | []    -> Pos(OrP(Pos(PosAtom ("p",[])),Neg(NegAtom ("p",[]))))
+       let generate_atom = function
+	   (true,t)  -> F.build (Pos(PosAtom (t, [])))
+	 | (false,t) -> F.build (Neg(NegAtom (t, [])))
+       ;;
+
+       (* parse a clause from list of literal descriptions *)
+
+       let rec generate_clause =  function
+	   t::[] -> generate_atom t
+	     (*    | t::l  -> if (Random.bool())*)
+	 | t::l  -> if (true)
+	   then F.build (Pos(AndP((generate_atom t),(generate_clause l))))
+	   else F.build (Neg(AndN((generate_atom t),(generate_clause l))))
+	 | []    -> F.build (Neg(OrN(
+				   F.build (Pos(PosAtom ("p",[]))),
+				   F.build (Neg(NegAtom ("p",[])))
+				 )))
+       ;;
+
+       (* parse a cnf from list of clause descriptions *)
+
+       let rec generate_cnf =  function
+	   t::[] -> generate_clause t
+	 | t::l  -> if (false)
+	   then F.build (Pos(OrP((generate_clause t),(generate_cnf l))))
+	   else F.build (Neg(OrN((generate_clause t),(generate_cnf l))))
+	 | []    -> F.build (Pos(AndP(
+				   F.build (Pos(PosAtom ("p",[]))),
+				   F.build (Neg(NegAtom ("p",[])))
+				 )))
+       ;;
+
+     end)
 ;;

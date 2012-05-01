@@ -83,9 +83,9 @@ let is_empty = function
 (* Verifie l'appartenance d'un element au zipper *)
 let rec is_in_zipper x = function
     Zip([], []) -> false  
-  | Zip(y::l, r) when !y=x -> true
+  | Zip(y::l, r) when y=x -> true
   | Zip(y::l, r) -> is_in_zipper x (Zip(l, r))
-  | Zip(l, y::r) when !y=x -> true
+  | Zip(l, y::r) when y=x -> true
   | Zip(l, y::r) -> is_in_zipper x (Zip(l, r))
 ;;
 
@@ -96,7 +96,7 @@ let is_empty_list = function
 
 let rec is_in_list x = function
     [] -> false  
-  | y::l when !y=x -> true
+  | y::l when y=x -> true
   | y::l -> is_in_list x l
 ;;
 

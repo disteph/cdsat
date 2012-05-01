@@ -1,63 +1,78 @@
 open Zipper;;
 include Zipper;;
 open Formulae;;
-include Formulae;;
+open Collection;;
 
-(* Zipper of (negative) atoms * Formula in Focus * Zipper of positive formulae * List of positive formulae on which focus has been placed more times than others*)
-(* Zipper of (negative) atoms * Formulae to inverse * Zipper of positive formulae * List of positive formulae on which focus has been placed more times than others*)
-type seq = 
-    EntF of (((string*(term list)) ref) zipper)*formula*((posFormula ref) zipper)*((posFormula ref) list)
-  | EntUF of (((string*(term list)) ref) zipper)*(formula zipper)*((posFormula ref) zipper)*((posFormula ref) list);;
+module Sequent =
+  functor (F: FormulaImplem) ->
+    functor (FSet: CollectImplem with type e = F.t) ->
+      functor (ASet: CollectImplem with type e = Atom.t) ->
+	(
+	  struct
 
-(*
- * Type of proof-trees
- *)
-type prooftree = 
-    Axiom of seq 
-  | OnePre of seq*prooftree 
-  | TwoPre of seq*prooftree*prooftree
+	    module Form = Formula(F)
+
+	    type t = 
+		EntF of ASet.t*F.t*FSet.t*FSet.t*FSet.t
+	      | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*FSet.t
+
+	    (* Displays sequent *)
+	    let rec toString = function
+		EntF(atomsN, focused, formuP, formuPTried, formuPSaved)
+		-> " \\DerOSPos {"^(ASet.toString atomsN)^
+		  "} {"^(Form.toString focused)^"}"^
+		  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPTried)^" \\cdot "^(FSet.toString formuPSaved)^"}"
+	      | EntUF(atomsN, unfocused, formuP, formuPTried, formuPSaved)
+		-> " \\DerOSNeg {"^(ASet.toString atomsN)^
+		  "} {"^(FSet.toString unfocused)^"}"^
+		    "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPTried)^" \\cdot "^(FSet.toString formuPSaved)^"}"
+	  end)
 ;;
 
-(*
- * Type of answers. 
- * In case of fail, we indicate the points where we got tired (a zipper of computations that have been halted, using weak reduction of OCaml))
- *)
-type answer = Success of prooftree | Fail of (((unit -> answer)* seq) zipper);;
+module ProofTree =
+  functor (F: FormulaImplem) ->
+    functor (FSet: CollectImplem with type e = F.t) ->
+      functor (ASet: CollectImplem with type e = Atom.t) ->
+	(
+	  struct
 
+	    module Seq = Sequent(F)(FSet)(ASet)
 
-(*
-  PRETTY-PRINTING (in Latex syntax)
- *)
+	    (* Type of proof-trees *)
+	    type t = 
+		Axiom of Seq.t 
+	      | OnePre of Seq.t*t 
+	      | TwoPre of Seq.t*t*t
 
-(* Displays sequent *)
+	    (* Displays prooftree *)
+	    let rec toString = function
+		OnePre (a,b) -> "\\infer {"^(Seq.toString a)^"}{"^toString(b)^"}";
+	      | TwoPre (a,b,c) -> "\\infer {"^(Seq.toString a)^"}{"^toString(b)^" \\quad "^toString(c)^"}";
+	      | Axiom (a) -> "\\infer {"^(Seq.toString a)^"}{}"         
 
-let rec printseq = function
-    EntUF(atomsN, unfocused, formuP, formuPSaved)
-    -> " \\DerOSNeg {"^
-      (printzipper (function x-> match !x with (s, tl) -> s^"("^printtl(tl)^")") " \\cdot " atomsN)^
-      "} {"^(printzipper printformula " \\cdot " unfocused)^"}"^
-      "{"^(printzipper (function x -> printformulaP (!x)) " \\cdot " formuP)^"\\mid "^
-      (printl true (function x -> printformulaP (!x)) formuPSaved)^"}";
-      
-  | EntF(atomsN, focused, formuP, formuPSaved)
-    -> " \\DerOSPos {"^(printzipper (function x-> match !x with  (s, tl) -> s^"("^printtl(tl)^")") " \\cdot " atomsN)^
-      "} {"^(printformula focused)^"}"^
-        "{"^(printzipper (function x -> printformulaP (!x)) " \\cdot " formuP)^"\\mid "^
-        (printl true (function x -> printformulaP (!x)) formuPSaved)^"}"
+	  end)
 ;;
 
-(* Displays prooftree *)
-let rec printprooftree = function
-    OnePre (a,b) -> "\\infer {"^(printseq a)^"}{"^printprooftree(b)^"}";
-  | TwoPre (a,b,c) -> "\\infer {"^(printseq a)^
-      "}{"^printprooftree(b)^
-        " \\quad "^printprooftree(c)^"}";
-  | Axiom (a) -> "\\infer {"^(printseq a)^"}{}"         
-;;
+module Answer =
+  functor (F: FormulaImplem) ->
+    functor (FSet: CollectImplem with type e = F.t) ->
+      functor (ASet: CollectImplem with type e = Atom.t) ->
+	(
+	  struct
 
+	    module Seq = Sequent(F)(FSet)(ASet)
+	    module PT = ProofTree(F)(FSet)(ASet)
 
-(* Displays answer *)
-let printanswer = function
-    Success( p ) -> "$$"^printprooftree p^"$$";
-  | Fail(x) -> "\\textsf {FAIL} \\\\"^printzipper (function (y, z) -> "$$"^(printseq z)^"$$") " " (x)
+	    (*
+	     * Type of answers. 
+	     * In case of fail, we indicate the points where we got tired (a zipper of computations that have been halted, using weak reduction of OCaml))
+	     *)
+	    type t = Success of PT.t | Fail of (((unit -> t)* Seq.t) zipper);;
+
+	    (* Displays answer *)
+	    let toString = function
+		Success( p ) -> "$$"^(PT.toString p)^"$$";
+	      | Fail(x) -> "\\textsf {FAIL} \\\\"^printzipper (function (y, z) -> "$$"^(Seq.toString z)^"$$") " " (x)
+
+	  end)
 ;;

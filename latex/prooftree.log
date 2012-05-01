@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.5)  30 APR 2012 13:41
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.5)  1 MAY 2012 22:28
 entering extended mode
  %&-line parsing enabled.
 **prooftree.tex
@@ -191,7 +191,7 @@ LaTeX Font Info:    Try loading font information for U+msb on input line 1.
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
-Overfull \hbox (357.062pt too wide) detected at line 1
+Overfull \hbox (349.28429pt too wide) detected at line 1
 []
  []
 
@@ -215,7 +215,7 @@ Here is how much of TeX's memory you used:
  5488 multiletter control sequences out of 15000+50000
  8325 words of font info for 26 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 27i,33n,37p,4925b,315s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 27i,33n,37p,4408b,315s stack positions out of 5000i,500n,10000p,200000b,50000s
  </home/lengrand/.texmf-var/fonts/pk/
 ljfour/jknappen/ec/ecbx1000.600pk> </home/lengrand/.texmf-var/fonts/pk/ljfour/j
 knappen/ec/ecss1000.600pk> </home/lengrand/.texmf-var/fonts/pk/ljfour/jknappen/
@@ -225,9 +225,9 @@ ec/ecrm1000.600pk></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi
 -texlive/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-texlive/font
 s/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/pub
 lic/amsfonts/cm/cmsy7.pfb>
-Output written on prooftree.pdf (3 pages, 73386 bytes).
+Output written on prooftree.pdf (3 pages, 69856 bytes).
 PDF statistics:
- 89 PDF objects out of 1000 (max. 8388607)
+ 86 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
