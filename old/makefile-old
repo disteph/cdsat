@@ -1,0 +1,12 @@
+all:
+	ocamlc -c collection.ml
+	ocamlc -c formulae.ml
+	ocamlc -c sequents.ml
+	ocamlc -c strategy.ml
+	ocamlc -c search.ml
+	ocamlc -c io.ml
+	ocamlc -c test.ml
+	ocamlc -c mySmart.ml
+	ocamlc -c dpll.ml
+	ocamlc -c main.ml
+	ocamlc -o main.out formulae.cmo collection.cmo sequents.cmo strategy.cmo search.cmo io.cmo test.cmo mySmart.cmo dpll.cmo main.cmo
