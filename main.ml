@@ -4,137 +4,118 @@ open Formulae;;
 open Strategy;;
 open Io;;
 open Test;;
+open MySmart;;
 
-module TestList = Tests(MyUserStrategy);;
-include TestList;;
+include Tests(MySmartUser);;
+
+Search.debug := 1;;
 
 (* p(x) \/- !p(x) *)
-let my_f1 = 
-  F.build(Neg(
-	    OrN(
-	      F.build(Pos(
-			PosAtom("p",
-				[V("x")])
-		      )),
-	      F.build(Neg(
-			NegAtom("p",
-				[V("x")])
-		      ))
+let f1 = 
+  UF.build(OrN(
+	      UF.build(Lit(true,"p",[])),
+	      UF.build(Lit(false,"p",[]))
 	    )
 	  )
-	 )
 ;;
 
 (* p(x) \/+ !p(x) *)
-let my_f2 = 
-  F.build(Pos(
-	    OrP(
-	      F.build(Pos(
-			PosAtom("p",
-				[V("x")])
-		      )),
-	      F.build(Neg(
-			NegAtom("p",
-				[V("x")])
-		      ))
-	    )
-	  )
-	 )
+let f2 = 
+  UF.build(OrP(
+	    UF.build(Lit(true,"p",[])),
+	    UF.build(Lit(false,"p",[]))
+	  ))
 ;;
 
 (* !p(x) \/+ p(x) : infinite computation if proof-search is depth-first*)
-let my_f3 = 
-  F.build(Pos(
-	    OrP(
-	      F.build(Neg(
-			NegAtom("p",
-				[])
-		      )),
-	      F.build(Pos(
-			PosAtom("p",
-				[])
-		      ))
-	    )
-	  )
-	 )
+let f3 = 
+  UF.build(OrP(
+	    UF.build(Lit(false,"p",[])),
+	    UF.build(Lit(true,"p",[]))
+	  ))
 ;;
 
 (* (a \/- b) \/- (!a /\- !b) *)
 
-let my_f4 = 
-  F.build(Neg(
-	    OrN(
-	      F.build(Neg(
-			OrN(
-			  F.build((Pos(
-				     PosAtom("a", [])))),
-			  F.build(Pos(
-				    PosAtom("b", [])))
-			)
-		      )),
-	      F.build(Neg(
-			AndN(
-			  F.build(Neg(
-				    NegAtom("a", []))), 
-			  F.build(Neg(
-				    NegAtom("b", [])))
-			)
-		      )
-		     )
-	    )
-	  )
-	 )
+let f4 = 
+  UF.build(OrN(
+	    UF.build(OrN(
+		      UF.build(Lit(true,"a",[])),
+		      UF.build(Lit(true,"b",[]))
+		    )),
+	    UF.build(AndN(
+		      UF.build(Lit(false,"a",[])),
+		      UF.build(Lit(false,"b",[]))
+		    ))
+	  ))
 ;; 
 
 (* (a \/+ b) \/- (!a /\- !b) *)
-let my_f5 = 
-  F.build(Pos(
-	    OrP(
-	      F.build(Pos(
-			OrP(
-			  F.build(Pos(
-				    PosAtom("a", []))),
-			  F.build(Pos(
-				    PosAtom("b", [])))
-			)
-		      )),
-	      F.build(Neg(
-			AndN(
-			  F.build(Neg(
-				    NegAtom("a", []))), 
-			  F.build(Neg(
-				    NegAtom("b", [])))
-			)
-		      ))
-	    )
-	  )
-	 )
+let f5 = 
+  UF.build(OrN(
+	    UF.build(OrP(
+		      UF.build(Lit(true,"a",[])),
+		      UF.build(Lit(true,"b",[]))
+		    )),
+	    UF.build(AndN(
+		      UF.build(Lit(false,"a",[])),
+		      UF.build(Lit(false,"b",[]))
+		    ))
+	  ))
 ;; 
 
 (* (!a \/+ !b) not provable - naive algorithm goes into infinite computation *)
-let my_f6 = 
-  F.build(Pos(
-	    OrP(
-	      F.build(Neg(
-			NegAtom("a", []))), 
-	      F.build(Neg(
-			NegAtom("b", [])))
-	    )
-	  )
-	 )
+let f6 = 
+  UF.build(OrP(
+	    UF.build(Lit(false,"a", [])), 
+	    UF.build(Lit(false,"b", []))
+	  ))
 ;; 
 
-write_to_file "latex/eurecaml.tex" (Src.Ans.toString (go my_f1)^"\\vspace{30pt}"^
-				      (Src.Ans.toString (go my_f2))^"\\vspace{30pt}"^
-				      (Src.Ans.toString (go my_f3))^"\\vspace{30pt}"^
-				      (Src.Ans.toString (go my_f4))^"\\vspace{30pt}"^
-				      (Src.Ans.toString (go my_f5))^"\\vspace{30pt}"^
-				      (Src.Ans.toString (go my_f6))
+(* (!a /\- !b) *)
+
+let f7=
+  UF.build(AndN(
+	    UF.build(Lit(false,"a", [])), 
+	    UF.build(Lit(false,"b", []))
+	  ))
+;;
+
+let f8=
+  UF.build(OrN(
+	      UF.build(OrP(
+			  UF.build(Lit(false,"p",[])),
+			  UF.build(Lit(false,"q",[]))
+		)),
+	      UF.build(AndP(
+			  UF.build(Lit(true,"p",[])),
+			  UF.build(Lit(true,"q",[]))
+		))
+	    ))
+;;
+
+let print_test f = "Trying to prove: $"^Src.Form.toString f^"$
+
+\\vspace{10pt}\n"^
+				      Src.Ans.toString (go f)^"\\vspace{30pt}
+
+";;
+
+write_to_file "latex/eurecaml.tex" (print_test f1^
+				      print_test f2^
+				      print_test f3^
+				      print_test f4^
+				      print_test f5^
+				      print_test f6^
+				      print_test f7^
+				      print_test f8
 				   )
 ;;
 
+
+ treatfile "test.cnf";;
+
 (* treatdir("sat-2002-beta/generated/gen-9/gen-9.1");; *)
 
-(*treatfile "test.cnf";;*)
 (* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 

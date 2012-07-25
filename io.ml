@@ -81,9 +81,7 @@ module Generate =
 
        (* parse a literals from boolean (for sign) and string *)
 
-       let generate_atom = function
-	   (true,t)  -> F.build (Pos(PosAtom (t, [])))
-	 | (false,t) -> F.build (Neg(NegAtom (t, [])))
+       let generate_atom (b,t) = F.build (Lit (b,t, []))
        ;;
 
        (* parse a clause from list of literal descriptions *)
@@ -92,12 +90,12 @@ module Generate =
 	   t::[] -> generate_atom t
 	     (*    | t::l  -> if (Random.bool())*)
 	 | t::l  -> if (true)
-	   then F.build (Pos(AndP((generate_atom t),(generate_clause l))))
-	   else F.build (Neg(AndN((generate_atom t),(generate_clause l))))
-	 | []    -> F.build (Neg(OrN(
-				   F.build (Pos(PosAtom ("p",[]))),
-				   F.build (Neg(NegAtom ("p",[])))
-				 )))
+	   then F.build (AndP((generate_atom t),(generate_clause l)))
+	   else F.build (AndN((generate_atom t),(generate_clause l)))
+	 | []    -> F.build (OrN(
+			       F.build (Lit (true,"p",[])),
+			       F.build (Lit (false,"p",[]))
+			     ))
        ;;
 
        (* parse a cnf from list of clause descriptions *)
@@ -105,12 +103,12 @@ module Generate =
        let rec generate_cnf =  function
 	   t::[] -> generate_clause t
 	 | t::l  -> if (false)
-	   then F.build (Pos(OrP((generate_clause t),(generate_cnf l))))
-	   else F.build (Neg(OrN((generate_clause t),(generate_cnf l))))
-	 | []    -> F.build (Pos(AndP(
-				   F.build (Pos(PosAtom ("p",[]))),
-				   F.build (Neg(NegAtom ("p",[])))
-				 )))
+	   then F.build (OrP((generate_clause t),(generate_cnf l)))
+	   else F.build (OrN((generate_clause t),(generate_cnf l)))
+	 | []    -> F.build (AndP(
+			       F.build (Lit (true,"p",[])),
+			       F.build (Lit (false,"p",[]))
+			     ))
        ;;
 
      end)

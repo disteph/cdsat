@@ -7,38 +7,17 @@ module Term =
       *)
      type term = V of string | C of string*(term list)
 
-
-     (*
-      * Syntactic equality test on two terms and two term lists
-      *)
-     let rec 
-	 equalsT l = function
-	     (V x,V y) when x=y -> true
-	   | (V x,V y) -> 
-	       begin
-		 match l with
-		     [] -> false
-		   | (x',y')::l' when (x'=x && y'=y)-> true
-		   | (x',y')::l' -> equalsT l' (V x,V y)
-	       end
-	   | (C(f,tl),C(g,ul)) when f=g -> equalsTl l (tl,ul)
-	   | _ -> false
-     and
-	 equalsTl l = function
-	     ([],[]) -> true
-	   | (t::tl',u::ul') -> (equalsT l (t,u))&&(equalsTl l (tl',ul'))
-	   | _ -> false
-
-     let compare t t' = if (equalsT [] (t,t')) then 0 else 1
-
      let rec toString = function
 	 V(a) -> a;
-       | C(f, newtl) -> f^"( "^printtl(newtl)^")";
-     and printtl = function
+       | C(f, newtl) -> f^printtl(newtl)
+     and printrtl = function
 	 [] -> ""
        | t::[] -> toString(t);
-       | t::l -> toString(t)^", "^printtl(l);
-
+       | t::l -> toString(t)^", "^printtl(l)
+     and printtl = function
+	 [] -> ""
+       | tl ->"("^printrtl(tl)^")"
+	   
    end)
 ;;
 
@@ -47,23 +26,24 @@ include Term;;
 
 module Atom =
   (struct
-     type t = string*(term list)
-     let equalsA l ((f,tl),(g,ul)) = (f=g) && (equalsTl l (tl,ul))
-     let compare (f,tl) (g,ul) = if (equalsA [] ((f,tl),(g,ul))) then 0 else 1
-     let toString (f,tl) = f^"( "^printtl(tl)^")"
-   end:PrintableType with type t = string*(term list))
+     type t = bool*string*(term list)
+     let toString = function
+	   (true,s, tl) -> "{"^s^printtl(tl)^"}"
+	 | (false,s, tl) -> "\\non {"^s^"}"^printtl(tl)
+   end:PrintableType with type t = bool*string*(term list))
 ;;
 
-type 'a posForm = 
-    PosAtom of string*(term list) 
+
+
+type 'a form =
+    Lit of Atom.t
   | AndP of 'a*'a
-  | OrP of 'a*'a;;
-type 'a negForm = 
-    NegAtom of string*(term list)
+  | OrP of 'a*'a
   | AndN of 'a*'a
   | OrN of 'a*'a;;
-type 'a form = Pos of 'a posForm | Neg of 'a negForm;;
 
+
+(* Interface for an implementation of formulae *)
 
 module type FormulaImplem = sig
   type t
@@ -72,43 +52,36 @@ module type FormulaImplem = sig
 end;;
 
 
-module Formula =
+(* Generic code providing standard functions about formulae *)
+
+module PrintableFormula =
   functor (F: FormulaImplem) ->
     (struct
 
-	type t = F.t
-	(*
-	 * Syntactic equality between formulae.
-	 *)
-	let rec
-	    equals l (p, p') = match (F.reveal p,F.reveal p') with
-		(Pos(PosAtom(f,tl)),Pos(PosAtom(g,ul))) -> (f=g) && (equalsTl l (tl,ul))
-	      | (Pos(AndP(a,b)),Pos(AndP(a',b'))) -> (equals l (a,a')) && (equals l (b,b'))
-	      | (Pos(OrP(a,b)),Pos(OrP(a',b'))) -> (equals l (a,a'))&&(equals l (b,b'))
-	      |	(Neg(NegAtom(f,tl)),Neg(NegAtom(g,ul))) -> (f=g) && (equalsTl l (tl,ul))
-	      | (Neg(AndN(a,b)),Neg(AndN(a',b'))) -> (equals l (a,a')) && (equals l (b,b'))
-	      | (Neg(OrN(a,b)),Neg(OrN(a',b'))) -> (equals l (a,a'))&&(equals l (b,b'))
-	      | _ -> false
+       type t = F.t
+	   
+       (* Displays a formula *)
+       let rec toString f = match F.reveal f with
+	   Lit(l) -> Atom.toString l
+	 | AndN(f1,f2) -> "("^toString(f1)^") \\andN ("^toString(f2)^")"
+	 | OrN(f1,f2) -> "("^toString(f1)^") \\orN ("^toString(f2)^")"
+	 | AndP(f1,f2) -> "("^toString(f1)^") \\andP ("^toString(f2)^")"
+	 | OrP(f1,f2) -> "("^toString(f1)^") \\orP ("^toString(f2)^")"
 
-	let compare p p' = if (equals [] (p,p')) then 0 else 1
 
-	(* Displays a formula *)
-	let rec toString f = match (F.reveal f) with
-	    Neg(a) -> printformulaN(a)
-	  | Pos(a) -> printformulaP(a)
-	and
-	    printformulaN = function
-		NegAtom(s, tl) -> "\\non {"^s^"("^printtl(tl)^")}"
-	      | AndN(f1,f2) -> "("^toString(f1)^") \\andN ("^toString(f2)^")"
-	      | OrN(f1,f2) -> "("^toString(f1)^") \\orN ("^toString(f2)^")"
-	and
-	    printformulaP = function
-		PosAtom(s, tl) -> s^"("^printtl(tl)^")"
-	      | AndP(f1,f2) -> "("^toString(f1)^") \\andP ("^toString(f2)^")"
-	      | OrP(f1,f2) -> "("^toString(f1)^") \\orP ("^toString(f2)^")"
+       (* Negates a formula *)
+       let rec negation f = F.build(match F.reveal f with
+	   Lit(b,s, tl) -> Lit(not b,s, tl)
+	 | AndN(f1,f2) -> OrP(negation f1,negation f2)
+	 | OrN(f1,f2) -> AndP(negation f1,negation f2)
+	 | AndP(f1,f2) -> OrN(negation f1,negation f2)
+	 | OrP(f1,f2) -> AndN(negation f1,negation f2)
+				   )
 
-     end:PrintableType with type t = F.t)
+     end)
 ;;
+
+(* Default implementation for interface FormulaImplem *)
 
 module MyFormulaImplem = 
   (struct

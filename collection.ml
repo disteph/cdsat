@@ -6,11 +6,16 @@ sig
   val is_in: e -> t -> bool
   val empty: t
   val add: e -> t -> t
+  val union: t -> t -> t
   val remove: e -> t -> t
+  val choose: t -> e
   val next: t -> e*t
   val toString: t -> string
 end
 ;;
+
+
+(* Default implementation for interface CollectImplem *)
 
 module type PrintableType = sig 
   type t 
@@ -31,11 +36,19 @@ module MyCollectImplem =
 	 | y::l -> is_in x l
        let empty = [] 
        let add x l = x::l
+       let rec union gamma1 = function
+	     [] -> gamma1
+	   | a::gamma2 -> a::(union gamma1 gamma2)
        let rec remove x = function
 	   [] -> failwith(MyPType.toString(x)^" is not in list!")
 	 | y::l when y=x -> l
 	 | y::l -> y::(remove x l)
-       let next (a::l) = (a,l)
+       let choose = function
+	   (a::l) -> a
+	 | _ -> failwith("No more item to pick")
+       let next = function
+	   (a::l) -> (a,l)
+	 | _ -> failwith("No more item to pick")
        let rec toString = function
 	   [] -> ""
 	 | f::[] -> MyPType.toString(f)

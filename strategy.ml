@@ -2,23 +2,47 @@ open Formulae;;
 open Collection;;
 open Sequents;;
 
-module type UserStrategy =
+
+module type User =
   (sig
-     module F: FormulaImplem
-     module FSet: CollectImplem with type e = F.t
-     module ASet: CollectImplem with type e = Atom.t
-     val focus_pick : ASet.t*FSet.t*FSet.t*FSet.t -> F.t
-     val side_pick : ASet.t*F.t*FSet.t*FSet.t*FSet.t -> bool
+     module UF: FormulaImplem
+     module UFSet: CollectImplem with type e = UF.t
+     module UASet: CollectImplem with type e = Atom.t
+
+     module Strategy: 
+       functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> 
+       (sig
+	  val solve : FE.Ans.output -> FE.Ans.t
+	end)
    end
   )
 ;;
 
-module MyUserStrategy =
+(* Default implementation for interface UserStrategy *)
+
+module MyUser:User =
   (struct
-     module F = MyFormulaImplem
-     module FSet = MyCollectImplem(Formula(F))
-     module ASet = MyCollectImplem(Atom)
-     let focus_pick(atomsN, a::l, formuPTried, formuPSaved) = a
-     let side_pick(atomsN, focused, formuP, formuPTried, formuPSaved) = true
-   end:UserStrategy)
+     module UF = MyFormulaImplem
+     module UFSet = MyCollectImplem(PrintableFormula(UF))
+     module UASet = MyCollectImplem(Atom)
+     module Strategy =
+       functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) ->
+	 (struct
+	    include FE.Ans
+
+	    let rec solve = function
+	      | Local ans                   -> ans
+	      | Fake(AskFocus(seq,machine)) ->
+		  solve (machine (begin
+			     match seq with
+			       | FE.Seq.EntUF(_,_, a::l, _, _,_) -> Focus(a, accept)
+			       | _ -> failwith("No more formula to place focus on.")
+			   end))
+	      | Fake(AskSide(seq,machine)) ->
+		  solve(machine true)
+	      | Fake(Stop(b1,b2, machine)) -> 
+		  solve(machine ())
+
+	  end)
+   end)
 ;;
