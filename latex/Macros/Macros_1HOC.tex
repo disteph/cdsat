@@ -1,0 +1,107 @@
+%SYNTACTIC CATEGORIES
+\newcommand\HOC{{\textsf{HOC}}}
+\newcommand\HRS{{\textsf{HRS}}}
+\newcommand\CRS{{\textsf{CRS}}}
+\newcommand\ERS{{\textsf{ERS}}}
+\newcommand\SERS{{\textsf{SERS}}}
+\newcommand\IS{{\textsf{IS}}}
+\newcommand\BNF{{\textsf{BNF}}}
+
+
+\newcommand\SC{\mathcal{SC}}
+\newcommand\SCmeta{\mathcal{SC}^{\mathcal M}}
+\newcommand\HOSC[1]{\textsf{HOSC}_{#1}}
+
+\newcommand{\sep}{\mbox{$\;|\;$}}    % Separators in BNF definitions
+\newcommand\mT{_{\mathcal T}}
+
+
+\newcommand\arrsc{\hookrightarrow}
+\newcommand{\colsc}{\wr}
+\newcommand{\tsc}[2]{{#1}\colsc{#2}}
+
+\newcommand{\order}[1]{\textsf{order}(#1)}
+\newcommand{\arity}[1]{\textsf{arity}(#1)}
+
+%TERMS
+
+%\newcommand\sensible{sensible}
+
+\newcommand\subterm{\sqsubset}
+\newcommand\subtermeq{\sqsubseteq}
+\newcommand\susterm{\sqsupset}
+\newcommand\sustermeq{\sqsupseteq}
+\newcommand\sizeof[1]{\textsf{s}({#1})}
+\newcommand\height[2]{\textsf{h}_{#1}({#2})}
+
+\newcommand{\se}{\equiv}
+
+\newcommand{\cc}[1]{\textbf{cc}{#1}}
+
+\newcommand\FV[2][{}]{\textsf{FV}_{#1}(#2)}
+\newcommand\FVname{\textsf{FV}}
+\newcommand\doma[1]{\textsf{Support}(#1)}
+\newcommand\domaname{\textsf{Support}}
+
+\newcommand\alphaeq{=_\a}
+\newcommand\aeq[3]{{#1}\vdash {#2}=_\a{#3}}
+\newcommand\vrel[2]{{#1}-{#2}}
+\newcommand\aeqv[3]{{#1}\vdash \vrel {#2}{#3}}
+
+%META
+\newcommand\mX{\mathbb{X}}
+\newcommand\mY{\mathbb{Y}}
+\newcommand\mM{\mathbb{M}}
+\newcommand\mN{\mathbb{N}}
+\newcommand\mE{\mathbb{E}}
+\newcommand\mS{\mathbb{S}}
+\newcommand\mB{\mathbb{B}}
+\newcommand\mA{\mathbb{A}}
+\newcommand\mP{\mathbb{P}}
+\newcommand\mUU{\mathbb{U}}
+\newcommand\mTT{\mathbb{T}}
+\newcommand\mVar[1][{}]{\textsf{V}_{#1}}
+\newcommand\Lists[1][{}]{\textsf{Lists}_{#1}}
+\newcommand\Multisets[1][{}]{\textsf{Multisets}_{#1}}
+\newcommand\Sets[1][{}]{\textsf{Sets}_{#1}}
+
+\newcommand\metaC[1]{{#1}^\dagger}
+\newcommand\metaCname{{}^\dagger}
+
+\newcommand\arrmeta{\times}
+\newcommand\arrm{\rightharpoonup}
+\newcommand{\colscm}{\ \vdots\ }
+\newcommand{\tscm}[2]{{#1}\colscm{#2}}
+
+
+\newcommand\BV[2]{\textsf{AVe}_{#1}(#2)}
+\newcommand\BVm[2]{\textsf{AVs}_{#1}(#2)}
+\newcommand\FMV[1]{\textsf{MV}(#1)}
+\newcommand\BConv[1]{\textsf{SC}(#1)}
+
+\newcommand\SetT{\mathcal {S}\textsf{et}}
+
+\newcommand\toHRS[2]{\theta_{#1} {(#2)}}
+\newcommand\toHRSname{\theta }
+\newcommand\etalf[2][{}]{\eta_{#1}{(#2)}}
+
+%REWRITE
+
+\newcommand{\subst}[3]{ \left\{{}^{#3}\hspace{-6pt}\diagup\hspace{-2pt}_{#2} \right\}\hspace{-1pt} #1 }
+\newcommand{\Ren}[3]{\subst {#1} {#2} {#3}}
+\newcommand{\Rene}[3]{\subst {#1} {\_} {#3}}
+
+
+%\newcommand{\Ren}[3]{\mathcal{R}_{#3}^{#2}({#1})}
+%\newcommand{\Rene}[3]{\mathcal{R}_{#3}({#1})}
+%\newcommand{\esubst}[2]{[#1/#2]}
+
+\newcommand{\ren}[3]{({#1}\;{#2}) {#3}}
+\newcommand{\renyx}[1]{\ren{y}{x}{#1}}
+
+\renewcommand{\root}{\textsf{\tiny{r\,o\,o\,t}}}
+\newcommand{\Rew}[2][]{\stackrel{#1}{\longrightarrow}_{#2}\;}
+\newcommand{\Rewn}[2][*]{{\longrightarrow}^{#1}_{#2}\;}
+\newcommand{\Rewplus}[2][+]{{\longrightarrow}^{#1}_{#2}\;}
+\newcommand{\Rewsn}[2][*]{{\longleftrightarrow}^{#1}_{#2}\;}
+

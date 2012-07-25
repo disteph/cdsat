@@ -1,0 +1,26 @@
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2010.5.10)  17 MAY 2010 18:41
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**/home/lengrand/Documents/Research/PSI-me/Macros/Macros_PMT.tex
+(/home/lengrand/Documents/Research/PSI-me/Macros/Macros_PMT.tex
+LaTeX2e <2009/09/24>
+Babel <v3.8l> and hyphenation patterns for english, usenglishmax, dumylang, noh
+yphenation, loaded.
+)
+*
+! Emergency stop.
+<*> ...ments/Research/PSI-me/Macros/Macros_PMT.tex
+                                                  
+End of file on the terminal!
+
+ 
+Here is how much of TeX's memory you used:
+ 17 strings out of 495062
+ 323 string characters out of 1182644
+ 45108 words of memory out of 3000000
+ 3293 multiletter control sequences out of 15000+50000
+ 3640 words of font info for 14 fonts, out of 3000000 for 9000
+ 28 hyphenation exceptions out of 8191
+ 7i,0n,6p,109b,8s stack positions out of 5000i,500n,10000p,200000b,50000s
+No pages of output.
