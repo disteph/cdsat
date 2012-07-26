@@ -373,3 +373,85 @@ module TypesFromHConsed =
 		      and type values=S.values
 		      and type infos=S.infos
        );;
+
+module Memo = 
+  functor (S: sig 
+	     type keys
+	     type common
+	     val tag : keys -> common
+	     type branching
+	     val check       : common->branching->bool
+	     val commonise   : common->common->common*branching
+	     val match_prefix: common->common->branching->bool
+	     val smallerthan : branching->branching->bool 
+	     type infos
+	     val info_build : infos*(keys->unit->infos)*(infos->infos->infos)	       
+	     type values
+	     val vcompare : values->values->bool
+	   end)-> struct
+
+    module ST = struct
+      type keys   = S.keys
+      type common = S.common
+      let tag     = S.tag
+      type branching = S.branching
+      let check      = S.check
+      let match_prefix = S.match_prefix
+      let commonise    = S.commonise
+      let smallerthan  = S.smallerthan
+
+
+      type values = unit
+      let vcompare _ _=true 
+      type infos = S.infos*keys option
+      let info_build = 
+	let (a,b,c) = S.info_build in
+	  ((a,None),
+	   (fun k () ->(b k (),Some k)),
+	   (fun (y1,x1) (y2,x2)
+	      -> (c y1 y2,
+		  match x1,x2 with
+		    | None,_ -> x2
+		    | _,None -> x1
+		    | Some(v1),Some(v2) -> if(tag v1<tag v2)then x1 else x2
+		 ))
+	  )
+      let treeHCons  = true
+    end
+
+    module PT = PATSet(ST)
+
+    module PTUser:UserTypes = struct
+      type keys = PT.t
+      type common = PT.t
+      let tag s = s
+
+      type values = ST.values
+      let vcompare = ST.vcompare
+
+      type infos = unit
+      let info_build = ((),(fun _ _->()),(fun _ _->()))
+	
+      type branching = ST.keys
+      let check k m = PT.mem m k
+      let smallerthan n1 n2 = (tag n1) < (tag n2)
+
+      let match_prefix k p m = (PT.subset p k)
+	&&( match PT.info(PT.diff k p) with
+	      | _,Some x -> not(smallerthan x m)
+	      | _        -> true)
+
+      let commonise p0 p1 = 
+	let p2 = PT.inter p0 p1 in
+	let d0 = let (_,x) = PT.info(PT.diff p0 p1) in x in
+	let d1 = let (_,x) = PT.info(PT.diff p1 p0) in x in
+	  match (d0,d1) with
+	    | Some(e0),Some(e1) -> (p2,if smallerthan e0 e1 then e0 else e1)
+	    | _ -> failwith("Impossible!")
+
+      let treeHCons  = false
+    end
+
+    module PTT = PATMap(PTUser)
+
+end
