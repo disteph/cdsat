@@ -101,6 +101,7 @@ module MyPatriciaCollectImplem(M:sig
 					  ()))
 					  )
 					*)
+				      let treeHCons = true
 				    end) 
      module SS    = PATSet(TFHC)
      type e       = SS.keys

@@ -113,7 +113,7 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 ;;
 
 
-treatfile "test.cnf";;
+ treatfile "test.cnf";; 
 
 (* treatdir("sat-2002-beta/generated/gen-9/gen-9.1");; *)
 

@@ -28,7 +28,7 @@ module type UserTypes = sig
   val commonise   : common->common->common*branching
   val match_prefix: common->common->branching->bool
   val smallerthan : branching->branching->bool 
-  val treeHcons   : bool
+  val treeHCons   : bool
 end
 
 
