@@ -5,7 +5,7 @@ open Printf;;
 let write_to_file = fun filename s ->
   let chan = open_out filename in 
     fprintf chan "%s\n" s;  
-    close_out chan; 
+    close_out chan
 ;;
 
 (* converts a file to a string with its contents *)
@@ -76,40 +76,36 @@ let rec parse_cnf_file = function
 
 
 module Generate =
-  functor (F:FormulaImplem) ->
-    (struct
+  functor (F:FormulaImplem) -> struct
 
-       (* parse a literals from boolean (for sign) and string *)
+    (* parse a literals from boolean (for sign) and string *)
 
-       let generate_atom (b,t) = F.build (Lit (b,t, []))
-       ;;
+    let generate_atom (b,t) = F.build (Lit (b,t, []))
 
-       (* parse a clause from list of literal descriptions *)
+    (* parse a clause from list of literal descriptions *)
 
-       let rec generate_clause =  function
-	   t::[] -> generate_atom t
-	     (*    | t::l  -> if (Random.bool())*)
-	 | t::l  -> if (true)
-	   then F.build (AndP((generate_atom t),(generate_clause l)))
-	   else F.build (AndN((generate_atom t),(generate_clause l)))
-	 | []    -> F.build (OrN(
-			       F.build (Lit (true,"p",[])),
-			       F.build (Lit (false,"p",[]))
-			     ))
-       ;;
+    let rec generate_clause =  function
+	t::[] -> generate_atom t
+	  (*    | t::l  -> if (Random.bool())*)
+      | t::l  -> if (true)
+	then F.build (AndP((generate_atom t),(generate_clause l)))
+	else F.build (AndN((generate_atom t),(generate_clause l)))
+      | []    -> F.build (OrN(
+			    F.build (Lit (true,"p",[])),
+			    F.build (Lit (false,"p",[]))
+			  ))
 
-       (* parse a cnf from list of clause descriptions *)
+    (* parse a cnf from list of clause descriptions *)
 
-       let rec generate_cnf =  function
-	   t::[] -> generate_clause t
-	 | t::l  -> if (false)
-	   then F.build (OrP((generate_clause t),(generate_cnf l)))
-	   else F.build (OrN((generate_clause t),(generate_cnf l)))
-	 | []    -> F.build (AndP(
-			       F.build (Lit (true,"p",[])),
-			       F.build (Lit (false,"p",[]))
-			     ))
-       ;;
+    let rec generate_cnf =  function
+	t::[] -> generate_clause t
+      | t::l  -> if (false)
+	then F.build (OrP((generate_clause t),(generate_cnf l)))
+	else F.build (OrN((generate_clause t),(generate_cnf l)))
+      | []    -> F.build (AndP(
+			    F.build (Lit (true,"p",[])),
+			    F.build (Lit (false,"p",[]))
+			  ))
 
-     end)
+  end
 ;;

@@ -1,12 +1,12 @@
 (* Main file *)
 
 open Formulae;;
-open Strategy;;
 open Io;;
 open Test;;
 open MySmart;;
+open MyPatricia;;
 
-include Tests(MySmartUser);;
+include Tests(MyPAT);;
 
 Search.debug := 1;;
 
@@ -94,10 +94,10 @@ let f8=
 	    ))
 ;;
 
-let print_test f = "Trying to prove: $"^Src.Form.toString f^"$
+let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 
 \\vspace{10pt}\n"^
-				      Src.Ans.toString (go f)^"\\vspace{30pt}
+				      Src.FE.toString (go f)^"\\vspace{30pt}
 
 ";;
 
@@ -113,7 +113,7 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 ;;
 
 
- treatfile "test.cnf";;
+treatfile "test.cnf";;
 
 (* treatdir("sat-2002-beta/generated/gen-9/gen-9.1");; *)
 

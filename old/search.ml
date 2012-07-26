@@ -21,8 +21,8 @@ module ProofSearch =
        let throw ans s = 
 	 let (index, word, modulo) =
 	   match ans with
-	   | Ans.LocalSuccess(prooftree) -> (0,"LocalSuccess",1)
-	   | Ans.LocalFail               -> (1,"LocalFail",1) 
+	   | Ans.LocalSuccess(prooftree) -> (0,"LocalSuccess",1000000)
+	   | Ans.LocalFail               -> (1,"LocalFail",1000000) 
 	   | Ans.Fake(0,f)               -> (4,"Escape",1)
 	   | Ans.Fake(1,f)               -> (2,"FakeSuccess->right",1)
 	   | Ans.Fake(-1,f)              -> (3,"FakeFail->right",1)

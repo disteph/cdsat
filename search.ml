@@ -10,12 +10,22 @@ module ProofSearch =
     functor (FSet: CollectImplem with type e = F.t) ->
       functor (ASet: CollectImplem with type e = Atom.t) ->
 	(struct
+	
+	   module FE = FrontEnd(F)(FSet)(ASet) 
+	   include FE
 	   
-	   include FrontEnd(F)(FSet)(ASet)
-	   include Ans
-	     
+	   (* Array where we count how many events we get *)
+
 	   let count = [|0;0;0;0;0|]
+
+	   (* Chooses whether, when faking failure, the natural
+	   behaviour is to go right (true) or left (false) *)
+
 	   let dir = ref true
+
+	   (* Throws a local answer ans on sequent s: printing message
+	      on standard output if debug mode is on, incrementing the
+	      adequate counter in the array *)
 
 	   let throw ans s = 
 	     let (index, word, modulo) =
@@ -34,6 +44,9 @@ module ProofSearch =
 		     if !debug>1  then print_endline(" "^word^": "^Seq.toString s);
 		   end; 
 	       ans
+
+	   (* Combines two computations in OR style (with backtrack
+	      management): success = success for either computation *)
 
 	   let rec ou v1 v2 fseq1 fseq2 cont =
 	     let newcont1 = function
@@ -57,6 +70,9 @@ module ProofSearch =
 	     in
 	       v1 newcont1
 
+	   (* Combines two computations in AND style (with backtrack
+	      management): success = success for both computations *)
+
 	   let rec et v1 v2 fseq cont =
 	     let newcont1 = function
 	       | Local(Success prooftree1) ->
@@ -79,13 +95,15 @@ module ProofSearch =
 	     in
 	       v1 newcont1
 
-       let rec straight v fseq cont =
-	 let newcont = function
-	   | Local(Success prooftree)-> cont (Local(Success(fseq prooftree)))
-	   | Local Fail              -> cont (Local Fail)
-	   | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp(straight f fseq)))
-	 in
-	   v newcont
+	   (* Unary version of ou and and, for homogeneous style *)
+
+	   let rec straight v fseq cont =
+	     let newcont = function
+	       | Local(Success prooftree)-> cont (Local(Success(fseq prooftree)))
+	       | Local Fail              -> cont (Local Fail)
+	       | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp(straight f fseq)))
+	     in
+	       v newcont
 
        (*
 	* Main Search function 
@@ -98,7 +116,7 @@ module ProofSearch =
 	* Returns Success(Prooftree) if a proof is found
 	*)
 
-       let rec lk_solve inloop seq cont : output =
+       let rec lk_solve inloop seq cont =
 	 (*	 print_endline("attack"^Seq.toString seq); *)
 	 match seq with
 	   | Seq.EntF(gammatomN, g, gammaformP, gammaformPSaved, polar)
@@ -237,7 +255,11 @@ module ProofSearch =
 
 		   | _ -> failwith("All cases should have been covered!")
 	       end
-     		 
+
+       (* Wraps the above function by providing top-level continuation
+       inter (for interaction with user), and printing a couple of
+       messages for standard output *)
+
        let rec wrap f =
 	 let fin = fun w -> print_endline(w^", with "
 					  ^(string_of_int count.(0))^" Successes, "
@@ -261,7 +283,13 @@ module ProofSearch =
 	 in
 	   f inter
 
+       (* Wraps the above function by providing initial inloop and
+       initial sequent *)
+
        let machine seq = wrap (lk_solve false seq)
 
-     end)
+	 end: sig
+           module FE : (FrontEndType with module F=F and module FSet=FSet and module ASet=ASet)
+           val machine : FE.Seq.t -> FE.output
+         end)
 ;;
