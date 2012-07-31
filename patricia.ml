@@ -1,38 +1,55 @@
 (* Material that must be provided to construct a Patricia tree
-structure for Maps *)
+structure *)
 
 module type UserTypes = sig
-  (* Domain of the map (keys),
-     implementation of keys and how to compute them
-     - typically for a HConsed type, common = int
+  (* Domain of the map/set (keys),
+     implementation of keys and how to compute them.
+     Typically for a HConsed keys type, common = int
   *)
   type keys
   type common
-  val tag         : keys->common
+  val ccompare   : common->common->int
+  val tag        : keys->common
 
-  (* Co-domain of the map (values), and how values compare *)    
+  (* Co-domain of the map (values), set it to unit for a set *)    
   type values
-  val vcompare    : values->values->bool
+  val vcompare    : values->values->int
 
-  (* Allows to store information about the map from keys to values
+  (* Allows to store information about the Patricia tree
      - typically, number of bindings stored, etc *) 
   type infos
     
-  (* Provide info for empty map, singleton map, and disjoint union
-  of two maps *) 
+  (* Provides info for empty tree, singleton tree, and disjoint union
+  of two tree *)
   val info_build : infos*(keys->values->infos)*(infos->infos->infos)
-
-  (* Structures for the internal use of the Patricia trees *) 
+    
+  (* Structures for the internal use of the Patricia trees.
+     branching is the type of data used for discriminating the keys
+     (themselves represented in common via tag) *) 
   type branching
+  val bcompare    : branching->branching->int
+
+  (* checks discriminates its first argument over second *)
   val check       : common->branching->bool
-  val commonise   : common->common->common*branching
+
+  (* Given two elements of common, disagree outputs:
+     their common part,
+     the first branching data that discriminates them
+     a boolean saying whether that data was in the first [true] or
+  second [false] argument *)
+  val disagree    : common->common->common*branching*bool
+
+  (* Checks whether the first argument is compatible with the second
+  up to some branching data.
+     Should output true if the first two arguments are equal *)
   val match_prefix: common->common->branching->bool
-  val smallerthan : branching->branching->bool 
+
+  (* Do you want the patricia trees hconsed? *)
   val treeHCons   : bool
 end
 
 
-(* Construction of a Patricia tree structure for maps, given a MapTypes *)
+(* Construction of a Patricia tree structure for maps, given a UserTypes *)
 
 module PATMap =
   functor (UT:UserTypes)-> struct
@@ -43,44 +60,45 @@ module PATMap =
 
       include UT
 
-      (* Our Patricia trees are HConsed *)
+      (* Our Patricia trees can be HConsed *)
 
       type 'a pat =
 	| Empty
 	| Leaf of UT.keys * UT.values
 	| Branch of UT.common * UT.branching * 'a * 'a
 
-      type tt = {reveal: tt pat ; id:int ; info: infos}
-
-      let reveal f = f.reveal
-      let id f = f.id
-      let info f = f.info
-
-      let info_gen = let (a,b,c)=info_build in function
-	| Empty    -> a
-	| Leaf(k,x)-> b k x
-	| Branch(_,_,t0,t1)-> c t0.info t1.info  
-
       (* Primitive type of Patricia trees to feed the HashTable Make
       functor *)
 
       module PATPrimitive = 
 	(struct
-	   type t = tt
-	   let equal t1 t2 =
+	   type t = {reveal: t pat ; id:int ; info: infos}
+
+	   let equal t1 t2 = if not treeHCons then (t1=t2) else
 	     match t1.reveal,t2.reveal with
 	       | Empty, Empty                             -> true
-	       | Leaf(key1,value1), Leaf(key2,value2)     -> key1==key2 && (vcompare value1 value2)
-	       | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> c1==c2 && b1==b2 && t3==t4 && t3'==t4'
+	       | Leaf(key1,value1), Leaf(key2,value2)     -> (ccompare (tag key1)(tag key2)==0) && (vcompare value1 value2==0)
+	       | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (ccompare c1 c2==0) && (bcompare b1 b2==0) && t3==t4 && t3'==t4'
 	       | _                                        -> false 
-	   let hash t1 =
+
+	   let hash t1 = if not treeHCons then Hashtbl.hash t1 else
 	     match t1.reveal with
 	       | Empty            -> 1
 	       | Leaf(key,value)  -> 2*(Hashtbl.hash key)+3*(Hashtbl.hash value)
 	       | Branch(c,b,t2,t3)-> 5*(Hashtbl.hash c)+7*(Hashtbl.hash b)+11*t2.id+13*t3.id
-	 end: Hashtbl.HashedType with type t=tt)
+
+	 end)
 
       include PATPrimitive
+
+      let reveal f = f.reveal
+      let id f     = f.id
+      let info f   = f.info
+
+      let info_gen = let (a,b,c)=info_build in function
+	| Empty    -> a
+	| Leaf(k,x)-> b k x
+	| Branch(_,_,t0,t1)-> c t0.info t1.info  
 
       module H = Hashtbl.Make(PATPrimitive)
       let table = H.create 5003 
@@ -89,11 +107,11 @@ module PATMap =
 	let f = {reveal =  a; id = !uniq ; info = info_gen a} in
 	  if treeHCons then
 	    try H.find table f
-	    with Not_found -> incr uniq; H.add table f f; f
+	    with Not_found ->  (* print_endline(string_of_int(!uniq)); *)
+	      incr uniq; H.add table f f; f
 	  else f
 
-      let equal   t1 t2 = (t1==t2)
-      let compare t1 t2 = Pervasives.compare t1.id t2.id
+      let compare t1 t2 = Pervasives.compare (id t1) (id t2) 
 
       (* Now we start the standard functions on maps/sets *)
 
@@ -101,12 +119,12 @@ module PATMap =
 
       let rec mem k t = match reveal t with
 	| Empty -> false
-	| Leaf (j,_) -> (tag k) == (tag j)
+	| Leaf (j,_) -> ccompare (tag k) (tag j) ==0
 	| Branch (_, m, l, r) -> mem k (if check (tag k) m then l else r)
 
       let rec find k t = match reveal t with
 	| Empty -> raise Not_found
-	| Leaf (j,x) -> if (tag k) == (tag j) then x else raise Not_found
+	| Leaf (j,x) -> if ccompare (tag k) (tag j) ==0 then x else raise Not_found
 	| Branch (_, m, l, r) -> find k (if check (tag k) m then l else r)
 
       let rec cardinal t = match reveal t with
@@ -120,8 +138,8 @@ module PATMap =
       let empty      = build Empty
       let leaf (k,x) = build (Leaf(k,x))
       let branch = function
-	| (_,_,e,t) when (reveal e==Empty) -> t
-	| (_,_,t,e) when (reveal e==Empty) -> t
+	| (_,_,e,t) when (reveal e=Empty) -> t
+	| (_,_,t,e) when (reveal e=Empty) -> t
 	| (c,b,t0,t1)   -> build(Branch (c,b,t0,t1))
 
       (* Assumed in function join:
@@ -129,16 +147,13 @@ module PATMap =
 	 p1 is the common part of tree t1 *)
 
       let join (p0,t0,p1,t1) =
-	let (c,m) = commonise p0 p1 in
-	  if check p0 m then 
-	    branch (c, m, t0, t1)
-	  else 
-	    branch (c, m, t1, t0)
+	let (c,m,b) = disagree p0 p1 in
+	  if b then branch (c, m, t0, t1) else branch (c, m, t1, t0)
 
       let remove k t =
 	let rec rmv t = match reveal t with
 	  | Empty      -> empty
-	  | Leaf (j,_) -> if (tag k == tag j) then empty else t
+	  | Leaf (j,_) -> if  ccompare (tag k) (tag j) ==0 then empty else t
 	  | Branch (p,m,t0,t1) -> 
 	      if match_prefix (tag k) p m then
 		if check (tag k) m then
@@ -150,7 +165,12 @@ module PATMap =
 	in
 	  rmv t
 
-    (* Now we have finished the material that common to Maps AND Sets,
+    let rec toString_aux f = function
+	[] -> ""
+      | a::[] -> (f(a))
+      | a::l -> (f(a))^","^(toString_aux f l);;
+
+    (* Now we have finished the material that is common to Maps AND Sets,
     closing module BackOffice *)
     end
 
@@ -162,7 +182,7 @@ module PATMap =
       let rec ins t = match reveal t with
 	| Empty      -> leaf(k,x)
 	| Leaf (j,_) -> 
-	    if (tag j == tag k) then 
+	    if  ccompare (tag k) (tag j) ==0 then 
 	      leaf (k,x) 
 	    else 
 	      join (tag k, leaf(k,x), tag j, t)
@@ -192,11 +212,56 @@ module PATMap =
       | Leaf (k,x) -> f k x accu
       | Branch (_,_,t0,t1) -> fold f t0 (fold f t1 accu)
 
+    let rec choose t =  match reveal t with
+      | Empty      -> raise Not_found
+      | Leaf(k,x) -> (k,x)
+      | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
+
+    (* find_sub looks if there is an element in t that is smaller than
+       k, according to order sub. Assumption: 
+       sub p q iff for all m, check p m implies check q m *)
+
+      let rec find_sub sub k t = match reveal t with
+	| Empty      -> None
+	| Leaf (j,x) -> if sub (tag j) (tag k) then Some(j,x) else None
+	| Branch (p, m, l, r) 
+	  -> if (sub p (tag k)) then
+	    match find_sub sub k r with
+	      | None    -> if check (tag k) m then find_sub sub k l else None
+	      | v -> v
+	  else None
+
+    (* find_sup looks if there is an element in t that is greater than
+       k, according to order sup. Assumption:
+       sup p q iff for all m, check q m implies check p m *)
+
+      let rec find_sup sup k t = match reveal t with
+	| Empty      -> None
+	| Leaf (j,x) -> if sup (tag j) (tag k) then Some(j,x) else None
+	| Branch (p, m, l, r) 
+	  -> if (sup p (tag k)) then Some(choose t)
+	  else
+	    match find_sup sup k l with
+	      | None    -> if check (tag k) m then None else find_sup sup k r
+	      | v -> v
+
+    let make l     = List.fold_right (function (k,x)->add k x) l empty
+
+    let elements s =
+      let rec elements_aux acc t = match reveal t with
+	| Empty      -> acc
+	| Leaf(k,x) -> (k,x) :: acc
+	| Branch (_,_,l,r) -> elements_aux (elements_aux acc l) r
+      in
+	elements_aux [] s
+
+    let toString f t = toString_aux f (elements t);;
+
   end
 ;;
 
 (* Construction of a Patricia tree structure for sets, given a
-SetTypes.  Most of it is imported from PATMap *)
+UserTypes.  Most of it is imported from PATMap *)
 
 module PATSet =
   functor (ST:UserTypes with type values = unit)-> struct
@@ -206,6 +271,7 @@ module PATSet =
 
     module PM = PATMap(struct
       include ST
+      let vcompare _ _ = 0
     end)
 
     include PM.BackOffice
@@ -218,9 +284,19 @@ module PATSet =
     let iter f     = PM.iter (fun k x -> f k)
     let map f      = PM.map (fun k x -> f k)	  
     let fold f     = PM.fold (fun k x -> f k)
+    let choose t   = let (k,_) = PM.choose t in k
+    let find_sub sub k t = match PM.find_sub sub k t with
+      | None -> None
+      | Some (h,_) -> Some h
+    let find_sup sup k t = match PM.find_sup sup k t with
+      | None -> None
+      | Some (h,_) -> Some h
+    let elements s = List.map (function (k,x)->k) (PM.elements s)
 
     (* Now starting functions specific to Sets, without equivalent
     ones for Maps *)
+
+    let toString f t = toString_aux f (elements t);;
 
     let make l     = List.fold_right add l empty
 
@@ -230,16 +306,16 @@ module PATSet =
       | Leaf(k,()), _ -> add k u2
       | _, Leaf(k,()) -> add k u1
       | Branch (p,m,s0,s1), Branch (q,n,t0,t1) ->
-	  if m == n && match_prefix q p m then
+	  if (bcompare m n==0) && match_prefix q p m then
 	    (* The trees have the same prefix. Merge the subtrees. *)
 	    branch (p, m, merge (s0,t0), merge (s1,t1))
-	  else if ST.smallerthan m n && match_prefix q p m then
+	  else if bcompare m n < 0 && match_prefix q p m then
 	    (* [q] contains [p]. Merge [t] with a subtree of [s]. *)
 	    if check q m then 
 	      branch (p, m, merge (s0,u2), s1)
             else 
 	      branch (p, m, s0, merge (s1,u2))
-	  else if ST.smallerthan n m && match_prefix p q n then
+	  else if bcompare n m < 0 && match_prefix p q n then
 	    (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
 	    if check p n then
 	      branch (q, n, merge (u1,t0), t1)
@@ -257,9 +333,9 @@ module PATSet =
       | Leaf(k,()), _        -> mem k s2
       | Branch _, Leaf(k,()) -> false
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	  if m1 == m2 && p1 == p2 then
+	  if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
 	    subset l1 l2 && subset r1 r2
-	  else if ST.smallerthan m2 m1 && match_prefix p1 p2 m2 then
+	  else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
 	    if check p1 m2 then 
 	      subset l1 l2 && subset r1 l2
 	    else 
@@ -273,11 +349,11 @@ module PATSet =
       | Leaf(k,()), _ -> if mem k s2 then s1 else empty
       | _, Leaf(k,()) -> if mem k s1 then s2 else empty
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	  if m1 == m2 && p1 == p2 then 
+	  if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
 	    merge (inter l1 l2, inter r1 r2)
-	  else if ST.smallerthan m1 m2 && match_prefix p2 p1 m1 then
+	  else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	    inter (if check p2 m1 then l1 else r1) s2
-	  else if ST.smallerthan m2 m1 && match_prefix p1 p2 m2 then
+	  else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	    inter s1 (if check p1 m2 then l2 else r2)
 	  else
 	    empty
@@ -288,17 +364,91 @@ module PATSet =
       | Leaf(k,()), _ -> if mem k s2 then empty else s1
       | _, Leaf(k,()) -> remove k s1
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	  if m1 == m2 && p1 == p2 then
+	  if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
 	    merge (diff l1 l2, diff r1 r2)
-	  else if ST.smallerthan m1 m2 && match_prefix p2 p1 m1 then
+	  else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	    if check p2 m1 then 
 	      merge (diff l1 s2, r1) 
 	    else 
 	      merge (l1, diff r1 s2)
-	  else if ST.smallerthan m2 m1 && match_prefix p1 p2 m2 then
+	  else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	    if check p1 m2 then diff s1 l2 else diff s1 r2
 	  else
 	    s1
+
+    let opt_st = function 
+      | None,s2       -> false
+      | s1, None      -> true
+      | Some(v1),Some(v2) -> ccompare (tag v1) (tag v2)<0
+
+    (* Assume min returns the minimal element of a patricia set (according to some order).
+       first_diff computes, for patricia sets s1 and s2: (b,c)
+       where b is the smallest element belonging to one and not the other
+       c is true (resp false) if b was in s1 (resp s2).
+    *)
+
+    (*    let rec first_diff min s1 s2 s = match begin 
+	  match (reveal s1,reveal s2) with
+	  | Empty, _      -> print_endline(s^"E,");(min s2,false)
+	  | _, Empty      -> print_endline(s^",E");let (b,c) = first_diff min s2 s1 s in (b,not c)
+	  | Leaf(k,()), _ -> print_endline(s^"L,");
+	  if mem k s2 then (print_endline(s^"Present");(min(remove k s2),false) )
+	  else (print_endline(s^"Absent");let k'=min s2 in
+	  if opt_st((Some k),k') then (Some k, true) else (k', false))
+	  | _,Leaf(k,()) -> print_endline(s^",L"); let (b,c) = first_diff min s2 s1 s in (b,not c)
+	  | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	  if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	  (print_endline(s^"B,B, equal pref");
+	  let (b1,c1) = first_diff min l1 l2 ("  "^s) in
+	  let (b2,c2) = first_diff min r1 r2 ("  "^s) in
+	  if opt_st(b1,b2) then (b1,c1) else (b2,c2))
+	  else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	  (print_endline(s^"B,B, m1<m2 good");
+	  let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
+	  let (b,c) = first_diff min friend s2 ("  "^s) in
+	  let k' = min foe in
+	  if opt_st(b,k') then (b,c) else (k',true))
+	  else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	  (print_endline(s^"B,B, m1>m2 good");
+	  let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
+	  let (b,c) = first_diff min s1 friend ("  "^s) in
+	  let k' = min foe in
+	  if opt_st(b,k') then (b,c) else (k',true))
+	  else
+	  (print_endline(s^"B,B, pref disagree");
+	  let (k1,k2) = (min s1,min s2) in
+	  if opt_st(k1,k2) then (k1,true) else (k2,false))
+	  end with
+	  | (Some v,b) as d -> print_endline(s^"Some");d
+	  | (None,b) as d -> print_endline(s^"None");d
+
+	  let first_diff min s1 s2 = let d = first_diff min s1 s2 "" in print_endline("=======");d
+    *)
+
+    let rec first_diff min s1 s2 = match (reveal s1,reveal s2) with
+      | Empty, _      -> (min s2,false)
+      | _, Empty      -> let (b,c) = first_diff min s2 s1 in (b,not c)
+      | Leaf(k,()), _ -> if mem k s2 then (min(remove k s2),false)
+	else let k'=min s2 in if opt_st((Some k),k') then (Some k, true) else (k', false)
+      | _,Leaf(k,()) -> let (b,c) = first_diff min s2 s1 in (b,not c)
+      | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	  if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	    let (b1,c1) = first_diff min l1 l2 in
+	    let (b2,c2) = first_diff min r1 r2 in
+	      if opt_st(b1,b2) then (b1,c1) else (b2,c2)
+	  else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	    let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
+	    let (b,c) = first_diff min friend s2 in
+	    let k' = min foe in
+	      if opt_st(b,k') then (b,c) else (k',true)
+	  else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	    let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
+	    let (b,c) = first_diff min s1 friend in
+	    let k' = min foe in
+	      if opt_st(b,k') then (b,c) else (k',false)
+	  else
+	    let (k1,k2) = (min s1,min s2) in
+	      if opt_st(k1,k2) then (k1,true) else (k2,false)
 
     let rec for_all p t = match reveal t with
       | Empty      -> true
@@ -323,19 +473,6 @@ module PATSet =
       in
 	part (empty, empty) s
 
-    let rec choose t =  match reveal t with
-      | Empty      -> raise Not_found
-      | Leaf(k,()) -> k
-      | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
-
-    let elements s =
-      let rec elements_aux acc t = match reveal t with
-	| Empty      -> acc
-	| Leaf(k,()) -> k :: acc
-	| Branch (_,_,l,r) -> elements_aux (elements_aux acc l) r
-      in
-	elements_aux [] s
-
     let rec elect f t = match reveal t with
       | Empty      -> raise Not_found
       | Leaf(k,()) -> k
@@ -345,20 +482,54 @@ module PATSet =
 ;;
 
 
+module type FromHConsed = sig
+  type keys
+  val tag        : keys->int
+  type values
+  val vcompare   : values->values->int
+  type infos
+  val info_build : infos*(keys->values->infos)*(infos->infos->infos)
+  val treeHCons  : bool
+end
+
+let empty_info_build = ((),(fun _ _ ->()),(fun _ _-> ()))
+
+type 'a mmc_infos = ('a option)*('a option)*int
+let mmc_info_build tag = (
+  (None,None,0),
+  (fun x _ ->(Some x,Some x,1)),
+  (fun (x1,y1,z1) (x2,y2,z2)
+     -> ((match x1,x2 with
+	      None,_ -> x2
+	    | _,None -> x1
+	    | Some(v1),Some(v2)-> if(tag v1<tag v2)then x1 else x2),
+	 (match y1,y2 with
+	      None,_ -> y2
+	    | _,None -> y1
+	    | Some(v1),Some(v2)-> if(tag v1>tag v2)then y1 else y2),
+	 z1+z2))
+)
+
+type 'a m_infos = ('a option)
+let m_info_build tag ccompare = (
+  None,
+  (fun x _ -> Some x),
+  (fun x1 x2
+     -> match x1,x2 with
+	 None,_ -> x2
+       | _,None -> x1
+       | Some(v1),Some(v2)-> if ccompare (tag v1) (tag v2)<0 then x1 else x2)
+)
+
+
 module TypesFromHConsed = 
-  functor (S:sig
-	     type keys
-	     val tag        : keys->int
-	     type values
-	     val vcompare   : values->values->bool
-	     type infos
-	     val info_build : infos*(keys->values->infos)*(infos->infos->infos)
-	     val treeHCons  : bool
-	   end)
+  functor (S:FromHConsed)
     -> (struct
 	  include S
 	  type common = int
+	  let ccompare = Pervasives.compare
 	  type branching = int
+	  let bcompare = Pervasives.compare
 	  let check k m = (k land m) == 0
 
 	  let lowest_bit x = x land (-x)
@@ -366,92 +537,68 @@ module TypesFromHConsed =
 	  let mask p m = p land (m-1)
 
 	  let match_prefix k p m = (mask k m) == p
-	  let commonise p0 p1 = 
-	    let m = branching_bit p0 p1 in (mask p0 m,m)
-	  let smallerthan n1 n2 = n1 < n2
+	  let disagree p0 p1 = 
+	    let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
+
 	end:UserTypes with type keys=S.keys
 		      and type values=S.values
-		      and type infos=S.infos
-       );;
+		      and type infos=S.infos)
+;;
 
-module Memo = 
-  functor (S: sig 
-	     type keys
-	     type common
-	     val tag : keys -> common
-	     type branching
-	     val check       : common->branching->bool
-	     val commonise   : common->common->common*branching
-	     val match_prefix: common->common->branching->bool
-	     val smallerthan : branching->branching->bool 
-	     type infos
-	     val info_build : infos*(keys->unit->infos)*(infos->infos->infos)	       
-	     type values
-	     val vcompare : values->values->bool
-	   end)-> struct
+module Memento = 
+  functor (S: UserTypes)-> 
+    (struct
 
-    module ST = struct
-      type keys   = S.keys
-      type common = S.common
-      let tag     = S.tag
-      type branching = S.branching
-      let check      = S.check
-      let match_prefix = S.match_prefix
-      let commonise    = S.commonise
-      let smallerthan  = S.smallerthan
+       module ST = 
+	 (struct
+	    type keys   = S.keys
+	    type common = S.common
+	    let ccompare = S.ccompare
+	    let tag     = S.tag
+	    type branching = S.branching
+	    let bcompare = S.bcompare
+	    let check      = S.check
+	    let match_prefix = S.match_prefix
+	    let disagree    = S.disagree
 
+	    type values = unit
+	    let vcompare _ _=0 
+	    type infos = keys m_infos
+	    let info_build = m_info_build tag ccompare
+	    let treeHCons  = true
+	  end: UserTypes with type keys = S.keys
+			 and type values=unit
+			 and type infos = S.keys option)
 
-      type values = unit
-      let vcompare _ _=true 
-      type infos = S.infos*keys option
-      let info_build = 
-	let (a,b,c) = S.info_build in
-	  ((a,None),
-	   (fun k () ->(b k (),Some k)),
-	   (fun (y1,x1) (y2,x2)
-	      -> (c y1 y2,
-		  match x1,x2 with
-		    | None,_ -> x2
-		    | _,None -> x1
-		    | Some(v1),Some(v2) -> if(tag v1<tag v2)then x1 else x2
-		 ))
-	  )
-      let treeHCons  = true
-    end
+       module PT = PATSet(ST)
 
-    module PT = PATSet(ST)
+       type keys = PT.t
+       type common = PT.t
+       let ccompare = PT.compare 
+       let tag s = s
 
-    module PTUser:UserTypes = struct
-      type keys = PT.t
-      type common = PT.t
-      let tag s = s
+       type values = S.values
+       let vcompare = S.vcompare
 
-      type values = ST.values
-      let vcompare = ST.vcompare
+       type infos = unit
+       let info_build = empty_info_build
+	 
+       type branching = S.keys
+       let bcompare n1 n2 = S.ccompare (S.tag n1) (S.tag n2)
+       let check k m = PT.mem m k
 
-      type infos = unit
-      let info_build = ((),(fun _ _->()),(fun _ _->()))
-	
-      type branching = ST.keys
-      let check k m = PT.mem m k
-      let smallerthan n1 n2 = (tag n1) < (tag n2)
-
-      let match_prefix k p m = (PT.subset p k)
-	&&( match PT.info(PT.diff k p) with
-	      | _,Some x -> not(smallerthan x m)
+       let match_prefix k p m = (PT.subset p k)
+	 &&(match PT.info(PT.diff k p) with
+	      | Some x -> not(bcompare x m<0)
 	      | _        -> true)
 
-      let commonise p0 p1 = 
-	let p2 = PT.inter p0 p1 in
-	let d0 = let (_,x) = PT.info(PT.diff p0 p1) in x in
-	let d1 = let (_,x) = PT.info(PT.diff p1 p0) in x in
-	  match (d0,d1) with
-	    | Some(e0),Some(e1) -> (p2,if smallerthan e0 e1 then e0 else e1)
-	    | _ -> failwith("Impossible!")
+       let min t = PT.info t
 
-      let treeHCons  = false
-    end
+       let disagree s0 s1 = match PT.first_diff min s0 s1 with
+	 | (None,_) -> failwith("disagree called with two arguments that are equal")
+	 | (Some b,c) -> (PT.inter s0 s1,b,c)
 
-    module PTT = PATMap(PTUser)
-
-end
+       let treeHCons  = S.treeHCons
+	 
+     end)
+;;

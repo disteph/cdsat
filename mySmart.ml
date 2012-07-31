@@ -23,8 +23,11 @@ module MySmartCollectImplem =
     let empty    = SS.empty
     let add      = SS.add
     let union    = SS.union
+    let inter    = SS.inter
     let remove   = SS.remove
     let choose   = SS.min_elt
+    let hash     = Hashtbl.hash
+    let equal    = SS.equal
     let next  t1 = let e1 = choose t1 in (e1, remove e1 t1)
     let toString t1 = 
       let rec toString_aux = function
