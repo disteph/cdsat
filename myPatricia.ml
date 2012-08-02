@@ -149,6 +149,7 @@ module MyPAT =
 	 include FE
 
 	 type data = unit
+	 let initial_data=()
 
 	 module M:MemoType = struct
 	   let compareF    = OF.compare
@@ -171,11 +172,11 @@ module MyPAT =
 
 	 let rec solve =
 	   function
-	   | Local ans                  -> ans
-	   | Fake(Notify(_,machine))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
-	   | Fake(AskFocus(l,_,machine))-> solve (machine (Focus(FSet.choose l, accept)))
-	   | Fake(AskSide(seq,machine)) -> solve (machine true)
-	   | Fake(Stop(b1,b2, machine)) -> solve (machine ())
+	   | Local ans                    -> ans
+	   | Fake(Notify(_,machine,_))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
+	   | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(FSet.choose l, accept)))
+	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())
 
        end
    end:User)

@@ -81,9 +81,9 @@ module type FrontEndType = sig
 
   type 'a output = (t,'a fakeoutput) local
   and 'a fakeoutput = 
-    | Notify   of Seq.t*('a notified -> 'a output)
-    | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)
-    | AskSide  of Seq.t*(sideaction  -> 'a output)
+    | Notify   of Seq.t*('a notified -> 'a output)*'a
+    | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)*'a
+    | AskSide  of Seq.t*(sideaction  -> 'a output)*'a
     | Stop     of bool*bool*(unit->'a output)
 
   val toString : t -> string
@@ -231,9 +231,9 @@ module FrontEnd =
 	*)
 	type 'a output = (t,'a fakeoutput) local
 	and 'a fakeoutput = 
-	  | Notify   of Seq.t*('a notified -> 'a output)
-	  | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)
-	  | AskSide  of Seq.t*(sideaction  -> 'a output)
+	  | Notify   of Seq.t*('a notified -> 'a output)*'a
+	  | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)*'a
+	  | AskSide  of Seq.t*(sideaction  -> 'a output)*'a
 	  | Stop     of bool*bool*(unit->'a output)
 
 	(* Type of local answers, for internal use during search

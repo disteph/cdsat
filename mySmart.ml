@@ -65,6 +65,7 @@ module MySmartUser =
 	 include FE
 
 	 type data = unit
+	 let initial_data=()
 
 	 (* As in the default implementation of user's strategies,
 	    this strategy provides the following function solve:
@@ -80,11 +81,11 @@ module MySmartUser =
 
 	 let rec solve =
 	   function
-	   | Local ans                  -> ans
-	   | Fake(Notify(_,machine))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
-	   | Fake(AskFocus(l,_,machine))-> solve (machine (Focus(FSet.choose l, accept)))
-	   | Fake(AskSide(seq,machine)) -> solve (machine true)
-	   | Fake(Stop(b1,b2, machine)) -> solve (machine ())
+	   | Local ans                    -> ans
+	   | Fake(Notify(_,machine,_))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
+	   | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(FSet.choose l, accept)))
+	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())
 
        end
    end:User)

@@ -17,7 +17,7 @@ module Tests =
        let go formula = 
 	 print_endline("===");
 	 print_endline("I am now starting: "^(Src.FE.Form.toString formula));
-	 Strat.solve(Src.machine (orig_seq formula))
+	 Strat.solve(Src.machine (orig_seq formula) Strat.initial_data)
 
        module Gen = Generate(UF)
 

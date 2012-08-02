@@ -26,7 +26,7 @@ module type User =
 	  (* A user can embark his own data on the proof-search.
 	     Set it to unit if not used *)
 	  type data
-
+	  val initial_data:data
 	  val solve : data FE.output -> FE.t
 	end)
    end
@@ -53,11 +53,12 @@ module MyUser:User = struct
 	   available one) *)
 
       type data = unit
+      let initial_data=()
       let rec solve = function
-	| Local ans                     -> ans
-	| Fake(Notify(_,machine))       -> solve (machine (Entry((),fun _->Exit(Accept))))
-	| Fake(AskFocus(a::l,_,machine))-> solve (machine (Focus(a, accept)))
-	| Fake(AskSide(seq,machine))    -> solve (machine true)
+	| Local ans                       -> ans
+	| Fake(Notify(_,machine,_))       -> solve (machine (Entry((),fun _->Exit(Accept))))
+	| Fake(AskFocus(a::l,_,machine,_))-> solve (machine (Focus(a, accept)))
+	| Fake(AskSide(seq,machine,_))    -> solve (machine true)
 	| Fake(Stop(b1,b2, machine))    -> solve (machine ())
 	| _ -> failwith("No more formula to place focus on.")
 	    
