@@ -64,6 +64,8 @@ module MySmartUser =
        functor (FE:FrontEndType with module F=F and module FSet=FSet and module ASet=ASet) -> struct
 	 include FE
 
+	 type data = unit
+
 	 (* As in the default implementation of user's strategies,
 	    this strategy provides the following function solve:
 	    In case the temporary answers happens to be a final
@@ -76,14 +78,13 @@ module MySmartUser =
 	    available one, but using the choose function of
 	    UFSet) *)
 
-	 let rec solve = function
+	 let rec solve =
+	   function
 	   | Local ans                  -> ans
-	   | Fake(AskFocus(seq,machine))-> solve (machine (match seq with
-							     | Seq.EntUF(_,_, l, _, _,_) -> Focus(UFSet.choose l, accept)
-							     | _ -> failwith("No more formula to place focus on.")
-							  ))
-	   | Fake(AskSide(seq,machine)) -> solve(machine true)
-	   | Fake(Stop(b1,b2, machine)) -> solve(machine ())
+	   | Fake(Notify(_,machine))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
+	   | Fake(AskFocus(l,_,machine))-> solve (machine (Focus(FSet.choose l, accept)))
+	   | Fake(AskSide(seq,machine)) -> solve (machine true)
+	   | Fake(Stop(b1,b2, machine)) -> solve (machine ())
 
        end
    end:User)

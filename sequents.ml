@@ -27,7 +27,7 @@ module type FrontEndType = sig
   module Seq : sig
     type t =
       | EntF of ASet.t * F.t * FSet.t * FSet.t * polmap
-      | EntUF of ASet.t * FSet.t * FSet.t * FSet.t * FSet.t * polmap
+      | EntUF of ASet.t * FSet.t * FSet.t * FSet.t * polmap
     val toString : t -> string
   end
 
@@ -56,25 +56,36 @@ module type FrontEndType = sig
 
   type final = Success of PT.t | Fail of Seq.t
   type ('a,'b) local =  Local of 'a | Fake  of 'b
+
   type focusaction = 
     | Focus    of F.t*receive
     | Cut      of int*F.t*receive*receive
     | Polarise of string*bool*receive
     | Get      of bool*bool
-    | Search   of tosearch*receive
-  and sideaction= bool
+  and sideaction = bool
   and reception = 
     | Accept
     | Refuse
-    | Mem    of tomem*reception
     | Action of focusaction
   and receive = (final,bool*bool) local -> reception
-  type fakeoutput = 
-    | AskFocus of Seq.t*(focusaction -> output)
-    | AskSide  of Seq.t*(sideaction  -> output)
-    | Stop     of bool*bool*(unit->output)
-  and output = (t,fakeoutput) local
-  val accept : receive
+
+  val accept:receive
+
+  type newnode_exit = 
+    | Exit   of reception
+    | Mem    of tomem*reception
+  type newnode_ent = ((final,bool*bool) local -> newnode_exit)
+  type 'a notified =
+    | Entry  of 'a*newnode_ent
+    | Search of tosearch*reception*'a*newnode_ent
+
+  type 'a output = (t,'a fakeoutput) local
+  and 'a fakeoutput = 
+    | Notify   of Seq.t*('a notified -> 'a output)
+    | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)
+    | AskSide  of Seq.t*(sideaction  -> 'a output)
+    | Stop     of bool*bool*(unit->'a output)
+
   val toString : t -> string
 
   module type MemoType = sig
@@ -127,13 +138,11 @@ module FrontEnd =
 	  (* Type of sequents *)
 	  type t = 
 	      EntF of ASet.t*F.t*FSet.t*FSet.t*polmap
-	    | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*FSet.t*polmap
+	    | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*polmap
 
 	  let interesting = function
-	    | EntF(atomN, g, formP, formPSaved, polar) ->
-		(atomN, formP::formPSaved::[])
-	    | EntUF(atomN, delta, formP, formPTried, formPSaved, polar) ->
-		(atomN, formP::formPSaved::formPTried::[])
+	    | EntF(atomN, g, formP, formPSaved, polar)      -> 	(atomN, formP::formPSaved::[])
+	    | EntUF(atomN, delta, formP, formPSaved, polar) ->	(atomN, formP::formPSaved::[])
 		
 	  (* Displays sequent *)
 	  let toString = function
@@ -141,10 +150,10 @@ module FrontEnd =
 	      -> " \\DerOSPos {"^(ASet.toString atomsN)^
 		"} {"^(Form.toString focused)^"}"^
 		  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
-	    | EntUF(atomsN, unfocused, formuP, formuPTried, formuPSaved,_)
+	    | EntUF(atomsN, unfocused, formuP, formuPSaved,_)
 	      -> " \\DerOSNeg {"^(ASet.toString atomsN)^
 		"} {"^(FSet.toString unfocused)^"}"^
-		  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^" \\cdot "^(FSet.toString formuPTried)^"}"
+		  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
 	end
 
 	module PT = struct
@@ -188,19 +197,28 @@ module FrontEnd =
 	   sideaction:  when user is asked to choose sides
 	   receive: user's reaction when he hears back the result, of type (final,bool*bool) local, from his chosen action
 	*)
+
 	type focusaction = 
 	  | Focus    of F.t*receive
 	  | Cut      of int*F.t*receive*receive
 	  | Polarise of string*bool*receive
 	  | Get      of bool*bool
-	  | Search   of tosearch*receive
 	and sideaction = bool
 	and reception = 
 	  | Accept
 	  | Refuse
-	  | Mem    of tomem*reception
 	  | Action of focusaction
 	and receive = (final,bool*bool) local -> reception
+
+	type newnode_exit = 
+	  | Exit   of reception
+	  | Mem    of tomem*reception
+	type newnode_ent = ((final,bool*bool) local -> newnode_exit)
+	type 'a notified =
+	  | Entry  of 'a*newnode_ent
+	  | Search of tosearch*reception*'a*newnode_ent
+
+	let accept _ = Accept
 
 
 	(* Type of local answers, for output of search
@@ -211,13 +229,12 @@ module FrontEnd =
 	   first bool: [true/false] = [Success/Failure]
 	   second bool: [true/false] = [next/previous]
 	*)
-	type output = (t,fakeoutput) local
-	and fakeoutput = 
-	  | AskFocus of Seq.t*(focusaction -> output)
-	  | AskSide  of Seq.t*(sideaction  -> output)
-	  | Stop     of bool*bool*(unit->output)
-
-	let accept _ = Accept
+	type 'a output = (t,'a fakeoutput) local
+	and 'a fakeoutput = 
+	  | Notify   of Seq.t*('a notified -> 'a output)
+	  | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)
+	  | AskSide  of Seq.t*(sideaction  -> 'a output)
+	  | Stop     of bool*bool*(unit->'a output)
 
 	(* Type of local answers, for internal use during search
 	   In case of Fake,
@@ -226,8 +243,8 @@ module FrontEnd =
 	   third argument = computation at resume point; 
 	   (it suffices to apply it to a continuation to trigger it) 
 	*)
-	type intern = (t,bool*bool*computations) local
-	and computations = Comp of ((intern -> output)->output)
+	type 'a intern = (t,bool*bool*('a computations)) local
+	and 'a computations = Comp of (('a intern -> 'a output)-> 'a output)
 
 	(* Displays answer *)
 	let toString a = match a with
@@ -357,7 +374,7 @@ module FrontEnd =
 	    in 
 	    let table = if b then tableS else tableF in 
 	      match sequent ans with
-		| Seq.EntUF(_,delta,_,_,_,_) as s when (FSet.is_empty delta) ->
+		| Seq.EntUF(_,delta,_,_,_) as s when (FSet.is_empty delta) ->
 		    let (k1,k2) = simplify s in
 		    if not (MP.mem (k1,k2) !table) 
 		    then (incr count; print_endline(string_of_int !count^" "^(if b then "Success" else "Failure")^" "^(ASet.toString k1));

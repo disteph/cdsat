@@ -23,7 +23,11 @@ module type User =
      module Strategy: 
        functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> 
        (sig
-	  val solve : FE.output -> FE.t
+	  (* A user can embark his own data on the proof-search.
+	     Set it to unit if not used *)
+	  type data
+
+	  val solve : data FE.output -> FE.t
 	end)
    end
   )
@@ -48,14 +52,14 @@ module MyUser:User = struct
 	   formula to place in the next focus - here: the first
 	   available one) *)
 
+      type data = unit
       let rec solve = function
-	| Local ans                   -> ans
-	| Fake(AskFocus(seq,machine)) ->
-	    solve (machine (match seq with
-			      | Seq.EntUF(_,_, a::l, _, _,_) -> Focus(a, accept)
-			      | _ -> failwith("No more formula to place focus on.")
-			   ))
-	| Fake(AskSide(seq,machine)) -> solve(machine true)
-	| Fake(Stop(b1,b2, machine)) -> solve(machine ())
+	| Local ans                     -> ans
+	| Fake(Notify(_,machine))       -> solve (machine (Entry((),fun _->Exit(Accept))))
+	| Fake(AskFocus(a::l,_,machine))-> solve (machine (Focus(a, accept)))
+	| Fake(AskSide(seq,machine))    -> solve (machine true)
+	| Fake(Stop(b1,b2, machine))    -> solve (machine ())
+	| _ -> failwith("No more formula to place focus on.")
+	    
     end
 end;;

@@ -12,7 +12,7 @@ module Tests =
        module Src   = ProofSearch(UF)(UFSet)(UASet)
        module Strat = Strategy(Src.FE)
 
-       let orig_seq my_formula = Src.FE.Seq.EntUF(UASet.empty,UFSet.add my_formula UFSet.empty, UFSet.empty, UFSet.empty, UFSet.empty,Sequents.Pol.empty)
+       let orig_seq my_formula = Src.FE.Seq.EntUF(UASet.empty,UFSet.add my_formula UFSet.empty, UFSet.empty, UFSet.empty,Sequents.Pol.empty)
 
        let go formula = 
 	 print_endline("===");

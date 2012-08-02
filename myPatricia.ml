@@ -144,11 +144,11 @@ module MyPAT =
      module UFSet = OFSet.CI
      module UASet = OASet.CI
 
-
-
      module Strategy =
        functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
 	 include FE
+
+	 type data = unit
 
 	 module M:MemoType = struct
 	   let compareF    = OF.compare
@@ -167,25 +167,15 @@ module MyPAT =
 	   | None   -> print_endline("NoneF");f)*)
 	 end
 
-	 module Mem = Memo(M)
+	 module Me = Memo(M)
 
-	 let rec solve = function
+	 let rec solve =
+	   function
 	   | Local ans                  -> ans
-	   | Fake(AskFocus(seq,machine))->
-	       let receive = function
-		 | Local(_) -> Mem(Mem.tomem,Accept)
-		 | Fake(_)  -> Accept
-	       in
-	       let worthatry l = function
-		 | Local(_) -> Accept
-		 | Fake(_)  -> Action(Focus(FSet.choose l, receive))
-	       in
-		 solve (machine (match seq with
-				   | Seq.EntUF(_,_, l, _, _,_) -> Search(Mem.tosearch,worthatry l)
-				   | _ -> failwith("No more formula to place focus on.")
-				))
-	   | Fake(AskSide(seq,machine)) -> solve(machine true)
-	   | Fake(Stop(b1,b2, machine)) -> solve(machine ())
+	   | Fake(Notify(_,machine))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
+	   | Fake(AskFocus(l,_,machine))-> solve (machine (Focus(FSet.choose l, accept)))
+	   | Fake(AskSide(seq,machine)) -> solve (machine true)
+	   | Fake(Stop(b1,b2, machine)) -> solve (machine ())
 
        end
    end:User)
