@@ -5,5 +5,3 @@ let loop_detect = ref true (* Activates loop detection *)
 let weakenings = ref true  (* Activates a-posteriori weakening mode
 				(irrelevant formulae are not in proof-tree) *)
 let do_file = ref false
-
-
