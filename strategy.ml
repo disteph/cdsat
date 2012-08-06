@@ -1,44 +1,43 @@
-open Formulae;;
-open Collection;;
-open Sequents;;
+open Formulae
+open Collection
+open Sequents
 
+module type User = sig
 
-module type User =
-  (sig
+  (* A user should provide an implementation of formulae, an
+     implementation of sets of formulae, and an implementation of
+     sets of atoms *)
 
-     (* A user should provide an implementation of formulae, an
-	implementation of sets of formulae, and an implementation of
-	sets of atoms *)
+  module UF: FormulaImplem
+  module UFSet: CollectImplem with type e = UF.t
+  module UASet: ACollectImplem
 
-     module UF: FormulaImplem
-     module UFSet: CollectImplem with type e = UF.t
-     module UASet: CollectImplem with type e = Atom.t
+  (* A user should provide a strategy: given the datastructures of
+     a FrontEnd (implementation of sequents, answers, outputs,
+     etc), the strategy provides a function solve a function that
+     should convert a temporary answer (output) into a final answer
+     (t).  See the default implementation below *)
 
-     (* A user should provide a strategy: given the datastructures of
-	a FrontEnd (implementation of sequents, answers, outputs,
-	etc), the strategy provides a function solve a function that
-	should convert a temporary answer (output) into a final answer
-	(t).  See the default implementation below *)
-
-     module Strategy: 
-       functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> 
-       (sig
-	  (* A user can embark his own data on the proof-search.
-	     Set it to unit if not used *)
-	  type data
-	  val initial_data:data
-	  val solve : data FE.output -> FE.t
-	end)
-   end
-  )
-;;
+  module Strategy: 
+    functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> 
+      (sig
+	 (* A user can embark his own data on the proof-search.
+	    Set it to unit if not used *)
+	 type data
+	 val initial_data:data
+	 val solve : data FE.output -> FE.t
+       end)
+end
 
 (* Default implementation for interface User *)
 
 module MyUser:User = struct
   module UF = MyFormulaImplem
   module UFSet = MyCollectImplem(PrintableFormula(UF))
-  module UASet = MyCollectImplem(Atom)
+  module UASet = struct 
+    include MyCollectImplem(Atom)
+    let filter (_:bool*Atom.Predicates.t) (t:t) = t
+  end
   module Strategy =
     functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
       include FE
@@ -63,4 +62,4 @@ module MyUser:User = struct
 	| _ -> failwith("No more formula to place focus on.")
 	    
     end
-end;;
+end

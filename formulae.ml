@@ -1,7 +1,8 @@
-open Collection;;
-
 module Term = 
   (struct
+
+     type variables = string
+     type fsymb = string
 
      module TermPrimitive = struct
        type 'a term = V of string | XV of string | C of string*('a list)
@@ -30,13 +31,13 @@ module Term =
      include TermPrimitive
      module H = Hashtbl.Make(TermPrimitive)
 
-     let table = H.create 5003;;
+     let table = H.create 5003
      let atomid =ref 0
      let build a =
        let f = {reveal =  a; id = !atomid } in
 	 try H.find table f
 	 with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
-	   incr atomid; H.add table f f; f;;
+	   incr atomid; H.add table f f; f
 
      let rec toString t = match t.reveal with
 	 V(a) -> a
@@ -51,7 +52,9 @@ module Term =
        | tl ->"("^printrtl(tl)^")"
 	   
    end:sig
-     type 'a term = V of string | XV of string | C of string*('a list)
+     type variables
+     type fsymb
+     type 'a term = V of variables | XV of variables | C of fsymb*('a list)
      type t
      val reveal: t -> t term
      val build: t term -> t
@@ -63,12 +66,16 @@ module Term =
      val hash: t -> int
      val hashtl: t list ->int
    end) 
-;;
+
 
 module Atom =
   (struct
+     module Predicates = struct
+       type t = string
+       let compare s s' = Pervasives.compare s s'
+     end
      module AtomPrimitive = struct
-       type t = {reveal:bool*string*(Term.t list);id:int}
+       type t = {reveal:bool*Predicates.t*(Term.t list);id:int}
        let reveal t = t.reveal
        let id t = t.id
        let equal t t'= 
@@ -79,20 +86,24 @@ module Atom =
      end
      include AtomPrimitive
      module H = Hashtbl.Make(AtomPrimitive)
-     let table = H.create 5003;;
+     let table = H.create 5003
      let atomid =ref 0
      let build a =
        let f = {reveal =  a; id = !atomid } in
 	 try H.find table f
 	 with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
-	   incr atomid; H.add table f f; f;;
+	   incr atomid; H.add table f f; f
      let negation t = let (b,a,tl) = t.reveal in build (not b,a,tl)
      let toString t = match t.reveal with
        | (true,s, tl) -> "{"^s^Term.printtl(tl)^"}"
        | (false,s, tl) -> "\\non {"^s^"}"^Term.printtl(tl)
    end:sig
+     module Predicates: sig
+       type t
+       val compare : t->t->int
+     end
      type t
-     val reveal: t -> bool*string*(Term.t list)
+     val reveal: t -> bool*Predicates.t*(Term.t list)
      val build: bool*string*(Term.t list) -> t
      val id: t-> int       
      val negation: t -> t
@@ -100,14 +111,14 @@ module Atom =
      val equal: t->t->bool
      val hash: t -> int
    end)
-;;
+
 
 type 'a form =
     Lit of Atom.t
   | AndP of 'a*'a
   | OrP of 'a*'a
   | AndN of 'a*'a
-  | OrN of 'a*'a;;
+  | OrN of 'a*'a
 
 
 (* Interface for an implementation of formulae *)
@@ -116,7 +127,7 @@ module type FormulaImplem = sig
   type t
   val reveal : t -> t form
   val build : t form -> t
-end;;
+end
 
 
 (* Generic code providing standard functions about formulae *)
@@ -152,7 +163,7 @@ module PrintableFormula =
     let orP(f1,f2)  = F.build(OrP(f1,f2))
 
   end
-;;
+
 
 (* Default implementation for interface FormulaImplem *)
 
@@ -162,4 +173,4 @@ module MyFormulaImplem =
      let reveal (Reveal a) = a
      let build a = (Reveal a)
    end : FormulaImplem)
-;;
+

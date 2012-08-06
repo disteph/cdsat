@@ -1,14 +1,14 @@
-open Formulae;;
-open Collection;;
-open Strategy;;
-open Sequents;;
+open Formulae
+open Collection
+open Strategy
+open Sequents
 
 module MyOrderedSmartFormulaImplem = struct
 
   type tt = {reveal: tt form;id:int;priority:int}
 
   let id f = f.id
- 
+    
   (* HashedType for formulae *)
 
   module MySmartFormulaImplemPrimitive = 
@@ -70,10 +70,10 @@ module MyOrderedSmartFormulaImplem = struct
   let compare t1 t2 =
     let a = (Pervasives.compare t1.priority t2.priority) in
       if (a<>0) then  a else (Pervasives.compare t1.id t2.id)
-end;;
+end
 
 
-open Patricia;;
+open Patricia
 
 module MyPatriciaCollectImplem(M:sig
 				 type t
@@ -104,7 +104,6 @@ module MyPatriciaCollectImplem(M:sig
     let union    = SS.union
     let inter    = SS.inter
     let remove   = SS.remove
-    let choose   = SS.choose
       (* Alternative, if min or max is recorded:
 
 	 let choose t = match SS.info t with 
@@ -116,20 +115,20 @@ module MyPatriciaCollectImplem(M:sig
     let hash = SS.hash
     let equal = SS.equal
 
-    let next  t1 = let e1 = choose t1 in (e1, remove e1 t1)
+    let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
     let toString = SS.toString M.toString
 
   end
 
   include CI
 
-end;;
+end
 
 module MyPAT =
   (struct
 
      (* User uses the smart datastructures with hconsing and sets from
-     above *)
+	above *)
 
      module OF    = MyOrderedSmartFormulaImplem
      module OFSet = MyPatriciaCollectImplem(struct 
@@ -142,8 +141,10 @@ module MyPAT =
 
      module UF = OF.FI
      module UFSet = OFSet.CI
-     module UASet = OASet.CI
-
+     module UASet = struct
+       include OASet.CI
+       let filter (_:bool*Atom.Predicates.t) (t:t) = t
+     end
      module Strategy =
        functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
 	 include FE
@@ -161,23 +162,23 @@ module MyPAT =
 	   let subsetF     = OFSet.SS.subset
 	   let diffF       = OFSet.SS.diff
 	   let first_diffF = OFSet.SS.first_diff minF
-	 (*(fun t->print_endline(OFSet.toString t);
-	   let f = minF t in
-	   match f with
-	   | Some(a)-> print_endline("SomeF");f
-	   | None   -> print_endline("NoneF");f)*)
+	     (*(fun t->print_endline(OFSet.toString t);
+	       let f = minF t in
+	       match f with
+	       | Some(a)-> print_endline("SomeF");f
+	       | None   -> print_endline("NoneF");f)*)
 	 end
 
 	 module Me = Memo(M)
 
 	 let rec solve =
 	   function
-	   | Local ans                    -> ans
-	   | Fake(Notify(_,machine,_))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
-	   | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(FSet.choose l, accept)))
-	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
-	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())
+	     | Local ans                    -> ans
+	     | Fake(Notify(_,machine,_))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
+	     | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(OFSet.SS.choose l, accept)))
+	     | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	     | Fake(Stop(b1,b2, machine))   -> solve (machine ())
 
        end
    end:User)
-;;
+

@@ -1,15 +1,15 @@
-open Formulae;;
-open Collection;;
-open Strategy;;
-open Sequents;;
-open MyPatricia;;
+open Formulae
+open Collection
+open Strategy
+open Sequents
+open MyPatricia
 
-include MyPatricia;;
+include MyPatricia
 
 module type PrintableOrderedType = sig 
   include PrintableType
   val compare: t->t->int
-end;;
+end
 
 open Set
 
@@ -25,10 +25,9 @@ module MySmartCollectImplem =
     let union    = SS.union
     let inter    = SS.inter
     let remove   = SS.remove
-    let choose   = SS.min_elt
     let hash     = Hashtbl.hash
     let equal    = SS.equal
-    let next  t1 = let e1 = choose t1 in (e1, remove e1 t1)
+    let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
     let toString t1 = 
       let rec toString_aux = function
 	  [] -> ""
@@ -37,28 +36,31 @@ module MySmartCollectImplem =
       in
 	toString_aux (SS.elements t1)
   end
-;;
+
 
 module MySmartUser =
   (struct
 
      (* User uses the smart datastructures with hconsing and sets from
-     above *)
+	above *)
 
      module UF    = MyOrderedSmartFormulaImplem
      module UFSet = MySmartCollectImplem(struct 
-				include PrintableFormula(UF)
-				let compare a b = UF.compare a b
-			      end)
-     module UASet = MyCollectImplem(Atom)
+					   include PrintableFormula(UF)
+					   let compare a b = UF.compare a b
+					 end)
+     module UASet = struct 
+       include MyCollectImplem(Atom)
+       let filter (_:bool*Atom.Predicates.t) (t:t) = t
+     end
 
      (* Below are the restricted version of the above, where the
-     peculiarities of the implementations are hidden before these are
-     fed to the frontend *)
-     
+	peculiarities of the implementations are hidden before these are
+	fed to the frontend *)
+       
      module F: (FormulaImplem with type t = UF.t) = UF
      module FSet: (CollectImplem with type e = F.t and type t=UFSet.t) = UFSet
-     module ASet: (CollectImplem with type e = Atom.t and type t=UASet.t) = UASet
+     module ASet: (ACollectImplem with type t=UASet.t) = UASet
 
      module Strategy =
        functor (FE:FrontEndType with module F=F and module FSet=FSet and module ASet=ASet) -> struct
@@ -81,12 +83,12 @@ module MySmartUser =
 
 	 let rec solve =
 	   function
-	   | Local ans                    -> ans
-	   | Fake(Notify(_,machine,_))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
-	   | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(FSet.choose l, accept)))
-	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
-	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())
+	     | Local ans                    -> ans
+	     | Fake(Notify(_,machine,_))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
+	     | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(UFSet.SS.choose l, accept)))
+	     | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	     | Fake(Stop(b1,b2, machine))   -> solve (machine ())
 
        end
    end:User)
-;;
+

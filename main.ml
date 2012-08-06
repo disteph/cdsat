@@ -1,15 +1,15 @@
 (* Main file *)
 
-open Flags;;
-open Formulae;;
-open Io;;
-open Test;;
-open MySmart;;
-open MyPatricia;;
+open Flags
+open Formulae
+open Io
+open Test
+open MySmart
+open MyPatricia
 
 
-include Tests(MyPAT);;
-include PrintableFormula(MyPAT.UF);;
+include Tests(MyPAT)
+include PrintableFormula(MyPAT.UF)
 
 (* p(x) \/- !p(x) *)
 let f1 = 
@@ -17,7 +17,6 @@ let f1 =
     lit(true,"p",[]),
     lit(false,"p",[])
   )
-;;
 
 (* p(x) \/+ !p(x) *)
 let f2 = 
@@ -25,7 +24,6 @@ let f2 =
     lit(true,"p",[]),
     lit(false,"p",[])
   )
-;;
 
 (* !p(x) \/+ p(x) : infinite computation if proof-search is depth-first*)
 let f3 = 
@@ -33,7 +31,6 @@ let f3 =
     lit(false,"p",[]),
     lit(true,"p",[])
   )
-;;
 
 (* (a \/- b) \/- (!a /\- !b) *)
 
@@ -48,7 +45,6 @@ let f4 =
       lit(false,"b",[])
     )
   )
-;; 
 
 (* (a \/+ b) \/- (!a /\- !b) *)
 let f5 = 
@@ -62,7 +58,6 @@ let f5 =
       lit(false,"b",[])
     )
   )
-;; 
 
 (* (!a \/+ !b) not provable - naive algorithm goes into infinite computation *)
 let f6 = 
@@ -70,7 +65,6 @@ let f6 =
     lit(false,"a", []), 
     lit(false,"b", [])
   )
-;; 
 
 (* (!a /\- !b) *)
 
@@ -79,7 +73,6 @@ let f7=
     lit(false,"a", []), 
     lit(false,"b", [])
   )
-;;
 
 let f8=
   orN(
@@ -92,7 +85,6 @@ let f8=
       lit(true,"q",[])
     )
   )
-;;
 
 let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 
