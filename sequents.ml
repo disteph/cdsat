@@ -89,13 +89,12 @@ module type FrontEndType = sig
   val toString : t -> string
 
   module type MemoType = sig
-    val compareF    : F.t->F.t->int
+    val compareA    : Atom.t->Atom.t->int
     val minA        : ASet.t->Atom.t option
-    val subsetA     : ASet.t->ASet.t->bool
     val diffA       : ASet.t->ASet.t->ASet.t
     val first_diffA : ASet.t->ASet.t->(Atom.t option*bool)
+    val compareF    : F.t->F.t->int
     val minF        : FSet.t->F.t option
-    val subsetF     : FSet.t->FSet.t->bool
     val diffF       : FSet.t->FSet.t->FSet.t
     val first_diffF : FSet.t->FSet.t->(F.t option*bool)
   end
@@ -263,22 +262,20 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 
   module type MemoType = sig
 
-    (* Comparison of formulae *)
-    val compareF    : F.t->F.t->int
+    (* Comparison of atoms *)
+    val compareA    : Atom.t->Atom.t->int
       (* Computes the smallest atom of a set of atoms *)
     val minA        : ASet.t->Atom.t option
       (* Computes whether a set of atoms is a subset of another *)
-    val subsetA     : ASet.t->ASet.t->bool
-      (* Computes the difference between two sets of atoms *)
     val diffA       : ASet.t->ASet.t->ASet.t
       (* Computes the smallest atom that is in one set of atoms
 	 and not in the other *)
     val first_diffA : ASet.t->ASet.t->(Atom.t option*bool)
+    (* Comparison of formulae *)
+    val compareF    : F.t->F.t->int
       (* Computes the smallest formula of a set of formulas *)
     val minF        : FSet.t->F.t option
       (* Computes whether a set of formulas is a subset of another *)
-    val subsetF     : FSet.t->FSet.t->bool
-      (* Computes the difference between two sets of formulas *)
     val diffF       : FSet.t->FSet.t->FSet.t
       (* Computes the smallest formula that is in one set of formulas
 	 and not in the other *)
@@ -307,32 +304,40 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	| A(a)-> ASet.is_in a k
 	| F(a)-> FSet.is_in a k'
 	    
-      let match_prefix (k1,k2) (p1,p2) =
-	let b = M.subsetA p1 k1 in
-	  function
-	    | A(a) -> b
-		&& (match M.minA(M.diffA k1 p1) with
-		      | Some x -> not((Atom.id x)<(Atom.id a))
-		      | _        -> true)
-	    | F(a) -> b&&(M.subsetF p2 k2)
-		&& (match M.minF(M.diffF k2 p2) with
-		      | Some x -> not(M.compareF x a<0)
-		      | _        -> true)
+      let sub (k1,k2) (p1,p2) = function
+	| Some(A(a)) -> begin
+	    match M.minA(M.diffA k1 p1) with
+	      | Some x -> not(M.compareA x a<0)
+	      | _      -> true
+	  end
+	| Some(F(a)) -> begin
+	    match M.minA(M.diffA k1 p1),M.minF(M.diffF k2 p2) with
+	      | (Some _),_ -> false
+	      | _,Some x   -> not(M.compareF x a<0)
+	      | _          -> true
+	  end
+	| None -> begin
+	    match M.minA(M.diffA k1 p1),M.minF(M.diffF k2 p2) with
+	      | None,None -> true
+	      | _         -> false
+	  end
+
+      let sup (a,b) (a',b') = sub (a',b') (a,b)
+
+      let match_prefix (k1,k2) (p1,p2) a = sub (k1,k2) (p1,p2) (Some a) && sup (k1,k2) (p1,p2) (Some a)
 
       let disagree (a,b) (a',b') =
-	(*print_endline("");
-	  print_endline("a = "^(ASet.toString a));
-	  print_endline("a'= "^(ASet.toString a'));
-	  print_endline("");
-	  print_endline("b "^(FSet.toString b));
-	  print_endline("");
-	  print_endline("b' "^(FSet.toString b'));*)
+	(*	print_endline("");
+		print_endline("a = "^(ASet.toString a));
+		print_endline("a'= "^(ASet.toString a'));
+		print_endline("");
+		print_endline("b = "^(FSet.toString b));
+		print_endline("b'= "^(FSet.toString b'));*)
 	match (M.first_diffA a a') with
-	  | (Some d,c) -> (* print_endline("diff_foundA= "^(Atom.toString d));*)
-	      ((ASet.inter a a',FSet.inter b b'),A(d),c)
+	  | (Some d,c) ->
+	      let g = FSet.inter b b' in ((ASet.inter a a',FSet.inter b b'),A(d),c)
 	  | (None,_)   -> match (M.first_diffF b b') with
-	      | (Some d,c)   -> (*	print_endline("diff_foundF= "^(Form.toString d)); *)
-		  ((ASet.inter a a',FSet.inter b b'),F(d),c)
+	      | (Some d,c)   -> ((ASet.inter a a',FSet.inter b b'),F(d),c)
 	      | (None,_)     -> if a==a' then failwith("Disagree called with two arguments that are equal")
 		else failwith("Disagree called with two arguments that are not equal. strange")
 
@@ -340,6 +345,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
     end
 
     module MP=PATMap(UT)
+
 
     let tableS = ref MP.empty
     let tableF = ref MP.empty
@@ -351,36 +357,37 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
     let count = ref 0
 
     let tomem ans = 
-      let b = match ans with
-	| Success(pt)-> (if !Flags.debug=2 then print_endline("Memoising Success "^(Seq.toString(PT.conclusion pt)));true)
-	| Fail(s)    -> (if !Flags.debug=2 then print_endline("Memoising Failure "^(Seq.toString s));false)
+      let (table,algo,b) = match ans with
+	| Success(pt)-> (tableS,MP.find_sub UT.sub,true)
+	| Fail(s)    -> (tableF,MP.find_sup UT.sup,false)
       in 
-      let table = if b then tableS else tableF in 
 	match sequent ans with
 	  | Seq.EntUF(_,delta,_,_,_) as s when (FSet.is_empty delta) ->
 	      let (k1,k2) = simplify s in
-		if not (MP.mem (k1,k2) !table) 
-		then (incr count;
-		      if !Flags.debug>0 then print_endline(string_of_int !count^" Recording "^(if b then "Success" else "Failure")^" "^(ASet.toString k1));
-		      table := MP.add (fun x _ ->x) (k1,k2) ans !table)
-		else if (!count mod 1000 =0) then print_endline("Déja là! "^string_of_int !count);
+		begin
+		  match algo (k1,k2) !table with
+		    | None ->
+			incr count;
+			if !Flags.debug>0&&(!count mod 1000 =0) then (print_endline(string_of_int !count^" Recording "^(if b then "Success" else "Failure"));
+			 print_endline(ASet.toString k1));
+			table := MP.add (fun x _ ->x) (k1,k2) ans !table
+		    | _    -> if (!count mod 100000 =0) then print_endline("Déja là! "^string_of_int !count)
+		end
 	  | _ -> failwith("Not a sequent to memoise!")
 
     let tosearch s  =
-      let sub (a,b) (a',b') = (M.subsetA a a')&&(M.subsetF b b') in
- 	match MP.find_sub sub (simplify s) !tableS with
-	  | None ->
-	      let sup (a,b) (a',b') = (M.subsetA a' a)&&(M.subsetF b' b) in
- 		begin match MP.find_sup sup (simplify s) !tableF with
-		  | None ->
-		      if false then print_endline("Found nothing for "^(Seq.toString s));
-		      None
-		  | Some(g,h)->
-		      if true then print_endline("Found previous Failure for "^(Seq.toString s));
-		      Some h
-		end
-	  | Some(g,h)-> if true then print_endline("Found previous Success for "^(Seq.toString s));
-	      Some h
+      match MP.find_sub UT.sub (simplify s) !tableS with
+	| None ->
+	    begin match MP.find_sup UT.sup (simplify s) !tableF with
+	      | None ->
+		  if !Flags.debug>1 then print_endline("Found nothing for "^(Seq.toString s));
+		  None
+	      | Some(g,h)->
+		  if !Flags.debug>1 then print_endline("Found previous Failure for "^(Seq.toString s));
+		   Some(h)
+	    end
+	| Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Success for "^(Seq.toString s));
+	    Some h
   end
 
 end

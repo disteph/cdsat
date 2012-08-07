@@ -214,7 +214,11 @@ module MyPAT =
 	 let initial_data=()
 
 	 module M:MemoType = struct
-	   let compareF    = OF.compare
+	   let compareA t1 t2  =
+	     let (b1,pred1,tl1) = Atom.reveal t1 in 
+	     let (b2,pred2,tl2) = Atom.reveal t2 in 
+	     let c = Pervasives.compare (OASet.SS.tag (b1,pred1))(OASet.SS.tag (b2,pred2)) in
+	       if c=0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
 	   let minA s      = match OASet.SS.info s with
 	     | None       -> None
 	     | Some(k,v)  -> OASet.AtSet.SS.info v 
@@ -226,6 +230,8 @@ module MyPAT =
 		 if OASet.SS.mem k other
 		 then  OASet.AtSet.SS.first_diff (OASet.AtSet.SS.info) x (OASet.SS.find k other)
 		 else (OASet.AtSet.SS.info x,b)
+
+	   let compareF    = OF.compare
 	   let minF        = OFSet.SS.info
 	   let subsetF     = OFSet.SS.subset
 	   let diffF       = OFSet.SS.diff

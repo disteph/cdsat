@@ -338,32 +338,32 @@ module PATMap (UT:UserTypes) = struct
 
   (* find_sub looks if there is an element in t that is smaller than
      k, according to order sub. Assumption: 
-     sub p q iff for all m, check p m implies check q m *)
+     sub p q (Some m) iff for all n up to m, check p n implies check q n *)
 
   let rec find_sub sub k t = match reveal t with
     | Empty      -> None
-    | Leaf (j,x) -> if sub (tag j) (tag k) then Some(j,x) else None
-    | Branch (p, m, l, r) 
-      -> if (sub p (tag k)) then
-	match find_sub sub k r with
-	  | None    -> if check (tag k) m then find_sub sub k l else None
-	  | v -> v
-      else None
+    | Leaf (j,x) -> if sub (tag j) (tag k) None then Some(j,x) else None
+    | Branch (p, m, l, r) ->
+	if sub p (tag k) (Some m) then
+	  match find_sub sub k r with
+	    | None    -> if check (tag k) m then find_sub sub k l else None
+	    | v -> v
+	else None
 
   (* find_sup looks if there is an element in t that is greater than
      k, according to order sup. Assumption:
-     sup p q iff for all m, check q m implies check p m *)
+     sup p q (Some m) iff for all n upto m, check q n implies check p n *)
 
   let rec find_sup sup k t = match reveal t with
     | Empty      -> None
-    | Leaf (j,x) -> if sup (tag j) (tag k) then Some(j,x) else None
-    | Branch (p, m, l, r) 
-      -> if (sup p (tag k)) then Some(choose t)
-      else
-	match find_sup sup k l with
-	  | None    -> if check (tag k) m then None else find_sup sup k r
-	  | v -> v
-
+    | Leaf (j,x) -> if sup (tag j) (tag k) None then Some(j,x) else None
+    | Branch (p, m, l, r) ->
+	if (sup p (tag k) (Some m)) then 
+	  match find_sup sup k l with
+	    | None -> if check (tag k) m then None else find_sup sup k r
+	    | v    -> v
+	else None
+	  
   let make f l     = List.fold_right (function (k,x)->add f k x) l empty
 
   let elements s =
