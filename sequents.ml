@@ -286,8 +286,8 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   end
 
   module Memo(M:MemoType) = struct
-    module UT = 
-    struct
+
+    module UT = struct
       type keys   = ASet.t*FSet.t
       type common = keys
       let ccompare (a,b)(a',b')= if (a==a')&&(b==b') then 0 else 1
@@ -318,19 +318,6 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 		&& (match M.minF(M.diffF k2 p2) with
 		      | Some x -> not(M.compareF x a<0)
 		      | _        -> true)
-
-      (*	    let diffAA a a' = 
-		    let u1 = M.minA(M.diffA a a') in
-		    let u2 = M.minA(M.diffA a' a) in
-		    match u1,u2 with 
-		    | None,None     -> (None,true)
-		    | None,Some(v)  -> (Some(v),false)
-		    | Some(v), None -> (Some(v),true)
-		    | Some(v1),Some(v2) -> 
-		    if ((Atom.id v1)<(Atom.id v2))
-		    then (Some(v1),true) 
-		    else (Some(v2),false)
-      *)
 
       let disagree (a,b) (a',b') =
 	(*print_endline("");

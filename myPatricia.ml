@@ -87,7 +87,7 @@ module MyPatriciaCollectImplem(M:sig
 				     (* Alternative, recording min, max, cardinal: *)
 				   type infos = keys m_infos
 				   let info_build = m_info_build tag Pervasives.compare
-				   let treeHCons = true
+				   let treeHCons = !Flags.treeHCons
 				 end) 
   module SS = PATSet(TFHC)
 
@@ -128,59 +128,59 @@ module MyPatriciaACollectImplem = struct
 				   type keys      = bool*Atom.Predicates.t
 				   let tag (b,f)  = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
 				   type values    = AtSet.t
-				   let vcompare   = AtSet.SS.compare
-				   type infos     = unit
-				   let info_build = empty_info_build
-				   let treeHCons  = true
+				   let vcompare s1 s2 = match AtSet.SS.first_diff (AtSet.SS.info) s1 s2 with
+				     | (None,_) -> 0
+				     | (_,true) -> -1
+				     | (_,false)-> 1
+				   type infos     = (keys*values) option
+				   let info_build = (
+				     None,
+				     (fun x y -> Some(x,y)),
+				     (fun x1 x2
+					-> match x1,x2 with
+					  | None,_ -> x2
+					  | _,None -> x1
+					  | Some(y1,v1),Some(y2,v2)->
+					      if (tag y1)<(tag y2) || ((tag y1)=(tag y2)&&vcompare v1 v2<0)
+					      then x1 else x2)
+				   )
+				   let treeHCons = !Flags.treeHCons
 				 end)
-  module SS    = PATMap(TFHC)
+  module SS      = PATMap(TFHC)
+
+  let lleaf(k,x) = if AtSet.is_empty x then SS.empty else SS.leaf(k,x)
 
   module CI = struct
     type e        = Atom.t
     type t        = SS.t
+    let hash      = SS.hash
+    let equal     = SS.equal
     let empty     = SS.empty
     let is_empty  = SS.is_empty
-
+    let union     = SS.union AtSet.union
+    let inter     = SS.inter AtSet.inter
     let is_in l t =
       let (b,p,tl) = Atom.reveal l in
 	(SS.mem (b,p) t)
-	&&(not (AtSet.is_empty (SS.find (b,p) t)))
-
-    let add l t   =
+	&&(AtSet.is_in l (SS.find (b,p) t))
+    let add l     =
       let (b,p,tl) = Atom.reveal l in
       let f c = function
 	| None   -> AtSet.SS.singleton c
 	| Some(d)-> AtSet.add c d
-      in 
-	SS.add f (b,p) l t
-
-    let union = 
-      let f = AtSet.union in 
-      SS.union f
-
-    let inter =
-      let f = AtSet.inter in 
-      SS.inter f
-
+      in SS.add f (b,p) l
     let remove l t =
       let (b,p,tl) = Atom.reveal l in
-	if not (SS.mem (b,p) t) then t
-	else
-	  let y = SS.find (b,p) t in
-	  let y' = AtSet.remove l y in 
-	    if AtSet.is_empty y' then SS.remove (b,p) t
-	    else SS.add (fun x _ -> x) (b,p) y' t
-
-    let hash     = SS.hash
-    let equal    = SS.equal
-
+	SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p) t
     let next t1 =
       let (_,y) = SS.choose t1 in
       let l = AtSet.SS.choose y in
       (l, remove l t1)
-
     let toString = SS.toString (fun (k,l)->AtSet.toString l)
-
+    let filter b pred t=
+      if SS.mem (b,pred) t
+      then SS.leaf((b,pred),SS.find (b,pred) t)
+      else empty
   end
 
   include CI
@@ -201,14 +201,11 @@ module MyPAT =
 					      let toString = PF.toString
 					    end)
 
-     module OASet = MyPatriciaCollectImplem(Atom)
+     module OASet = MyPatriciaACollectImplem
 
      module UF = OF.FI
      module UFSet = OFSet.CI
-     module UASet = struct
-       include OASet.CI
-       let filter (_:bool) (_:Atom.Predicates.t) (t:t) = t
-     end
+     module UASet = OASet.CI
      module Strategy =
        functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
 	 include FE
@@ -218,10 +215,17 @@ module MyPAT =
 
 	 module M:MemoType = struct
 	   let compareF    = OF.compare
-	   let minA        = OASet.SS.info
-	   let subsetA     = OASet.SS.subset
-	   let diffA       = OASet.SS.diff
-	   let first_diffA = OASet.SS.first_diff  minA
+	   let minA s      = match OASet.SS.info s with
+	     | None       -> None
+	     | Some(k,v)  -> OASet.AtSet.SS.info v 
+	   let subsetA     = OASet.SS.subset OASet.AtSet.SS.subset
+	   let diffA       = OASet.SS.diff (fun k x y -> OASet.lleaf(k,OASet.AtSet.SS.diff x y))
+	   let first_diffA s1 s2 = match OASet.SS.first_diff OASet.SS.info s1 s2 with
+	     | (None,b)      -> (None,b)
+	     | (Some(k,x),b) -> let other = if b then s2 else s1 in
+		 if OASet.SS.mem k other
+		 then  OASet.AtSet.SS.first_diff (OASet.AtSet.SS.info) x (OASet.SS.find k other)
+		 else (OASet.AtSet.SS.info x,b)
 	   let minF        = OFSet.SS.info
 	   let subsetF     = OFSet.SS.subset
 	   let diffF       = OFSet.SS.diff
@@ -233,7 +237,8 @@ module MyPAT =
 	 let rec solve =
 	   function
 	     | Local ans                    -> ans
-	     | Fake(Notify(_,machine,_))    -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
+	     | Fake(Notify(_,machine,_)) when !Flags.treeHCons -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
+	     | Fake(Notify(_,machine,_))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
 	     | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(OFSet.SS.choose l, accept)))
 	     | Fake(AskSide(seq,machine,_)) -> solve (machine true)
 	     | Fake(Stop(b1,b2, machine))   -> solve (machine ())

@@ -171,14 +171,20 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		   in
 		     Fake(AskSide(seq,side_pick,data))
 
-	       | Lit t -> (*let (b,p,tl) = Atom.reveal t in
-		 let filtered = ASet.filter b p atomN in *)
-		   if (ASet.is_in t atomN) 
-		   then cont (throw (Local(Success(PT.build(PT.Axiom(
-							      relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
-							    ))))) seq)
-		   else cont (throw (Local(Fail seq)) seq)
-		     
+	       | Lit t ->
+		   let (b,p,_) = Atom.reveal t in
+		   let rec filt_inspect filtered cont =
+		     if ASet.is_empty filtered then cont (throw (Local(Fail seq)) seq)
+		     else
+		       let (at,newfiltered) = ASet.next filtered in
+		       let u2 = filt_inspect newfiltered in
+			 if (Atom.equal at t) then 
+			   cont (throw (Local(Success(PT.build(PT.Axiom(
+								 relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
+							       ))))) seq)
+			 else u2 cont
+		   in filt_inspect (ASet.filter b p atomN) cont
+
 	       | _ -> failwith("All cases should have been covered!")
 	   end
 	     

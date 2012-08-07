@@ -151,7 +151,7 @@ module PATMap (UT:UserTypes) = struct
     let remove_aux f k t =
       let rec rmv t = match reveal t with
 	| Empty      -> empty
-	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f x else t
+	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f k x else t
 	| Branch (p,m,t0,t1) -> 
 	    if match_prefix (tag k) p m then
 	      if check (tag k) m then
@@ -163,20 +163,7 @@ module PATMap (UT:UserTypes) = struct
       in
 	rmv t
 
-    let remove k t =
-      let rec rmv t = match reveal t with
-	| Empty      -> empty
-	| Leaf (j,_) -> if  ccompare (tag k) (tag j) ==0 then empty else t
-	| Branch (p,m,t0,t1) -> 
-	    if match_prefix (tag k) p m then
-	      if check (tag k) m then
-		branch (p, m, rmv t0, t1)
-	      else
-		branch (p, m, t0, rmv t1)
-	    else
-	      t
-      in
-	rmv t
+    let remove = remove_aux (fun _ _ -> empty)
 
     let rec toString_aux f = function
 	[] -> ""
@@ -248,7 +235,7 @@ module PATMap (UT:UserTypes) = struct
     | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f x y) else empty
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
-	  union (fun a b -> a) (inter f l1 l2) (inter f r1 r2)
+	  union (fun _ -> failwith("Should not be called")) (inter f l1 l2) (inter f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	  inter f (if check p2 m1 then l1 else r1) s2
 	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
@@ -275,20 +262,59 @@ module PATMap (UT:UserTypes) = struct
   let rec diff f s1 s2 = match (reveal s1,reveal s2) with
     | Empty, _      -> empty
     | _, Empty      -> s1
-    | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in f x y else s1
-    | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun x -> f x y) k s1 else s1
+    | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in f k x y else s1
+    | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun k x -> f k x y) k s1 else s1
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
-	  union (fun a _ -> a) (diff f l1 l2) (diff f r1 r2)
+	  union (fun _ -> failwith("Should not be called")) (diff f l1 l2) (diff f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	  if check p2 m1 then 
-	    union (fun a _-> a) (diff f l1 s2) r1 
+	    union (fun _ -> failwith("Should not be called")) (diff f l1 s2) r1 
 	  else 
-	    union (fun a _-> a) l1 (diff f r1 s2)
+	    union (fun _ -> failwith("Should not be called")) l1 (diff f r1 s2)
 	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	  if check p1 m2 then diff f s1 l2 else diff f s1 r2
 	else
 	  s1
+
+  let opt_st = function
+    | None,None    -> 0
+    | None,_       -> 1
+    | _, None      -> -1
+    | Some(k,x),Some(k',x') -> let c = ccompare (tag k) (tag k') in
+	if c=0 then vcompare x x' else c
+
+  (* Assume min returns the minimal element of a patricia set (according to the total order opt_st).
+     first_diff computes, for patricia sets s1 and s2: (b,c)
+     where b is the smallest element belonging to one and not the other
+     c is true (resp false) if b was in s1 (resp s2).
+  *)
+
+  let rec first_diff min s1 s2 = match (reveal s1,reveal s2) with
+    | Empty, _      -> (min s2,false)
+    | _, Empty      -> let (b,c) = first_diff min s2 s1 in (b,not c)
+    | Leaf(k,x), _  -> let i = opt_st(Some(k,x),min s2) in
+	if i=0 then (min(remove k s2),false)
+	else if i<0 then (Some(k,x),true) else (min s2,false)
+    | _,Leaf(_)     -> let (b,c) = first_diff min s2 s1 in (b,not c)
+    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	  let (b1,c1) = first_diff min l1 l2 in
+	  let (b2,c2) = first_diff min r1 r2 in
+	    if opt_st(b1,b2)<0 then (b1,c1) else (b2,c2)
+	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	  let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
+	  let (b,c) = first_diff min friend s2 in
+	  let k' = min foe in
+	    if opt_st(b,k')<0 then (b,c) else (k',true)
+	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	  let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
+	  let (b,c) = first_diff min s1 friend in
+	  let k' = min foe in
+	    if opt_st(b,k')<0 then (b,c) else (k',false)
+	else
+	  let (k1,k2) = (min s1,min s2) in
+	    if opt_st(k1,k2)<0 then (k1,true) else (k2,false)
 
   let rec iter f t = match reveal t with
     | Empty -> ()
@@ -372,11 +398,22 @@ module PATSet (ST:UserTypes with type values = unit) = struct
      Starting with similar functions *)
 
   let singleton k= PM.leaf(k,())
-  let add k t    = PM.add (fun _ _-> ()) k () t
-  let union s t  = PM.union (fun _ _ -> ()) s t
-  let inter s t  = PM.inter (fun _ _ -> ()) s t
+  let add k t    = PM.add   (fun _ _ -> ()) k () t
+  let union      = PM.union (fun _ _ -> ())
+  let inter      = PM.inter (fun _ _ -> ())
+  let subset     = PM.subset(fun _ _ -> true)
+  let diff       = PM.diff  (fun _ _ _ -> empty)
+  let first_diff min s1 s2 =
+    let mapmin s = match min s with
+      | None   -> None
+      | Some(x)-> Some(x,())
+    in
+      match PM.first_diff mapmin s1 s2 with
+	| (None,b)     -> (None,b)
+	| (Some(k,x),b)-> (Some k,b)
+ 
   let iter f     = PM.iter (fun k x -> f k)
-  let map f      = PM.map (fun k x -> f k)	  
+  let map f      = PM.map  (fun k x -> f k)	  
   let fold f     = PM.fold (fun k x -> f k)
   let choose t   = let (k,_) = PM.choose t in k
   let find_sub sub k t = match PM.find_sub sub k t with
@@ -393,114 +430,6 @@ module PATSet (ST:UserTypes with type values = unit) = struct
   let toString f t = toString_aux f (elements t)
 
   let make l     = List.fold_right add l empty
-
-  let rec subset s1 s2 = match (reveal s1,reveal s2) with
-    | Empty, _             -> true
-    | _, Empty             -> false
-    | Leaf(k,()), _        -> mem k s2
-    | Branch _, Leaf(k,()) -> false
-    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
-	  subset l1 l2 && subset r1 r2
-	else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
-	  if check p1 m2 then 
-	    subset l1 l2 && subset r1 l2
-	  else 
-	    subset l1 r2 && subset r1 r2
-	else
-	  false
-
-  let rec diff s1 s2 = match (reveal s1,reveal s2) with
-    | Empty, _      -> empty
-    | _, Empty      -> s1
-    | Leaf(k,()), _ -> if mem k s2 then empty else s1
-    | _, Leaf(k,()) -> remove k s1
-    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
-	  union (diff l1 l2) (diff r1 r2)
-	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	  if check p2 m1 then 
-	    union (diff l1 s2) r1 
-	  else 
-	    union l1 (diff r1 s2)
-	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	  if check p1 m2 then diff s1 l2 else diff s1 r2
-	else
-	  s1
-
-  let opt_st = function 
-    | None,s2       -> false
-    | s1, None      -> true
-    | Some(v1),Some(v2) -> ccompare (tag v1) (tag v2)<0
-
-  (* Assume min returns the minimal element of a patricia set (according to some order).
-     first_diff computes, for patricia sets s1 and s2: (b,c)
-     where b is the smallest element belonging to one and not the other
-     c is true (resp false) if b was in s1 (resp s2).
-  *)
-
-  (*    let rec first_diff min s1 s2 s = match begin 
-	match (reveal s1,reveal s2) with
-	| Empty, _      -> print_endline(s^"E,");(min s2,false)
-	| _, Empty      -> print_endline(s^",E");let (b,c) = first_diff min s2 s1 s in (b,not c)
-	| Leaf(k,()), _ -> print_endline(s^"L,");
-	if mem k s2 then (print_endline(s^"Present");(min(remove k s2),false) )
-	else (print_endline(s^"Absent");let k'=min s2 in
-	if opt_st((Some k),k') then (Some k, true) else (k', false))
-	| _,Leaf(k,()) -> print_endline(s^",L"); let (b,c) = first_diff min s2 s1 s in (b,not c)
-	| Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
-	(print_endline(s^"B,B, equal pref");
-	let (b1,c1) = first_diff min l1 l2 ("  "^s) in
-	let (b2,c2) = first_diff min r1 r2 ("  "^s) in
-	if opt_st(b1,b2) then (b1,c1) else (b2,c2))
-	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	(print_endline(s^"B,B, m1<m2 good");
-	let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
-	let (b,c) = first_diff min friend s2 ("  "^s) in
-	let k' = min foe in
-	if opt_st(b,k') then (b,c) else (k',true))
-	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	(print_endline(s^"B,B, m1>m2 good");
-	let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
-	let (b,c) = first_diff min s1 friend ("  "^s) in
-	let k' = min foe in
-	if opt_st(b,k') then (b,c) else (k',true))
-	else
-	(print_endline(s^"B,B, pref disagree");
-	let (k1,k2) = (min s1,min s2) in
-	if opt_st(k1,k2) then (k1,true) else (k2,false))
-	end with
-	| (Some v,b) as d -> print_endline(s^"Some");d
-	| (None,b) as d -> print_endline(s^"None");d
-
-	let first_diff min s1 s2 = let d = first_diff min s1 s2 "" in print_endline("=======");d
-  *)
-
-  let rec first_diff min s1 s2 = match (reveal s1,reveal s2) with
-    | Empty, _      -> (min s2,false)
-    | _, Empty      -> let (b,c) = first_diff min s2 s1 in (b,not c)
-    | Leaf(k,()), _ -> if mem k s2 then (min(remove k s2),false)
-      else let k'=min s2 in if opt_st((Some k),k') then (Some k, true) else (k', false)
-    | _,Leaf(k,()) -> let (b,c) = first_diff min s2 s1 in (b,not c)
-    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
-	  let (b1,c1) = first_diff min l1 l2 in
-	  let (b2,c2) = first_diff min r1 r2 in
-	    if opt_st(b1,b2) then (b1,c1) else (b2,c2)
-	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	  let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
-	  let (b,c) = first_diff min friend s2 in
-	  let k' = min foe in
-	    if opt_st(b,k') then (b,c) else (k',true)
-	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	  let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
-	  let (b,c) = first_diff min s1 friend in
-	  let k' = min foe in
-	    if opt_st(b,k') then (b,c) else (k',false)
-	else
-	  let (k1,k2) = (min s1,min s2) in
-	    if opt_st(k1,k2) then (k1,true) else (k2,false)
 
   let rec for_all p t = match reveal t with
     | Empty      -> true
@@ -561,7 +490,7 @@ let mmc_info_build tag = (
 	 z1+z2))
 )
 
-type 'a m_infos = ('a option)
+type 'a m_infos = 'a option
 let m_info_build tag ccompare = (
   None,
   (fun x _ -> Some x),
