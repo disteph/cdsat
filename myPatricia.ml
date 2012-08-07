@@ -3,9 +3,9 @@ open Collection
 open Strategy
 open Sequents
 
-module MyOrderedSmartFormulaImplem = struct
+module MySmartFormulaImplem = struct
 
-  type tt = {reveal: tt form;id:int;priority:int}
+  type tt = {reveal: tt form;id:int;size:int}
 
   let id f = f.id
     
@@ -37,17 +37,14 @@ module MyOrderedSmartFormulaImplem = struct
 
   module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
 
-  (* Function computing a priority for each 
-   * When picking a formula among a set, the formula with highest priority will be picked first
-   * Here, smallest formulae have highest priority
-   *)
+  (* Computes the size of the formula *)
 
   let prior = function
     | Lit l        -> - 1
-    | AndP (x1,x2) -> - x1.priority - x2.priority
-    | OrP (x1,x2)  -> - x1.priority - x2.priority
-    | AndN (x1,x2) -> - x1.priority - x2.priority
-    | OrN (x1,x2)  -> - x1.priority - x2.priority
+    | AndP (x1,x2) -> - x1.size - x2.size
+    | OrP (x1,x2)  -> - x1.size - x2.size
+    | AndN (x1,x2) -> - x1.size - x2.size
+    | OrN (x1,x2)  -> - x1.size - x2.size
 
   (* Constructing a formula with HConsing techniques *)
 
@@ -57,7 +54,7 @@ module MyOrderedSmartFormulaImplem = struct
   module FI = struct
     type t = tt
     let build a =
-      let f = {reveal =  a; id = !unique; priority = prior a} in
+      let f = {reveal =  a; id = !unique; size = prior a} in
 	try H.find table f
 	with Not_found -> incr unique; H.add table f f; f
 
@@ -68,7 +65,7 @@ module MyOrderedSmartFormulaImplem = struct
   let reveal = FI.reveal
 
   let compare t1 t2 =
-    let a = (Pervasives.compare t1.priority t2.priority) in
+    let a = (Pervasives.compare t1.size t2.size) in
       if (a<>0) then  a else (Pervasives.compare t1.id t2.id)
 end
 
@@ -90,9 +87,9 @@ module MyPatriciaCollectImplem(M:sig
 				     (* Alternative, recording min, max, cardinal: *)
 				   type infos = keys m_infos
 				   let info_build = m_info_build tag Pervasives.compare
-				   let treeHCons = !Flags.treeHCons
+				   let treeHCons = true
 				 end) 
-  module SS    = PATSet(TFHC)
+  module SS = PATSet(TFHC)
 
   module CI = struct
     type e       = SS.keys
@@ -124,26 +121,93 @@ module MyPatriciaCollectImplem(M:sig
 
 end
 
+module MyPatriciaACollectImplem = struct
+
+  module AtSet = MyPatriciaCollectImplem(Atom)
+  module TFHC = TypesFromHConsed(struct
+				   type keys      = bool*Atom.Predicates.t
+				   let tag (b,f)  = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
+				   type values    = AtSet.t
+				   let vcompare   = AtSet.SS.compare
+				   type infos     = unit
+				   let info_build = empty_info_build
+				   let treeHCons  = true
+				 end)
+  module SS    = PATMap(TFHC)
+
+  module CI = struct
+    type e        = Atom.t
+    type t        = SS.t
+    let empty     = SS.empty
+    let is_empty  = SS.is_empty
+
+    let is_in l t =
+      let (b,p,tl) = Atom.reveal l in
+	(SS.mem (b,p) t)
+	&&(not (AtSet.is_empty (SS.find (b,p) t)))
+
+    let add l t   =
+      let (b,p,tl) = Atom.reveal l in
+      let f c = function
+	| None   -> AtSet.SS.singleton c
+	| Some(d)-> AtSet.add c d
+      in 
+	SS.add f (b,p) l t
+
+    let union = 
+      let f = AtSet.union in 
+      SS.union f
+
+    let inter =
+      let f = AtSet.inter in 
+      SS.inter f
+
+    let remove l t =
+      let (b,p,tl) = Atom.reveal l in
+	if not (SS.mem (b,p) t) then t
+	else
+	  let y = SS.find (b,p) t in
+	  let y' = AtSet.remove l y in 
+	    if AtSet.is_empty y' then SS.remove (b,p) t
+	    else SS.add (fun x _ -> x) (b,p) y' t
+
+    let hash     = SS.hash
+    let equal    = SS.equal
+
+    let next t1 =
+      let (_,y) = SS.choose t1 in
+      let l = AtSet.SS.choose y in
+      (l, remove l t1)
+
+    let toString = SS.toString (fun (k,l)->AtSet.toString l)
+
+  end
+
+  include CI
+
+end
+
 module MyPAT =
   (struct
 
      (* User uses the smart datastructures with hconsing and sets from
 	above *)
 
-     module OF    = MyOrderedSmartFormulaImplem
+     module OF    = MySmartFormulaImplem
      module OFSet = MyPatriciaCollectImplem(struct 
 					      include OF
 					      let id = OF.id
 					      module PF = PrintableFormula(OF)
 					      let toString = PF.toString
 					    end)
+
      module OASet = MyPatriciaCollectImplem(Atom)
 
      module UF = OF.FI
      module UFSet = OFSet.CI
      module UASet = struct
        include OASet.CI
-       let filter (_:bool*Atom.Predicates.t) (t:t) = t
+       let filter (_:bool) (_:Atom.Predicates.t) (t:t) = t
      end
      module Strategy =
        functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
@@ -162,11 +226,6 @@ module MyPAT =
 	   let subsetF     = OFSet.SS.subset
 	   let diffF       = OFSet.SS.diff
 	   let first_diffF = OFSet.SS.first_diff minF
-	     (*(fun t->print_endline(OFSet.toString t);
-	       let f = minF t in
-	       match f with
-	       | Some(a)-> print_endline("SomeF");f
-	       | None   -> print_endline("NoneF");f)*)
 	 end
 
 	 module Me = Memo(M)

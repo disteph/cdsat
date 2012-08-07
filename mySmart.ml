@@ -13,30 +13,28 @@ end
 
 open Set
 
-module MySmartCollectImplem =
-  functor (MyPOType:PrintableOrderedType) -> struct
-    module SS = Set.Make(MyPOType)
-    type e       = SS.elt
-    type t       = SS.t
-    let is_empty = SS.is_empty
-    let is_in    = SS.mem
-    let empty    = SS.empty
-    let add      = SS.add
-    let union    = SS.union
-    let inter    = SS.inter
-    let remove   = SS.remove
-    let hash     = Hashtbl.hash
-    let equal    = SS.equal
-    let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
-    let toString t1 = 
-      let rec toString_aux = function
-	  [] -> ""
-	| f::[] -> MyPOType.toString(f)
-	| f::l -> MyPOType.toString(f)^", "^(toString_aux l)
-      in
-	toString_aux (SS.elements t1)
-  end
-
+module MySmartCollectImplem (MyPOType:PrintableOrderedType) = struct
+  module SS    = Set.Make(MyPOType)
+  type e       = SS.elt
+  type t       = SS.t
+  let is_empty = SS.is_empty
+  let is_in    = SS.mem
+  let empty    = SS.empty
+  let add      = SS.add
+  let union    = SS.union
+  let inter    = SS.inter
+  let remove   = SS.remove
+  let hash     = Hashtbl.hash
+  let equal    = SS.equal
+  let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
+  let toString t1 = 
+    let rec toString_aux = function
+	[] -> ""
+      | f::[] -> MyPOType.toString(f)
+      | f::l -> MyPOType.toString(f)^", "^(toString_aux l)
+    in
+      toString_aux (SS.elements t1)
+end
 
 module MySmartUser =
   (struct
@@ -44,15 +42,12 @@ module MySmartUser =
      (* User uses the smart datastructures with hconsing and sets from
 	above *)
 
-     module UF    = MyOrderedSmartFormulaImplem
+     module UF    = MySmartFormulaImplem
      module UFSet = MySmartCollectImplem(struct 
 					   include PrintableFormula(UF)
 					   let compare a b = UF.compare a b
 					 end)
-     module UASet = struct 
-       include MyCollectImplem(Atom)
-       let filter (_:bool*Atom.Predicates.t) (t:t) = t
-     end
+     module UASet = MyACollectImplem
 
      (* Below are the restricted version of the above, where the
 	peculiarities of the implementations are hidden before these are

@@ -14,14 +14,12 @@ module type CollectImplem = sig
   val equal: t->t->bool
 end
 
-open Formulae;;
+open Formulae
 
 module type ACollectImplem = sig
   include CollectImplem with type e = Atom.t
-  val filter : (bool*Atom.Predicates.t) -> t -> t
+  val filter : bool -> Atom.Predicates.t -> t -> t
 end
-
-
 
 (* Default implementation for interface CollectImplem *)
 
@@ -64,3 +62,13 @@ module MyCollectImplem (MyPType:PrintableType) =
      let hash = Hashtbl.hash
      let equal = (=)
    end: CollectImplem with type e = MyPType.t and type t = MyPType.t list)
+
+module MyACollectImplem =
+  (struct
+     include MyCollectImplem(Atom)
+     let rec filter b pred = function
+       | []   -> []
+       | a::l -> let l' = filter b pred l in
+	   let (b',pred',tl) = Atom.reveal a in
+	   if (b=b')&& (Atom.Predicates.compare pred pred' =0) then a::l' else l'
+   end: ACollectImplem)

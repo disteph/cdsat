@@ -375,7 +375,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 		if not (MP.mem (k1,k2) !table) 
 		then (incr count;
 		      if !Flags.debug>0 then print_endline(string_of_int !count^" Recording "^(if b then "Success" else "Failure")^" "^(ASet.toString k1));
-		      table := MP.add (fun _ x->x) (k1,k2) ans !table)
+		      table := MP.add (fun x _ ->x) (k1,k2) ans !table)
 		else if (!count mod 1000 =0) then print_endline("Déja là! "^string_of_int !count);
 	  | _ -> failwith("Not a sequent to memoise!")
 

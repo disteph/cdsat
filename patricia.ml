@@ -148,6 +148,21 @@ module PATMap (UT:UserTypes) = struct
       let (c,m,b) = disagree p0 p1 in
 	if b then branch (c, m, t0, t1) else branch (c, m, t1, t0)
 
+    let remove_aux f k t =
+      let rec rmv t = match reveal t with
+	| Empty      -> empty
+	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f x else t
+	| Branch (p,m,t0,t1) -> 
+	    if match_prefix (tag k) p m then
+	      if check (tag k) m then
+		branch (p, m, rmv t0, t1)
+	      else
+		branch (p, m, t0, rmv t1)
+	    else
+	      t
+      in
+	rmv t
+
     let remove k t =
       let rec rmv t = match reveal t with
 	| Empty      -> empty
@@ -178,12 +193,12 @@ module PATMap (UT:UserTypes) = struct
 
   let add f k x t =
     let rec ins t = match reveal t with
-      | Empty      -> leaf(k,f None x)
+      | Empty      -> leaf(k,f x None)
       | Leaf (j,y) -> 
 	  if  ccompare (tag k) (tag j) ==0 then 
-	    leaf (k,f (Some y) x) 
+	    leaf (k,f x (Some y)) 
 	  else 
-	    join (tag k, leaf(k,f None x), tag j, t)
+	    join (tag k, leaf(k,f x None), tag j, t)
       | Branch (c,b,t0,t1) ->
 	  if match_prefix (tag k) c b then
 	    if check (tag k) b then 
@@ -191,36 +206,89 @@ module PATMap (UT:UserTypes) = struct
 	    else
 	      branch (c,b, t0, ins t1)
 	  else
-	    join (tag k, leaf(k,f None x), c, t)
+	    join (tag k, leaf(k,f x None), c, t)
     in
       ins t
 
-  let rec merge f (u1,u2) = match reveal u1,reveal u2 with
-    | Empty, _  -> u2
-    | _, Empty  -> u1
-    | Leaf(k,x), _ -> add f k x u2
-    | _, Leaf(k,x) -> add f k x u1
-    | Branch (p,m,s0,s1), Branch (q,n,t0,t1) ->
-	if (bcompare m n==0) && match_prefix q p m then
-	  (* The trees have the same prefix. Merge the subtrees. *)
-	  branch (p, m, merge f (s0,t0), merge f (s1,t1))
-	else if bcompare m n < 0 && match_prefix q p m then
-	  (* [q] contains [p]. Merge [t] with a subtree of [s]. *)
-	  if check q m then 
-	    branch (p, m, merge f (s0,u2), s1)
-          else 
-	    branch (p, m, s0, merge f (s1,u2))
-	else if bcompare n m < 0 && match_prefix p q n then
-	  (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
-	  if check p n then
-	    branch (q, n, merge f (u1,t0), t1)
+  let rec merge f (u1,u2) =
+    let newf x = function
+      | None   -> x
+      | Some(y)-> f x y
+    in match reveal u1,reveal u2 with
+      | Empty, _  -> u2
+      | _, Empty  -> u1
+      | Leaf(k,x), _ -> add newf k x u2
+      | _, Leaf(k,x) -> add newf k x u1
+      | Branch (p,m,s0,s1), Branch (q,n,t0,t1) ->
+	  if (bcompare m n==0) && match_prefix q p m then
+	    (* The trees have the same prefix. Merge the subtrees. *)
+	    branch (p, m, merge f (s0,t0), merge f (s1,t1))
+	  else if bcompare m n < 0 && match_prefix q p m then
+	    (* [q] contains [p]. Merge [t] with a subtree of [s]. *)
+	    if check q m then 
+	      branch (p, m, merge f (s0,u2), s1)
+            else 
+	      branch (p, m, s0, merge f (s1,u2))
+	  else if bcompare n m < 0 && match_prefix p q n then
+	    (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
+	    if check p n then
+	      branch (q, n, merge f (u1,t0), t1)
+	    else
+	      branch (q, n, t0, merge f (u1,t1))
 	  else
-	    branch (q, n, t0, merge f (u1,t1))
-	else
-	  (* The prefixes disagree. *)
-	  join (p, u1, q, u2)
+	    (* The prefixes disagree. *)
+	    join (p, u1, q, u2)
 
   let union f s t = merge f (s,t)
+
+  let rec inter f s1 s2 = match (reveal s1,reveal s2) with
+    | Empty, _      -> empty
+    | _, Empty      -> empty
+    | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f x y) else empty
+    | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f x y) else empty
+    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	  union (fun a b -> a) (inter f l1 l2) (inter f r1 r2)
+	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	  inter f (if check p2 m1 then l1 else r1) s2
+	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	  inter f s1 (if check p1 m2 then l2 else r2)
+	else
+	  empty
+
+  let rec subset f s1 s2 = match (reveal s1,reveal s2) with
+    | Empty, _             -> true
+    | _, Empty             -> false
+    | Leaf(k,x), _         -> mem k s2 &&(let y = find k s2 in f x y)
+    | Branch _, Leaf(k,_) -> false
+    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
+	  subset f l1 l2 && subset f r1 r2
+	else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
+	  if check p1 m2 then 
+	    subset f l1 l2 && subset f r1 l2
+	  else 
+	    subset f l1 r2 && subset f r1 r2
+	else
+	  false
+
+  let rec diff f s1 s2 = match (reveal s1,reveal s2) with
+    | Empty, _      -> empty
+    | _, Empty      -> s1
+    | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in f x y else s1
+    | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun x -> f x y) k s1 else s1
+    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
+	  union (fun a _ -> a) (diff f l1 l2) (diff f r1 r2)
+	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	  if check p2 m1 then 
+	    union (fun a _-> a) (diff f l1 s2) r1 
+	  else 
+	    union (fun a _-> a) l1 (diff f r1 s2)
+	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	  if check p1 m2 then diff f s1 l2 else diff f s1 r2
+	else
+	  s1
 
   let rec iter f t = match reveal t with
     | Empty -> ()
@@ -306,6 +374,7 @@ module PATSet (ST:UserTypes with type values = unit) = struct
   let singleton k= PM.leaf(k,())
   let add k t    = PM.add (fun _ _-> ()) k () t
   let union s t  = PM.union (fun _ _ -> ()) s t
+  let inter s t  = PM.inter (fun _ _ -> ()) s t
   let iter f     = PM.iter (fun k x -> f k)
   let map f      = PM.map (fun k x -> f k)	  
   let fold f     = PM.fold (fun k x -> f k)
@@ -340,21 +409,6 @@ module PATSet (ST:UserTypes with type values = unit) = struct
 	    subset l1 r2 && subset r1 r2
 	else
 	  false
-
-  let rec inter s1 s2 = match (reveal s1,reveal s2) with
-    | Empty, _      -> empty
-    | _, Empty      -> empty
-    | Leaf(k,()), _ -> if mem k s2 then s1 else empty
-    | _, Leaf(k,()) -> if mem k s1 then s2 else empty
-    | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
-	  union (inter l1 l2) (inter r1 r2)
-	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	  inter (if check p2 m1 then l1 else r1) s2
-	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	  inter s1 (if check p1 m2 then l2 else r2)
-	else
-	  empty
 
   let rec diff s1 s2 = match (reveal s1,reveal s2) with
     | Empty, _      -> empty

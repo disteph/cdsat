@@ -34,10 +34,7 @@ end
 module MyUser:User = struct
   module UF = MyFormulaImplem
   module UFSet = MyCollectImplem(PrintableFormula(UF))
-  module UASet = struct 
-    include MyCollectImplem(Atom)
-    let filter (_:bool*Atom.Predicates.t) (t:t) = t
-  end
+  module UASet = MyACollectImplem
   module Strategy =
     functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
       include FE

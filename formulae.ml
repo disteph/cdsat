@@ -67,12 +67,20 @@ module Term =
      val hashtl: t list ->int
    end) 
 
-
 module Atom =
   (struct
      module Predicates = struct
-       type t = string
-       let compare s s' = Pervasives.compare s s'
+       type t = {reveal:string;id:int}
+       let reveal t = t.reveal
+       let id t     = t.id
+       let table  = Hashtbl.create 5003 
+       let predid = ref 0
+       let build a =
+	 let f = {reveal =  a; id = !predid } in
+	   try Hashtbl.find table a
+	   with Not_found ->  (* print_endline(a^" "^string_of_int(!predid)); *)
+	     incr predid; Hashtbl.add table a f; f
+       let compare s s' = Pervasives.compare s.id s'.id
      end
      module AtomPrimitive = struct
        type t = {reveal:bool*Predicates.t*(Term.t list);id:int}
@@ -81,7 +89,7 @@ module Atom =
        let equal t t'= 
 	 let (b,a,tl) = t.reveal in
 	 let (b',a',tl') = t'.reveal in
-	   b=b'&&a=a'&&Term.equaltl(tl,tl')
+	   b=b'&&(Predicates.compare a a' =0)&&Term.equaltl(tl,tl')
        let hash t = let (b,a,tl)= t.reveal in (if b then 0 else 1)+2*(Hashtbl.hash a)+3*(Term.hashtl tl)
      end
      include AtomPrimitive
@@ -93,18 +101,21 @@ module Atom =
 	 try H.find table f
 	 with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
 	   incr atomid; H.add table f f; f
+     let bbuild (b,s,tl) = build(b,Predicates.build s,tl)
      let negation t = let (b,a,tl) = t.reveal in build (not b,a,tl)
      let toString t = match t.reveal with
-       | (true,s, tl) -> "{"^s^Term.printtl(tl)^"}"
-       | (false,s, tl) -> "\\non {"^s^"}"^Term.printtl(tl)
+       | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
+       | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)
    end:sig
-     module Predicates: sig
+     module Predicates : sig
        type t
        val compare : t->t->int
+       val id : t->int
      end
      type t
      val reveal: t -> bool*Predicates.t*(Term.t list)
-     val build: bool*string*(Term.t list) -> t
+     val build: bool*Predicates.t*(Term.t list) -> t
+     val bbuild: bool*string*(Term.t list) -> t
      val id: t-> int       
      val negation: t -> t
      val toString: t-> string
@@ -132,37 +143,36 @@ end
 
 (* Generic code providing standard functions about formulae *)
 
-module PrintableFormula =
-  functor (F: FormulaImplem) -> struct
+module PrintableFormula (F: FormulaImplem) = struct
 
-    type t = F.t
-	
-    (* Displays a formula *)
-    let rec toString f = match F.reveal f with
-	Lit(l) -> Atom.toString l
-      | AndN(f1,f2) -> "("^toString(f1)^") \\andN ("^toString(f2)^")"
-      | OrN(f1,f2) -> "("^toString(f1)^") \\orN ("^toString(f2)^")"
-      | AndP(f1,f2) -> "("^toString(f1)^") \\andP ("^toString(f2)^")"
-      | OrP(f1,f2) -> "("^toString(f1)^") \\orP ("^toString(f2)^")"
+  type t = F.t
+      
+  (* Displays a formula *)
+  let rec toString f = match F.reveal f with
+      Lit(l) -> Atom.toString l
+    | AndN(f1,f2) -> "("^toString(f1)^") \\andN ("^toString(f2)^")"
+    | OrN(f1,f2) -> "("^toString(f1)^") \\orN ("^toString(f2)^")"
+    | AndP(f1,f2) -> "("^toString(f1)^") \\andP ("^toString(f2)^")"
+    | OrP(f1,f2) -> "("^toString(f1)^") \\orP ("^toString(f2)^")"
 
 
-    (* Negates a formula *)
-    let rec negation f = F.build(
-      match F.reveal f with
-	| Lit t       -> Lit(Atom.negation t)
-	| AndN(f1,f2) -> OrP(negation f1,negation f2)
-	| OrN(f1,f2)  -> AndP(negation f1,negation f2)
-	| AndP(f1,f2) -> OrN(negation f1,negation f2)
-	| OrP(f1,f2)  -> AndN(negation f1,negation f2)
-    )
+  (* Negates a formula *)
+  let rec negation f = F.build(
+    match F.reveal f with
+      | Lit t       -> Lit(Atom.negation t)
+      | AndN(f1,f2) -> OrP(negation f1,negation f2)
+      | OrN(f1,f2)  -> AndP(negation f1,negation f2)
+      | AndP(f1,f2) -> OrN(negation f1,negation f2)
+      | OrP(f1,f2)  -> AndN(negation f1,negation f2)
+  )
 
-    let lit(b,f,tl) = F.build(Lit(Atom.build (b,f,tl)))
-    let andN(f1,f2) = F.build(AndN(f1,f2))
-    let andP(f1,f2) = F.build(AndP(f1,f2))
-    let orN(f1,f2)  = F.build(OrN(f1,f2))
-    let orP(f1,f2)  = F.build(OrP(f1,f2))
+  let lit(b,f,tl) = F.build(Lit(Atom.bbuild (b,f,tl)))
+  let andN(f1,f2) = F.build(AndN(f1,f2))
+  let andP(f1,f2) = F.build(AndP(f1,f2))
+  let orN(f1,f2)  = F.build(OrN(f1,f2))
+  let orP(f1,f2)  = F.build(OrP(f1,f2))
 
-  end
+end
 
 
 (* Default implementation for interface FormulaImplem *)

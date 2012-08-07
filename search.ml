@@ -171,9 +171,9 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		   in
 		     Fake(AskSide(seq,side_pick,data))
 
-	       | Lit t -> let (b,p,tl) = Atom.reveal t in
-		 let filtered = ASet.filter (b,p) atomN in
-		   if (ASet.is_in t filtered) 
+	       | Lit t -> (*let (b,p,tl) = Atom.reveal t in
+		 let filtered = ASet.filter b p atomN in *)
+		   if (ASet.is_in t atomN) 
 		   then cont (throw (Local(Success(PT.build(PT.Axiom(
 							      relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
 							    ))))) seq)

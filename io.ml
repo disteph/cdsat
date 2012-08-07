@@ -79,7 +79,7 @@ module Generate (F:FormulaImplem) = struct
 
   (* parse a literals from boolean (for sign) and string *)
 
-  let generate_atom (b,t) = F.build (Lit (Atom.build(b,t, [])))
+  let generate_atom (b,t) = F.build (Lit (Atom.bbuild(b,t, [])))
 
   (* parse a clause from list of literal descriptions *)
 
@@ -90,8 +90,8 @@ module Generate (F:FormulaImplem) = struct
       then F.build (AndP((generate_atom t),(generate_clause l)))
       else F.build (AndN((generate_atom t),(generate_clause l)))
     | []    -> F.build (OrN(
-			  F.build (Lit (Atom.build(true,"p",[]))),
-			  F.build (Lit (Atom.build(false,"p",[])))
+			  F.build (Lit (Atom.bbuild(true,"p",[]))),
+			  F.build (Lit (Atom.bbuild(false,"p",[])))
 			))
 
   (* parse a cnf from list of clause descriptions *)
@@ -102,8 +102,8 @@ module Generate (F:FormulaImplem) = struct
       then F.build (OrP((generate_clause t),(generate_cnf l)))
       else F.build (OrN((generate_clause t),(generate_cnf l)))
     | []    -> F.build (AndP(
-			  F.build (Lit (Atom.build(true,"p",[]))),
-			  F.build (Lit (Atom.build(false,"p",[])))
+			  F.build (Lit (Atom.bbuild(true,"p",[]))),
+			  F.build (Lit (Atom.bbuild(false,"p",[])))
 			))
 
 end
