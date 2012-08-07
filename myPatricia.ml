@@ -222,7 +222,6 @@ module MyPAT =
 	   let minA s      = match OASet.SS.info s with
 	     | None       -> None
 	     | Some(k,v)  -> OASet.AtSet.SS.info v 
-	   let subsetA     = OASet.SS.subset OASet.AtSet.SS.subset
 	   let diffA       = OASet.SS.diff (fun k x y -> OASet.lleaf(k,OASet.AtSet.SS.diff x y))
 	   let first_diffA s1 s2 = match OASet.SS.first_diff OASet.SS.info s1 s2 with
 	     | (None,b)      -> (None,b)
@@ -233,7 +232,6 @@ module MyPAT =
 
 	   let compareF    = OF.compare
 	   let minF        = OFSet.SS.info
-	   let subsetF     = OFSet.SS.subset
 	   let diffF       = OFSet.SS.diff
 	   let first_diffF = OFSet.SS.first_diff minF
 	 end

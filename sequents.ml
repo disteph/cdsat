@@ -334,8 +334,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 		print_endline("b = "^(FSet.toString b));
 		print_endline("b'= "^(FSet.toString b'));*)
 	match (M.first_diffA a a') with
-	  | (Some d,c) ->
-	      let g = FSet.inter b b' in ((ASet.inter a a',FSet.inter b b'),A(d),c)
+	  | (Some d,c) -> ((ASet.inter a a',FSet.inter b b'),A(d),c)
 	  | (None,_)   -> match (M.first_diffF b b') with
 	      | (Some d,c)   -> ((ASet.inter a a',FSet.inter b b'),F(d),c)
 	      | (None,_)     -> if a==a' then failwith("Disagree called with two arguments that are equal")

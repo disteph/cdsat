@@ -4,9 +4,7 @@ open Flags
 open Formulae
 open Io
 open Test
-open MySmart
 open MyPatricia
-
 
 include Tests(MyPAT)
 include PrintableFormula(MyPAT.UF)
