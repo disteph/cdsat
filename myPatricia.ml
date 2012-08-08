@@ -238,15 +238,26 @@ module MyPAT =
 
 	 module Me = Memo(M)
 
-	 let rec solve =
-	   function
-	     | Local ans                    -> ans
-	     | Fake(Notify(_,machine,_)) when !Flags.treeHCons -> solve (machine (Search(Me.tosearch,Accept,(),fun _ -> Mem(Me.tomem,Accept))))
-	     | Fake(Notify(_,machine,_))    -> solve (machine (Entry((),fun _ -> Exit(Accept))))
-	     | Fake(AskFocus(l,_,machine,_))-> solve (machine (Focus(OFSet.SS.choose l, accept)))
-	     | Fake(AskSide(seq,machine,_)) -> solve (machine true)
-	     | Fake(Stop(b1,b2, machine))   -> solve (machine ())
+	 let rec solve = function
+	   | Local ans                    -> ans
+
+	   | Fake(AskFocus(l,seq,machine,_)) when OFSet.is_empty l
+	       -> begin match seq with
+		 | Seq.EntUF(_,_,formP,formPSaved,_) -> solve(machine(Restore))
+		 | _ -> failwith("You gave me a wrong sequent")
+	       end
+	   | Fake(AskFocus(l,_,machine,_)) when !Flags.treeHCons
+	       -> solve (machine (Search(Me.search4failure,accept,Focus(OFSet.SS.choose l, accept))))
+	   | Fake(AskFocus(l,_,machine,_))
+	     -> solve (machine (Focus(OFSet.SS.choose l, accept)))
+
+	   | Fake(Notify(_,machine,_))     when !Flags.treeHCons
+	       -> solve (machine (Some(Me.search4success,accept),(),fun _ -> Mem(Me.tomem,Accept)))
+	   | Fake(Notify(_,machine,_))    
+	     -> solve (machine (None,(),fun _ -> Exit(Accept)))
+
+	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())
 
        end
    end:User)
-

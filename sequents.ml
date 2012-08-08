@@ -62,6 +62,8 @@ module type FrontEndType = sig
     | Cut      of int*F.t*receive*receive
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool
+    | Search   of tosearch*receive*focusaction
+    | Restore
   and sideaction = bool
   and reception = 
     | Accept
@@ -75,9 +77,7 @@ module type FrontEndType = sig
     | Exit   of reception
     | Mem    of tomem*reception
   type newnode_ent = ((final,bool*bool) local -> newnode_exit)
-  type 'a notified =
-    | Entry  of 'a*newnode_ent
-    | Search of tosearch*reception*'a*newnode_ent
+  type 'a notified = (tosearch*receive) option *'a*newnode_ent
 
   type 'a output = (t,'a fakeoutput) local
   and 'a fakeoutput = 
@@ -101,8 +101,10 @@ module type FrontEndType = sig
 
   module Memo :
     functor (M:MemoType) -> sig
-      val tomem    : tomem
-      val tosearch : tosearch
+      val tomem          : tomem
+      val search4success : tosearch
+      val search4failure : tosearch
+      val search4both    : tosearch
     end
 
 end
@@ -198,6 +200,8 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
     | Cut      of int*F.t*receive*receive
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool
+    | Search   of tosearch*receive*focusaction
+    | Restore
   and sideaction = bool
   and reception = 
     | Accept
@@ -209,9 +213,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
     | Exit   of reception
     | Mem    of tomem*reception
   type newnode_ent = ((final,bool*bool) local -> newnode_exit)
-  type 'a notified =
-    | Entry  of 'a*newnode_ent
-    | Search of tosearch*reception*'a*newnode_ent
+  type 'a notified = (tosearch*receive) option *'a*newnode_ent
 
   let accept _ = Accept
 
@@ -374,19 +376,24 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 		end
 	  | _ -> failwith("Not a sequent to memoise!")
 
-    let tosearch s  =
-      match MP.find_sub UT.sub (simplify s) !tableS with
-	| None ->
-	    begin match MP.find_sup UT.sup (simplify s) !tableF with
-	      | None ->
-		  if !Flags.debug>1 then print_endline("Found nothing for "^(Seq.toString s));
-		  None
-	      | Some(g,h)->
-		  if !Flags.debug>1 then print_endline("Found previous Failure for "^(Seq.toString s));
-		   Some(h)
-	    end
-	| Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Success for "^(Seq.toString s));
-	    Some h
+
+    let search4success s  = match MP.find_sub UT.sub (simplify s) !tableS with
+      | None     -> if !Flags.debug>1 then print_endline("Found no previous success for "^(Seq.toString s));
+	  None
+      | Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Success for "^(Seq.toString s));
+	  Some h
+
+    let search4failure s  = match MP.find_sup UT.sup (simplify s) !tableF with
+      | None     -> if !Flags.debug>1 then print_endline("Found no previous failure for "^(Seq.toString s));
+	  None
+      | Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Failure for "^(Seq.toString s));
+	  Some(h)
+      	    
+    let search4both s  = match search4success s with
+      | Some(a)-> Some(a)
+      | None   -> match search4failure s with
+	  | Some(a)-> Some(a)
+	  | None   -> None
   end
 
 end

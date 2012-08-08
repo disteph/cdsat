@@ -133,6 +133,12 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      let prune = function
        | Local a       -> Local a
        | Fake(b1,b2,c) -> Fake(b1,b2)
+
+     let interc analyser inter_fun v cont =
+       let newcont loc_ans = match inter_fun (prune loc_ans) with
+	 | Action(f) -> (match analyser with Some(g)->g f | None->failwith("Impossible to have Action here"))
+	 | _         -> cont loc_ans
+       in v newcont
 	   
      (*
       * Main Search function 
@@ -235,77 +241,74 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 	 | _ when inloop ->  cont (throw (Local(Fail seq)) seq)
 
-	 | Seq.EntUF(atomN, delta, formP, formPSaved, polar) 
+	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
 	   ->begin
-	     let rec lk_solvef formPChoose data cont = 
+	     let rec lk_solvef formPChoose formP formPSaved data cont = 
 
 	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved)) 
 	       then cont (throw (Local(Fail seq)) seq)
 	       else
 
-		 if (FSet.is_empty formPChoose) then 
-		   let newseq = Seq.EntUF(atomN, FSet.empty, formPSaved, FSet.empty, polar) in
-		     cont (throw (Fake(false,!dir,Comp(lk_solve false newseq data))) seq )
-		       
-		 else
-
-		   let rec action_analysis =
-		     let intercept inter_fun v cont =
-		       let newcont loc_ans = match inter_fun (prune loc_ans) with
-			 | Action(f) -> action_analysis f
-			 | _         -> cont loc_ans
-		       in v newcont
-		     in function
-		       | Focus(toFocus, inter_fun) ->  (* real focus *)
-			   if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
-			   else
-			     let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
-			     let u2 = lk_solvef (FSet.remove toFocus formPChoose) data in
-			       ou (intercept inter_fun u1) u2
-				 (fun pt -> PT.build(PT.OnePre (relevant(seq,match ext [pt] with
-									   | (ga,gfP::l) -> (ga,(FSet.add toFocus gfP)::l)
-									   | _           -> failwith("Should not happen"))  , pt))) 
-				 (fun pt -> pt) seq cont
-				 
-		       | Cut(3,toCut, inter_fun1, inter_fun2)-> (*cut_3*)
-			   let u1 = lk_solve false (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
-			   let u2 = lk_solve false (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			     et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
+		 let rec action_analysis () =
+		   let intercept = interc (Some(fun x->action_analysis () x)) in function
+		     | Focus(toFocus, inter_fun) ->  (* real focus *)
+			 if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
+			 else
+			   let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
+			   let u2 = lk_solvef (FSet.remove toFocus formPChoose) formP formPSaved data in
+			     ou (intercept inter_fun u1) u2
+			       (fun pt -> PT.build(PT.OnePre (relevant(seq,match ext [pt] with
+									 | (ga,gfP::l) -> (ga,(FSet.add toFocus gfP)::l)
+									 | _           -> failwith("Should not happen"))  , pt))) 
+			       (fun pt -> pt) seq cont
 			       
-		       | Cut(7,toCut, inter_fun1, inter_fun2) -> (*cut_7*)
-			   let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
-			   let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			     et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
+		     | Cut(3,toCut, inter_fun1, inter_fun2)-> (*cut_3*)
+			 let u1 = lk_solve false (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
+			 let u2 = lk_solve false (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
+			     
+		     | Cut(7,toCut, inter_fun1, inter_fun2) -> (*cut_7*)
+			 let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
+			 let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
 
-		       | Polarise(l,b, inter_fun) ->
-			   let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved, Pol.add l (if b then Neg else Pos) polar)) data in
-			     straight (intercept inter_fun u) (fun pt -> pt) seq cont
+		     | Polarise(l,b, inter_fun) ->
+			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved, Pol.add l (if b then Neg else Pos) polar)) data in
+			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
-		       | Get(b1,b2) -> cont (Fake(b1,b2,Comp(lk_solvef formPChoose data)))
+		     | Get(b1,b2) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose formP formPSaved data)))
 
-		       | _       -> failwith("focus_pick has suggested a stupid action")
+		     | Search(tosearch,inter_fun,action) -> begin
+			 match tosearch seq with
+			   | Some(a) -> intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
+			   | None    -> action_analysis () action
+		       end
 
-		   in Fake(AskFocus(formPChoose,seq,action_analysis,data))
+		     | Restore ->
+			 let u = lk_solvef (FSet.union formPChoose formPSaved) (FSet.union formP formPSaved) FSet.empty data in
+			   straight u (fun pt -> pt) seq cont
+
+		     | _       -> failwith("focus_pick has suggested a stupid action")
+
+		 in Fake(AskFocus(formPChoose,seq,action_analysis (),data))
 	     in
 
-	     let intercept v inter_fun =
-	       let newcont loc_ans =
-		 let recept_analysis = function _ -> cont loc_ans in
-		   match inter_fun (prune loc_ans) with
-		     | Exit(recept)     -> recept_analysis recept
-		     | Mem(tomem,recept)-> (begin match loc_ans with
-					      | Local(a) -> tomem a
-					      | Fake _   -> ()
-					    end;  recept_analysis recept)
-	       in v newcont
+	     let newcont inter_fun loc_ans =
+	       let recept_analysis = function _ -> cont loc_ans in
+		 match inter_fun (prune loc_ans) with
+		   | Exit(recept)     -> recept_analysis recept
+		   | Mem(tomem,recept)-> (begin match loc_ans with
+					    | Local(a) -> tomem a
+					    | Fake _   -> ()
+					  end;  recept_analysis recept)
 	     in
-	     let notify_analysis = function
-	       | Entry(newdata,inter_fun) -> intercept (lk_solvef formP newdata) inter_fun
-	       | Search(tosearch,recept,newdata,inter_fun) ->
-		   begin match tosearch seq with
-		     | Some(a) -> cont (throw (Local(a)) seq)
-		     | None    -> intercept (lk_solvef formP newdata) inter_fun
-		   end
+	     let notify_analysis (sea,newdata,inter_fun) =
+	       let v() = lk_solvef formP formP formPSaved newdata (newcont inter_fun) in
+		 match sea with
+		   | None                  -> v()
+		   | Some(tosearch,recept) -> match tosearch seq with
+		       | Some(a) -> interc None recept (fun cc->cc (throw (Local(a)) seq)) cont
+		       | None    -> v()
 	     in Fake(Notify(seq,notify_analysis,data))
 		  
 	   end

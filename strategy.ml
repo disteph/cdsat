@@ -52,7 +52,7 @@ module MyUser:User = struct
       let initial_data=()
       let rec solve = function
 	| Local ans                       -> ans
-	| Fake(Notify(_,machine,_))       -> solve (machine (Entry((),fun _->Exit(Accept))))
+	| Fake(Notify(_,machine,_))       -> solve (machine (None,(),fun _->Exit(Accept)))
 	| Fake(AskFocus(a::l,_,machine,_))-> solve (machine (Focus(a, accept)))
 	| Fake(AskSide(seq,machine,_))    -> solve (machine true)
 	| Fake(Stop(b1,b2, machine))    -> solve (machine ())
