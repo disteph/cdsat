@@ -105,6 +105,7 @@ module type FrontEndType = sig
       val search4success : tosearch
       val search4failure : tosearch
       val search4both    : tosearch
+      val clear          : unit->unit
     end
 
 end
@@ -394,6 +395,9 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
       | None   -> match search4failure s with
 	  | Some(a)-> Some(a)
 	  | None   -> None
+
+    let clear () = (tableS := MP.empty; tableF := MP.empty)
+
   end
 
 end

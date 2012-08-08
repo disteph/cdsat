@@ -105,7 +105,7 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 
 if !Flags.do_file then let _ =treatfile "test-old.cnf" in ();;
 
-(* treatdir("sat-2002-beta/generated/gen-9/gen-9.1");; *)
+treatdir("problems/sat/uf20-91");;
 
 (* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 

@@ -239,7 +239,7 @@ module MyPAT =
 	 module Me = Memo(M)
 
 	 let rec solve = function
-	   | Local ans                    -> ans
+	   | Local ans                    -> Me.clear();ans
 
 	   | Fake(AskFocus(l,seq,machine,_)) when OFSet.is_empty l
 	       -> begin match seq with

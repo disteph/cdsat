@@ -21,7 +21,6 @@ let read_from_file filename =
       close_in chan;
       !lines;
 
-
 open String
 
 let rec list_from_string s list_so_far n = 
