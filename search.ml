@@ -2,7 +2,6 @@ open Flags
 open Formulae
 open Collection
 open Sequents
-open Patricia
 
 module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
   (struct

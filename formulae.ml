@@ -173,14 +173,3 @@ module PrintableFormula (F: FormulaImplem) = struct
   let orP(f1,f2)  = F.build(OrP(f1,f2))
 
 end
-
-
-(* Default implementation for interface FormulaImplem *)
-
-module MyFormulaImplem = 
-  (struct
-     type t = Reveal of t form
-     let reveal (Reveal a) = a
-     let build a = (Reveal a)
-   end : FormulaImplem)
-
