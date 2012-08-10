@@ -106,6 +106,7 @@ module Atom =
      let toString t = match t.reveal with
        | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
        | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)
+     let compare t t' = Pervasives.compare t.id t'.id 
    end:sig
      module Predicates : sig
        type t
@@ -119,6 +120,7 @@ module Atom =
      val id: t-> int       
      val negation: t -> t
      val toString: t-> string
+     val compare : t->t->int
      val equal: t->t->bool
      val hash: t -> int
    end)

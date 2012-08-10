@@ -29,6 +29,7 @@ module type FrontEndType = sig
     type t =
       | EntF  of ASet.t * F.t * FSet.t * FSet.t * polmap
       | EntUF of ASet.t * FSet.t * FSet.t * FSet.t * polmap
+    val simplify : t -> ASet.t*FSet.t
     val toString : t -> string
   end
 

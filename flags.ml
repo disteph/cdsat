@@ -22,5 +22,5 @@ let loop_detect = ref true (* Activates loop detection *)
 let weakenings = ref true  (* Activates a-posteriori weakening mode
 				(irrelevant formulae are not in proof-tree) *)
 
-let do_file = Some("test.cnf")
-let do_dir  = None (* Some("problems/sat/flat50-115") *)
+let do_file = None (*Some("test-old.cnf")*)
+let do_dir  = None (*Some("problems/sat/uf20-91")*)

@@ -2,24 +2,33 @@ open Formulae
 open Collection
 open Patricia
 
+(* Generic implementation of sets,
+   particular implementation of sets of atoms,
+   using patricia trees *)
+
+
+(* Generic implementation of sets *)
 
 module MyPatriciaCollectImplem(M:sig
 				 type t
+				 val compare: t->t->int
 				 val id: t->int
 				 val toString: t->string
 			       end) = struct
+
   module TFHC = TypesFromHConsed(struct
-				   type keys=M.t
-				   let tag f = M.id f
-				   type values = unit
+				   type keys        = M.t
+				   let tag          = M.id
+				   type values      = unit
 				   let vcompare _ _ = 0
 				     (* type infos = unit *)
 				     (* let info_build = empty_info_build *)
 				     (* Alternative, recording min, max, cardinal: *)
-				   type infos = keys m_infos
-				   let info_build = m_info_build tag Pervasives.compare
-				   let treeHCons = !Flags.memo
+				   type infos       = keys m_infos
+				   let info_build   = m_info_build tag Pervasives.compare
+				   let treeHCons    = !Flags.memo
 				 end) 
+
   module SS = PATSet(TFHC)
 
   module CI = struct
@@ -48,11 +57,22 @@ module MyPatriciaCollectImplem(M:sig
 
   end
 
-  include CI
+  module Ext = struct
+    include CI
+    let compare    = SS.compare
+    let compareE   = M.compare
+    let min        = SS.info
+    let diff       = SS.diff
+    let first_diff = SS.first_diff min
+  end
 
+  include Ext
 end
 
-module MyPatriciaACollectImplem = struct
+
+(* Particular implementation of sets of atoms *)
+
+module MyPatA = struct
 
   module AtSet = MyPatriciaCollectImplem(Atom)
   module TFHC = TypesFromHConsed(struct
@@ -114,6 +134,25 @@ module MyPatriciaACollectImplem = struct
       else empty
   end
 
-  include CI
+  module Ext =struct
+    include CI
+    let compare  = SS.compare
+    let compareE t1 t2  =
+      let (b1,pred1,tl1) = Atom.reveal t1 in 
+      let (b2,pred2,tl2) = Atom.reveal t2 in 
+      let c = Pervasives.compare (SS.tag (b1,pred1))(SS.tag (b2,pred2)) in
+	if c=0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
+    let min s      = match SS.info s with
+      | None       -> None
+      | Some(k,v)  -> AtSet.SS.info v 
+    let diff       = SS.diff (fun k x y -> lleaf(k,AtSet.SS.diff x y))
+    let first_diff s1 s2 = match SS.first_diff SS.info s1 s2 with
+      | (None,b)      -> (None,b)
+      | (Some(k,x),b) -> let other = if b then s2 else s1 in
+	  if SS.mem k other
+	  then  AtSet.SS.first_diff (AtSet.SS.info) x (SS.find k other)
+	  else (AtSet.SS.info x,b)
+  end
 
+  include Ext
 end

@@ -370,7 +370,7 @@ module PATMap (UT:UserTypes) = struct
   let find_su su bp cond yes empty singleton union alm k t =
     let rec aux t = match reveal t with
       | Empty      -> F empty
-      | Leaf (j,x) -> (match su alm (tag j) (tag k) None with
+      | Leaf (j,x) -> (match su alm (tag j) k None with
 			 | Yes _                       -> A(yes j x) 
 			 | Almost n when alm&&cond k n -> F(singleton j x n)
 			 | _                           -> F empty)
@@ -381,9 +381,9 @@ module PATMap (UT:UserTypes) = struct
 				| F d -> F(union c d)
 				| v   -> v)
 	    | v -> v
-	  in match su alm p (tag k) (Some m) with
-	    | Yes _                       -> f((bp=check (tag k) m)||(alm&&cond k m))
-	    | Almost n when alm&&cond k n -> f( bp=check (tag k) m)
+	  in match su alm p k (Some m) with
+	    | Yes _                       -> f((bp=check k m)||(alm&&cond k m))
+	    | Almost n when alm&&cond k n -> f( bp=check k m)
 	    | _                           -> F empty
     in aux t
 
