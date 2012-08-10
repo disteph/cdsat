@@ -103,9 +103,9 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 ;;
 
 
-if !Flags.do_file then let _ =treatfile "test-old.cnf" in ();;
+if !Flags.do_file then let _ =treatfile "test.cnf" in ();;
 
-treatdir("problems/sat/uf20-91");;
+(* treatdir("problems/sat/uf20-91");; *)
 
 (* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 
