@@ -1,3 +1,10 @@
+(* Standard type constructs *)
+type ('a,'b) sum = A of 'a | F of 'b
+type ('a,'b) almost =
+  | Yes of 'a
+  | No
+  | Almost of 'b
+
 (* Material that must be provided to construct a Patricia tree
    structure *)
 
@@ -335,34 +342,6 @@ module PATMap (UT:UserTypes) = struct
     | Empty      -> raise Not_found
     | Leaf(k,x) -> (k,x)
     | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
-
-  (* find_sub looks if there is an element in t that is smaller than
-     k, according to order sub. Assumption: 
-     sub p q (Some m) iff for all n up to m, check p n implies check q n *)
-
-  let rec find_sub sub k t = match reveal t with
-    | Empty      -> None
-    | Leaf (j,x) -> if sub (tag j) (tag k) None then Some(j,x) else None
-    | Branch (p, m, l, r) ->
-	if sub p (tag k) (Some m) then
-	  match find_sub sub k r with
-	    | None    -> if check (tag k) m then find_sub sub k l else None
-	    | v -> v
-	else None
-
-  (* find_sup looks if there is an element in t that is greater than
-     k, according to order sup. Assumption:
-     sup p q (Some m) iff for all n upto m, check q n implies check p n *)
-
-  let rec find_sup sup k t = match reveal t with
-    | Empty      -> None
-    | Leaf (j,x) -> if sup (tag j) (tag k) None then Some(j,x) else None
-    | Branch (p, m, l, r) ->
-	if (sup p (tag k) (Some m)) then 
-	  match find_sup sup k l with
-	    | None -> if check (tag k) m then None else find_sup sup k r
-	    | v    -> v
-	else None
 	  
   let make f l     = List.fold_right (function (k,x)->add f k x) l empty
 
@@ -375,6 +354,40 @@ module PATMap (UT:UserTypes) = struct
       elements_aux [] s
 
   let toString f t = toString_aux f (elements t)
+
+  (* find_su looks for an element in t that is smaller (if bp) /
+     greater (if not) than k, according to order su. 
+
+     Assumption: 
+     su p (tag k) [None/Some m] iff for all n [/up to m, excluded],
+        (check p n) implies (check (tag k) n) (if bp)
+     or (check (tag k) n) implies (check p n) (if not).
+
+     alm=true allows for approximations: the above is wrong for at
+     most one such n. In that case find_su returns the collection of
+     such p *)
+
+  let find_su su bp yes empty singleton union alm k t =
+    let rec aux t = match reveal t with
+      | Empty      -> F empty
+      | Leaf (j,x) -> (match su alm (tag j) (tag k) None with
+			 | Yes _             -> A(yes j x) 
+			 | Almost m when alm -> F(singleton j x m)
+			 | _                 -> F empty)
+      | Branch (p,m,l,r) ->
+	  let (prems,deuz)=if bp then (r,l) else (l,r) in
+	  let f b = match aux prems with
+	    | F c when b ->
+		begin match aux deuz with
+		  | F d -> F(union c d)
+		  | v   -> v
+		end
+	    | v -> v
+	  in match su alm p (tag k) (Some m) with
+	    | Yes _             -> f(alm||(bp=check (tag k) m))
+	    | Almost _ when alm -> f(bp=check (tag k) m)
+	    | _                 -> F empty
+    in aux t
 
 end
 
@@ -416,12 +429,6 @@ module PATSet (ST:UserTypes with type values = unit) = struct
   let map f      = PM.map  (fun k x -> f k)	  
   let fold f     = PM.fold (fun k x -> f k)
   let choose t   = let (k,_) = PM.choose t in k
-  let find_sub sub k t = match PM.find_sub sub k t with
-    | None -> None
-    | Some (h,_) -> Some h
-  let find_sup sup k t = match PM.find_sup sup k t with
-    | None -> None
-    | Some (h,_) -> Some h
   let elements s = List.map (function (k,x)->k) (PM.elements s)
 
   (* Now starting functions specific to Sets, without equivalent
@@ -461,17 +468,6 @@ module PATSet (ST:UserTypes with type values = unit) = struct
 
 end
 
-
-module type FromHConsed = sig
-  type keys
-  val tag        : keys->int
-  type values
-  val vcompare   : values->values->int
-  type infos
-  val info_build : infos*(keys->values->infos)*(infos->infos->infos)
-  val treeHCons  : bool
-end
-
 let empty_info_build = ((),(fun _ _ ->()),(fun _ _-> ()))
 
 type 'a mmc_infos = ('a option)*('a option)*int
@@ -502,6 +498,16 @@ let m_info_build tag ccompare = (
 )
 
 
+module type FromHConsed = sig
+  type keys
+  val tag        : keys->int
+  type values
+  val vcompare   : values->values->int
+  type infos
+  val info_build : infos*(keys->values->infos)*(infos->infos->infos)
+  val treeHCons  : bool
+end
+
 module TypesFromHConsed (S:FromHConsed) = 
   (struct
      include S
@@ -523,46 +529,46 @@ module TypesFromHConsed (S:FromHConsed) =
 		 and type values=S.values
 		 and type infos=S.infos)
 
-
+(*
 module Memento (S: UserTypes) = struct
 
   module ST = 
     (struct
-       type keys   = S.keys
-       type common = S.common
-       let ccompare = S.ccompare
-       let tag     = S.tag
-       type branching = S.branching
-       let bcompare = S.bcompare
-       let check      = S.check
+       type keys        = S.keys
+       type common      = S.common
+       let ccompare     = S.ccompare
+       let tag          = S.tag
+       type branching   = S.branching
+       let bcompare     = S.bcompare
+       let check        = S.check
        let match_prefix = S.match_prefix
-       let disagree    = S.disagree
+       let disagree     = S.disagree
 
-       type values = unit
-       let vcompare _ _=0 
-       type infos = keys m_infos
-       let info_build = m_info_build tag ccompare
-       let treeHCons  = true
+       type values      = unit
+       let vcompare _ _ = 0 
+       type infos       = keys m_infos
+       let info_build   = m_info_build tag ccompare
+       let treeHCons    = true
      end: UserTypes with type keys = S.keys
-		    and type values=unit
+		    and type values= unit
 		    and type infos = S.keys option)
 
   module PT = PATSet(ST)
 
-  type keys = PT.t
-  type common = PT.t
+  type keys    = PT.t
+  type common  = PT.t
   let ccompare = PT.compare 
-  let tag s = s
+  let tag s    = s
 
-  type values = S.values
+  type values  = S.values
   let vcompare = S.vcompare
 
-  type infos = unit
+  type infos     = unit
   let info_build = empty_info_build
     
-  type branching = S.keys
+  type branching     = S.keys
   let bcompare n1 n2 = S.ccompare (S.tag n1) (S.tag n2)
-  let check k m = PT.mem m k
+  let check k m      = PT.mem m k
 
   let match_prefix k p m = (PT.subset p k)
     &&(match PT.info(PT.diff k p) with
@@ -578,4 +584,4 @@ module Memento (S: UserTypes) = struct
   let treeHCons  = S.treeHCons
     
 end
-
+*)

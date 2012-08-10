@@ -1,75 +1,9 @@
 open Formulae
+open MySFormulaImplem
 open Collection
 open Strategy
 open Sequents
-
-module MySmartFormulaImplem = struct
-
-  type tt = {reveal: tt form;id:int;size:int}
-
-  let id f = f.id
-    
-  (* HashedType for formulae *)
-
-  module MySmartFormulaImplemPrimitive = 
-    (struct
-       type t = tt
-       let equal t1 t2 =
-	 (* print_endline "equal"; *)
-	 match t1.reveal,t2.reveal with
-	   | Lit l1, Lit l2             -> l1==l2
-	   | AndP (x1,x2), AndP (y1,y2) -> x1==y1 && x2==y2
-	   | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
-	   | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
-	   | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
-	   | _                          -> false 
-       let hash t1 =
-	 (* print_endline "hash"; *)
-	 match t1.reveal with
-	   | Lit l        -> Atom.hash l
-	   | AndP (x1,x2) -> 5*x1.id+17*x2.id
-	   | OrP (x1,x2)  -> 7*x1.id+19*x2.id
-	   | AndN (x1,x2) -> 11*x1.id+23*x2.id
-	   | OrN (x1,x2)  -> 13*x1.id+29*x2.id
-     end: Hashtbl.HashedType with type t=tt)
-
-  include MySmartFormulaImplemPrimitive
-
-  module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
-
-  (* Computes the size of the formula *)
-
-  let prior = function
-    | Lit l        -> - 1
-    | AndP (x1,x2) -> - x1.size - x2.size
-    | OrP (x1,x2)  -> - x1.size - x2.size
-    | AndN (x1,x2) -> - x1.size - x2.size
-    | OrN (x1,x2)  -> - x1.size - x2.size
-
-  (* Constructing a formula with HConsing techniques *)
-
-  let table = H.create 5003
-  let unique =ref 0
-
-  module FI = struct
-    type t = tt
-    let build a =
-      let f = {reveal =  a; id = !unique; size = prior a} in
-	try H.find table f
-	with Not_found -> incr unique; H.add table f f; f
-
-    let reveal f = f.reveal
-  end
-
-  let build = FI.build
-  let reveal = FI.reveal
-
-  let compare t1 t2 =
-    let a = (Pervasives.compare t1.size t2.size) in
-      if (a<>0) then  a else (Pervasives.compare t1.id t2.id)
-end
-
-
+open Memoisation
 open Patricia
 
 module MyPatriciaCollectImplem(M:sig
@@ -87,7 +21,7 @@ module MyPatriciaCollectImplem(M:sig
 				     (* Alternative, recording min, max, cardinal: *)
 				   type infos = keys m_infos
 				   let info_build = m_info_build tag Pervasives.compare
-				   let treeHCons = !Flags.treeHCons
+				   let treeHCons = !Flags.memo
 				 end) 
   module SS = PATSet(TFHC)
 
@@ -144,7 +78,7 @@ module MyPatriciaACollectImplem = struct
 					      if (tag y1)<(tag y2) || ((tag y1)=(tag y2)&&vcompare v1 v2<0)
 					      then x1 else x2)
 				   )
-				   let treeHCons = !Flags.treeHCons
+				   let treeHCons = !Flags.memo
 				 end)
   module SS      = PATMap(TFHC)
 
@@ -193,68 +127,78 @@ module MyPAT =
      (* User uses the smart datastructures with hconsing and sets from
 	above *)
 
-     module OF    = MySmartFormulaImplem
-     module OFSet = MyPatriciaCollectImplem(struct 
-					      include OF
-					      let id = OF.id
-					      module PF = PrintableFormula(OF)
+     module UF    = MySmartFormulaImplem
+     module UFSet = MyPatriciaCollectImplem(struct 
+					      include UF
+					      let id = UF.id
+					      module PF = PrintableFormula(UF)
 					      let toString = PF.toString
 					    end)
+     module UASet = MyPatriciaACollectImplem
 
-     module OASet = MyPatriciaACollectImplem
-
-     module UF = OF.FI
-     module UFSet = OFSet.CI
-     module UASet = OASet.CI
      module Strategy =
-       functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
+       functor (FE:FrontEndType with module F=UF.FI and module FSet=UFSet.CI and module ASet=UASet.CI) -> struct
 	 include FE
 
 	 type data = unit
 	 let initial_data=()
 
-	 module M:MemoType = struct
-	   let compareA t1 t2  =
+	 module ASetExt = struct
+	   include UASet.CI
+	   let compare  = UASet.SS.compare
+	   let compareE t1 t2  =
 	     let (b1,pred1,tl1) = Atom.reveal t1 in 
 	     let (b2,pred2,tl2) = Atom.reveal t2 in 
-	     let c = Pervasives.compare (OASet.SS.tag (b1,pred1))(OASet.SS.tag (b2,pred2)) in
+	     let c = Pervasives.compare (UASet.SS.tag (b1,pred1))(UASet.SS.tag (b2,pred2)) in
 	       if c=0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
-	   let minA s      = match OASet.SS.info s with
+	   let min s      = match UASet.SS.info s with
 	     | None       -> None
-	     | Some(k,v)  -> OASet.AtSet.SS.info v 
-	   let diffA       = OASet.SS.diff (fun k x y -> OASet.lleaf(k,OASet.AtSet.SS.diff x y))
-	   let first_diffA s1 s2 = match OASet.SS.first_diff OASet.SS.info s1 s2 with
+	     | Some(k,v)  -> UASet.AtSet.SS.info v 
+	   let diff       = UASet.SS.diff (fun k x y -> UASet.lleaf(k,UASet.AtSet.SS.diff x y))
+	   let first_diff s1 s2 = match UASet.SS.first_diff UASet.SS.info s1 s2 with
 	     | (None,b)      -> (None,b)
 	     | (Some(k,x),b) -> let other = if b then s2 else s1 in
-		 if OASet.SS.mem k other
-		 then  OASet.AtSet.SS.first_diff (OASet.AtSet.SS.info) x (OASet.SS.find k other)
-		 else (OASet.AtSet.SS.info x,b)
-
-	   let compareF    = OF.compare
-	   let minF        = OFSet.SS.info
-	   let diffF       = OFSet.SS.diff
-	   let first_diffF = OFSet.SS.first_diff minF
+		 if UASet.SS.mem k other
+		 then  UASet.AtSet.SS.first_diff (UASet.AtSet.SS.info) x (UASet.SS.find k other)
+		 else (UASet.AtSet.SS.info x,b)
 	 end
 
-	 module Me = Memo(M)
+	 module FSetExt = struct
+	   include UFSet.CI
+	   let compare    = UFSet.SS.compare
+	   let compareE   = UF.compare
+	   let min        = UFSet.SS.info
+	   let diff       = UFSet.SS.diff
+	   let first_diff = UFSet.SS.first_diff min
+	 end
+
+	 module Me = Memo(FSetExt)(ASetExt)
 
 	 let rec solve = function
-	   | Local ans                    -> Me.clear();ans
+	   | Local ans                    ->  Me.clear();ans
 
-	   | Fake(AskFocus(l,seq,machine,_)) when OFSet.is_empty l
-	       -> begin match seq with
-		 | Seq.EntUF(_,_,formP,formPSaved,_) -> solve(machine(Restore))
-		 | _ -> failwith("You gave me a wrong sequent")
-	       end
-	   | Fake(AskFocus(l,_,machine,_)) when !Flags.treeHCons
-	       -> solve (machine (Search(Me.search4failure,accept,Focus(OFSet.SS.choose l, accept))))
-	   | Fake(AskFocus(l,_,machine,_))
-	     -> solve (machine (Focus(OFSet.SS.choose l, accept)))
+	   | Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
+	       -> solve (machine(Restore None))
+	   | Fake(AskFocus(_,l,machine,_)) when !Flags.memo
+	       -> solve (machine(Search(Me.search4failure,accept,A(Some(Focus(UFSet.SS.choose l,accept,None))))))
+	   | Fake(AskFocus(_,l,machine,_))
+	     -> solve (machine (Focus(UFSet.SS.choose l, accept,None)))
 
-	   | Fake(Notify(_,machine,_))     when !Flags.treeHCons
-	       -> solve (machine (Some(Me.search4success,accept),(),fun _ -> Mem(Me.tomem,Accept)))
-	   | Fake(Notify(_,machine,_))    
-	     -> solve (machine (None,(),fun _ -> Exit(Accept)))
+	   | Fake(Notify(_,machine,_))     when !Flags.memo
+	       -> solve (machine ((),
+				  (fun _ -> Mem(Me.tomem,Accept)),
+				  Some(Search(Me.search4success,
+					      accept,
+					      (if !Flags.almo
+					       then F(fun _->None)
+						 (* | A(a)->Cut(7,UF.build(Lit(a)),accept,accept)
+						    | F(f)->Cut(7,f,accept,accept)
+						 *)
+					       else A(None)
+					      )
+					     ))
+				 ))
+	   | Fake(Notify(_,machine,_))    -> solve (machine ((),(fun _ -> Exit(Accept)),None))
 
 	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
 	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())

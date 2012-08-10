@@ -84,6 +84,19 @@ let f8=
     )
   )
 
+(*
+let f9=
+  andN(
+    orP(
+      lit(false,"p",[]),
+      lit(true,"p",[])
+    ),
+    lit(true,"p",[])
+  )
+*)
+
+
+
 let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 
 \\vspace{10pt}\n"^
@@ -102,10 +115,14 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 				   )
 ;;
 
+match Flags.do_file with
+  | Some(a)->let _ = treatfile a in ()
+  | _-> ()
+;;
 
-if !Flags.do_file then let _ =treatfile "test.cnf" in ();;
-
-(* treatdir("problems/sat/uf20-91");; *)
+match Flags.do_dir with
+  | Some(a)->let _ = treatdir a in ()
+  | _-> ()
 
 (* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 

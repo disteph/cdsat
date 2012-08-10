@@ -2,6 +2,7 @@ open Flags
 open Formulae
 open Collection
 open Sequents
+open Patricia
 
 module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
   (struct
@@ -132,12 +133,6 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      let prune = function
        | Local a       -> Local a
        | Fake(b1,b2,c) -> Fake(b1,b2)
-
-     let interc analyser inter_fun v cont =
-       let newcont loc_ans = match inter_fun (prune loc_ans) with
-	 | Action(f) -> (match analyser with Some(g)->g f | None->failwith("Impossible to have Action here"))
-	 | _         -> cont loc_ans
-       in v newcont
 	   
      (*
       * Main Search function 
@@ -151,110 +146,115 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
       *)
 
      let rec lk_solve inloop seq data cont =
-       (*	 	 print_endline("attack"^Seq.toString seq); *)
+       
+       (* print_endline("attack "^ASet.toString g);*)
 
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
-           -> begin
-	     match (F.reveal g) with
-	       | _ when ((polarity polar g) <> Pos) ->
-		   straight 
-		     (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
-		     (stdone seq) seq cont
+           -> begin match (F.reveal g) with
+	     | _ when ((polarity polar g) <> Pos) ->
+		 straight 
+		   (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
+		   (stdone seq) seq cont
+		   
+	     | AndP(a1, a2) ->
+		 let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar)) data in
+		 let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar)) data in
+		   et u1 u2 (stdtwo seq) seq cont
 		     
-	       | AndP(a1, a2) ->
-		   let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar)) data in
-		   let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar)) data in
-		     et u1 u2 (stdtwo seq) seq cont
-		       
-	       | OrP(a1, a2) -> 
-		   let side_pick b = 
-		     let (a1',a2') = if b then (a1,a2) else (a2,a1) in
-		     let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar)) data in
-		     let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar)) data in
-		       ou u1 u2 (stdone seq) (stdone seq) seq cont
-		   in
-		     Fake(AskSide(seq,side_pick,data))
+	     | OrP(a1, a2) -> 
+		 let side_pick b = 
+		   let (a1',a2') = if b then (a1,a2) else (a2,a1) in
+		   let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar)) data in
+		   let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar)) data in
+		     ou u1 u2 (stdone seq) (stdone seq) seq cont
+		 in
+		   Fake(AskSide(seq,side_pick,data))
 
-	       | Lit t ->
-		   let (b,p,_) = Atom.reveal t in
-		   let rec filt_inspect filtered cont =
-		     if ASet.is_empty filtered then cont (throw (Local(Fail seq)) seq)
-		     else
-		       let (at,newfiltered) = ASet.next filtered in
-		       let u2 = filt_inspect newfiltered in
-			 if (Atom.equal at t) then 
-			   cont (throw (Local(Success(PT.build(PT.Axiom(
-								 relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
-							       ))))) seq)
-			 else u2 cont
-		   in filt_inspect (ASet.filter b p atomN) cont
+	     | Lit t ->
+		 let (b,p,_) = Atom.reveal t in
+		 let rec filt_inspect filtered cont =
+		   if ASet.is_empty filtered then cont (throw (Local(Fail seq)) seq)
+		   else
+		     let (at,newfiltered) = ASet.next filtered in
+		     let u2 = filt_inspect newfiltered in
+		       if (Atom.equal at t) then 
+			 cont (throw (Local(Success(PT.build(PT.Axiom(
+							       relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
+							     ))))) seq)
+		       else u2 cont
+		 in filt_inspect (ASet.filter b p atomN) cont
 
-	       | _ -> failwith("All cases should have been covered!")
+	     | _ -> failwith("All cases should have been covered!")
 	   end
 	     
 	 | Seq.EntUF(atomN, delta, formP, formPSaved, polar) when not (FSet.is_empty delta)
 	     -> let (toDecompose,newdelta) = FSet.next delta in
-	       begin
-		 match (F.reveal toDecompose) with
-		   | _ when ((polarity polar toDecompose) = Pos) ->
-		       if (!loop_detect&&((FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)))
-		       then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
-		         straight u (stdone seq) seq cont
-		       else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar)) data in
-		         straight u (fun pt->PT.build(PT.OnePre (relevant(seq,match ext [pt] with
-									    | (ga,gfP::l) -> (ga,
-											      (if FSet.is_in toDecompose gfP
-											       then FSet.remove toDecompose gfP
-											       else gfP)::l)
-									    | _           -> failwith("Should not happen")), pt))) seq cont
-			   
-		   | Lit t when ((polarity polar toDecompose) = Neg) -> let t' = (Atom.negation t) in
-		       if (!loop_detect&&ASet.is_in t' atomN)
-		       then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
-			 straight u (stdone seq) seq cont
-		       else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar)) data in
-			 straight u (fun pt->PT.build(PT.OnePre (relevant(seq,
-									  let (ga,l) = ext [pt] in 
-									    ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l))
-								   , pt))) seq cont
+	       begin match (F.reveal toDecompose) with
+		 | _ when ((polarity polar toDecompose) = Pos) ->
+		     if (!loop_detect&&((FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)))
+		     then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
+		       straight u (stdone seq) seq cont
+		     else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar)) data in
+		       straight u (fun pt->PT.build(PT.OnePre (relevant(seq,match ext [pt] with
+									  | (ga,gfP::l) -> (ga,
+											    (if FSet.is_in toDecompose gfP
+											     then FSet.remove toDecompose gfP
+											     else gfP)::l)
+									  | _           -> failwith("Should not happen")), pt))) seq cont
+			 
+		 | Lit t when ((polarity polar toDecompose) = Neg) -> let t' = (Atom.negation t) in
+		     if (!loop_detect&&ASet.is_in t' atomN)
+		     then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
+		       straight u (stdone seq) seq cont
+		     else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar)) data in
+		       straight u (fun pt->PT.build(PT.OnePre (relevant(seq,
+									let (ga,l) = ext [pt] in 
+									  ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l))
+								 , pt))) seq cont
 
-		   | Lit t when ((polarity polar toDecompose) = Und) -> let (b,f,_)=Atom.reveal t in
-		       (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
-		       straight 
-			 (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add f (if b then Neg else Pos) polar)) data)
-			 (stdone seq) seq cont
+		 | Lit t when ((polarity polar toDecompose) = Und) -> let (b,f,_)=Atom.reveal t in
+		     (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
+		     straight 
+		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add f (if b then Neg else Pos) polar)) data)
+		       (stdone seq) seq cont
 
-		   | AndN (a1, a2) -> 
-		       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in
-		       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a2 newdelta, formP, formPSaved, polar)) data in
-			 et u1 u2 (stdtwo seq) seq cont
-			   
-		   | OrN (a1, a2) -> 
-		       straight 
-			 (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar)) data)
-			 (stdone seq) seq cont
+		 | AndN (a1, a2) -> 
+		     let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in
+		     let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a2 newdelta, formP, formPSaved, polar)) data in
+		       et u1 u2 (stdtwo seq) seq cont
+			 
+		 | OrN (a1, a2) -> 
+		     straight 
+		       (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar)) data)
+		       (stdone seq) seq cont
 
-		   | _ -> failwith("All cases should have been covered!")
+		 | _ -> failwith("All cases should have been covered!")
 	       end
 
 	 | _ when inloop ->  cont (throw (Local(Fail seq)) seq)
 
 	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
 	   ->begin
-	     let rec lk_solvef formPChoose formP formPSaved data cont = 
+	     let rec lk_solvef formPChoose formP formPSaved actionO data cont = 
 
 	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved)) 
 	       then cont (throw (Local(Fail seq)) seq)
 	       else
 
-		 let rec action_analysis () =
-		   let intercept = interc (Some(fun x->action_analysis () x)) in function
-		     | Focus(toFocus, inter_fun) ->  (* real focus *)
+		 let rec action_analysis =
+		   let intercept inter_fun v cont =
+		     let newcont loc_ans = match inter_fun (prune loc_ans) with
+		       | Action(f) -> action_analysis f
+		       | _         -> cont loc_ans
+		     in v newcont
+		   in function
+		     | Focus(toFocus,inter_fun,l) ->  (* real focus *)
+			 (* print_endline(Form.toString toFocus);*)
 			 if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 			 else
 			   let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
-			   let u2 = lk_solvef (FSet.remove toFocus formPChoose) formP formPSaved data in
+			   let u2 = lk_solvef (FSet.remove toFocus formPChoose) formP formPSaved l data in
 			     ou (intercept inter_fun u1) u2
 			       (fun pt -> PT.build(PT.OnePre (relevant(seq,match ext [pt] with
 									 | (ga,gfP::l) -> (ga,(FSet.add toFocus gfP)::l)
@@ -267,6 +267,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
 			     
 		     | Cut(7,toCut, inter_fun1, inter_fun2) -> (*cut_7*)
+			 if !Flags.debug>0 then print_endline("Cut");
 			 let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
@@ -275,23 +276,33 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved, Pol.add l (if b then Neg else Pos) polar)) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
-		     | Get(b1,b2) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose formP formPSaved data)))
+		     | Get(b1,b2,l) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose formP formPSaved l data)))
 
-		     | Search(tosearch,inter_fun,action) -> begin
-			 match tosearch seq with
-			   | Some(a) -> intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
-			   | None    -> action_analysis () action
-		       end
+		     | Search(tosearch,inter_fun,A l) ->
+			 begin match tosearch false seq with
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure, looking for exact on "^Seq.toString seq);
+			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
+			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success or failure, looking for exact on "^Seq.toString seq);
+			        lk_solvef formPChoose formP formPSaved l data cont
+			 end
 
-		     | Restore ->
-			 let u = lk_solvef (FSet.union formPChoose formPSaved) (FSet.union formP formPSaved) FSet.empty data in
-			   straight u (fun pt -> pt) seq cont
+		     | Search(tosearch,inter_fun,F f) ->
+			 begin match tosearch true seq with
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure, looking for approx as well");
+			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
+			   | F(d) -> if !Flags.debug>1 then print_endline("Found approx.");
+			       lk_solvef formPChoose formP formPSaved (f d) data cont
+			 end
+
+		     | Restore l ->
+			 lk_solvef (FSet.union formPChoose formPSaved) (FSet.union formP formPSaved) FSet.empty l data cont
 
 		     | _       -> failwith("focus_pick has suggested a stupid action")
 
-		 in Fake(AskFocus(formPChoose,seq,action_analysis (),data))
+		 in match actionO with
+		   | Some(action)-> action_analysis action
+		   | None        -> Fake(AskFocus(seq,formPChoose,action_analysis,data))
 	     in
-
 	     let newcont inter_fun loc_ans =
 	       let recept_analysis = function _ -> cont loc_ans in
 		 match inter_fun (prune loc_ans) with
@@ -301,13 +312,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 					    | Fake _   -> ()
 					  end;  recept_analysis recept)
 	     in
-	     let notify_analysis (sea,newdata,inter_fun) =
-	       let v() = lk_solvef formP formP formPSaved newdata (newcont inter_fun) in
-		 match sea with
-		   | None                  -> v()
-		   | Some(tosearch,recept) -> match tosearch seq with
-		       | Some(a) -> interc None recept (fun cc->cc (throw (Local(a)) seq)) cont
-		       | None    -> v()
+	     let notify_analysis (newdata,inter_fun,action0) =
+	       lk_solvef formP formP formPSaved action0 newdata (newcont inter_fun)
 	     in Fake(Notify(seq,notify_analysis,data))
 		  
 	   end

@@ -1,6 +1,7 @@
 open Formulae
 open Collection
 open Patricia
+open Memoisation
 open Map
 
 type polarity = Pos | Neg | Und
@@ -26,14 +27,14 @@ module type FrontEndType = sig
 
   module Seq : sig
     type t =
-      | EntF of ASet.t * F.t * FSet.t * FSet.t * polmap
+      | EntF  of ASet.t * F.t * FSet.t * FSet.t * polmap
       | EntUF of ASet.t * FSet.t * FSet.t * FSet.t * polmap
     val toString : t -> string
   end
 
   module PT : sig
     type ('a,'b) pt = 
-      | Axiom of 'b 
+      | Axiom  of 'b 
       | OnePre of 'b*'a 
       | TwoPre of 'b*'a*'a
     type t
@@ -58,12 +59,12 @@ module type FrontEndType = sig
   type ('a,'b) local =  Local of 'a | Fake  of 'b
 
   type focusaction = 
-    | Focus    of F.t*receive
+    | Focus    of F.t*receive*focusaction option
     | Cut      of int*F.t*receive*receive
     | Polarise of Atom.Predicates.t*bool*receive
-    | Get      of bool*bool
-    | Search   of tosearch*receive*focusaction
-    | Restore
+    | Get      of bool*bool*focusaction option
+    | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
+    | Restore  of focusaction option
   and sideaction = bool
   and reception = 
     | Accept
@@ -76,31 +77,21 @@ module type FrontEndType = sig
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type newnode_ent = ((final,bool*bool) local -> newnode_exit)
-  type 'a notified = (tosearch*receive) option *'a*newnode_ent
+  type 'a notified = 'a*((final,bool*bool) local -> newnode_exit)*focusaction option
 
   type 'a output = (t,'a fakeoutput) local
-  and 'a fakeoutput = 
-    | Notify   of Seq.t*('a notified -> 'a output)*'a
-    | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*(sideaction  -> 'a output)*'a
-    | Stop     of bool*bool*(unit->'a output)
+  and  'a fakeoutput = 
+    | Notify   of Seq.t*       ('a notified -> 'a output)*'a
+    | AskFocus of Seq.t*FSet.t*(focusaction -> 'a output)*'a
+    | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
+    | Stop     of bool*bool*   (unit        -> 'a output)
 
   val toString : t -> string
 
-  module type MemoType = sig
-    val compareA    : Atom.t->Atom.t->int
-    val minA        : ASet.t->Atom.t option
-    val diffA       : ASet.t->ASet.t->ASet.t
-    val first_diffA : ASet.t->ASet.t->(Atom.t option*bool)
-    val compareF    : F.t->F.t->int
-    val minF        : FSet.t->F.t option
-    val diffF       : FSet.t->FSet.t->FSet.t
-    val first_diffF : FSet.t->FSet.t->(F.t option*bool)
-  end
-
-  module Memo :
-    functor (M:MemoType) -> sig
+  module Memo
+    (FSetExt: CollectImplemExt with type e = F.t    and type t=FSet.t)
+    (ASetExt: CollectImplemExt with type e = Atom.t and type t=ASet.t)
+    : sig
       val tomem          : tomem
       val search4success : tosearch
       val search4failure : tosearch
@@ -122,7 +113,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	if b then try Pol.find s polar with _ -> Und 
 	else let p = try Pol.find s polar with _ -> Und in
 	  begin match p with
-	      Pos -> Neg
+	    | Pos -> Neg
 	    | Neg -> Pos
 	    | Und -> Und
 	  end
@@ -135,12 +126,17 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   module Seq = struct
     (* Type of sequents *)
     type t = 
-	EntF of ASet.t*F.t*FSet.t*FSet.t*polmap
+      |	EntF  of ASet.t*F.t   *FSet.t*FSet.t*polmap
       | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*polmap
 
     let interesting = function
-      | EntF(atomN, g, formP, formPSaved, polar)      -> 	(atomN, formP::formPSaved::[])
-      | EntUF(atomN, delta, formP, formPSaved, polar) ->	(atomN, formP::formPSaved::[])
+      | EntF(atomN, g, formP, formPSaved, polar)      -> (atomN, formP::formPSaved::[])
+      | EntUF(atomN, delta, formP, formPSaved, polar) -> (atomN, formP::formPSaved::[])
+
+    let simplify s =
+      match interesting s with
+	| (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
+	| _ -> failwith("Not enough items in interesting")
 	  
     (* Displays sequent *)
     let toString = function
@@ -187,8 +183,8 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   (* Generator of local answer types, either definitive answer or a fake answer *)
   type ('a,'b) local = Local of 'a | Fake  of 'b
 
-  type tosearch = Seq.t->final option
-  type tomem    = final->unit
+  type tosearch  = bool->Seq.t->(final,ASet.t*FSet.t)sum
+  type tomem     = final->unit
 
   (* Type of actions that user can perform to put more coins in the machine
      focusaction: when user is asked for focus
@@ -197,12 +193,12 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   *)
 
   type focusaction = 
-    | Focus    of F.t*receive
+    | Focus    of F.t*receive*focusaction option
     | Cut      of int*F.t*receive*receive
     | Polarise of Atom.Predicates.t*bool*receive
-    | Get      of bool*bool
-    | Search   of tosearch*receive*focusaction
-    | Restore
+    | Get      of bool*bool*focusaction option
+    | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
+    | Restore  of focusaction option
   and sideaction = bool
   and reception = 
     | Accept
@@ -213,8 +209,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type newnode_ent = ((final,bool*bool) local -> newnode_exit)
-  type 'a notified = (tosearch*receive) option *'a*newnode_ent
+  type 'a notified = 'a*((final,bool*bool) local -> newnode_exit)*focusaction option
 
   let accept _ = Accept
 
@@ -229,10 +224,10 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   *)
   type 'a output = (t,'a fakeoutput) local
   and 'a fakeoutput = 
-    | Notify   of Seq.t*('a notified -> 'a output)*'a
-    | AskFocus of FSet.t*Seq.t*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*(sideaction  -> 'a output)*'a
-    | Stop     of bool*bool*(unit->'a output)
+    | Notify   of Seq.t*       ('a notified -> 'a output)*'a
+    | AskFocus of Seq.t*FSet.t*(focusaction -> 'a output)*'a
+    | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
+    | Stop     of bool*bool*   (unit        -> 'a output)
 
   (* Type of local answers, for internal use during search
      In case of Fake,
@@ -260,144 +255,58 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
      only inhabit them by the memoisation tools that we provide
      below.
      If the user wants to use them, he must provide more
-     structure than just F, FSet, ASet: he must provide an
-     implementation of the interface MemoType *)
+     structure than just F, FSet, ASet:
+     he must provide small extensions of FSet and ASet *)
 
-  module type MemoType = sig
+  module Memo
+    (FSetExt: CollectImplemExt with type e = F.t    and type t=FSet.t)
+    (ASetExt: CollectImplemExt with type e = Atom.t and type t=ASet.t)
+    = struct
 
-    (* Comparison of atoms *)
-    val compareA    : Atom.t->Atom.t->int
-      (* Computes the smallest atom of a set of atoms *)
-    val minA        : ASet.t->Atom.t option
-      (* Computes whether a set of atoms is a subset of another *)
-    val diffA       : ASet.t->ASet.t->ASet.t
-      (* Computes the smallest atom that is in one set of atoms
-	 and not in the other *)
-    val first_diffA : ASet.t->ASet.t->(Atom.t option*bool)
-    (* Comparison of formulae *)
-    val compareF    : F.t->F.t->int
-      (* Computes the smallest formula of a set of formulas *)
-    val minF        : FSet.t->F.t option
-      (* Computes whether a set of formulas is a subset of another *)
-    val diffF       : FSet.t->FSet.t->FSet.t
-      (* Computes the smallest formula that is in one set of formulas
-	 and not in the other *)
-    val first_diffF : FSet.t->FSet.t->(F.t option*bool)
-  end
+      module MP=PATMapExt(F)(FSetExt)(ASetExt)(struct
+						 type values  = final
+						 let vcompare = Pervasives.compare
+					       end)
+      let tableS = ref MP.empty
+      let tableF = ref MP.empty
+	      
+      let count    = ref 0
+      let newcount = ref 0
 
-  module Memo(M:MemoType) = struct
-
-    module UT = struct
-      type keys   = ASet.t*FSet.t
-      type common = keys
-      let ccompare (a,b)(a',b')= if (a==a')&&(b==b') then 0 else 1
-      let tag s = s
-      type values = final
-      let vcompare = Pervasives.compare
-      type infos = unit
-      let info_build = empty_info_build
-
-      type branching = A of Atom.t | F of F.t
-      let bcompare b1 b2 = match b1,b2 with
-	| A(a),A(a') when a==a' -> 0
-	| F(a),F(a') when a==a' -> 0
-	| _ -> 1 
-
-      let check (k,k') = function
-	| A(a)-> ASet.is_in a k
-	| F(a)-> FSet.is_in a k'
-	    
-      let sub (k1,k2) (p1,p2) = function
-	| Some(A(a)) -> begin
-	    match M.minA(M.diffA k1 p1) with
-	      | Some x -> not(M.compareA x a<0)
-	      | _      -> true
-	  end
-	| Some(F(a)) -> begin
-	    match M.minA(M.diffA k1 p1),M.minF(M.diffF k2 p2) with
-	      | (Some _),_ -> false
-	      | _,Some x   -> not(M.compareF x a<0)
-	      | _          -> true
-	  end
-	| None -> begin
-	    match M.minA(M.diffA k1 p1),M.minF(M.diffF k2 p2) with
-	      | None,None -> true
-	      | _         -> false
-	  end
-
-      let sup (a,b) (a',b') = sub (a',b') (a,b)
-
-      let match_prefix (k1,k2) (p1,p2) a = sub (k1,k2) (p1,p2) (Some a) && sup (k1,k2) (p1,p2) (Some a)
-
-      let disagree (a,b) (a',b') =
-	(*	print_endline("");
-		print_endline("a = "^(ASet.toString a));
-		print_endline("a'= "^(ASet.toString a'));
-		print_endline("");
-		print_endline("b = "^(FSet.toString b));
-		print_endline("b'= "^(FSet.toString b'));*)
-	match (M.first_diffA a a') with
-	  | (Some d,c) -> ((ASet.inter a a',FSet.inter b b'),A(d),c)
-	  | (None,_)   -> match (M.first_diffF b b') with
-	      | (Some d,c)   -> ((ASet.inter a a',FSet.inter b b'),F(d),c)
-	      | (None,_)     -> if a==a' then failwith("Disagree called with two arguments that are equal")
-		else failwith("Disagree called with two arguments that are not equal. strange")
-
-      let treeHCons = false
-    end
-
-    module MP=PATMap(UT)
-
-
-    let tableS = ref MP.empty
-    let tableF = ref MP.empty
-    let simplify s =
-      match Seq.interesting s with
-	| (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
-	| _ -> failwith("Not enough items in interesting")
-	    
-    let count = ref 0
-
-    let tomem ans = 
-      let (table,algo,b) = match ans with
-	| Success(pt)-> (tableS,MP.find_sub UT.sub,true)
-	| Fail(s)    -> (tableF,MP.find_sup UT.sup,false)
-      in 
-	match sequent ans with
+      let tomem ans = 
+	let (table,algo,b) = match ans with
+	  | Success(pt)-> (tableS,MP.find_sub false,true)
+	  | Fail(s)    -> (tableF,MP.find_sup false,false)
+	in match sequent ans with
 	  | Seq.EntUF(_,delta,_,_,_) as s when (FSet.is_empty delta) ->
-	      let (k1,k2) = simplify s in
-		begin
-		  match algo (k1,k2) !table with
-		    | None ->
-			incr count;
-			if !Flags.debug>0&&(!count mod 1000 =0) then (print_endline(string_of_int !count^" Recording "^(if b then "Success" else "Failure"));
-			 print_endline(ASet.toString k1));
-			table := MP.add (fun x _ ->x) (k1,k2) ans !table
-		    | _    -> if (!count mod 100000 =0) then print_endline("Déja là! "^string_of_int !count)
+	      let (k1,k2) = Seq.simplify s in
+		begin match algo (k1,k2) !table with
+		  | F _ -> incr count;
+		      if !Flags.debug>0&&(!count mod Flags.every.(4) =0)
+		      then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Recording "^(if b then "success" else "failure")^" for");
+			    print_endline(ASet.toString k1));
+		      table := MP.add (fun x _ ->x) (k1,k2) ans !table
+		  | A a -> incr newcount;
+		      if !Flags.debug>0&&(!newcount mod Flags.every.(5) =0)
+		      then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Already know better "^(if b then "success" else "failure")^" than");
+			    print_endline(ASet.toString k1);
+			    let (j,_)=Seq.simplify(match a with Success pt->PT.conclusion pt |Fail d->d) in print_endline(ASet.toString j))
 		end
 	  | _ -> failwith("Not a sequent to memoise!")
 
 
-    let search4success s  = match MP.find_sub UT.sub (simplify s) !tableS with
-      | None     -> if !Flags.debug>1 then print_endline("Found no previous success for "^(Seq.toString s));
-	  None
-      | Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Success for "^(Seq.toString s));
-	  Some h
+      let search4success b s  = MP.find_sub b (Seq.simplify s) !tableS
+      let search4failure b s  = MP.find_sup b (Seq.simplify s) !tableF
+      let search4both    _ s  = match search4success false s with
+	| A a -> A a
+	| _   -> match search4failure false s with
+	    | A a -> A a
+	    | v   -> v 
 
-    let search4failure s  = match MP.find_sup UT.sup (simplify s) !tableF with
-      | None     -> if !Flags.debug>1 then print_endline("Found no previous failure for "^(Seq.toString s));
-	  None
-      | Some(g,h)-> if !Flags.debug>1 then print_endline("Found previous Failure for "^(Seq.toString s));
-	  Some(h)
-      	    
-    let search4both s  = match search4success s with
-      | Some(a)-> Some(a)
-      | None   -> match search4failure s with
-	  | Some(a)-> Some(a)
-	  | None   -> None
-
-    let clear () = (tableS := MP.empty; tableF := MP.empty)
-
-  end
+      let clear () =
+	print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries");
+	print_endline("Failures had "^(string_of_int (MP.cardinal !tableF))^" entries");
+	count:=0;newcount:=0;tableS := MP.empty; tableF := MP.empty
+    end
 
 end
