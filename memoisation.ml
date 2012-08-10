@@ -100,8 +100,13 @@ module PATMapExt
     let bsingleton j x = function
       | A(a) -> (ASet.add a ASet.empty,FSet.empty)
       | F(a) -> (ASet.empty,FSet.add a FSet.empty)
-    let bunion (a,b)(a',b')=(ASet.union a a',FSet.union b b')
+    let bunion (a,b)(a',b')=if ASet.is_empty a&&FSet.is_empty b then (a',b') else (a,b) 
+      (*             let bunion (a,b)(a',b')=(ASet.union a a',FSet.union b b') *)
 
-    let find_sub = find_su sub true  byes bempty bsingleton bunion
-    let find_sup = find_su sup false byes bempty bsingleton bunion
+    let filter (k1,k2) =function
+      | F(f)->true
+      | A(a)->not (FSet.is_in (F.build(Lit a)) k2 || ASet.is_in (Atom.negation a) k1)
+
+    let find_sub = find_su sub true filter byes bempty bsingleton bunion
+    let find_sup = find_su sup false (fun _ _-> true) byes bempty bsingleton bunion
 end

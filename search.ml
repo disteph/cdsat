@@ -133,6 +133,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      let prune = function
        | Local a       -> Local a
        | Fake(b1,b2,c) -> Fake(b1,b2)
+
+     let cutcount=ref 0
 	   
      (*
       * Main Search function 
@@ -217,7 +219,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		     (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
 		     straight 
 		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add f (if b then Neg else Pos) polar)) data)
-		       (stdone seq) seq cont
+		       (fun pt->pt) seq cont
 
 		 | AndN (a1, a2) -> 
 		     let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in
@@ -231,8 +233,6 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 		 | _ -> failwith("All cases should have been covered!")
 	       end
-
-	 | _ when inloop ->  cont (throw (Local(Fail seq)) seq)
 
 	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
 	   ->begin
@@ -261,16 +261,19 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 									 | _           -> failwith("Should not happen"))  , pt))) 
 			       (fun pt -> pt) seq cont
 			       
-		     | Cut(3,toCut, inter_fun1, inter_fun2)-> (*cut_3*)
-			 let u1 = lk_solve false (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
-			 let u2 = lk_solve false (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
+		     | Cut(3,toCut, inter_fun1, inter_fun2,l)-> (*cut_3*)
+			 incr cutcount; if !Flags.debug>1&& !cutcount mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
+			 let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
+			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+			 let u3 = lk_solvef formPChoose formP formPSaved l data in
+			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 			     
-		     | Cut(7,toCut, inter_fun1, inter_fun2) -> (*cut_7*)
-			 if !Flags.debug>0 then print_endline("Cut");
-			 let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
-			 let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont
+		     | Cut(7,toCut, inter_fun1, inter_fun2,l) -> (*cut_7*)
+			 incr cutcount;if !Flags.debug>1&& !cutcount mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
+			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
+			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+			 let u3 = lk_solvef formPChoose formP formPSaved l data in
+			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 
 		     | Polarise(l,b, inter_fun) ->
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved, Pol.add l (if b then Neg else Pos) polar)) data in
@@ -280,18 +283,22 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 		     | Search(tosearch,inter_fun,A l) ->
 			 begin match tosearch false seq with
-			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure, looking for exact on "^Seq.toString seq);
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success/failure, looking for exact on "^Seq.toString seq);
 			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
-			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success or failure, looking for exact on "^Seq.toString seq);
-			        lk_solvef formPChoose formP formPSaved l data cont
+			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success/failure, looking for exact on "^Seq.toString seq);
+			       lk_solvef formPChoose formP formPSaved l data cont
 			 end
 
 		     | Search(tosearch,inter_fun,F f) ->
 			 begin match tosearch true seq with
-			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure, looking for approx as well");
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure (looking for approx as well) on "^Seq.toString seq);
 			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
-			   | F(d) -> if !Flags.debug>1 then print_endline("Found approx.");
-			       lk_solvef formPChoose formP formPSaved (f d) data cont
+			   | F(d1,d2) ->
+			       if !Flags.debug>1
+			       then print_endline(if not(ASet.is_empty d1) then "Found approx. in atoms on "^Seq.toString seq
+						  else if not(FSet.is_empty d2) then "Found approx. in pos form on "^Seq.toString seq
+						  else "Found no approx on "^Seq.toString seq);
+			       lk_solvef formPChoose formP formPSaved (f (d1,d2)) data cont
 			 end
 
 		     | Restore l ->
@@ -312,9 +319,10 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 					    | Fake _   -> ()
 					  end;  recept_analysis recept)
 	     in
-	     let notify_analysis (newdata,inter_fun,action0) =
-	       lk_solvef formP formP formPSaved action0 newdata (newcont inter_fun)
-	     in Fake(Notify(seq,notify_analysis,data))
+	     let notify_analysis (accept_defeat,newdata,inter_fun,action0) =
+	       if (inloop&&accept_defeat) then cont (throw (Local(Fail seq)) seq)
+	       else lk_solvef formP formP formPSaved action0 newdata (newcont inter_fun)
+	     in Fake(Notify(seq,inloop,notify_analysis,data))
 		  
 	   end
 	     

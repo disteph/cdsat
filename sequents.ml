@@ -60,7 +60,7 @@ module type FrontEndType = sig
 
   type focusaction = 
     | Focus    of F.t*receive*focusaction option
-    | Cut      of int*F.t*receive*receive
+    | Cut      of int*F.t*receive*receive*focusaction option
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool*focusaction option
     | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
@@ -77,11 +77,11 @@ module type FrontEndType = sig
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type 'a notified = 'a*((final,bool*bool) local -> newnode_exit)*focusaction option
+  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*focusaction option
 
   type 'a output = (t,'a fakeoutput) local
   and  'a fakeoutput = 
-    | Notify   of Seq.t*       ('a notified -> 'a output)*'a
+    | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
     | AskFocus of Seq.t*FSet.t*(focusaction -> 'a output)*'a
     | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
@@ -194,7 +194,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 
   type focusaction = 
     | Focus    of F.t*receive*focusaction option
-    | Cut      of int*F.t*receive*receive
+    | Cut      of int*F.t*receive*receive*focusaction option
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool*focusaction option
     | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
@@ -209,7 +209,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type 'a notified = 'a*((final,bool*bool) local -> newnode_exit)*focusaction option
+  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*focusaction option
 
   let accept _ = Accept
 
@@ -224,7 +224,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   *)
   type 'a output = (t,'a fakeoutput) local
   and 'a fakeoutput = 
-    | Notify   of Seq.t*       ('a notified -> 'a output)*'a
+    | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
     | AskFocus of Seq.t*FSet.t*(focusaction -> 'a output)*'a
     | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)

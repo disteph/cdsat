@@ -367,26 +367,24 @@ module PATMap (UT:UserTypes) = struct
      most one such n. In that case find_su returns the collection of
      such p *)
 
-  let find_su su bp yes empty singleton union alm k t =
+  let find_su su bp cond yes empty singleton union alm k t =
     let rec aux t = match reveal t with
       | Empty      -> F empty
       | Leaf (j,x) -> (match su alm (tag j) (tag k) None with
-			 | Yes _             -> A(yes j x) 
-			 | Almost m when alm -> F(singleton j x m)
-			 | _                 -> F empty)
+			 | Yes _                       -> A(yes j x) 
+			 | Almost n when alm&&cond k n -> F(singleton j x n)
+			 | _                           -> F empty)
       | Branch (p,m,l,r) ->
 	  let (prems,deuz)=if bp then (r,l) else (l,r) in
 	  let f b = match aux prems with
-	    | F c when b ->
-		begin match aux deuz with
-		  | F d -> F(union c d)
-		  | v   -> v
-		end
+	    | F c when b ->(match aux deuz with
+				| F d -> F(union c d)
+				| v   -> v)
 	    | v -> v
 	  in match su alm p (tag k) (Some m) with
-	    | Yes _             -> f(alm||(bp=check (tag k) m))
-	    | Almost _ when alm -> f(bp=check (tag k) m)
-	    | _                 -> F empty
+	    | Yes _                       -> f((bp=check (tag k) m)||(alm&&cond k m))
+	    | Almost n when alm&&cond k n -> f( bp=check (tag k) m)
+	    | _                           -> F empty
     in aux t
 
 end
