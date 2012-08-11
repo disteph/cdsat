@@ -15,15 +15,14 @@ module MyPAT =
 	above *)
 
      module UASet = MyPatA
-     module UF    = MySmartFormulaImplem
+     module UF    = MyDPLLForm
      module UFSet = MyPatriciaCollectImplem(struct 
 					      include UF
 					      let id = UF.id
 					      module PF = PrintableFormula(UF)
 					      let toString = PF.toString
 					    end)
-
-     (*     module UFSet = MyDPLLFSet *)
+     (*   module UFSet = MyDPLLFSet  *)
      (*     let focus_pick (h:UASet.CI.t) l   = match UFSet.choose h l with
 	    | A a       -> a
 	    | F(Some a) -> a

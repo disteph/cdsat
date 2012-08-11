@@ -13,7 +13,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      
      (* Array where we count how many events we get *)
 
-     let count = [|0;0;0;0|]
+     let count = [|0;0;0;0;0;0|]
 
      (* Chooses whether, when faking failure, the natural
 	behaviour is to go right (true) or left (false) *)
@@ -134,8 +134,6 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
        | Local a       -> Local a
        | Fake(b1,b2,c) -> Fake(b1,b2)
 
-     let cutcount=ref 0
-	   
      (*
       * Main Search function 
       * delta = Formulae to be asynchronously decomposed 
@@ -149,7 +147,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
      let rec lk_solve inloop seq data cont =
        
-       (* print_endline("attack "^ASet.toString g);*)
+        (* print_endline("attack "^Seq.toString seq); *)
 
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
@@ -249,7 +247,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		       | _         -> cont loc_ans
 		     in v newcont
 		   in function
-		     | Focus(toFocus,inter_fun,l) ->  (* real focus *)
+		     | Focus(toFocus,inter_fun,l) ->  count.(4)<-count.(4)+1;(* real focus *)
 			 (* print_endline(Form.toString toFocus);*)
 			 if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 			 else
@@ -262,14 +260,14 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			       (fun pt -> pt) seq cont
 			       
 		     | Cut(3,toCut, inter_fun1, inter_fun2,l)-> (*cut_3*)
-			 incr cutcount; if !Flags.debug>1&& !cutcount mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
+			 count.(5)<-count.(5)+1; if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 			     
 		     | Cut(7,toCut, inter_fun1, inter_fun2,l) -> (*cut_7*)
-			 incr cutcount;if !Flags.debug>1&& !cutcount mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
+			 count.(5)<-count.(5)+1; if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
@@ -337,8 +335,11 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 					 ^(string_of_int count.(1))^" Fails, "
 					 ^(string_of_int count.(2))^" Faked Successes, and "
 					 ^(string_of_int count.(3))^" Faked Fails, "
+					 ^(string_of_int count.(4))^" Focus, "
+					 ^(string_of_int count.(5))^" Cuts, "
 					);
-			   count.(0) <- 0; count.(1) <- 0; count.(2) <- 0; count.(3) <- 0 ; dir := true)
+			   for i=0 to Array.length count-1 do count.(i) <- 0 done;
+			   dir := true)
        in
        let inter = function
 	 | Fake(b1,b2,Comp v)  -> dir:= not b2 ;

@@ -101,7 +101,9 @@ module MyDPLLFSet = struct
   let sub alm (a,b) (a',b') limit = match a,a',limit with
     | Some aa,Some aa',Some(A a) -> subA alm aa aa' (Some a)
     | Some aa,Some aa', _        -> subA alm aa aa' None
-    | _                          -> No
+    | None,None,_                -> Yes()
+    | None,Some(aa),_            -> print_endline("D"^MyPatA.toString aa);No
+    | Some(aa),None,_            -> print_endline("G"^MyPatA.toString aa);No
 
   module UT    = struct
 
@@ -115,7 +117,7 @@ module MyDPLLFSet = struct
 	    if d=0 then Pervasives.compare b b' else d
       | None,Some _    -> 1
       | Some _ ,None   -> -1
-      | _              -> Pervasives.compare b b'
+      | None,None      -> Pervasives.compare b b'
 	  
 
     type values      = unit
@@ -143,6 +145,7 @@ module MyDPLLFSet = struct
     let mask p m            = p land (m-1)
 
     let match_prefix (a,b)(a',b') g =
+      print_endline("match prefix: ");
       match
 	sub false (a,b) (a',b') (Some g),
 	sub false (a',b') (a,b) (Some g)
@@ -152,17 +155,29 @@ module MyDPLLFSet = struct
 			    | F i  -> (mask b i) == b')
 	| _    , _    -> false
 
+    let inter a a' =match a,a' with
+      | Some aa,Some aa' -> Some(MyPatA.inter aa aa')
+      | None,None        -> None
+      | _                -> Some(MyPatA.empty)
+
     let disagree (a,b) (a',b') =
       let m= branching_bit b b' in
       let p = mask b m in
       let bit_side = (b land m) == 0 in
 	match a,a' with
 	  | Some aa,Some aa' ->
-	      let com = Some(MyPatA.inter aa aa'),p in
-		(match MyPatA.first_diff aa aa' with
-		   | (Some d,c) -> (com,A(d),c)
-		   | (None  ,_) -> (com,F(m),bit_side))
-	  | _                -> ((None,p),F(m),bit_side)
+	      (match MyPatA.first_diff aa aa' with
+		 | (Some d,c) -> ((Some(MyPatA.inter aa aa'),p),A(d),c)
+		 | (None  ,_) -> ((Some(MyPatA.inter aa aa'),p),F(m),bit_side))
+	  | Some aa, None  ->
+	      (match MyPatA.Ext.min aa with
+		 | Some d -> ((Some(MyPatA.empty),p),A(d),true)
+		 | None   -> ((Some(MyPatA.empty),p),F(m),bit_side))
+	  | None , Some aa ->
+	      (match MyPatA.Ext.min aa with
+		 | Some d -> ((Some(MyPatA.empty),p),A(d),false)
+		 | None   -> ((Some(MyPatA.empty),p),F(m),bit_side))
+	  | None,None  -> ((None,p),F(m),bit_side)
 
   end
 
@@ -186,13 +201,13 @@ module MyDPLLFSet = struct
     let is_empty = SS.is_empty
     let is_in    = SS.mem
     let empty    = SS.empty
-    let add      = SS.add
+    let toString = SS.toString PF.toString
+    let add k t  = print_endline(toString t^"///"^PF.toString k);let t'=SS.add k t in print_endline("added-> "^toString  t');t'
     let union    = SS.union
     let inter    = SS.inter
-    let remove   = SS.remove
+    let remove k t = print_endline(toString t^"///"^PF.toString k);let t'=SS.remove k t in print_endline("removed-> "^toString  t');t'
     let hash     = SS.hash
     let equal    = SS.equal
-    let toString = SS.toString PF.toString
     let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
   end
 

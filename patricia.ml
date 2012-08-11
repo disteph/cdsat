@@ -2,8 +2,8 @@
 type ('a,'b) sum = A of 'a | F of 'b
 type ('a,'b) almost =
   | Yes of 'a
-  | No
   | Almost of 'b
+  | No
 
 (* Material that must be provided to construct a Patricia tree
    structure *)
@@ -158,7 +158,7 @@ module PATMap (UT:UserTypes) = struct
     let remove_aux f k t =
       let rec rmv t = match reveal t with
 	| Empty      -> empty
-	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f k x else t
+	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f k x else failwith("Was not there")
 	| Branch (p,m,t0,t1) -> 
 	    if match_prefix (tag k) p m then
 	      if check (tag k) m then
@@ -166,7 +166,7 @@ module PATMap (UT:UserTypes) = struct
 	      else
 		branch (p, m, t0, rmv t1)
 	    else
-	      t
+	      failwith("Was not there")
       in
 	rmv t
 
