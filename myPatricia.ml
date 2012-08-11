@@ -23,13 +23,10 @@ module MyPAT =
      end
      module UFSet = MyPatriciaCollectImplem(TMP)
 
-       (*   module UFSet = MyDPLLFSet  *)
-     (*     let focus_pick (h:UASet.CI.t) l   = match UFSet.choose h l with
-	    | A a       -> a
-	    | F(Some a) -> a
-	    | _         -> UFSet.SS.choose l
-     *)
+    (* module UFSet = MyDPLLFSet *)
 
+     let count = [|0;0;0|]
+	   
      module Strategy =
        functor (FE:FrontEndType with module F=UF.FI and module FSet=UFSet.CI and module ASet=UASet.CI) -> struct
 	 include FE
@@ -39,7 +36,19 @@ module MyPAT =
 
 	 module Me = Memo(UFSet.Ext)(UASet.Ext)
 
-	 let focus_pick l = Focus(UFSet.SS.choose l,accept,None)
+	 let focus_pick h l =
+	   let tofocus =
+	     (*   if !Flags.unitp then
+		  (if !Flags.debug>0&& ((count.(0)+count.(1)+count.(2)) mod Flags.every.(7) ==0)
+		  then print_endline("Backtrack/Unit Propagate/Decide= "^string_of_int count.(0)^"/"^string_of_int count.(1)^"/"^string_of_int count.(2));
+		  match UFSet.schoose h l with
+		  | A a       -> count.(0)<-count.(0)+1;a
+		  | F(Some a) -> count.(1)<-count.(1)+1;a
+		  | _         -> count.(2)<-count.(2)+1;UFSet.choose l)
+		  else *)
+	     UFSet.choose l
+	   in 
+	     Focus(tofocus,accept,None)
 
 	 let rec cut_series (a,f) =
 	     if ASet.is_empty a then
@@ -57,8 +66,10 @@ module MyPAT =
 	       -> solve (machine(Restore None))
 	   | Fake(AskFocus(seq,l,machine,_)) when !Flags.memo
 	       -> let (a,_)=Seq.simplify seq in
-		 solve (machine(Search(Me.search4failure,accept,A(Some(focus_pick l)))))
-	   | Fake(AskFocus(_,l,machine,_)) -> solve (machine (focus_pick l))
+		 solve (machine(Search(Me.search4failure,accept,A(Some(focus_pick a l)))))
+	   | Fake(AskFocus(seq,l,machine,_))
+	     -> let (a,_)=Seq.simplify seq in
+	       solve (machine (focus_pick a l))
 
 	   | Fake(Notify(_,_,machine,_))     when !Flags.memo
 	       -> solve (machine (true,

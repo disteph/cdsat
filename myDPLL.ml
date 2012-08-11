@@ -1,6 +1,7 @@
 open Formulae
 open MyPatASet
 open Patricia
+open SetConstructions
 
 (* Implementation of formulae for DPLL,
    Implementation of sets of formulae for DPLL *)
@@ -92,97 +93,32 @@ module MyDPLLFSet = struct
 
   let subA alm a1 a2 limit =
     let diffA = MyPatA.diff a1 a2 in
-    let treatA x = if alm&&MyPatA.is_empty (MyPatA.remove x diffA) then Almost(A(x)) else No in
+    let treatA x = if alm&&MyPatA.is_empty (MyPatA.remove x diffA) then Almost(A (Some x)) else No in
       match limit,MyPatA.min diffA with
 	| Some a, Some x when MyPatA.compareE x a<0 -> treatA x
 	| None  , Some x -> treatA x
 	| _     ,_      -> Yes()
 
   let sub alm (a,b) (a',b') limit = match a,a',limit with
-    | Some aa,Some aa',Some(A a) -> subA alm aa aa' (Some a)
+    | Some aa,Some aa',Some(A (Some a)) -> subA alm aa aa' (Some a)
     | Some aa,Some aa', _        -> subA alm aa aa' None
     | None,None,_                -> Yes()
-    | None,Some(aa),_            -> print_endline("D"^MyPatA.toString aa);No
-    | Some(aa),None,_            -> print_endline("G"^MyPatA.toString aa);No
+    | None,Some(aa),_            -> No
+    | Some(aa),None,_            -> No
 
-
-  module UT    = struct
-
-    type keys    = UF.t
-    type common  = MyPatA.t option*int
-    let tag s    = (UF.aset s,UF.id s)
-
-    let ccompare (a,b)(a',b')= match a,a' with
-      | Some aa,Some aa' ->
-	  let d = MyPatA.compare aa aa' in
-	    if d=0 then Pervasives.compare b b' else d
-      | None,Some _    -> 1
-      | Some _ ,None   -> -1
-      | None,None      -> Pervasives.compare b b'
-	  
-
-
-    type branching     = (Atom.t,int)sum
-    let bcompare b1 b2 = match b1,b2 with
-      | A(a),A(a') -> MyPatA.compareE a a'
-      | F(a),F(a') -> Pervasives.compare a a'
-      | A(a),F(a') -> -1 
-      | F(a),A(a') -> 1 
-
-    let check (a,b) = function
-      | A(atm)-> (match a with
-		    | None   -> false
-		    | Some aa-> MyPatA.is_in atm aa)
-      | F(i)  -> (b land i) == 0
-
-    let lowest_bit x        = x land (-x)
-    let branching_bit p0 p1 = lowest_bit (p0 lxor p1)
-    let mask p m            = p land (m-1)
-
-    let match_prefix (a,b)(a',b') g =
-      print_endline("match prefix: ");
-      match
-	sub false (a,b) (a',b') (Some g),
-	sub false (a',b') (a,b) (Some g)
-      with
-	| Yes _,Yes _ -> (match g with
-			    | A atm-> true
-			    | F i  -> (mask b i) == b')
-	| _    , _    -> false
-
-    let inter a a' =match a,a' with
-      | Some aa,Some aa' -> Some(MyPatA.inter aa aa')
-      | None,None        -> None
-      | _                -> Some(MyPatA.empty)
-
-    let disagree (a,b) (a',b') =
-      let m= branching_bit b b' in
-      let p = mask b m in
-      let bit_side = (b land m) == 0 in
-	match a,a' with
-	  | Some aa,Some aa' ->
-	      (match MyPatA.first_diff aa aa' with
-		 | (Some d,c) -> ((Some(MyPatA.inter aa aa'),p),A(d),c)
-		 | (None  ,_) -> ((Some(MyPatA.inter aa aa'),p),F(m),bit_side))
-	  | Some aa, None  ->
-	      (match MyPatA.Ext.min aa with
-		 | Some d -> ((Some(MyPatA.empty),p),A(d),true)
-		 | None   -> ((Some(MyPatA.empty),p),F(m),bit_side))
-	  | None , Some aa ->
-	      (match MyPatA.Ext.min aa with
-		 | Some d -> ((Some(MyPatA.empty),p),A(d),false)
-		 | None   -> ((Some(MyPatA.empty),p),F(m),bit_side))
-	  | None,None  -> ((None,p),F(m),bit_side)
-
-  end
+  module UT2   = TypesFromHConsed(struct type t = UF.t let id = UF.id end)
+  module EASet = struct include MyPatA type keys=t let tag s= s end
+  module UT0   = struct include TypesFromCollect(EASet) type newkeys=UF.t let project = UF.aset end
+  module UT1   = Lift(UT0)
+  module UT    = LexProduct(UT1)(UT2)
 
   module D = struct
-    type keys    = UF.t
+    type keys        = UF.t
     type values      = unit
     let vcompare _ _ = 0
-    type infos     = keys m_infos
-    let info_build = m_info_build UT.tag UT.ccompare
-    let treeHCons  = !Flags.memo
+    type infos       = keys m_infos
+    let info_build   = m_info_build UT.tag UT.ccompare
+    let treeHCons    = !Flags.memo
   end
 
   module SS = PATSet(D)(UT)
@@ -194,7 +130,7 @@ module MyDPLLFSet = struct
     | None -> a
     | b    -> b
 
-  let choose atms l =
+  let schoose atms l =
     SS.find_su sub true (fun _ _ ->true) byes bempty bsingleton bunion true (Some(atms),-1) l
 
   module PF=PrintableFormula(UF)
@@ -206,10 +142,10 @@ module MyDPLLFSet = struct
     let is_in    = SS.mem
     let empty    = SS.empty
     let toString = SS.toString PF.toString
-    let add k t  = print_endline(toString t^"///"^PF.toString k);let t'=SS.add k t in print_endline("added-> "^toString  t');t'
+    let add k t  = SS.add k t (*print_endline(toString t^"///"^PF.toString k);let t'=SS.add k t in print_endline("added-> "^toString  t');t'*)
     let union    = SS.union
     let inter    = SS.inter
-    let remove k t = print_endline(toString t^"///"^PF.toString k);let t'=SS.remove k t in print_endline("removed-> "^toString  t');t'
+    let remove k t = SS.remove k t (* print_endline(toString t^"///"^PF.toString k);let t'= in print_endline("removed-> "^toString  t');t'*)
     let hash     = SS.hash
     let equal    = SS.equal
     let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
@@ -225,5 +161,7 @@ module MyDPLLFSet = struct
   end
 
   include Ext
+
+  let choose = SS.choose
 
 end

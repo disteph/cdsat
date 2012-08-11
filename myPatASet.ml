@@ -66,6 +66,7 @@ module MyPatriciaCollectImplem(M:sig
   end
 
   include Ext
+  let choose = SS.choose
 end
 
 
@@ -158,4 +159,5 @@ module MyPatA = struct
   end
 
   include Ext
+
 end

@@ -28,7 +28,7 @@ module TypesFromHConsed(S:FromHConsed) =
      let disagree p0 p1      = 
        let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
 
-   end:Intern with type keys =S.t)
+   end:Intern with type keys =S.t and type common  = int and type branching = int)
 
 
 (* Automatic construction of a UT:UserTypes from a collection *)
@@ -71,7 +71,7 @@ module TypesFromCollect(S: FromCollect) =
        | (None,_)   -> failwith("disagree called with two arguments that are equal")
        | (Some b,c) -> (S.inter p0 p1,b,c)
 	   
-   end)
+   end:Intern with type keys=S.keys and type common  = S.t and type branching = S.e)
 
 
 
@@ -110,4 +110,57 @@ module LexProduct(I1:Intern)(I2:Intern with type keys=I1.keys) =
        then match I2.disagree p2 p2' with (p2'',d,c) -> ((p1,p2''),F(d),c)
        else match I1.disagree p1 p1' with (p1'',d,c) -> ((p1'',p2),A(d),c)
 
-   end)
+   end:Intern with type keys=I1.keys
+	      and type common  = I1.common*I2.common
+	      and type branching = (I1.branching,I2.branching) sum)
+
+(* Automatic construction of an Intern for a set extended with a top element,
+   given the I:Intern for the original set *)
+
+module Lift(I:sig include Intern
+		  type newkeys 
+		  val project :newkeys->keys option
+	    end) = 
+  (struct
+
+     type keys = I.newkeys
+
+     type common  = I.common option
+     let ccompare  a a'= match a,a' with
+       | Some aa,Some aa' -> I.ccompare aa aa'
+       | None, Some _     -> 1
+       | Some _,None      -> -1
+       | None, None       -> 0
+
+     let tag s    = match I.project s with
+       | None   -> None
+       | Some k -> Some(I.tag k)
+       
+     type branching = I.branching option
+     let bcompare a a'  =  match a,a' with
+       | Some aa,Some aa' -> I.bcompare aa aa'
+       | None, Some _     -> -1
+       | Some _,None      -> 1
+       | None, None       -> 0
+
+     let check p m = match p,m with
+       | Some pp,Some mm -> I.check pp mm
+       | None,None       -> true
+       | _ -> false
+
+     let match_prefix q p = function
+       | None    -> true
+       | Some mm -> match q, p with
+	   | Some qq,Some pp -> I.match_prefix qq pp mm
+	   | None,None       -> true
+	   | _               -> false
+ 
+     let disagree p p' = match p, p' with
+       | Some pp,Some pp' -> (match I.disagree pp pp' with (com,d,b) -> (Some com,Some d,b))
+       | None , Some _    -> (None,None,true)
+       | Some _, None     -> (None,None,false)
+       | None, None       -> failwith("Disagree called on two equal arguments!")
+
+   end:Intern with type keys=I.newkeys
+	      and type common  =  I.common option
+	      and type branching = I.branching option)
