@@ -48,7 +48,7 @@ all: $(OCAMLBEST)
 # bytecode and native-code compilation
 ######################################
 
-CMO = flags.cmo formulae.cmo collection.cmo patricia.cmo memoisation.cmo sequents.cmo strategy.cmo search.cmo io.cmo test.cmo myNaive.cmo myPatASet.cmo mySFormulaImplem.cmo myDPLL.cmo myPatricia.cmo main.cmo
+CMO = flags.cmo formulae.cmo collection.cmo patricia.cmo setConstructions.cmo memoisation.cmo sequents.cmo strategy.cmo search.cmo io.cmo test.cmo myNaive.cmo myPatASet.cmo mySFormulaImplem.cmo myDPLL.cmo myPatricia.cmo main.cmo
 CMX = $(CMO:.cmo=.cmx)
 
 GENERATED = version.ml

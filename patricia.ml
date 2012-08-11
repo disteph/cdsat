@@ -5,22 +5,20 @@ type ('a,'b) almost =
   | Almost of 'b
   | No
 
+
 (* Material that must be provided to construct a Patricia tree
    structure *)
 
-module type UserTypes = sig
-  (* Domain of the map/set (keys),
-     implementation of keys and how to compute them.
-     Typically for a HConsed keys type, common = int
-  *)
+(* Info that you need to provide anyway *)
+
+module type Dest = sig
+
+  (* Domain of the map/set (keys)*)
   type keys
-  type common
-  val ccompare   : common->common->int
-  val tag        : keys->common
 
   (* Co-domain of the map (values), set it to unit for a set *)    
   type values
-  val vcompare    : values->values->int
+  val vcompare   : values->values->int
 
   (* Allows to store information about the Patricia tree
      - typically, number of bindings stored, etc *) 
@@ -29,14 +27,29 @@ module type UserTypes = sig
   (* Provides info for empty tree, singleton tree, and disjoint union
      of two tree *)
   val info_build : infos*(keys->values->infos)*(infos->infos->infos)
+
+  (* Do you want the patricia trees hconsed? *)
+  val treeHCons   : bool
+end
+
+
+(* Structures for the internal use of the Patricia trees. *)
+
+module type Intern = sig
+
+  (* Implementation of keys and how to compute them.
+     Typically for a HConsed keys type, common = int *)
+  type keys
+  type common
+  val ccompare   : common->common->int
+  val tag        : keys->common
     
-  (* Structures for the internal use of the Patricia trees.
-     branching is the type of data used for discriminating the keys
+  (* branching is the type of data used for discriminating the keys
      (themselves represented in common via tag) *) 
   type branching
   val bcompare    : branching->branching->int
 
-  (* checks discriminates its first argument over second *)
+  (* check discriminates its first argument over second *)
   val check       : common->branching->bool
 
   (* Given two elements of common, disagree outputs:
@@ -51,27 +64,26 @@ module type UserTypes = sig
      Should output true if the first two arguments are equal *)
   val match_prefix: common->common->branching->bool
 
-  (* Do you want the patricia trees hconsed? *)
-  val treeHCons   : bool
 end
 
 
-(* Construction of a Patricia tree structure for maps, given a UserTypes *)
+(* Construction of a Patricia tree structure for maps, given the above *)
 
-module PATMap (UT:UserTypes) = struct
+module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
+
+  open I
+  open D
 
   (* This module BackOffice will be share by the Patricia tree
      structure for sets, below *)
   module BackOffice = struct
 
-    include UT
-
     (* Our Patricia trees can be HConsed *)
 
     type 'a pat =
       | Empty
-      | Leaf of UT.keys * UT.values
-      | Branch of UT.common * UT.branching * 'a * 'a
+      | Leaf of keys * values
+      | Branch of common * branching * 'a * 'a
 
     (* Primitive type of Patricia trees to feed the HashTable Make
        functor *)
@@ -390,18 +402,18 @@ module PATMap (UT:UserTypes) = struct
 end
 
 
-(* Construction of a Patricia tree structure for sets, given a
-UserTypes.  Most of it is imported from PATMap *)
+(* Construction of a Patricia tree structure for sets, given the above.
+   Most of it is imported from PATMap *)
 
-module PATSet (ST:UserTypes with type values = unit) = struct
+module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) = struct
 
   (* A Set is just a Map with codomain unit.  Constructing this Map
      structure *)
 
   module PM = PATMap(struct
-		       include ST
+		       include D
 		       let vcompare _ _ = 0
-		     end)
+		     end)(I)
 
   include PM.BackOffice
 
@@ -428,6 +440,8 @@ module PATSet (ST:UserTypes with type values = unit) = struct
   let fold f     = PM.fold (fun k x -> f k)
   let choose t   = let (k,_) = PM.choose t in k
   let elements s = List.map (function (k,x)->k) (PM.elements s)
+  let find_su su bp cond yes empty singleton
+      = PM.find_su su bp cond (fun j () -> yes j) empty (fun j () m->singleton j m)
 
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
@@ -494,92 +508,3 @@ let m_info_build tag ccompare = (
        | _,None -> x1
        | Some(v1),Some(v2)-> if ccompare (tag v1) (tag v2)<0 then x1 else x2)
 )
-
-
-module type FromHConsed = sig
-  type keys
-  val tag        : keys->int
-  type values
-  val vcompare   : values->values->int
-  type infos
-  val info_build : infos*(keys->values->infos)*(infos->infos->infos)
-  val treeHCons  : bool
-end
-
-module TypesFromHConsed (S:FromHConsed) = 
-  (struct
-     include S
-     type common = int
-     let ccompare = Pervasives.compare
-     type branching = int
-     let bcompare = Pervasives.compare
-     let check k m = (k land m) == 0
-
-     let lowest_bit x = x land (-x)
-     let branching_bit p0 p1 = lowest_bit (p0 lxor p1)
-     let mask p m = p land (m-1)
-
-     let match_prefix k p m = (mask k m) == p
-     let disagree p0 p1 = 
-       let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
-
-   end:UserTypes with type keys=S.keys
-		 and type values=S.values
-		 and type infos=S.infos)
-
-(*
-module Memento (S: UserTypes) = struct
-
-  module ST = 
-    (struct
-       type keys        = S.keys
-       type common      = S.common
-       let ccompare     = S.ccompare
-       let tag          = S.tag
-       type branching   = S.branching
-       let bcompare     = S.bcompare
-       let check        = S.check
-       let match_prefix = S.match_prefix
-       let disagree     = S.disagree
-
-       type values      = unit
-       let vcompare _ _ = 0 
-       type infos       = keys m_infos
-       let info_build   = m_info_build tag ccompare
-       let treeHCons    = true
-     end: UserTypes with type keys = S.keys
-		    and type values= unit
-		    and type infos = S.keys option)
-
-  module PT = PATSet(ST)
-
-  type keys    = PT.t
-  type common  = PT.t
-  let ccompare = PT.compare 
-  let tag s    = s
-
-  type values  = S.values
-  let vcompare = S.vcompare
-
-  type infos     = unit
-  let info_build = empty_info_build
-    
-  type branching     = S.keys
-  let bcompare n1 n2 = S.ccompare (S.tag n1) (S.tag n2)
-  let check k m      = PT.mem m k
-
-  let match_prefix k p m = (PT.subset p k)
-    &&(match PT.info(PT.diff k p) with
-	 | Some x -> not(bcompare x m<0)
-	 | _        -> true)
-
-  let min t = PT.info t
-
-  let disagree s0 s1 = match PT.first_diff min s0 s1 with
-    | (None,_) -> failwith("disagree called with two arguments that are equal")
-    | (Some b,c) -> (PT.inter s0 s1,b,c)
-
-  let treeHCons  = S.treeHCons
-    
-end
-*)

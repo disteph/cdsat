@@ -1,6 +1,7 @@
 open Formulae
 open Collection
 open Patricia
+open SetConstructions
 
 (* Generic implementation of sets,
    particular implementation of sets of atoms,
@@ -11,28 +12,27 @@ open Patricia
 
 module MyPatriciaCollectImplem(M:sig
 				 type t
-				 val compare: t->t->int
 				 val id: t->int
+				 val compare : t->t->int
 				 val toString: t->string
 			       end) = struct
 
-  module TFHC = TypesFromHConsed(struct
-				   type keys        = M.t
-				   let tag          = M.id
-				   type values      = unit
-				   let vcompare _ _ = 0
-				     (* type infos = unit *)
-				     (* let info_build = empty_info_build *)
-				     (* Alternative, recording min, max, cardinal: *)
-				   type infos       = keys m_infos
-				   let info_build   = m_info_build tag Pervasives.compare
-				   let treeHCons    = !Flags.memo
-				 end) 
+  module Destination = struct
+    type keys        = M.t
+    type values      = unit
+    let vcompare _ _ = 0
+      (* type infos = unit *)
+      (* let info_build = empty_info_build *)
+      (* Alternative, recording min *)
+    type infos       = keys m_infos
+    let info_build   = m_info_build M.id Pervasives.compare
+    let treeHCons    = !Flags.memo
+  end
 
-  module SS = PATSet(TFHC)
+  module SS = PATSet(Destination)(TypesFromHConsed(M))
 
   module CI = struct
-    type e       = SS.keys
+    type e       = M.t
     type t       = SS.t
     let is_empty = SS.is_empty
     let is_in    = SS.mem
@@ -48,8 +48,7 @@ module MyPatriciaCollectImplem(M:sig
 	 | _-> failwith("No Element!")
 	 end	 
       *)
-
-    let hash = SS.hash
+    let hash  = SS.hash
     let equal = SS.equal
 
     let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
@@ -75,29 +74,33 @@ end
 module MyPatA = struct
 
   module AtSet = MyPatriciaCollectImplem(Atom)
-  module TFHC = TypesFromHConsed(struct
-				   type keys      = bool*Atom.Predicates.t
-				   let tag (b,f)  = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
-				   type values    = AtSet.t
-				   let vcompare s1 s2 = match AtSet.SS.first_diff (AtSet.SS.info) s1 s2 with
-				     | (None,_) -> 0
-				     | (_,true) -> -1
-				     | (_,false)-> 1
-				   type infos     = (keys*values) option
-				   let info_build = (
-				     None,
-				     (fun x y -> Some(x,y)),
-				     (fun x1 x2
-					-> match x1,x2 with
-					  | None,_ -> x2
-					  | _,None -> x1
-					  | Some(y1,v1),Some(y2,v2)->
-					      if (tag y1)<(tag y2) || ((tag y1)=(tag y2)&&vcompare v1 v2<0)
-					      then x1 else x2)
-				   )
-				   let treeHCons = !Flags.memo
-				 end)
-  module SS      = PATMap(TFHC)
+  module M = struct
+    type t       = bool*Atom.Predicates.t
+    let id (b,f) = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
+  end
+  module Destination = struct
+    type keys          = M.t
+    type values        = AtSet.t
+    let vcompare s1 s2 = match AtSet.SS.first_diff (AtSet.SS.info) s1 s2 with
+      | (None,_) -> 0
+      | (_,true) -> -1
+      | (_,false)-> 1
+    type infos     = (keys*values) option
+    let info_build = (
+      None,
+      (fun x y -> Some(x,y)),
+      (fun x1 x2
+	 -> match x1,x2 with
+	   | None,_ -> x2
+	   | _,None -> x1
+	   | Some(y1,v1),Some(y2,v2)->
+	       if (M.id y1)<(M.id y2) || ((M.id y1)==(M.id y2)&&vcompare v1 v2<0)
+	       then x1 else x2)
+    )
+    let treeHCons = !Flags.memo
+  end
+
+  module SS = PATMap(Destination)(TypesFromHConsed(M))
 
   let lleaf(k,x) = if AtSet.is_empty x then SS.empty else SS.leaf(k,x)
 
@@ -140,7 +143,7 @@ module MyPatA = struct
     let compareE t1 t2  =
       let (b1,pred1,tl1) = Atom.reveal t1 in 
       let (b2,pred2,tl2) = Atom.reveal t2 in 
-      let c = Pervasives.compare (SS.tag (b1,pred1))(SS.tag (b2,pred2)) in
+      let c = Pervasives.compare (M.id (b1,pred1))(M.id (b2,pred2)) in
 	if c=0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
     let min s      = match SS.info s with
       | None       -> None

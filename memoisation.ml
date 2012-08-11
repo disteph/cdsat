@@ -1,6 +1,7 @@
 open Formulae
 open Collection
 open Patricia
+open SetConstructions
 
 module type CollectImplemExt = sig
   include CollectImplem
@@ -53,47 +54,20 @@ module PATMapExt
 
     let sup alm (a,b) (a',b') = sub alm (a',b') (a,b)
 
-
-    module UT = struct
-      type keys   = ASet.t*FSet.t
-      type common = keys
-
-      let tag s   = s
-      let ccompare (a,b)(a',b')=
-	let c = ASet.compare a a' in
-	  if c=0 then FSet.compare b b' else c
-
+    module D = struct
+      type keys =  ASet.t*FSet.t
       include V
-
-      type branching = (Atom.t,F.t)sum
-      let bcompare b1 b2 = match b1,b2 with
-	| A(a),A(a') -> ASet.compareE a a'
-	| F(a),F(a') -> FSet.compareE a a'
-	| A(a),F(a') -> -1 
-	| F(a),A(a') -> 1 
-
       type infos     = unit
       let info_build = empty_info_build
-
-      let check (k,k') = function
-	| A(a)-> ASet.is_in a k
-	| F(a)-> FSet.is_in a k'
-
-      let match_prefix (k1,k2) (p1,p2) a = match sub false (k1,k2) (p1,p2) (Some a) , sup false (k1,k2) (p1,p2) (Some a) with 
-	| Yes _, Yes _ -> true
-	| _            -> false
-
-      let disagree (a,b) (a',b') =
-	match (ASet.first_diff a a') with
-	  | (Some d,c) -> ((ASet.inter a a',FSet.inter b b'),A(d),c)
-	  | (None,_)   -> match (FSet.first_diff b b') with
-	      | (Some d,c)   -> ((ASet.inter a a',FSet.inter b b'),F(d),c)
-	      | (None,_)     -> failwith("Disagree called with two arguments that are not equal")
-
       let treeHCons = false
     end
 
-    include PATMap(UT)
+    module EASet = struct include ASet type keys=D.keys let tag(a,b)=a end
+    module EFSet = struct include FSet type keys=D.keys let tag(a,b)=b end
+
+    module UT=LexProduct(TypesFromCollect(EASet))(TypesFromCollect(EFSet))
+
+    include PATMap(D)(UT)
 
     let byes j x = x
     let bempty   = (ASet.empty,FSet.empty)

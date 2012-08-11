@@ -105,6 +105,7 @@ module MyDPLLFSet = struct
     | None,Some(aa),_            -> print_endline("D"^MyPatA.toString aa);No
     | Some(aa),None,_            -> print_endline("G"^MyPatA.toString aa);No
 
+
   module UT    = struct
 
     type keys    = UF.t
@@ -120,12 +121,6 @@ module MyDPLLFSet = struct
       | None,None      -> Pervasives.compare b b'
 	  
 
-    type values      = unit
-    let vcompare _ _ = 0
-
-    type infos     = keys m_infos
-    let info_build = m_info_build tag ccompare
-    let treeHCons  = !Flags.memo
 
     type branching     = (Atom.t,int)sum
     let bcompare b1 b2 = match b1,b2 with
@@ -181,22 +176,31 @@ module MyDPLLFSet = struct
 
   end
 
-  module SS = PATSet(UT)
+  module D = struct
+    type keys    = UF.t
+    type values      = unit
+    let vcompare _ _ = 0
+    type infos     = keys m_infos
+    let info_build = m_info_build UT.tag UT.ccompare
+    let treeHCons  = !Flags.memo
+  end
 
-  let byes j x = j
+  module SS = PATSet(D)(UT)
+
+  let byes j = j
   let bempty   = None
-  let bsingleton j x m = Some j
+  let bsingleton j m = Some j
   let bunion a = function
     | None -> a
     | b    -> b
 
   let choose atms l =
-    SS.PM.find_su sub true (fun _ _ ->true) byes bempty bsingleton bunion true (Some(atms),-1) l
+    SS.find_su sub true (fun _ _ ->true) byes bempty bsingleton bunion true (Some(atms),-1) l
 
   module PF=PrintableFormula(UF)
 
   module CI = struct
-    type e       = SS.keys
+    type e       = D.keys
     type t       = SS.t
     let is_empty = SS.is_empty
     let is_in    = SS.mem
