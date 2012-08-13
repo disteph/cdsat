@@ -69,9 +69,7 @@ module MyDPLLForm = struct
   let build  = FI.build
   let reveal = FI.reveal
 
-  let compare t1 t2 =
-    let a = (Pervasives.compare t1.size t2.size) in
-      if (a<>0) then  a else (Pervasives.compare t1.id t2.id)
+  let compare t1 t2 = Pervasives.compare t1.id t2.id
 end
 
 
@@ -107,8 +105,8 @@ module MyDPLLFSet = struct
     | None,None,_                       -> Yes()
     | _                                 -> No
 
-  let byes j = j
-  let bempty   = None
+  let byes j         = j
+  let bempty         = None
   let bsingleton j m = Some j
   let bunion a b = match a,b with
     | None, None   -> None

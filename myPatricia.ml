@@ -17,15 +17,14 @@ module MyPAT =
      module UASet = MyPatA
      module UF    = MyDPLLForm
 
-     (*           module TMP   = struct 
+               module TMP   = struct 
 		  include UF
 		  module PF = PrintableFormula(UF)
 		  let toString = PF.toString
 		  end
 		  module UFSet = MyPatriciaCollectImplem(TMP)
-     *)    
-
-     module UFSet = MyDPLLFSet
+    
+    (* module UFSet = MyDPLLFSet *)
 
      let count = [|0;0;0;0;0|]
        
@@ -45,7 +44,7 @@ module MyPAT =
 
 	 let focus_pick h l olda= count.(0)<-count.(0)+1; Focus(UFSet.choose l,accept,None)
 
-	 let focus_pick h l olda= 
+(*	 let focus_pick h l olda= 
 	   if !Flags.unitp
 	     then (count.(0)<-count.(0)+1;
 	     match UFSet.schoose h l with
@@ -73,7 +72,7 @@ module MyPAT =
 			 Focus(a,accept,None))
 	   else
 	     focus_pick h l olda
-
+*)
 
 	 let print_state olda = (* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
 	   if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
