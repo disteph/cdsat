@@ -127,7 +127,7 @@ module Atom =
 
 
 type 'a form =
-    Lit of Atom.t
+  | Lit of Atom.t
   | AndP of 'a*'a
   | OrP of 'a*'a
   | AndN of 'a*'a

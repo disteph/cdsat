@@ -37,7 +37,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	     begin
 	       print_int(count.(index));
 	       if !debug==1 then print_endline(" "^word^": ");
-	       if !debug>1  then print_endline(" "^word^": "^(Seq.toString s));
+	       if !debug>1  then print_endline(" "^word^": "^(print_state s));
 	     end; 
 	 ans
 
@@ -147,7 +147,6 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
      let rec lk_solve inloop seq data cont =
        
-        (* print_endline("attack "^Seq.toString seq); *)
 
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
@@ -233,7 +232,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	       end
 
 	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
-	   ->begin
+	   ->begin if !Flags.debug>1 then print_endline("attack "^print_state seq);
 	     let rec lk_solvef formPChoose formP formPSaved actionO data cont = 
 
 	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved)) 
@@ -260,14 +259,16 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			       (fun pt -> pt) seq cont
 			       
 		     | Cut(3,toCut, inter_fun1, inter_fun2,l)-> (*cut_3*)
-			 count.(5)<-count.(5)+1; if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
+			 count.(5)<-count.(5)+1; 
+			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 			     
 		     | Cut(7,toCut, inter_fun1, inter_fun2,l) -> (*cut_7*)
-			 count.(5)<-count.(5)+1; if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
+			 count.(5)<-count.(5)+1; 
+			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
@@ -281,21 +282,21 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 		     | Search(tosearch,inter_fun,A l) ->
 			 begin match tosearch false seq with
-			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success/failure, looking for exact on "^Seq.toString seq);
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success/failure, looking for exact on "^print_state seq);
 			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
-			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success/failure, looking for exact on "^Seq.toString seq);
+			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success/failure, looking for exact on "^print_state seq);
 			       lk_solvef formPChoose formP formPSaved l data cont
 			 end
 
 		     | Search(tosearch,inter_fun,F f) ->
 			 begin match tosearch true seq with
-			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure (looking for approx as well) on "^Seq.toString seq);
+			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success or failure (looking for approx as well) on "^print_state seq);
 			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
 			   | F(d1,d2) ->
 			       if !Flags.debug>1
-			       then print_endline(if not(ASet.is_empty d1) then "Found approx. in atoms on "^Seq.toString seq
-						  else if not(FSet.is_empty d2) then "Found approx. in pos form on "^Seq.toString seq
-						  else "Found no approx on "^Seq.toString seq);
+			       then print_endline(if not(ASet.is_empty d1) then "Found approx. in atoms on "^print_state seq
+						  else if not(FSet.is_empty d2) then "Found approx. in pos form on "^print_state seq
+						  else "Found no approx on "^print_state seq);
 			       lk_solvef formPChoose formP formPSaved (f (d1,d2)) data cont
 			 end
 

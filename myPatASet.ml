@@ -7,32 +7,27 @@ open SetConstructions
    particular implementation of sets of atoms,
    using patricia trees *)
 
-
-(* Generic implementation of sets *)
-
-module MyPatriciaCollectImplem(M:sig
-				 type t
-				 val id: t->int
-				 val compare : t->t->int
-				 val toString: t->string
-			       end) = struct
-
-  module Destination = struct
-    type keys        = M.t
+module MyPat(UT:sig
+	       include Intern
+	       val compare : keys->keys->int
+	       val toString: keys->string
+	     end) = struct
+  module D = struct
+    type keys        = UT.keys
     type values      = unit
     let vcompare _ _ = 0
       (* type infos = unit *)
       (* let info_build = empty_info_build *)
       (* Alternative, recording min *)
     type infos       = keys m_infos
-    let info_build   = m_info_build M.id Pervasives.compare
+    let info_build   = m_info_build UT.tag UT.ccompare
     let treeHCons    = !Flags.memo
   end
 
-  module SS = PATSet(Destination)(TypesFromHConsed(M))
+  module SS = PATSet(D)(UT)
 
   module CI = struct
-    type e       = M.t
+    type e       = UT.keys
     type t       = SS.t
     let is_empty = SS.is_empty
     let is_in    = SS.mem
@@ -52,22 +47,39 @@ module MyPatriciaCollectImplem(M:sig
     let equal = SS.equal
 
     let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
-    let toString = SS.toString M.toString
-
+    let toString = SS.toString UT.toString
   end
 
   module Ext = struct
     include CI
     let compare    = SS.compare
-    let compareE   = M.compare
+    let compareE   = UT.compare
     let min        = SS.info
     let diff       = SS.diff
     let first_diff = SS.first_diff min
   end
 
   include Ext
-  let choose = SS.choose
+
+  let choose     = SS.choose
+  type common    = UT.common
+  type branching = UT.branching
+  let find_su    = SS.find_su
 end
+
+
+(* Generic implementation of sets *)
+
+module MyPatriciaCollectImplem(M:sig
+				 type t
+				 val id: t->int
+				 val compare : t->t->int
+				 val toString: t->string
+			       end) =
+  MyPat(struct include TypesFromHConsed(M)
+	       let compare  = M.compare
+	       let toString = M.toString
+	end)
 
 
 (* Particular implementation of sets of atoms *)
@@ -82,7 +94,7 @@ module MyPatA = struct
   module Destination = struct
     type keys          = M.t
     type values        = AtSet.t
-    let vcompare s1 s2 = match AtSet.SS.first_diff (AtSet.SS.info) s1 s2 with
+    let vcompare s1 s2 = match AtSet.Ext.first_diff s1 s2 with
       | (None,_) -> 0
       | (_,true) -> -1
       | (_,false)-> 1
@@ -95,7 +107,7 @@ module MyPatA = struct
 	   | None,_ -> x2
 	   | _,None -> x1
 	   | Some(y1,v1),Some(y2,v2)->
-	       if (M.id y1)<(M.id y2) || ((M.id y1)==(M.id y2)&&vcompare v1 v2<0)
+	       if Pervasives.compare (M.id y1) (M.id y2)<0 || ((M.id y1)==(M.id y2)&&vcompare v1 v2<0)
 	       then x1 else x2)
     )
     let treeHCons = !Flags.memo
@@ -159,5 +171,49 @@ module MyPatA = struct
   end
 
   include Ext
+
+end
+
+(* Interface, see .mli *)
+
+module type MyPatCollect =
+sig
+  module CI  : CollectImplem
+  module Ext : Memoisation.CollectImplemExt with type e = CI.e and type t = CI.t
+
+  type e = CI.e
+  type t = CI.t
+  val is_empty : t -> bool
+  val is_in : e -> t -> bool
+  val empty : t
+  val add   : e -> t -> t
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val remove : e -> t -> t
+  val hash : t -> int
+  val equal : t -> t -> bool
+  val next : t -> e * t
+  val toString : t -> string
+  val compare : t -> t -> int
+  val compareE : e -> e -> int
+  val min : t -> e option
+  val diff : t -> t -> t
+  val first_diff : t -> t -> e option * bool
+  val choose : t -> e
+
+  type common
+  type branching
+  val find_su :
+    (common -> common -> branching option -> ('a, branching) almost) ->
+    bool ->
+    (branching -> bool) ->
+    ('b -> bool) ->
+    (e -> 'c) ->
+    'b ->
+    (e -> branching -> 'b) ->
+    ('b -> 'b -> 'b) ->
+    common ->
+    t -> 
+    ('c, 'b) sum
 
 end

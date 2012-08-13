@@ -151,6 +151,11 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	    "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
   end
 
+  let print_state = if !Flags.printrhs = true then Seq.toString else function
+    | Seq.EntUF(atms,_,_,_,_) -> ASet.toString atms
+    | Seq.EntF(atms,_,_,_,_)  -> ASet.toString atms
+
+
   module PT = struct
     type ('a,'b) pt = 
       | Axiom of 'b 
@@ -280,17 +285,17 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	  | Fail(s)    -> (tableF,MP.find_sup false,false)
 	in match sequent ans with
 	  | Seq.EntUF(_,delta,_,_,_) as s when (FSet.is_empty delta) ->
-	      let (k1,k2) = Seq.simplify s in
-		begin match algo (k1,k2) !table with
+	      let k = Seq.simplify s in
+		begin match algo k !table with
 		  | F _ -> incr count;
 		      if !Flags.debug>0&&(!count mod Flags.every.(4) =0)
 		      then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Recording "^(if b then "success" else "failure")^" for");
-			    print_endline(ASet.toString k1));
-		      table := MP.add (fun x _ ->x) (k1,k2) ans !table
+			    print_endline(print_state s));
+		      table := MP.add (fun x _ ->x) k ans !table
 		  | A a -> incr newcount;
 		      if !Flags.debug>0&&(!newcount mod Flags.every.(5) =0)
 		      then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Already know better "^(if b then "success" else "failure")^" than");
-			    print_endline(ASet.toString k1);
+			    print_endline(print_state s);
 			    let (j,_)=Seq.simplify(match a with Success pt->PT.conclusion pt |Fail d->d) in print_endline(ASet.toString j))
 		end
 	  | _ -> failwith("Not a sequent to memoise!")

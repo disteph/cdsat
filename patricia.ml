@@ -379,24 +379,24 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
      most one such n. In that case find_su returns the collection of
      such p *)
 
-  let find_su su bp cond yes empty singleton union alm k t =
+  let find_su su bp cond cond' yes empty singleton union k t =
     let rec aux t = match reveal t with
       | Empty      -> F empty
-      | Leaf (j,x) -> (match su alm (tag j) k None with
-			 | Yes _                       -> A(yes j x) 
-			 | Almost n when alm&&cond k n -> F(singleton j x n)
-			 | _                           -> F empty)
+      | Leaf (j,x) -> (match su (tag j) k None with
+			 | Yes _                -> A(yes j x) 
+			 | Almost n when cond n -> F(singleton j x n)
+			 | _                    -> F empty)
       | Branch (p,m,l,r) ->
 	  let (prems,deuz)=if bp then (r,l) else (l,r) in
 	  let f b = match aux prems with
-	    | F c when b ->(match aux deuz with
+	    | F c when b c ->(match aux deuz with
 				| F d -> F(union c d)
 				| v   -> v)
 	    | v -> v
-	  in match su alm p k (Some m) with
-	    | Yes _                       -> f((bp=check k m)||(alm&&cond k m))
-	    | Almost n when alm&&cond k n -> f( bp=check k m)
-	    | _                           -> F empty
+	  in match su p k (Some m) with
+	    | Yes _                -> f(fun c-> cond' c &&((bp=check k m)||cond m))
+	    | Almost n when cond n -> f(fun c-> cond' c &&  bp=check k m)
+	    | _                    -> F empty
     in aux t
 
 end
@@ -440,8 +440,8 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
   let fold f     = PM.fold (fun k x -> f k)
   let choose t   = let (k,_) = PM.choose t in k
   let elements s = List.map (function (k,x)->k) (PM.elements s)
-  let find_su su bp cond yes empty singleton
-      = PM.find_su su bp cond (fun j () -> yes j) empty (fun j () m->singleton j m)
+  let find_su su bp cond cond' yes empty singleton
+      = PM.find_su su bp cond cond' (fun j () -> yes j) empty (fun j () m->singleton j m)
 
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)

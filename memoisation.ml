@@ -59,7 +59,7 @@ module PATMapExt
       include V
       type infos     = unit
       let info_build = empty_info_build
-      let treeHCons = false
+      let treeHCons  = false
     end
 
     module EASet = struct include ASet type keys=D.keys let tag(a,b)=a end
@@ -77,10 +77,12 @@ module PATMapExt
     let bunion (a,b)(a',b')=if ASet.is_empty a&&FSet.is_empty b then (a',b') else (a,b) 
       (*             let bunion (a,b)(a',b')=(ASet.union a a',FSet.union b b') *)
 
-    let filter (k1,k2) =function
-      | F(f)->true
-      | A(a)->not (FSet.is_in (F.build(Lit a)) k2 || ASet.is_in (Atom.negation a) k1)
+    let find_sub alm (k1,k2) =
+      let filter =function
+	| F(f)->alm
+	| A(a)->alm && (not (ASet.is_in (Atom.negation a) k1)) && not (FSet.is_in (F.build(Lit a)) k2)
+      in
+	find_su (sub alm) true filter (fun _-> true) byes bempty bsingleton bunion (k1,k2)
 
-    let find_sub = find_su sub true filter byes bempty bsingleton bunion
-    let find_sup = find_su sup false (fun _ _-> true) byes bempty bsingleton bunion
+    let find_sup alm = find_su (sup alm) false (fun _-> true) (fun _-> true) byes bempty bsingleton bunion
 end
