@@ -28,7 +28,7 @@ sig
   val diff : t -> t -> t
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
-
+  val clear: unit->unit
   val find_su :
     (common -> common -> branching option -> ('a, branching) almost) ->
     bool ->
@@ -47,6 +47,7 @@ module MyPat(UT:sig
 	       include Intern
 	       val compare : keys->keys->int
 	       val toString: keys->string
+	       val tString: ((common -> string)*(branching->string)) option
 	     end):MyPatCollect with type CI.e = UT.keys and type common=UT.common and type branching = UT.branching
 
 module MyPatriciaCollectImplem(M : sig
@@ -80,4 +81,6 @@ module MyPatA :
     val min : t -> Formulae.Atom.t option
     val diff : t -> t -> t
     val first_diff : t -> t -> Formulae.Atom.t option * bool
+    val clear: unit->unit
+    val id: t-> int
   end

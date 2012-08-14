@@ -87,6 +87,14 @@ module MyDPLLFSet = struct
     include LexProduct(UT1)(UT2)
     let compare = MyDPLLForm.compare
     let toString = UF.toString
+    let cstring (a,b) = match a with
+      | None -> "NC"
+      | Some aa-> string_of_int (MyPatA.id aa)
+    let bstring = function
+      | A(Some at)-> Atom.toString at
+      | A(None)   -> "NC"
+      | _ -> "Bits"
+    let tString = None (*Some(cstring,bstring)*)
   end
   include MyPat(UT)
 

@@ -11,6 +11,7 @@ module MyPat(UT:sig
 	       include Intern
 	       val compare : keys->keys->int
 	       val toString: keys->string
+	       val tString: ((common -> string)*(branching->string)) option
 	     end) = struct
   module D = struct
     type keys        = UT.keys
@@ -46,8 +47,9 @@ module MyPat(UT:sig
     let hash  = SS.hash
     let equal = SS.equal
 
-    let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
-    let toString = SS.toString None UT.toString
+    let toString = SS.toString UT.tString UT.toString
+    let next  t1 = let e1 = SS.choose t1 in (*(print_endline (UT.toString e1^" in "^toString t1));*)(e1, SS.remove e1 t1) 
+
   end
 
   module Ext = struct
@@ -65,6 +67,8 @@ module MyPat(UT:sig
   type common    = UT.common
   type branching = UT.branching
   let find_su    = SS.find_su
+  let clear ()   = SS.clear ()
+
 end
 
 
@@ -79,6 +83,7 @@ module MyPatriciaCollectImplem(M:sig
   MyPat(struct include TypesFromHConsed(M)
 	       let compare  = M.compare
 	       let toString = M.toString
+	       let tString = None
 	end)
 
 
@@ -172,6 +177,9 @@ module MyPatA = struct
 
   include Ext
 
+  let clear () = SS.clear();AtSet.clear()
+  let id=SS.id
+
 end
 
 (* Interface, see .mli *)
@@ -183,6 +191,7 @@ sig
 
   type e = CI.e
   type t = CI.t
+
   val is_empty : t -> bool
   val is_in : e -> t -> bool
   val empty : t
@@ -200,7 +209,7 @@ sig
   val diff : t -> t -> t
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
-
+  val clear: unit->unit
   type common
   type branching
   val find_su :
