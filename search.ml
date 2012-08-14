@@ -1,15 +1,13 @@
-open Flags
 open Formulae
 open Collection
-open Sequents
 open Patricia
 
 module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
   (struct
 
      (* Loads the FrontEnd *)	   
-     module FE = FrontEnd(F)(FSet)(ASet) 
-     include FE
+     module FE = Sequents.FrontEnd(F)(FSet)(ASet) 
+     open FE
      
      (* Array where we count how many events we get *)
 
@@ -32,12 +30,12 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	     if a then (2,"FakeSuccess->"^mydir) else (3,"FakeFail->"^mydir)
        in
 	 count.(index) <- count.(index) + 1;
-	 if !debug>0  then 
-	   if (((count.(index)) mod every.(index)) ==0) then
+	 if !Flags.debug>0  then 
+	   if (((count.(index)) mod Flags.every.(index)) ==0) then
 	     begin
 	       print_int(count.(index));
-	       if !debug==1 then print_endline(" "^word^": ");
-	       if !debug>1  then print_endline(" "^word^": "^(print_state s));
+	       if !Flags.debug==1 then print_endline(" "^word^": ");
+	       if !Flags.debug>1  then print_endline(" "^word^": "^(print_state s));
 	     end; 
 	 ans
 
@@ -118,7 +116,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		| _ -> failwith("Lists of different lengths")
 	      in union_list (b,b'))
 
-     let relevant (seq,d) = if !weakenings then
+     let relevant (seq,d) = if !Flags.weakenings then
        match (seq,d) with
 	 | (Seq.EntF(_, g, _, _, polar),(atomN',formP'::formPSaved'::[])) ->
 	     Seq.EntF(atomN', g, formP', formPSaved', polar)
@@ -147,11 +145,11 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
      let rec lk_solve inloop seq data cont =
        
-
+ if !Flags.debug>1 then print_endline("attack "^print_state seq);
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
            -> begin match (F.reveal g) with
-	     | _ when ((polarity polar g) <> Pos) ->
+	     | _ when ((polarity polar g) <> Sequents.Pos) ->
 		 straight 
 		   (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
 		   (stdone seq) seq cont
@@ -190,8 +188,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	 | Seq.EntUF(atomN, delta, formP, formPSaved, polar) when not (FSet.is_empty delta)
 	     -> let (toDecompose,newdelta) = FSet.next delta in
 	       begin match (F.reveal toDecompose) with
-		 | _ when ((polarity polar toDecompose) = Pos) ->
-		     if (!loop_detect&&((FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)))
+		 | _ when (polarity polar toDecompose) = Sequents.Pos ->
+		     if (FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)
 		     then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
 		       straight u (stdone seq) seq cont
 		     else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar)) data in
@@ -202,8 +200,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 											     else gfP)::l)
 									  | _           -> failwith("Should not happen")), pt))) seq cont
 			 
-		 | Lit t when ((polarity polar toDecompose) = Neg) -> let t' = (Atom.negation t) in
-		     if (!loop_detect&&ASet.is_in t' atomN)
+		 | Lit t when (polarity polar toDecompose) = Sequents.Neg -> let t' = (Atom.negation t) in
+		     if ASet.is_in t' atomN
 		     then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
 		       straight u (stdone seq) seq cont
 		     else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar)) data in
@@ -212,10 +210,10 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 									  ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l))
 								 , pt))) seq cont
 
-		 | Lit t when ((polarity polar toDecompose) = Und) -> let (b,f,_)=Atom.reveal t in
+		 | Lit t when (polarity polar toDecompose) = Sequents.Und -> let (b,f,_)=Atom.reveal t in
 		     (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
 		     straight 
-		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add f (if b then Neg else Pos) polar)) data)
+		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Sequents.Pol.add f (if b then Sequents.Neg else Sequents.Pos) polar)) data)
 		       (fun pt->pt) seq cont
 
 		 | AndN (a1, a2) -> 
@@ -275,7 +273,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 
 		     | Polarise(l,b, inter_fun) ->
-			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved, Pol.add l (if b then Neg else Pos) polar)) data in
+			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
+							    Sequents.Pol.add l (if b then Sequents.Neg else Sequents.Pos) polar)) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
 		     | Get(b1,b2,l) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose formP formPSaved l data)))
@@ -345,7 +344,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
        let inter = function
 	 | Fake(b1,b2,Comp v)  -> dir:= not b2 ;
 	     begin
-	       if !debug>0 then print_endline("No more "
+	       if !Flags.debug>0 then print_endline("No more "
 					      ^(if b1 then "Success" else "Failure")
 					      ^" branch on the "
 					      ^(if b2 then "right" else "left"))
@@ -362,6 +361,6 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      let machine seq data = wrap (lk_solve false seq data)
 
    end: sig
-     module FE : (FrontEndType with module F=F and module FSet=FSet and module ASet=ASet)
+     module FE : (Sequents.FrontEndType with module F=F and module FSet=FSet and module ASet=ASet)
      val machine : FE.Seq.t -> 'a ->'a FE.output
    end)

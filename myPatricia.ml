@@ -9,7 +9,7 @@ module MyPAT =
 	above *)
 
      module UASet = MyPatA
-     module UF    = MyDPLLForm
+     module UF    = MySFormulaImplem
 
      module TMP   = struct 
        include UF
