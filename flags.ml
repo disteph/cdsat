@@ -2,7 +2,7 @@ let memo = ref true   (* For using Memoisation in MyPatricia *)
 let almo = ref true   (* For using almost in Memoisation in MyPatricia *)
 let unitp = ref true (* Eager Unit propagate in MyPatricia *)
 
-let debug = ref 1          (* Activates debug mode (displays fails, etc) *)
+let debug = ref 0          (* Activates debug mode (displays fails, etc) *)
 let printrhs = ref false
 let every                  (* Prints every XXX events *)
 = [|(* local success *)
@@ -26,5 +26,5 @@ let loop_detect = ref true (* Activates loop detection *)
 let weakenings = ref true  (* Activates a-posteriori weakening mode
 				(irrelevant formulae are not in proof-tree) *)
 
-let do_file = Some("test.cnf")
+let do_file = None (* Some("test-old.cnf")*)
 let do_dir  = Some("problems/sat/uf20-91")

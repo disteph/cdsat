@@ -96,7 +96,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	  | Empty, Empty                             -> true
 	  | Leaf(key1,value1), Leaf(key2,value2)     -> (ccompare (tag key1)(tag key2)==0) && (vcompare value1 value2==0)
 	  | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (ccompare c1 c2==0) && (bcompare b1 b2==0) && t3==t4 && t3'==t4'
-	  | _                                        -> false 
+	  | _                                        -> false
 
       let hash t1 = if not treeHCons then Hashtbl.hash t1 else
 	match t1.reveal with
@@ -128,7 +128,13 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	    incr uniq; H.add table f f; f
 	else f
 
-    let compare t1 t2 = Pervasives.compare (id t1) (id t2) 
+    let clear() = H.clear table
+
+    let compare t1 t2 = Pervasives.compare t1.id t2.id
+      (* if c==0 && Pervasives.compare t1 t2 <>0
+	 then failwith("2 different objects having same id "^string_of_bool treeHCons^"/"^string_of_int (cardinal t1)^" "^string_of_int (cardinal t2))
+	 else
+      *) 
 
     (* Now we start the standard functions on maps/sets *)
 
@@ -170,7 +176,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     let remove_aux f k t =
       let rec rmv t = match reveal t with
 	| Empty      -> empty
-	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f k x else failwith("Was not there")
+	| Leaf (j,x) -> if  ccompare (tag k) (tag j) ==0 then f k x else failwith("Was not there -leaf")
 	| Branch (p,m,t0,t1) -> 
 	    if match_prefix (tag k) p m then
 	      if check (tag k) m then
@@ -178,16 +184,30 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	      else
 		branch (p, m, t0, rmv t1)
 	    else
-	      failwith("Was not there")
+	      failwith("Was not there -branch")
       in
 	rmv t
 
     let remove = remove_aux (fun _ _ -> empty)
 
-    let rec toString_aux f = function
-	[] -> ""
-      | a::[] -> (f(a))
-      | a::l -> (f(a))^","^(toString_aux f l)
+    let toString_aux b f t =
+      let rec aux indent t = match t.reveal with
+	Empty            -> "{}"
+      | Leaf(j,x)        -> (match b with
+			       | None -> ""
+			       | _    -> indent^"   ")^f(j,x)
+      | Branch(p,m,t0,t1)->
+	  let h0 d = aux (indent^d) t0 in
+	  let h1 d = aux (indent^d) t1 in
+	    match b with
+	      | None     -> (h0 "")^","^(h1 "")
+	      | Some(g,h)-> (h0 (g p^"+"^h m))^"
+"^(h1 (g p^"-"^h m))
+      in match b with
+	| None   -> (aux "" t)
+	| Some _ -> "
+"^(aux "" t)
+
 
   (* Now we have finished the material that is common to Maps AND Sets,
      closing module BackOffice *)
@@ -365,7 +385,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     in
       elements_aux [] s
 
-  let toString f t = toString_aux f (elements t)
+  let toString f = toString_aux f
 
   (* find_su looks for an element in t that is smaller (if bp) /
      greater (if not) than k, according to order su. 
@@ -446,7 +466,7 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-  let toString f t = toString_aux f (elements t)
+  let toString b f = toString_aux b (fun (x,y)->f x)
 
   let make l     = List.fold_right add l empty
 
@@ -479,6 +499,8 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
     | Branch (_,_,s,t) -> f (elect f s) (elect f t)
 
 end
+
+
 
 let empty_info_build = ((),(fun _ _ ->()),(fun _ _-> ()))
 

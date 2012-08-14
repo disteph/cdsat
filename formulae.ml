@@ -1,130 +1,103 @@
-module Term = 
-  (struct
+module Term = struct
 
-     type variables = string
-     type fsymb = string
+  type variables = string
+  type fsymb = string
 
-     module TermPrimitive = struct
-       type 'a term = V of string | XV of string | C of string*('a list)
-       type t = {reveal:t term;id:int}
-	   (* A term is either a variable or a function symbol applied to arguments *)
-       let reveal f = f.reveal
-       let id f = f.id
-       let rec equaltl = function
-	 | [],[]           -> true
-	 | (t::l),(t'::l') -> t==t'&& equaltl(l,l')
-	 | _                 -> false 
-       let equal t1 t2 = match t1.reveal,t2.reveal with
-	 | V(a), V(a')       -> a=a' 
-	 | XV(a), XV(a')     -> a=a' 
-	 | C(a,tl), C(a',tl')-> a=a' && equaltl(tl,tl')
-	 | _                 -> false 
-       let rec hashtl = function
-	 | []   -> 1
-	 | t::l -> t.id+2*hashtl l 
-       let hash t1 = match t1.reveal with
-	 | V(a)   -> 1+2*(Hashtbl.hash a)
-	 | XV(a)  -> 2*(Hashtbl.hash a)
-	 | C(a,l) -> 3*(Hashtbl.hash a)+7*(hashtl l)
-     end
+  module TermPrimitive = struct
+    type 'a term = V of string | XV of string | C of string*('a list)
+    type t = {reveal:t term;id:int}
+	(* A term is either a variable or a function symbol applied to arguments *)
+    let reveal f = f.reveal
+    let id f = f.id
+    let rec equaltl = function
+      | [],[]           -> true
+      | (t::l),(t'::l') -> t==t'&& equaltl(l,l')
+      | _                 -> false 
+    let equal t1 t2 = match t1.reveal,t2.reveal with
+      | V(a), V(a')       -> a=a' 
+      | XV(a), XV(a')     -> a=a' 
+      | C(a,tl), C(a',tl')-> a=a' && equaltl(tl,tl')
+      | _                 -> false 
+    let rec hashtl = function
+      | []   -> 1
+      | t::l -> t.id+2*hashtl l 
+    let hash t1 = match t1.reveal with
+      | V(a)   -> 1+2*(Hashtbl.hash a)
+      | XV(a)  -> 2*(Hashtbl.hash a)
+      | C(a,l) -> 3*(Hashtbl.hash a)+7*(hashtl l)
+  end
 
-     include TermPrimitive
-     module H = Hashtbl.Make(TermPrimitive)
+  include TermPrimitive
+  module H = Hashtbl.Make(TermPrimitive)
 
-     let table = H.create 5003
-     let atomid =ref 0
-     let build a =
-       let f = {reveal =  a; id = !atomid } in
-	 try H.find table f
-	 with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
-	   incr atomid; H.add table f f; f
+  let table = H.create 5003
+  let atomid =ref 0
+  let build a =
+    let f = {reveal =  a; id = !atomid } in
+      try H.find table f
+      with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
+	incr atomid; H.add table f f; f
 
-     let rec toString t = match t.reveal with
-	 V(a) -> a
-       | XV(a) -> "?"^a
-       | C(f, newtl) -> f^printtl(newtl)
-     and printrtl = function
-	 [] -> ""
-       | t::[] -> toString(t)
-       | t::l -> toString(t)^", "^printtl(l)
-     and printtl = function
-	 [] -> ""
-       | tl ->"("^printrtl(tl)^")"
-	   
-   end:sig
-     type variables
-     type fsymb
-     type 'a term = V of variables | XV of variables | C of fsymb*('a list)
-     type t
-     val reveal: t -> t term
-     val build: t term -> t
-     val id: t-> int       
-     val toString: t-> string
-     val printtl: t list -> string
-     val equal: t->t->bool
-     val equaltl: ((t list)*(t list))->bool
-     val hash: t -> int
-     val hashtl: t list ->int
-   end) 
+  let rec toString t = match t.reveal with
+      V(a) -> a
+    | XV(a) -> "?"^a
+    | C(f, newtl) -> f^printtl(newtl)
+  and printrtl = function
+      [] -> ""
+    | t::[] -> toString(t)
+    | t::l -> toString(t)^", "^printtl(l)
+  and printtl = function
+      [] -> ""
+    | tl ->"("^printrtl(tl)^")"
+	
+  let clear () = H.clear table
+end 
 
-module Atom =
-  (struct
-     module Predicates = struct
-       type t = {reveal:string;id:int}
-       let reveal t = t.reveal
-       let id t     = t.id
-       let table  = Hashtbl.create 5003 
-       let predid = ref 0
-       let build a =
-	 let f = {reveal =  a; id = !predid } in
-	   try Hashtbl.find table a
-	   with Not_found ->  (* print_endline(a^" "^string_of_int(!predid)); *)
-	     incr predid; Hashtbl.add table a f; f
-       let compare s s' = Pervasives.compare s.id s'.id
-     end
-     module AtomPrimitive = struct
-       type t = {reveal:bool*Predicates.t*(Term.t list);id:int}
-       let reveal t = t.reveal
-       let id t = t.id
-       let equal t t'= 
-	 let (b,a,tl) = t.reveal in
-	 let (b',a',tl') = t'.reveal in
-	   b=b'&&(Predicates.compare a a' =0)&&Term.equaltl(tl,tl')
-       let hash t = let (b,a,tl)= t.reveal in (if b then 0 else 1)+2*(Hashtbl.hash a)+3*(Term.hashtl tl)
-     end
-     include AtomPrimitive
-     module H = Hashtbl.Make(AtomPrimitive)
-     let table = H.create 5003
-     let atomid =ref 0
-     let build a =
-       let f = {reveal =  a; id = !atomid } in
-	 try H.find table f
-	 with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
-	   incr atomid; H.add table f f; f
-     let bbuild (b,s,tl) = build(b,Predicates.build s,tl)
-     let negation t = let (b,a,tl) = t.reveal in build (not b,a,tl)
-     let toString t = match t.reveal with
-       | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
-       | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)
-     let compare t t' = Pervasives.compare t.id t'.id 
-   end:sig
-     module Predicates : sig
-       type t
-       val compare : t->t->int
-       val id : t->int
-     end
-     type t
-     val reveal: t -> bool*Predicates.t*(Term.t list)
-     val build: bool*Predicates.t*(Term.t list) -> t
-     val bbuild: bool*string*(Term.t list) -> t
-     val id: t-> int       
-     val negation: t -> t
-     val toString: t-> string
-     val compare : t->t->int
-     val equal: t->t->bool
-     val hash: t -> int
-   end)
+module Atom = struct
 
+  module Predicates = struct
+    type t = {reveal:string;id:int}
+    let reveal t = t.reveal
+    let id t     = t.id
+    let table  = Hashtbl.create 5003 
+    let predid = ref 0
+    let build a =
+      let f = {reveal =  a; id = !predid } in
+	try Hashtbl.find table a
+	with Not_found ->  (* print_endline(a^" "^string_of_int(!predid)); *)
+	  incr predid; Hashtbl.add table a f; f
+    let compare s s' = Pervasives.compare s.id s'.id
+    let clear () = Hashtbl.clear table
+  end
+
+  module AtomPrimitive = struct
+    type t = {reveal:bool*Predicates.t*(Term.t list);id:int}
+    let reveal t = t.reveal
+    let id t = t.id
+    let equal t t'= 
+      let (b,a,tl) = t.reveal in
+      let (b',a',tl') = t'.reveal in
+	b==b'&&(Predicates.compare a a' ==0)&&Term.equaltl(tl,tl')
+    let hash t = let (b,a,tl)= t.reveal in (if b then 0 else 1)+2*(Hashtbl.hash a)+3*(Term.hashtl tl)
+  end
+
+  include AtomPrimitive
+  module H = Hashtbl.Make(AtomPrimitive)
+  let table = H.create 5003
+  let attomid =ref 0
+  let build a =
+    let f = {reveal =  a; id = !attomid } in
+      try H.find table f
+      with Not_found ->  (* print_endline(string_of_int(!atomid)); *)
+	incr attomid; H.add table f f; f
+  let bbuild (b,s,tl) = build(b,Predicates.build s,tl)
+  let negation t = let (b,a,tl) = t.reveal in build (not b,a,tl)
+  let toString t = match t.reveal with
+    | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
+    | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)
+  let compare t t' = Pervasives.compare t.id t'.id 
+  let clear () = Predicates.clear();Term.clear()
+end
 
 type 'a form =
   | Lit of Atom.t

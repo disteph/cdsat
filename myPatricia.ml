@@ -1,11 +1,5 @@
-open Formulae
-open Collection
-open Strategy
-open Sequents
 open Patricia
-
 open MyPatASet
-open MySFormulaImplem
 open MyDPLL
 
 module MyPAT =
@@ -15,32 +9,29 @@ module MyPAT =
 	above *)
 
      module UASet = MyPatA
-     module UF    = MyDPLLForm
+     module UF    = MySFormulaImplem
 
-               module TMP   = struct 
-		  include UF
-		  module PF = PrintableFormula(UF)
-		  let toString = PF.toString
-		  end
-		  module UFSet = MyPatriciaCollectImplem(TMP)
-    
-    (* module UFSet = MyDPLLFSet *)
+     module TMP   = struct 
+       include UF
+       module PF = Formulae.PrintableFormula(UF)
+       let toString = PF.toString
+     end
+     module UFSet = MyPatriciaCollectImplem(TMP)
+       
+     (*      module UFSet = MyDPLLFSet*)
 
      let count = [|0;0;0;0;0|]
        
      module Strategy =
-       functor (FE:FrontEndType with module F=UF.FI and module FSet=UFSet.CI and module ASet=UASet.CI) -> struct
+       functor (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UFSet.CI and module ASet=UASet.CI) -> struct
 	 include FE
 
-	 type data = int
-	 let initial_data=0
+	 type data       = int
+	 let initial_data= 0
+	 let address     = ref No
 
 	 module Me = Memo(UFSet.Ext)(UASet.Ext)
-
-	 let current = ref 0
-	 let address = ref No
-	 module PF=PrintableFormula(UF)
-
+	 module PF = Formulae.PrintableFormula(UF)
 
 	 let focus_pick h l olda= count.(0)<-count.(0)+1; Focus(UFSet.choose l,accept,None)
 
@@ -51,9 +42,9 @@ module MyPAT =
 	       | A a       ->if !Flags.debug>1 then print_endline("Yes "^PF.toString a);
 		   address:=Yes(olda);
 		   count.(1)<-count.(1)+1;
-		   let now = !current in
+		   let now = count.(4) in
 		   let myaccept = function 
-		     | Local(Success _) when !current==now ->address:=No;Accept
+		     | Local(Success _) when count.(4)==now ->address:=No;Accept
 		     | _-> failwith "Expected Success"
 		   in
 		     Focus(a,myaccept,None)
@@ -94,12 +85,12 @@ module MyPAT =
 	       else let (toCut,f')=FSet.next f in
 		 Some(Cut(7,toCut,accept,accept,cut_series(a,f')))
 	     else let (toCut,a')=ASet.next a in
-	       Some(Cut(7,UF.build (Lit toCut),accept,accept,cut_series(a',f)))
+	       Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,cut_series(a',f)))
 
 	 let rec solve = function
-	   | Local ans                    ->  Me.clear();
+	   | Local ans                    -> Me.clear();(* UF.clear();UASet.clear(); UFSet.clear();*)
 	       for i=0 to Array.length count-1 do count.(i) <- 0 done;
-	       current:=0; address:=No;
+	       address:=No;
 	       ans
 
 	   | Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
@@ -130,4 +121,4 @@ module MyPAT =
 
        end
 
-   end:User)
+   end:Strategy.User)

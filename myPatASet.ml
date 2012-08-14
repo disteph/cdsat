@@ -47,7 +47,7 @@ module MyPat(UT:sig
     let equal = SS.equal
 
     let next  t1 = let e1 = SS.choose t1 in (e1, remove e1 t1)
-    let toString = SS.toString UT.toString
+    let toString = SS.toString None UT.toString
   end
 
   module Ext = struct
@@ -143,7 +143,7 @@ module MyPatA = struct
       let (_,y) = SS.choose t1 in
       let l = AtSet.SS.choose y in
       (l, remove l t1)
-    let toString = SS.toString (fun (k,l)->AtSet.toString l)
+    let toString = SS.toString None (fun (k,l)->AtSet.toString l)
     let filter b pred t=
       if SS.mem (b,pred) t
       then SS.leaf((b,pred),SS.find (b,pred) t)
