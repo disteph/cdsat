@@ -63,4 +63,4 @@ let compare t1 t2 =
   let a = (Pervasives.compare t1.size t2.size) in
     if (a<>0) then  a else (Pervasives.compare t1.id t2.id)
 
-let clear() = unique:=0;H.clear table
+let clear() = H.clear table

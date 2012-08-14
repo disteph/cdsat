@@ -162,7 +162,7 @@ module MyPatA = struct
       let (b1,pred1,tl1) = Atom.reveal t1 in 
       let (b2,pred2,tl2) = Atom.reveal t2 in 
       let c = Pervasives.compare (M.id (b1,pred1))(M.id (b2,pred2)) in
-	if c=0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
+	if c==0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
     let min s      = match SS.info s with
       | None       -> None
       | Some(k,v)  -> AtSet.SS.info v 

@@ -11,14 +11,15 @@ module MyPAT =
      module UASet = MyPatA
      module UF    = MySFormulaImplem
 
+
      module TMP   = struct 
        include UF
        module PF = Formulae.PrintableFormula(UF)
        let toString = PF.toString
      end
      module UFSet = MyPatriciaCollectImplem(TMP)
-       
-     (*      module UFSet = MyDPLLFSet*)
+     
+   (*        module UFSet = MyDPLLFSet *)
 
      let count = [|0;0;0;0;0|]
        
@@ -88,7 +89,7 @@ module MyPAT =
 	       Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,cut_series(a',f)))
 
 	 let rec solve = function
-	   | Local ans                    -> Me.clear();(* UF.clear();UASet.clear(); UFSet.clear();*)
+	   | Local ans                    -> Me.clear();UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();
 	       for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	       address:=No;
 	       ans

@@ -70,6 +70,7 @@ module MyDPLLForm = struct
   let reveal = FI.reveal
 
   let compare t1 t2 = Pervasives.compare t1.id t2.id
+  let clear() = H.clear table
 end
 
 
