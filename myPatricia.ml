@@ -57,18 +57,11 @@ module MyPAT =
 	     focus_pick h l olda
 
 
-	 let print_state olda = (* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
-	   if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
-	   then print_endline("Notify = "^
-				string_of_int count.(4)^
-				" with old address = "^
-				string_of_int olda^
-				" and Focus = "^
-				string_of_int count.(0)^
-				"(Backtrack/Unit Propagate/Decide) "^
-				string_of_int count.(1)^"/"^
-				string_of_int count.(2)^"/"^
-				string_of_int count.(3))
+	 let print_state olda = print_endline(string_of_int count.(4)^" notifies, "^
+						string_of_int count.(0)^" focus, with Backtrack / Unit propagate / Decide = "^
+						string_of_int count.(1)^"/"^
+						string_of_int count.(2)^"/"^
+						string_of_int count.(3))
 
 	 let rec cut_series (a,f) =
 	     if ASet.is_empty a then
@@ -80,7 +73,9 @@ module MyPAT =
 	       Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,cut_series(a',f)))
 
 	 let rec solve = function
-	   | Local ans                    -> Me.clear();UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();
+	   | Local ans                    ->
+	       print_state 0;
+	       Me.clear();UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();
 	       for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	       address:=No;
 	       ans
@@ -99,7 +94,9 @@ module MyPAT =
 		     | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp)
 		     | Yes(exp) -> failwith("Yes not expected")
 		     | _ -> address:=No);
-		 print_state olda;
+		 (* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
+		 if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
+		 then print_state olda;
 		 count.(4)<-count.(4)+1;
 		 solve (machine (true,
 				 count.(4),
