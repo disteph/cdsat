@@ -9,17 +9,8 @@ module MyPAT =
 	above *)
 
      module UASet = MyPatA
-     module UF    = MySFormulaImplem
-
-
-     module TMP   = struct 
-       include UF
-       module PF = Formulae.PrintableFormula(UF)
-       let toString = PF.toString
-     end
-     module UFSet = MyPatriciaCollectImplem(TMP)
-     
-   (*        module UFSet = MyDPLLFSet *)
+     module UF    = MyDPLLForm
+     module UFSet = MyDPLLFSet
 
      let count = [|0;0;0;0;0|]
        
@@ -36,7 +27,7 @@ module MyPAT =
 
 	 let focus_pick h l olda= count.(0)<-count.(0)+1; Focus(UFSet.choose l,accept,None)
 
-(*	 let focus_pick h l olda= 
+	 let focus_pick h l olda= 
 	   if !Flags.unitp
 	     then (count.(0)<-count.(0)+1;
 	     match UFSet.schoose h l with
@@ -64,7 +55,7 @@ module MyPAT =
 			 Focus(a,accept,None))
 	   else
 	     focus_pick h l olda
-*)
+
 
 	 let print_state olda = (* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
 	   if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
@@ -115,7 +106,10 @@ module MyPAT =
 				 (fun _ -> Mem(Me.tomem,Accept)),
 				 Some(Search(Me.search4success,accept,if !Flags.almo then F(cut_series) else A(None)))
 				))
-	   | Fake(Notify(_,_,machine,_))  -> solve (machine (true,0,(fun _ -> Exit(Accept)),None))
+	   | Fake(Notify(_,_,machine,olda))  ->
+	       print_state olda;
+	       count.(4)<-count.(4)+1;
+	       solve (machine (true,0,(fun _ -> Exit(Accept)),None))
 
 	   | Fake(AskSide(seq,machine,_)) -> solve (machine true)
 	   | Fake(Stop(b1,b2, machine))   -> solve (machine ())

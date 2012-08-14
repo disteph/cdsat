@@ -48,7 +48,7 @@ module MyPat(UT:sig
     let equal = SS.equal
 
     let toString = SS.toString UT.tString UT.toString
-    let next  t1 = let e1 = SS.choose t1 in (*(print_endline (UT.toString e1^" in "^toString t1));*)(e1, SS.remove e1 t1) 
+    let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
 
   end
 
