@@ -48,7 +48,7 @@ module MyPAT =
 		   | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
 		       Focus(a,accept,None)
 		   | _         -> let a = UFSet.choose l in
-		       if true then print_endline("Random problematic focus on "^PF.toString a);
+		       if !Flags.debug>1 then print_endline("Random problematic focus on "^PF.toString a);
 		       Focus(a,accept,None))
 	   else
 	     Focus(UFSet.choose l,accept,None)

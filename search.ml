@@ -27,7 +27,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
        let c=b-. !last_display  in
 	 if c>float_of_int Flags.every.(8) then
 	   (last_display:=b;
-	    print_endline(string_of_int (int_of_float(Sys.time()-. !start_time))
+	    print_endline(string_of_int (int_of_float(b-. !start_time))
 			  ^" seconds, with "
 			  ^string_of_int count.(6)
 			  ^" open branches"))

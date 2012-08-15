@@ -1,7 +1,7 @@
 (* Tasks to do *)
 
 let do_file = Some("test.cnf")
-let do_dir  = None (* Some("problems/sat/RTI_k3_n100_m429") *)
+let do_dir  = None (*Some("problems/sat/SW100-8-8") *)
 
 (* Kernel flags *)
 
