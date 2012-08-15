@@ -310,8 +310,9 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	    | v   -> v 
 
       let clear () =
-	print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries");
-	print_endline("Failures had "^(string_of_int (MP.cardinal !tableF))^" entries");
+	print_endline("   Memoisation report:");
+	print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries, "
+		      ^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries");
 	count:=0;newcount:=0;tableS := MP.empty; tableF := MP.empty
     end
 

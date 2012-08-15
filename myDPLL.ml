@@ -144,7 +144,7 @@ module MyDPLLFSet = struct
 
   include Ext
 
-  let choose (k1,_)    = H1.choose k1
+  let choose (_,k2)    = H2.choose k2
 
   let clear ()   = H1.clear ();H2.clear()
 

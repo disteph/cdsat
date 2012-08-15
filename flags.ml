@@ -1,9 +1,24 @@
+(* Tasks to do *)
+
+let do_file = Some("test.cnf")
+let do_dir  = None (* Some("problems/sat/RTI_k3_n100_m429") *)
+
+(* Kernel flags *)
+
+let weakenings = ref true  (* Activates a-posteriori weakening mode
+			      (irrelevant formulae are not in proof-tree) *)
+
+let debug    = ref 0       (* Activates debug mode (displays fails, etc) *)
+let printrhs = ref false   (* When printing a sequent, print right-hand side? *)
+
+(* MyPatricia flags *)
+
 let memo  = ref true   (* For using Memoisation in MyPatricia *)
 let almo  = ref true   (* For using almost in Memoisation in MyPatricia *)
 let unitp = ref true   (* Eager Unit propagate in MyPatricia *)
 
-let debug = ref 0          (* Activates debug mode (displays fails, etc) *)
-let printrhs = ref false
+(* Periodicity of events *)
+
 let every                  (* Prints every XXX events *)
     = [|(* local success *)
       100000;
@@ -20,10 +35,8 @@ let every                  (* Prints every XXX events *)
       (* cut *)
       1;
       (* focus and cie *) 
-      1000
+      1000;
+      (* time display, set to negative if you want no display *) 
+      -1
     |] 
-let weakenings = ref true  (* Activates a-posteriori weakening mode
-			      (irrelevant formulae are not in proof-tree) *)
 
-let do_file = Some("test.cnf")
-let do_dir  = None (* Some("problems/sat/RTI_k3_n100_m429") *)

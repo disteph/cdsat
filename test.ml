@@ -11,15 +11,11 @@ module Tests (US:User) = struct
   module Strat = Strategy(Src.FE)
 
   let orig_seq my_formula = Src.FE.Seq.EntUF(UASet.empty,UFSet.add my_formula UFSet.empty, UFSet.empty, UFSet.empty,Sequents.Pol.empty)
-
+    
   let go formula = print_endline("---");
-    let start_time = Sys.time() in
-      if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then Src.FE.Form.toString formula else "");
-      let a = Strat.solve(Src.machine (orig_seq formula) Strat.initial_data) in 
-      let b = (Sys.time()-.start_time)
-      in print_endline ("In : "^string_of_float b^" seconds");
-	a
-	  
+    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then Src.FE.Form.toString formula else "");
+    Strat.solve(Src.machine (orig_seq formula) Strat.initial_data)
+      
   module Gen = Generate(UF)
 
   let treatfile filename = print_endline("===========================");

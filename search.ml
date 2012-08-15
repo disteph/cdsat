@@ -11,12 +11,27 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      
      (* Array where we count how many events we get *)
 
-     let count = [|0;0;0;0;0;0|]
+     let count = [|0;0;0;0;0;0;1|]
 
      (* Chooses whether, when faking failure, the natural
 	behaviour is to go right (true) or left (false) *)
 
      let dir = ref true
+
+     (* Remembers time of start *)
+
+     let start_time    = ref (Sys.time())
+     let last_display  = ref (Sys.time())
+     let print_time() =
+       let b=Sys.time() in
+       let c=b-. !last_display  in
+	 if c>float_of_int Flags.every.(8) then
+	   (last_display:=b;
+	    print_endline(string_of_int (int_of_float(Sys.time()-. !start_time))
+			  ^" seconds, with "
+			  ^string_of_int count.(6)
+			  ^" open branches"))
+	     
 
      (* Throws a local answer ans on sequent s: printing message
 	on standard output if debug mode is on, incrementing the
@@ -42,8 +57,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      (* Combines two computations in OR style (with backtrack
 	management): success = success for either computation *)
 
-     let rec ou v1 v2 fseq1 fseq2 seq cont =
-       let newcont1 = function
+     let rec ou v1 v2 fseq1 fseq2 seq cont = count.(6)<-count.(6)+1;
+       let newcont1 ans = count.(6)<-count.(6)-1;match ans with
 	 | Local(Success prooftree1)       -> cont (Local(Success(fseq1 prooftree1)))
 	 | Local(Fail seq1) ->
 	     let newcont2 = function
@@ -67,8 +82,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      (* Combines two computations in AND style (with backtrack
 	management): success = success for both computations *)
 
-     let rec et v1 v2 fseq seq cont =
-       let newcont1 = function
+     let rec et v1 v2 fseq seq cont = count.(6)<-count.(6)+1;
+       let newcont1 ans = count.(6)<-count.(6)-1;match ans with
 	 | Local(Success prooftree1) ->
 	     let newcont2 = function
 	       | Local(Success prooftree2)-> cont (Local(Success(fseq prooftree1 prooftree2)))
@@ -145,7 +160,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
      let rec lk_solve inloop seq data cont =
        
- if !Flags.debug>1 then print_endline("attack "^print_state seq);
+       if Flags.every.(8)>0 then print_time();
+       if !Flags.debug>1 then print_endline("attack "^print_state seq);
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
            -> begin match (F.reveal g) with
@@ -325,22 +341,30 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	   end
 	     
 
+    let clear() = for i=0 to Array.length count-1 do count.(i) <- 0 done;dir := true
+
+    let report() = "With "
+      ^(string_of_int count.(0))^" Successes, "
+      ^(string_of_int count.(1))^" Failures, "
+      ^(string_of_int count.(4))^" Focus, "
+      ^(string_of_int count.(5))^" Cuts, and "
+      ^(string_of_int count.(2))^" Fake successes and "
+      ^(string_of_int count.(3))^" Fake failures."			
+
      (* Wraps the above function by providing top-level continuation
 	inter (for interaction with user), and printing a couple of
 	messages for standard output *)
 
-     let rec wrap f =
-       let fin = fun w -> (print_endline(w^", with "
-					 ^(string_of_int count.(0))^" Successes, "
-					 ^(string_of_int count.(1))^" Fails, "
-					 ^(string_of_int count.(2))^" Faked Successes, and "
-					 ^(string_of_int count.(3))^" Faked Fails, "
-					 ^(string_of_int count.(4))^" Focus, "
-					 ^(string_of_int count.(5))^" Cuts, "
-					);
-			   for i=0 to Array.length count-1 do count.(i) <- 0 done;
-			   dir := true)
-       in
+    let rec wrap f =
+      let fin = fun w ->
+	(print_endline("   Kernel's report:");
+	 print_endline(w
+		       ^", in "
+		       ^string_of_float (Sys.time()-. !start_time)
+		       ^" seconds");
+	 print_endline(report());
+	 clear())
+      in
        let inter = function
 	 | Fake(b1,b2,Comp v)  -> dir:= not b2 ;
 	     begin
@@ -358,7 +382,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      (* Wraps the above function by providing initial inloop and
 	initial sequent *)
 
-     let machine seq data = wrap (lk_solve false seq data)
+     let machine seq data = start_time:=Sys.time();last_display:=!start_time;
+       wrap (lk_solve false seq data)
 
    end: sig
      module FE : (Sequents.FrontEndType with module F=F and module FSet=FSet and module ASet=ASet)

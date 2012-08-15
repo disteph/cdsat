@@ -25,44 +25,41 @@ module MyPAT =
 	 module Me = Memo(UFSet.Ext)(UASet.Ext)
 	 module PF = Formulae.PrintableFormula(UF)
 
-	 let focus_pick h l olda= count.(0)<-count.(0)+1; Focus(UFSet.choose l,accept,None)
-
-	 let focus_pick h l olda= 
+	 let focus_pick h l olda=count.(0)<-count.(0)+1; 
 	   if !Flags.unitp
-	     then (count.(0)<-count.(0)+1;
-	     match UFSet.schoose h l with
-	       | A a       ->if !Flags.debug>1 then print_endline("Yes "^PF.toString a);
-		   address:=Yes(olda);
-		   count.(1)<-count.(1)+1;
-		   let now = count.(4) in
-		   let myaccept = function 
-		     | Local(Success _) when count.(4)==now ->address:=No;Accept
-		     | _-> failwith "Expected Success"
-		   in
-		     Focus(a,myaccept,None)
-	       | F(Some a) ->if !Flags.debug>1 then print_endline("Almost "^PF.toString a);
-		   address:=Almost(olda);
-		   count.(2)<-count.(2)+1;
-		   Focus(a,accept,None)
-	       | _         ->
-		   address:=No;
-		   count.(3)<-count.(3)+1;
-		   match UFSet.rchoose h l with
-		     | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
-			 Focus(a,accept,None)
-		     | _         -> let a = UFSet.choose l in
-			 if !Flags.debug>0 then print_endline("Random problematic focus on "^PF.toString a);
-			 Focus(a,accept,None))
+	   then (match UFSet.schoose h l with
+	     | A a       ->if !Flags.debug>1 then print_endline("Yes "^PF.toString a);
+		 address:=Yes(olda);
+		 count.(1)<-count.(1)+1;
+		 let now = count.(4) in
+		 let myaccept = function 
+		   | Local(Success _) when count.(4)==now ->address:=No;Accept
+		   | _-> failwith "Expected Success"
+		 in
+		   Focus(a,myaccept,None)
+	     | F(Some a) ->if !Flags.debug>1 then print_endline("Almost "^PF.toString a);
+		 address:=Almost(olda);
+		 count.(2)<-count.(2)+1;
+		 Focus(a,accept,None)
+	     | _         ->
+		 address:=No;
+		 count.(3)<-count.(3)+1;
+		 match UFSet.rchoose h l with
+		   | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
+		       Focus(a,accept,None)
+		   | _         -> let a = UFSet.choose l in
+		       if true then print_endline("Random problematic focus on "^PF.toString a);
+		       Focus(a,accept,None))
 	   else
-	     focus_pick h l olda
+	     Focus(UFSet.choose l,accept,None)
 
-
-	 let print_state olda = print_endline(string_of_int count.(4)^" notifies, "^
-						string_of_int count.(0)^" focus, with Backtrack / Unit propagate / Decide = "^
-						string_of_int count.(1)^"/"^
-						string_of_int count.(2)^"/"^
-						string_of_int count.(3))
-
+	 let print_state olda =
+	   string_of_int count.(4)^" notifies, "^
+	   string_of_int count.(0)^" focus, with Backtrack / Unit propagate / Decide = "^
+	   string_of_int count.(1)^"/"^
+	   string_of_int count.(2)^"/"^
+	   string_of_int count.(3)
+	   
 	 let rec cut_series (a,f) =
 	     if ASet.is_empty a then
 	       if FSet.is_empty f then
@@ -74,10 +71,9 @@ module MyPAT =
 
 	 let rec solve = function
 	   | Local ans                    ->
-	       print_state 0;
-	       Me.clear();UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();
+	       Me.clear(); print_endline("   User's report:"); print_endline(print_state 0); print_endline "";
+	       UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();address:=No;
 	       for i=0 to Array.length count-1 do count.(i) <- 0 done;
-	       address:=No;
 	       ans
 
 	   | Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
@@ -96,7 +92,7 @@ module MyPAT =
 		     | _ -> address:=No);
 		 (* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
 		 if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
-		 then print_state olda;
+		 then print_endline(print_state olda);
 		 count.(4)<-count.(4)+1;
 		 solve (machine (true,
 				 count.(4),
