@@ -120,15 +120,15 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	update *)
 
      let rec ext = function
-       | [] -> (ASet.empty,[])
+       | [] -> (ASet.empty,FSet.empty::FSet.empty::[])
        | p::l ->
 	   let (a,b) = Seq.interesting (PT.conclusion p) in
 	   let (a',b') = ext l in
 	     (ASet.union a a',
 	      let rec union_list = function
-		| l,[] -> l
+		| [],[]             -> []
 		| (f1::l1),(f2::l2) -> (FSet.union f1 f2)::(union_list(l1,l2))
-		| _ -> failwith("Lists of different lengths")
+		| _                 -> failwith("Lists of different lengths")
 	      in union_list (b,b'))
 
      let relevant (seq,d) = if !Flags.weakenings then
@@ -331,7 +331,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		   | Mem(tomem,recept)-> (begin match loc_ans with
 					    | Local(a) -> tomem a
 					    | Fake _   -> ()
-					  end;  recept_analysis recept)
+					  end; recept_analysis recept)
 	     in
 	     let notify_analysis (accept_defeat,newdata,inter_fun,action0) =
 	       if (inloop&&accept_defeat) then cont (throw (Local(Fail seq)) seq)

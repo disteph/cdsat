@@ -29,6 +29,7 @@ sig
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
   val clear: unit->unit
+  val cardinal: t->int
   val find_su :
     (common -> common -> branching option -> ('a, branching) almost) ->
     bool ->

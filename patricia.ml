@@ -131,10 +131,6 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     let clear() = H.clear table
 
     let compare t1 t2 = Pervasives.compare t1.id t2.id
-      (* if c==0 && Pervasives.compare t1 t2 <>0
-	 then failwith("2 different objects having same id "^string_of_bool treeHCons^"/"^string_of_int (cardinal t1)^" "^string_of_int (cardinal t2))
-	 else
-      *) 
 
     (* Now we start the standard functions on maps/sets *)
 
@@ -220,9 +216,9 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
   let add f k x t =
     let rec ins t = match reveal t with
       | Empty      -> leaf(k,f x None)
-      | Leaf (j,y) -> 
+      | Leaf (j,y) ->
 	  if  ccompare (tag k) (tag j) ==0 then 
-	    leaf (k,f x (Some y)) 
+	    leaf (k,f x (Some y))
 	  else 
 	    join (tag k, leaf(k,f x None), tag j, t)
       | Branch (c,b,t0,t1) ->
@@ -273,7 +269,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f x y) else empty
     | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f x y) else empty
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
 	  union (fun _ -> failwith("Should not be called")) (inter f l1 l2) (inter f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	  inter f (if check p2 m1 then l1 else r1) s2
@@ -288,7 +284,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     | Leaf(k,x), _         -> mem k s2 &&(let y = find k s2 in f x y)
     | Branch _, Leaf(k,_) -> false
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
+	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
 	  subset f l1 l2 && subset f r1 r2
 	else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
 	  if check p1 m2 then 
@@ -304,7 +300,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in f k x y else s1
     | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun k x -> f k x y) k s1 else s1
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then
+	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
 	  union (fun _ -> failwith("Should not be called")) (diff f l1 l2) (diff f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	  if check p2 m1 then 
@@ -337,7 +333,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	else if i<0 then (Some(k,x),true) else (min s2,false)
     | _,Leaf(_)     -> let (b,c) = first_diff min s2 s1 in (b,not c)
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && (ccompare p1 p2==0) then 
+	if (bcompare m1 m2==0) &&  match_prefix p1 p2 m1 then 
 	  let (b1,c1) = first_diff min l1 l2 in
 	  let (b2,c2) = first_diff min r1 r2 in
 	    if opt_st(b1,b2)<0 then (b1,c1) else (b2,c2)
@@ -526,7 +522,7 @@ let m_info_build tag ccompare = (
   (fun x _ -> Some x),
   (fun x1 x2
      -> match x1,x2 with
-	 None,_ -> x2
-       | _,None -> x1
+	 None,_ -> failwith("Bad1")
+       | _,None -> failwith("Bad2")
        | Some(v1),Some(v2)-> if ccompare (tag v1) (tag v2)<0 then x1 else x2)
 )

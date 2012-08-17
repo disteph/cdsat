@@ -100,7 +100,8 @@ module MyPAT =
 				 Some(Search(Me.search4success,accept,if !Flags.almo then F(cut_series) else A(None)))
 				))
 	   | Fake(Notify(_,_,machine,olda))  ->
-	       print_state olda;
+	       if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
+	       then print_endline(print_state olda);
 	       count.(4)<-count.(4)+1;
 	       solve (machine (true,0,(fun _ -> Exit(Accept)),None))
 

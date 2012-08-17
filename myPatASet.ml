@@ -68,7 +68,7 @@ module MyPat(UT:sig
   type branching = UT.branching
   let find_su    = SS.find_su
   let clear ()   = SS.clear ()
-
+  let cardinal   = SS.cardinal
 end
 
 
@@ -191,6 +191,8 @@ sig
 
   type e = CI.e
   type t = CI.t
+  type common
+  type branching
 
   val is_empty : t -> bool
   val is_in : e -> t -> bool
@@ -210,8 +212,7 @@ sig
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
   val clear: unit->unit
-  type common
-  type branching
+  val cardinal: t->int
   val find_su :
     (common -> common -> branching option -> ('a, branching) almost) ->
     bool ->

@@ -1,7 +1,7 @@
 (* Tasks to do *)
 
 let do_file = Some("test.cnf")
-let do_dir  = None (*Some("problems/sat/SW100-8-8") *)
+let do_dir  = Some("problems/sat/uf20-91")
 
 (* Kernel flags *)
 
@@ -33,10 +33,10 @@ let every                  (* Prints every XXX events *)
       (* thing to memorise is weaker than current knowledge *)
       100000;
       (* cut *)
-      1;
+      100;
       (* focus and cie *) 
       1000;
       (* time display, set to negative if you want no display *) 
-      -1
+      10
     |] 
 

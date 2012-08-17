@@ -86,20 +86,6 @@ module MyDPLLFSet = struct
   module UT2  = TypesFromHConsed(struct type t = MyDPLLForm.t let id = MyDPLLForm.id end)
 
   module UT   = struct
-    include UT2
-    let compare = MyDPLLForm.compare
-    let toString = UF.toString
-    let cstring (a,b) = match a with
-      | None -> "NC"
-      | Some aa-> string_of_int (MyPatA.id aa)
-    let bstring = function
-      | A(Some at)-> Atom.toString at
-      | A(None)   -> "NC"
-      | _ -> "Bits"
-    let tString = None (*Some(cstring,bstring)*)
-  end
-
-  module UT'   = struct
     include LexProduct(UT1)(UT2)
     let compare = MyDPLLForm.compare
     let toString = UF.toString
@@ -113,59 +99,17 @@ module MyDPLLFSet = struct
     let tString = None (*Some(cstring,bstring)*)
   end
 
-  module H1 = MyPat(UT)
-  module H2 = MyPat(UT')
+  include MyPat(UT)
 
-  module CI = (struct
-		 type e                   = MyDPLLForm.t
-		 type t                   = H1.CI.t*H2.CI.t
-		 let is_empty (k1,_)      = H1.CI.is_empty k1
-		 let is_in f (k1,k2)      = H1.CI.is_in f k1
-		 let empty                = H1.CI.empty,H2.CI.empty
-		 let add f (k1,k2)        = (H1.CI.add f k1,H2.CI.add f k2)
-		 let union (k1,k2)(k1',k2')  = (H1.CI.union k1 k1',H2.CI.union k2 k2')
-		 let inter (k1,k2)(k1',k2')  = (H1.CI.inter k1 k1',H2.CI.inter k2 k2')
-		 let remove f (k1,k2)     = (H1.CI.remove f k1,H2.CI.remove f k2)
-		 let hash (k1,_)          = H1.hash k1
-		 let equal (k1,_) (k1',_) = H1.CI.equal k1 k1'
-
-		 let toString (k1,_)      = H1.CI.toString k1
-		 let next  (t1,t2) = let e1 = H1.choose t1 in (e1, remove e1 (t1,t2)) 
-	       end:Collection.CollectImplem with type e=MyDPLLForm.t and type t=H1.CI.t*H2.CI.t)
-
-  module Ext = (struct
-		  include CI
-		  let compare (k1,_) (k1',_)   = H1.Ext.compare k1 k1'
-		  let compareE                 = UT.compare
-		  let min    (k1,_)            = H1.Ext.min k1
-		  let diff (k1,k2) (k1',k2')   = (H1.Ext.diff k1 k1',H2.Ext.diff k2 k2')
-		  let first_diff (k1,_)(k1',_) = H1.Ext.first_diff k1 k1'
-		end:Memoisation.CollectImplemExt with type e=MyDPLLForm.t and type t=CI.t)
-
-  include Ext
-
-  let choose (_,k2)    = H2.choose k2
-
-  let clear ()   = H1.clear ();H2.clear()
-
-  type common    = UT'.common
-  type branching = UT'.branching
-  let find_su    = H2.find_su
-
-  let subA a1 a2 limit =
+  let sub1 a1 a2 limit =
     let diffA = MyPatA.diff a1 a2 in
-    let treatA x = if MyPatA.is_empty (MyPatA.remove x diffA) then Almost(A (Some x)) else No in
+    let treatA x = if MyPatA.is_empty (MyPatA.remove x diffA) then Almost x else No in
       match limit,MyPatA.min diffA with
 	| Some a, Some x when MyPatA.compareE x a<0 -> treatA x
 	| None  , Some x -> treatA x
 	| _     ,_       -> Yes()
 
-  let sub (a,b) (a',b') limit = match a,a',limit with
-    | Some aa,Some aa',Some(A (Some c)) -> subA aa aa' (Some c)
-    | Some aa,Some aa',Some(A (None))   -> Yes()
-    | Some aa,Some aa', _               -> subA aa aa' None
-    | None,None,_                       -> Yes()
-    | _                                 -> No
+  let sub = UT.sub (UT1.sub (fun _->sub1)) (fun _ _ _ _->Yes()) true
 
   let byes j         = j
   let bempty         = None
@@ -179,12 +123,12 @@ module MyDPLLFSet = struct
     | A(Some a)-> not (MyPatA.is_in (Atom.negation a) atms)
     | _        -> true
 
-  let schoose atms (_,l2) =
-    find_su sub true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l2
+  let schoose atms l =
+    find_su sub true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l
 
   let yes _ _ _ = Yes() 
 
-  let rchoose atms (_,l2) =
-    find_su yes true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l2
+  let rchoose atms l =
+    find_su yes true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l
 
 end

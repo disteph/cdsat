@@ -25,34 +25,21 @@ module PATMapExt
   (V: sig type values val vcompare:values->values->int end)
   = struct
 
-    let subA alm diffA limit =
-      let treatA x = if alm&&ASet.is_empty (ASet.remove x diffA) then Almost(A(x)) else No in
+    let subA alm k p limit =
+      let diffA = ASet.diff k p in
+      let treatA x = if alm&&ASet.is_empty (ASet.remove x diffA) then Almost x else No in
 	match limit,ASet.min diffA with
 	  | Some a, Some x when ASet.compareE x a<0 -> treatA x
 	  | None  , Some x -> treatA x
 	  | _     ,_       -> Yes()
 
-    let subF alm diffF limit =
-      let treatF x = if alm&&FSet.is_empty (FSet.remove x diffF) then Almost(F(x)) else No in
+    let subF alm k p limit =
+      let diffF = FSet.diff k p in
+      let treatF x = if alm&&FSet.is_empty (FSet.remove x diffF) then Almost x else No in
 	match limit,FSet.min diffF with
 	  | Some a, Some x when FSet.compareE x a<0 -> treatF x
 	  | None  , Some x -> treatF x
 	  | _     ,_       -> Yes()
-
-    let sub alm (k1,k2) (p1,p2) =
-      let aux b = match subA alm (ASet.diff k1 p1) None with
-	| Yes _    -> subF alm (FSet.diff k2 p2) b
-	| Almost(f)-> begin match subF false (FSet.diff k2 p2) b with
-	    | Yes _ -> Almost f
-	    | _     -> No
-	  end
-	| No       -> No
-      in function
-	| Some(A(a)) -> subA alm (ASet.diff k1 p1) (Some a)
-	| Some(F(a)) -> aux (Some a)
-	| None       -> aux None
-
-    let sup alm (a,b) (a',b') = sub alm (a',b') (a,b)
 
     module D = struct
       type keys =  ASet.t*FSet.t
@@ -68,6 +55,10 @@ module PATMapExt
     module UT=LexProduct(TypesFromCollect(EASet))(TypesFromCollect(EFSet))
 
     include PATMap(D)(UT)
+
+
+    let sub = UT.sub subA subF
+    let sup alm f f' = sub alm f' f
 
     let byes j x = x
     let bempty   = (ASet.empty,FSet.empty)
