@@ -1,7 +1,9 @@
+(* This module is the control panel to run the program with different options *)
+
 (* Tasks to do *)
 
-let do_file = Some("test.cnf")
-let do_dir  = Some("problems/sat/uf20-91")
+let do_file = Some("test-old.cnf")
+let do_dir  = None (*Some("problems/sat/uf20-91")*)
 
 (* Kernel flags *)
 
@@ -13,7 +15,7 @@ let printrhs = ref false   (* When printing a sequent, print right-hand side? *)
 
 (* MyPatricia flags *)
 
-let memo  = ref true   (* For using Memoisation in MyPatricia *)
+let memo  = ref true   (* For using Memoisation in MyPatricia -currently has to be true *)
 let almo  = ref true   (* For using almost in Memoisation in MyPatricia *)
 let unitp = ref true   (* Eager Unit propagate in MyPatricia *)
 

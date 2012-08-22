@@ -83,10 +83,11 @@ module MyDPLLFSet = struct
   module UF   = PrintableFormula(MyDPLLForm)
   module UT0  = TypesFromCollect(struct include MyPatA type keys=t let tag s= s end)
   module UT1  = Lift(struct include UT0 type newkeys=MyDPLLForm.t let project = MyDPLLForm.aset end)
-  module UT2  = TypesFromHConsed(struct type t = MyDPLLForm.t let id = MyDPLLForm.id end)
+  module UT2  = struct include UT1 let pequals = UT1.pequals UT0.pequals end
+  module UT3  = TypesFromHConsed(struct type t = MyDPLLForm.t let id = MyDPLLForm.id end)
 
   module UT   = struct
-    include LexProduct(UT1)(UT2)
+    include LexProduct(UT2)(UT3)
     let compare = MyDPLLForm.compare
     let toString = UF.toString
     let cstring (a,b) = match a with
@@ -96,20 +97,12 @@ module MyDPLLFSet = struct
       | A(Some at)-> Atom.toString at
       | A(None)   -> "NC"
       | _ -> "Bits"
-    let tString = None (*Some(cstring,bstring)*)
+    let tString = Some(cstring,bstring)
   end
 
   include MyPat(UT)
 
-  let sub1 a1 a2 limit =
-    let diffA = MyPatA.diff a1 a2 in
-    let treatA x = if MyPatA.is_empty (MyPatA.remove x diffA) then Almost x else No in
-      match limit,MyPatA.min diffA with
-	| Some a, Some x when MyPatA.compareE x a<0 -> treatA x
-	| None  , Some x -> treatA x
-	| _     ,_       -> Yes()
-
-  let sub = UT.sub (UT1.sub (fun _->sub1)) (fun _ _ _ _->Yes()) true
+  let sub = UT.sub (UT1.sub (MyPatA.sub)) (fun _ _ _ _->Yes()) true
 
   let byes j         = j
   let bempty         = None
@@ -124,11 +117,11 @@ module MyDPLLFSet = struct
     | _        -> true
 
   let schoose atms l =
-    find_su sub true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l
+    find_su byes bsingleton bempty bunion sub true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
 
   let yes _ _ _ = Yes() 
 
   let rchoose atms l =
-    find_su yes true (filter atms) (function None -> true | _ -> false) byes bempty bsingleton bunion (Some(atms),-1) l
+    find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
 
 end

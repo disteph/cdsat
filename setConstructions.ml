@@ -8,11 +8,10 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S:FromHConsed) = struct
-  type keys = S.t
-
+  type keys    = S.t
   type common  = int
-  let ccompare = Pervasives.compare
   let tag      = S.id
+  let kcompare t1 t2 = Pervasives.compare (tag t1)(tag t2)
 
   type branching = int
   let bcompare   = Pervasives.compare
@@ -49,41 +48,39 @@ end
 
 module TypesFromCollect(S: FromCollect) = struct
 
-  type keys    = S.keys
-
-  type common  = S.t
-  let ccompare = S.compare 
-  let tag      = S.tag
+  type keys          = S.keys
+  type common        = S.t
+  let tag            = S.tag
+  let kcompare t1 t2 = S.compare(tag t1)(tag t2)
     
   type branching = S.e
   let bcompare   = S.compareE
   let check p m  = S.is_in m p
 
-  let match_prefix q p m = (ccompare q p==0) ||
+  let match_prefix q p m = (S.compare q p==0) ||
     match S.first_diff q p with
       | (Some x,_)  when S.compareE x m<0 -> false
       | _ -> true
 
   let disagree p0 p1 = match S.first_diff p0 p1 with
-    | (None,_)   -> failwith("disagree called with two arguments that are equal")
     | (Some b,c) -> (S.inter p0 p1,b,c)
-	
+    | (None,_)   -> failwith("disagree called with two arguments that are equal")
+
+  let pequals p1 p2 = (S.compare p1 p2==0) 	
 end
 
 
 (* Automatic construction of a I:Intern for the product of two sets,
    given I1:Intern and I2:Intern *)
 
-module LexProduct(I1:Intern)(I2:Intern with type keys=I1.keys) = struct
+module LexProduct
+  (I1:sig include Intern val pequals:common->common->bool end)
+  (I2:Intern with type keys=I1.keys) = struct
 
-  type keys = I1.keys
+  type keys   = I1.keys
+  type common = I1.common*I2.common
 
-  type common  = I1.common*I2.common
-  let ccompare (a,b)(a',b')=
-    let c = I1.ccompare a a' in
-      if c==0 then I2.ccompare b b' else c
-
-  let tag s    = (I1.tag s,I2.tag s)
+  let tag s   = (I1.tag s,I2.tag s)
     
   type branching = (I1.branching,I2.branching) sum
   let bcompare b1 b2 = match b1,b2 with
@@ -98,10 +95,10 @@ module LexProduct(I1:Intern)(I2:Intern with type keys=I1.keys) = struct
 
   let match_prefix (q1,q2) (p1,p2) = function
     | A(a)-> I1.match_prefix q1 p1 a
-    | F(a)-> (I1.ccompare q1 p1 ==0) && I2.match_prefix q2 p2 a
+    | F(a)-> (I1.pequals q1 p1) && I2.match_prefix q2 p2 a
 
   let disagree (p1,p2) (p1',p2') = 
-    if I1.ccompare p1 p1'==0
+    if I1.pequals p1 p1'
     then match I2.disagree p2 p2' with (p2'',d,c) -> ((p1,p2''),F(d),c)
     else match I1.disagree p1 p1' with (p1'',d,c) -> ((p1'',p2),A(d),c)
 
@@ -120,6 +117,7 @@ module LexProduct(I1:Intern)(I2:Intern with type keys=I1.keys) = struct
       | Some(F(a)) -> aux (Some a)
       | None       -> aux None
 
+  let pequals pequals2 (p1,p2) (p1',p2')=I1.pequals p1 p1' && pequals2 p2 p2'
 end
 
 (* Automatic construction of an Intern for a set extended with a top element,
@@ -130,14 +128,8 @@ module Lift(I:sig include Intern
 		  val project :newkeys->keys option
 	    end) = struct
 
-  type keys = I.newkeys
-
-  type common  = I.common option
-  let ccompare  a a'= match a,a' with
-    | Some aa,Some aa' -> I.ccompare aa aa'
-    | None, Some _     -> 1
-    | Some _,None      -> -1
-    | None, None       -> 0
+  type keys   = I.newkeys
+  type common = I.common option
 
   let tag s    = match I.project s with
     | None   -> None
@@ -168,7 +160,6 @@ module Lift(I:sig include Intern
     | Some _, None     -> (None,None,false)
     | None, None       -> failwith("Disagree called on two equal arguments!")
 
-
   let sub sub1 alm a a' limit =
     let lift = function Almost b-> Almost (Some b) | Yes _ -> Yes() | No->No in
       match a,a',limit with
@@ -177,5 +168,10 @@ module Lift(I:sig include Intern
 	| Some aa,Some aa',Some(None)   -> Yes()
 	| None,None,_                   -> Yes()
 	| _                             -> No
+
+  let pequals pequals1 p1 p2 =match p1,p2 with
+    | None,None     -> true
+    | Some a, Some b-> pequals1 a b
+    | _             -> false
 
 end

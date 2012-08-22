@@ -2,10 +2,9 @@ open Collection
 open Memoisation
 open Patricia
 
-module type MyPatCollect =
-sig
+module type MyPatCollect = sig
   module CI  : CollectImplem
-  module Ext : Memoisation.CollectImplemExt with type e = CI.e and type t = CI.t
+  module Ext : CollectImplemExt with type e = CI.e and type t = CI.t
 
   type e = CI.e
   type t = CI.t
@@ -24,24 +23,23 @@ sig
   val toString : t -> string
   val compare : t -> t -> int
   val compareE : e -> e -> int
-  val min : t -> e option
-  val diff : t -> t -> t
+  val sub  : bool->t->t->e option->(unit,e) almost
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
   val clear: unit->unit
   val cardinal: t->int
   val find_su :
-    (common -> common -> branching option -> ('a, branching) almost) ->
+    (e->'a) ->
+    (e->branching->'b) ->
+    'b ->
+    ('b -> 'b -> 'b) ->
+    (common -> common -> branching option -> ('c, branching) almost) ->
     bool ->
     (branching -> bool) ->
     ('b -> bool) ->
-    (e -> 'c) ->
-    'b ->
-    (e -> branching -> 'b) ->
-    ('b -> 'b -> 'b) ->
     common ->
     t -> 
-    ('c, 'b) sum
+    ('a, 'b) sum
 end
 
 module MyPat(UT:sig
@@ -58,30 +56,28 @@ module MyPatriciaCollectImplem(M : sig
            val toString : t -> string
          end):MyPatCollect with type CI.e = M.t
 
-module MyPatA : 
-  sig
-    module CI  : ACollectImplem with type e = Formulae.Atom.t
-    module Ext : CollectImplemExt with type e = Formulae.Atom.t and type t = CI.t
+module MyPatA : sig
+  module CI  : ACollectImplem with type e = Formulae.Atom.t
+  module Ext : CollectImplemExt with type e = Formulae.Atom.t and type t = CI.t
 
-    type e = Formulae.Atom.t
-    type t = CI.t
-    val hash : t -> int
-    val equal : t -> t -> bool
-    val empty : t
-    val is_empty : t -> bool
-    val union : t -> t -> t
-    val inter : t -> t -> t
-    val is_in : Formulae.Atom.t -> t -> bool
-    val add : Formulae.Atom.t -> t -> t
-    val remove : Formulae.Atom.t -> t -> t
-    val next : t -> Formulae.Atom.t * t
-    val toString : t -> string
-    val filter : bool -> Formulae.Atom.Predicates.t -> t -> t
-    val compare : t -> t -> int
-    val compareE : Formulae.Atom.t -> Formulae.Atom.t -> int
-    val min : t -> Formulae.Atom.t option
-    val diff : t -> t -> t
-    val first_diff : t -> t -> Formulae.Atom.t option * bool
-    val clear: unit->unit
-    val id: t-> int
-  end
+  type e = Formulae.Atom.t
+  type t = CI.t
+  val hash : t -> int
+  val equal : t -> t -> bool
+  val empty : t
+  val is_empty : t -> bool
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val is_in : Formulae.Atom.t -> t -> bool
+  val add : Formulae.Atom.t -> t -> t
+  val remove : Formulae.Atom.t -> t -> t
+  val next : t -> Formulae.Atom.t * t
+  val toString : t -> string
+  val filter : bool -> Formulae.Atom.Predicates.t -> t -> t
+  val compare : t -> t -> int
+  val compareE : Formulae.Atom.t -> Formulae.Atom.t -> int
+  val sub      : bool->t->t->e option->(unit,e) almost
+  val first_diff : t -> t -> Formulae.Atom.t option * bool
+  val clear: unit->unit
+  val id: t-> int
+end

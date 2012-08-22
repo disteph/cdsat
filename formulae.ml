@@ -95,7 +95,7 @@ module Atom = struct
   let toString t = match t.reveal with
     | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
     | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)
-  let compare t t' = Pervasives.compare t.id t'.id 
+  let compare t t' = Pervasives.compare t.id t'.id
   let clear () = Predicates.clear();Term.clear()
 end
 

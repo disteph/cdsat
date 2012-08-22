@@ -1,11 +1,11 @@
+(* Generic implementation of sets,
+   particular implementation of sets of atoms,
+   using patricia trees *)
+
 open Formulae
 open Collection
 open Patricia
 open SetConstructions
-
-(* Generic implementation of sets,
-   particular implementation of sets of atoms,
-   using patricia trees *)
 
 module MyPat(UT:sig
 	       include Intern
@@ -13,15 +13,14 @@ module MyPat(UT:sig
 	       val toString: keys->string
 	       val tString: ((common -> string)*(branching->string)) option
 	     end) = struct
+
   module D = struct
     type keys        = UT.keys
+    let kcompare     = UT.compare
     type values      = unit
     let vcompare _ _ = 0
-      (* type infos = unit *)
-      (* let info_build = empty_info_build *)
-      (* Alternative, recording min *)
     type infos       = keys m_infos
-    let info_build   = m_info_build UT.tag UT.ccompare
+    let info_build   = (None,(fun x _ -> Some x),splmin kcompare)
     let treeHCons    = !Flags.memo
   end
 
@@ -37,28 +36,22 @@ module MyPat(UT:sig
     let union    = SS.union
     let inter    = SS.inter
     let remove   = SS.remove
-      (* Alternative, if min or max is recorded:
-
-	 let choose t = match SS.info t with 
-	 | _,Some y,_ -> y 
-	 | _-> failwith("No Element!")
-	 end	 
-      *)
-    let hash  = SS.hash
-    let equal = SS.equal
-
+    let hash     = SS.hash
+    let equal    = SS.equal
     let toString = SS.toString UT.tString UT.toString
     let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
-
   end
 
   module Ext = struct
     include CI
     let compare    = SS.compare
     let compareE   = UT.compare
-    let min        = SS.info
-    let diff       = SS.diff
-    let first_diff = SS.first_diff min
+    let first_diff = SS.first_diff SS.info
+    let sub alm s1 s2 limit =
+      let locprune t = match limit,SS.info t with
+	| Some b,Some x when not (UT.compare x b<0) -> SS.Empty
+	| _                                         -> SS.reveal t
+      in SS.sub locprune alm s1 s2
   end
 
   include Ext
@@ -67,7 +60,7 @@ module MyPat(UT:sig
   type common    = UT.common
   type branching = UT.branching
   let find_su    = SS.find_su
-  let clear ()   = SS.clear ()
+  let clear      = SS.clear
   let cardinal   = SS.cardinal
 end
 
@@ -83,7 +76,7 @@ module MyPatriciaCollectImplem(M:sig
   MyPat(struct include TypesFromHConsed(M)
 	       let compare  = M.compare
 	       let toString = M.toString
-	       let tString = None
+	       let tString  = None
 	end)
 
 
@@ -96,26 +89,23 @@ module MyPatA = struct
     type t       = bool*Atom.Predicates.t
     let id (b,f) = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
   end
+
+  let pcompare p1 p2 = Pervasives.compare (M.id p1) (M.id p2)
+    
+  let atcompare at1 at2=
+    let (b1,p1,tl1)=Atom.reveal at1 in
+    let (b2,p2,tl2)=Atom.reveal at2 in
+    let c= pcompare(b1,p1)(b2,p2) in
+      if c==0 then Atom.compare at1 at2 else c
+
   module Destination = struct
-    type keys          = M.t
-    type values        = AtSet.t
-    let vcompare s1 s2 = match AtSet.Ext.first_diff s1 s2 with
-      | (None,_) -> 0
-      | (_,true) -> -1
-      | (_,false)-> 1
-    type infos     = (keys*values) option
-    let info_build = (
-      None,
-      (fun x y -> Some(x,y)),
-      (fun x1 x2
-	 -> match x1,x2 with
-	   | None,_ -> x2
-	   | _,None -> x1
-	   | Some(y1,v1),Some(y2,v2)->
-	       if Pervasives.compare (M.id y1) (M.id y2)<0 || ((M.id y1)==(M.id y2)&&vcompare v1 v2<0)
-	       then x1 else x2)
-    )
-    let treeHCons = !Flags.memo
+    type keys      = M.t
+    let kcompare   = pcompare  
+    type values    = AtSet.t
+    let vcompare   = AtSet.compare
+    type infos     = Atom.t m_infos
+    let info_build = (None,(fun _ v -> AtSet.SS.info v),splmin atcompare)
+    let treeHCons  = !Flags.memo
   end
 
   module SS = PATMap(Destination)(TypesFromHConsed(M))
@@ -133,17 +123,16 @@ module MyPatA = struct
     let inter     = SS.inter AtSet.inter
     let is_in l t =
       let (b,p,tl) = Atom.reveal l in
-	(SS.mem (b,p) t)
-	&&(AtSet.is_in l (SS.find (b,p) t))
+	(SS.mem (b,p) t)&&(AtSet.is_in l (SS.find (b,p) t))
     let add l     =
       let (b,p,tl) = Atom.reveal l in
       let f c = function
 	| None   -> AtSet.SS.singleton c
-	| Some(d)-> AtSet.add c d
+	| Some d -> AtSet.add c d
       in SS.add f (b,p) l
-    let remove l t =
+    let remove l  =
       let (b,p,tl) = Atom.reveal l in
-	SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p) t
+	SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p)
     let next t1 =
       let (_,y) = SS.choose t1 in
       let l = AtSet.SS.choose y in
@@ -157,22 +146,21 @@ module MyPatA = struct
 
   module Ext =struct
     include CI
-    let compare  = SS.compare
-    let compareE t1 t2  =
-      let (b1,pred1,tl1) = Atom.reveal t1 in 
-      let (b2,pred2,tl2) = Atom.reveal t2 in 
-      let c = Pervasives.compare (M.id (b1,pred1))(M.id (b2,pred2)) in
-	if c==0 then Pervasives.compare (Atom.id t1) (Atom.id t2) else c
-    let min s      = match SS.info s with
-      | None       -> None
-      | Some(k,v)  -> AtSet.SS.info v 
-    let diff       = SS.diff (fun k x y -> lleaf(k,AtSet.SS.diff x y))
-    let first_diff s1 s2 = match SS.first_diff SS.info s1 s2 with
-      | (None,b)      -> (None,b)
-      | (Some(k,x),b) -> let other = if b then s2 else s1 in
-	  if SS.mem k other
-	  then  AtSet.SS.first_diff (AtSet.SS.info) x (SS.find k other)
-	  else (AtSet.SS.info x,b)
+    let compare    = SS.compare
+    let compareE   = atcompare
+    let first_diff = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info
+    let sub alm s1 s2 limit =
+      (*      let singl e = let (b,p,_)= Atom.reveal e in SS.Leaf((b,p),AtSet.SS.singleton e) in	  *)
+      let f alm k x = function
+	| Some y -> AtSet.sub alm x y limit
+	| None   -> AtSet.sub alm x AtSet.empty limit
+      in 
+      let locprune t = match limit,SS.info t with
+	| Some b,Some x when not (compareE x b<0) -> SS.Empty
+	    (*	| Some b,Some(x,Some y) when not (compareE y b<0) -> singl x*)
+	| _                                       -> SS.reveal t
+      in SS.sub f locprune alm s1 s2
+
   end
 
   include Ext
@@ -207,23 +195,22 @@ sig
   val toString : t -> string
   val compare : t -> t -> int
   val compareE : e -> e -> int
-  val min : t -> e option
-  val diff : t -> t -> t
+  val sub  : bool->t->t->e option->(unit,e) almost
   val first_diff : t -> t -> e option * bool
   val choose : t -> e
   val clear: unit->unit
   val cardinal: t->int
   val find_su :
-    (common -> common -> branching option -> ('a, branching) almost) ->
+    (e->'a) ->
+    (e->branching->'b) ->
+    'b ->
+    ('b -> 'b -> 'b) ->
+    (common -> common -> branching option -> ('c, branching) almost) ->
     bool ->
     (branching -> bool) ->
     ('b -> bool) ->
-    (e -> 'c) ->
-    'b ->
-    (e -> branching -> 'b) ->
-    ('b -> 'b -> 'b) ->
     common ->
     t -> 
-    ('c, 'b) sum
+    ('a, 'b) sum
 
 end
