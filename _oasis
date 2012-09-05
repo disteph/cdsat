@@ -5,6 +5,7 @@ Version: 0.1
 Name: Psyche
 Synopsis: Proof-Search factorY for Collaborative HEuristics
 BuildTools: ocamlbuild
-Executable EureCaml
-  Path: .
+Executable Psyche
+  Path: ./src
   MainIs: main.ml
+  CompiledObject: best
