@@ -1,0 +1,61 @@
+
+%Environments=========================
+%% Theorems and such
+%% Uses theorem.sty package
+
+\newcommand\homedir{\textasciitilde}
+%\newcommand\url[1]{\texttt{#1}}
+
+\usepackage{theorem}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+
+%% Some environments without italicized bodies:
+{\theorembodyfont{\upshape}      % body not italicized
+  \newtheorem{definition}{Definition}}
+{\theorembodyfont{\upshape}      % body not italicized
+  \newtheorem{example}{Example}}
+{\theorembodyfont{\upshape}      % body not italicized
+  \newtheorem{notation}[theorem]{Notation}}
+{\theorembodyfont{\upshape}      % body not italicized
+  \newtheorem{remark}[theorem]{Remark}}
+
+\newtheorem{property}[theorem]{Property}
+\newcommand{\qedsymbol}{\unskip$\Box$}
+
+\newenvironment{preuve}{\noindent{\bf Proof: }}
+{}
+
+\newenvironment{proof}{\noindent{\bf Proof: }}
+{\pushright{\qedsymbol}\penalty-700 \smallskip}
+
+\renewcommand{\paragraph}[1]{\mbox{}\\{\bf \large #1}}
+
+\newcommand\olditem{}
+\let\olditem\item
+
+\newcommand\olditemize{}
+\newcommand\oldenditemize{}
+\let\olditemize\itemize
+\let\oldenditemize\enditemize
+\renewenvironment{itemize}[1][1]
+{\def\item{\removelastskip\vspace{-#1pt}\olditem}
+  \removelastskip\vskip-#1pt\olditemize\removelastskip}
+{\removelastskip\oldenditemize\unskip\vskip4pt
+  \def\item{\olditem}
+}
+
+\newcommand\oldenumerate{}
+\newcommand\oldendenumerate{}
+\let\oldenumerate\enumerate
+\let\oldendenumerate\endenumerate
+\renewenvironment{enumerate}[1][1]
+{\def\item{\removelastskip\vspace{-#1pt}\olditem}
+  \removelastskip\vskip-#1pt\oldenumerate\removelastskip}
+{\removelastskip\oldendenumerate\unskip\vskip4pt
+  \def\item{\olditem}
+}
