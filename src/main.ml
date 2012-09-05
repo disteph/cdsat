@@ -104,7 +104,10 @@ let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 
 ";;
 
-write_to_file "latex/eurecaml.tex" (print_test f1^
+
+
+if Array.length Sys.argv = 1 then
+  write_to_file "latex/output.tex" (print_test f1^
 				      print_test f2^
 				      print_test f3^
 				      print_test f4^
@@ -113,16 +116,9 @@ write_to_file "latex/eurecaml.tex" (print_test f1^
 				      print_test f7^
 				      print_test f8
 				   )
-;;
+else
+  let ss = treatfile Sys.argv.(1) in ()
+(* write_to_file "latex/output.tex" (printanswer ss);;*)
+;;  
 
-match Flags.do_file with
-  | Some(a)->let _ = treatfile a in ()
-  | _-> ()
-;;
-
-match Flags.do_dir with
-  | Some(a)->let _ = treatdir a in ()
-  | _-> ()
-
-(* write_to_file "latex/eurecaml.tex" (printanswer (treatfile "test.cnf"));;*)
 
