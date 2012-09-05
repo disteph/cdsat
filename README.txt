@@ -15,8 +15,10 @@ Running the programme:
 
 ./main.native
 
-If no argument is given, the small examples written by hand in 
-Otherwise, you may give, as an argument, a file .cnf in DIMACS format
+If no argument is given, the small examples written by hand in main.ml
+are treated, and printed in latex/output.tex
+Otherwise, you may give, as an argument, a file in DIMACS format,
+or a directory containing such files.
 
 
 Alternatively:

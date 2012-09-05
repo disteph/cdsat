@@ -116,8 +116,10 @@ if Array.length Sys.argv = 1 then
 				      print_test f7^
 				      print_test f8
 				   )
-else
-  let ss = treatfile Sys.argv.(1) in ()
+else let a = Sys.argv.(1) in
+  if Sys.is_directory a
+  then let _ = treatdir a in ()
+  else let _ = treatfile a in ()
 (* write_to_file "latex/output.tex" (printanswer ss);;*)
 ;;  
 
