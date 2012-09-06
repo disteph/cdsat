@@ -3,4 +3,4 @@
 # Executable Psyche
 # OASIS_STOP
 
-<src> or <src/plugins> or <src/kernel> or <src/lib> or <src/interface>: include
+<src> or <src/plugins> or <src/kernel> or <src/lib> or <src/interface> or<src/plugins/DPLL>: include
