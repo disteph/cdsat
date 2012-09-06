@@ -6,10 +6,9 @@ open Flags
 open Formulae
 open Io
 open Test
-open MyPatricia
 
-include Tests(MyPAT)
-include PrintableFormula(MyPAT.UF)
+include Tests(DPLL.MyPlugin)
+include PrintableFormula(DPLL.MyPlugin.UF)
 
 (* p(x) \/- !p(x) *)
 let f1 = 

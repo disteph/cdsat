@@ -1,6 +1,7 @@
+open Kernel
+
 open Formulae
 open Collection
-open Strategy
 open Sequents
 
 (* Default implementation for interface FormulaImplem *)
@@ -68,32 +69,31 @@ module MyACollectImplem =
 
 (* Default implementation for interface User *)
 
-module MyUser:User = struct
-  module UF = MyFormulaImplem
+module MyPlugin : Plugin.Type = struct
+  module UF    = MyFormulaImplem
   module UFSet = MyCollectImplem(PrintableFormula(UF))
   module UASet = MyACollectImplem
-  module Strategy =
-    functor (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) -> struct
-      include FE
-	(* The strategy provides the following function solve:
-	   In case the temporary answers happens to be a final
-	   answer, then the strategy returns that final answer.
-	   Otherwise, the temporary answer always contains a
-	   computing machine that can be triggered by inserting a
-	   "coin" - the user can orient the computation by
-	   choosing which coin they insert (typically, which
-	   formula to place in the next focus - here: the first
-	   available one) *)
+  module Strategy (FE:FrontEndType with module F=UF and module FSet=UFSet and module ASet=UASet) = struct
+    include FE
+      (* The strategy provides the following function solve:
+	 In case the temporary answers happens to be a final
+	 answer, then the strategy returns that final answer.
+	 Otherwise, the temporary answer always contains a
+	 computing machine that can be triggered by inserting a
+	 "coin" - the user can orient the computation by
+	 choosing which coin they insert (typically, which
+	 formula to place in the next focus - here: the first
+	 available one) *)
 
-      type data = unit
-      let initial_data=()
-      let rec solve = function
-	| Local ans                       -> ans
-	| Fake(Notify  (_,_,machine,_))   -> solve (machine (true,(),(fun _->Exit(Accept)),None))
-	| Fake(AskFocus(_,[],machine,_))  -> solve (machine (Restore None))
-	| Fake(AskFocus(_,a::l,machine,_))-> solve (machine (Focus(a, accept,None)))
-	| Fake(AskSide (_,machine,_))     -> solve (machine true)
-	| Fake(Stop(b1,b2, machine))      -> solve (machine ())
-	    
-    end
+    type data = unit
+    let initial_data=()
+    let rec solve = function
+      | Local ans                       -> ans
+      | Fake(Notify  (_,_,machine,_))   -> solve (machine (true,(),(fun _->Exit(Accept)),None))
+      | Fake(AskFocus(_,[],machine,_))  -> solve (machine (Restore None))
+      | Fake(AskFocus(_,a::l,machine,_))-> solve (machine (Focus(a, accept,None)))
+      | Fake(AskSide (_,machine,_))     -> solve (machine true)
+      | Fake(Stop(b1,b2, machine))      -> solve (machine ())
+	  
+  end
 end

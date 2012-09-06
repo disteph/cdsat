@@ -2,13 +2,13 @@
 
 open Kernel
 
-open Strategy
+open Plugin
 open Search
 open Io
 
-module Tests (US:User) = struct
+module Tests (P:Plugin.Type) = struct
 
-  include US
+  include P
   module Src   = ProofSearch(UF)(UFSet)(UASet)
   module Strat = Strategy(Src.FE)
 

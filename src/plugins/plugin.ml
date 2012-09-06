@@ -4,7 +4,7 @@ open Formulae
 open Collection
 open Sequents
 
-module type User = sig
+module type Type = sig
 
   (* A user should provide an implementation of formulae, an
      implementation of sets of formulae, and an implementation of
