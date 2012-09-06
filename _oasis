@@ -1,6 +1,9 @@
 OASISFormat: 0.2
 License: PROP
-Authors: Dr Stephane Lengrand <lengrand@lix.polytechnique.fr>, Miss Mahfuza Farooque <mahfuza@lix.polytechnique.fr>, Mlle Assia Mahboubi <assia.mahboubi@inria.fr>
+Authors: Dr Stephane Lengrand <lengrand@lix.polytechnique.fr>,
+         Miss Mahfuza Farooque <mahfuza@lix.polytechnique.fr>,
+         Mlle Assia Mahboubi <assia.mahboubi@inria.fr>
+         Alexis Bernadet <bernadet@lix.polytechnique.fr>
 Version: 0.1
 Name: Psyche
 Synopsis: Proof-Search factorY for Collaborative HEuristics
@@ -9,3 +12,9 @@ Executable Psyche
   Path: ./src
   MainIs: main.ml
   CompiledObject: best
+Document api
+  XOCamlBuildPath: .
+  Title: API Documentation
+  Type: ocamlbuild (0.2)
+  BuildTools: ocamldoc
+  XOCamlbuildModules: Formulae, Patricia, Memoisation
