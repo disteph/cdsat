@@ -1,6 +1,5 @@
 open Formulae
 open Collection
-open Patricia
 
 module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
   (struct
