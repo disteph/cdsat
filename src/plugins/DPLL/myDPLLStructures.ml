@@ -101,7 +101,7 @@ module MyDPLLFSet = struct
       | A(Some at)-> Atom.toString at
       | A(None)   -> "NC"
       | _ -> "Bits"
-    let tString = Some(cstring,bstring)
+    let tString = None (*Some(cstring,bstring)*)
   end
 
   include MyPat(UT)
