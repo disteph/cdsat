@@ -71,7 +71,7 @@ module MyPAT =
 
 	 let rec solve = function
 	   | Local ans                    ->
-	       Me.clear(); print_endline("   User's report:"); print_endline(print_state 0); print_endline "";
+	       Me.clear(); print_endline("   Plugin's report:"); print_endline(print_state 0); print_endline "";
 	       UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();address:=No;
 	       for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	       ans

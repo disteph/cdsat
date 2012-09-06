@@ -56,18 +56,6 @@ module Term = struct
       H.add table f f;
       f
 
-  (*let rec toString t = match t.reveal with
-      V(a) -> a
-    | XV(a) -> "?"^a
-    | C(f, newtl) -> f^printtl(newtl)
-  and printrtl = function
-      [] -> ""
-    | t::[] -> toString(t)
-    | t::l -> toString(t)^", "^printtl(l) (* <-- printrtl au lieu de printtl ?*)
-  and printtl = function
-      [] -> ""
-    | tl ->"("^printrtl(tl)^")"*)
-
   let rec print_in_buf t buf =
     match t.reveal with
     | V a -> bprintf buf "%s" a

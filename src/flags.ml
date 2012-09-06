@@ -1,10 +1,5 @@
 (* This module is the control panel to run the program with different options *)
 
-(* Tasks to do *)
-
-let do_file = Some("test-old.cnf")
-let do_dir  = None (*Some("problems/sat/uf20-91")*)
-
 (* Kernel flags *)
 
 let weakenings = ref true  (* Activates a-posteriori weakening mode
