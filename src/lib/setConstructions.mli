@@ -1,4 +1,5 @@
 open Patricia
+open Sums
 
 module type FromHConsed = sig type t val id : t -> int end
 

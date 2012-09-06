@@ -1,5 +1,6 @@
 open Formulae
 open Collection
+open Sums
 
 module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
   (struct

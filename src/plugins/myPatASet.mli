@@ -1,6 +1,7 @@
 open Collection
 open Memoisation
 open Patricia
+open Sums
 
 module type MyPatCollect = sig
   module CI  : CollectImplem

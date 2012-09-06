@@ -1,4 +1,5 @@
 open Formulae
+open Sums
 open Patricia
 open SetConstructions
 

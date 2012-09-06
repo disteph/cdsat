@@ -1,3 +1,4 @@
+open Sums
 open Patricia
 
 (* Automatic construction of a UT:UserTypes from a HConsed type *)

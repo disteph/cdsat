@@ -15,7 +15,7 @@ module type CollectImplemExt =
     val equal : t -> t -> bool
     val compare : t -> t -> int
     val compareE : e -> e -> int
-    val sub : bool -> t -> t -> e option -> (unit, e) Patricia.almost
+    val sub : bool -> t -> t -> e option -> (unit, e) Sums.almost
     val first_diff : t -> t -> e option * bool
   end
 module PATMapExt :
@@ -38,7 +38,7 @@ module PATMapExt :
                 val compare : t -> t -> int
                 val compareE : e -> e -> int
                 val sub :
-                  bool -> t -> t -> e option -> (unit, e) Patricia.almost
+                  bool -> t -> t -> e option -> (unit, e) Sums.almost
                 val first_diff : t -> t -> e option * bool
               end) ->
       functor
@@ -59,7 +59,7 @@ module PATMapExt :
                   val compare : t -> t -> int
                   val compareE : e -> e -> int
                   val sub :
-                    bool -> t -> t -> e option -> (unit, e) Patricia.almost
+                    bool -> t -> t -> e option -> (unit, e) Sums.almost
                   val first_diff : t -> t -> e option * bool
                 end) ->
         functor
@@ -94,7 +94,7 @@ module PATMapExt :
                 val compare : t -> t -> int
                 val compareE : e -> e -> int
                 val sub :
-                  bool -> t -> t -> e option -> (unit, e) Patricia.almost
+                  bool -> t -> t -> e option -> (unit, e) Sums.almost
                 val first_diff : t -> t -> e option * bool
                 type keys = D.keys
                 val tag : 'a * 'b -> 'a
@@ -117,7 +117,7 @@ module PATMapExt :
                 val compare : t -> t -> int
                 val compareE : e -> e -> int
                 val sub :
-                  bool -> t -> t -> e option -> (unit, e) Patricia.almost
+                  bool -> t -> t -> e option -> (unit, e) Sums.almost
                 val first_diff : t -> t -> e option * bool
                 type keys = D.keys
                 val tag : 'a * 'b -> 'b
@@ -132,7 +132,7 @@ module PATMapExt :
                 type branching =
                     (SetConstructions.TypesFromCollect(EASet).branching,
                      SetConstructions.TypesFromCollect(EFSet).branching)
-                    Patricia.sum
+                    Sums.sum
                 val bcompare : branching -> branching -> int
                 val check : common -> branching -> bool
                 val disagree : common -> common -> common * branching * bool
@@ -143,17 +143,17 @@ module PATMapExt :
                    SetConstructions.TypesFromCollect(EASet).common ->
                    SetConstructions.TypesFromCollect(EASet).branching option ->
                    (unit, SetConstructions.TypesFromCollect(EASet).branching)
-                   Patricia.almost) ->
+                   Sums.almost) ->
                   (bool ->
                    SetConstructions.TypesFromCollect(EFSet).common ->
                    SetConstructions.TypesFromCollect(EFSet).common ->
                    SetConstructions.TypesFromCollect(EFSet).branching option ->
                    (unit, SetConstructions.TypesFromCollect(EFSet).branching)
-                   Patricia.almost) ->
+                   Sums.almost) ->
                   bool ->
                   common ->
                   common ->
-                  branching option -> (unit, branching) Patricia.almost
+                  branching option -> (unit, branching) Sums.almost
                 val pequals :
                   (SetConstructions.TypesFromCollect(EFSet).common ->
                    SetConstructions.TypesFromCollect(EFSet).common -> bool) ->
@@ -297,9 +297,9 @@ module PATMapExt :
             val subset : (D.values -> D.values -> bool) -> t -> t -> bool
             val diff : (UT.keys -> D.values -> D.values -> t) -> t -> t -> t
             val aux_and :
-              (bool -> (unit, 'a) Patricia.almost) ->
-              (bool -> (unit, 'a) Patricia.almost) ->
-              bool -> (unit, 'a) Patricia.almost
+              (bool -> (unit, 'a) Sums.almost) ->
+              (bool -> (unit, 'a) Sums.almost) ->
+              bool -> (unit, 'a) Sums.almost
             val opt_st : ('a -> 'b -> int) -> 'a option * 'b option -> int
             val first_diff :
               (UT.keys -> D.values -> D.values -> 'a option * bool) ->
@@ -322,32 +322,32 @@ module PATMapExt :
               ('b -> 'b -> 'b) ->
               (UT.common ->
                UT.common ->
-               UT.branching option -> ('c, UT.branching) Patricia.almost) ->
+               UT.branching option -> ('c, UT.branching) Sums.almost) ->
               bool ->
               (UT.branching -> bool) ->
-              ('b -> bool) -> UT.common -> t -> ('a, 'b) Patricia.sum
+              ('b -> bool) -> UT.common -> t -> ('a, 'b) Sums.sum
             val sub :
               bool ->
               UT.common ->
               UT.common ->
-              UT.branching option -> (unit, UT.branching) Patricia.almost
+              UT.branching option -> (unit, UT.branching) Sums.almost
             val sup :
               bool ->
               UT.common ->
               UT.common ->
-              UT.branching option -> (unit, UT.branching) Patricia.almost
+              UT.branching option -> (unit, UT.branching) Sums.almost
             val byes : 'a -> 'b -> 'b
             val bempty : ASet.t * FSet.t
             val bsingleton :
-              'a -> 'b -> (ASet.e, FSet.e) Patricia.sum -> ASet.t * FSet.t
+              'a -> 'b -> (ASet.e, FSet.e) Sums.sum -> ASet.t * FSet.t
             val bunion :
               ASet.t * FSet.t -> ASet.t * FSet.t -> ASet.t * FSet.t
             val find_sub :
               bool ->
               SetConstructions.TypesFromCollect(EASet).common *
               SetConstructions.TypesFromCollect(EFSet).common ->
-              t -> (D.values, ASet.t * FSet.t) Patricia.sum
+              t -> (D.values, ASet.t * FSet.t) Sums.sum
             val find_sup :
               bool ->
-              UT.common -> t -> (D.values, ASet.t * FSet.t) Patricia.sum
+              UT.common -> t -> (D.values, ASet.t * FSet.t) Sums.sum
           end

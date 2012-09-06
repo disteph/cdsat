@@ -1,4 +1,5 @@
 open Patricia
+open Sums
 open MyPatASet
 open MyDPLL
 

@@ -4,6 +4,7 @@
 
 open Formulae
 open Collection
+open Sums
 open Patricia
 open SetConstructions
 

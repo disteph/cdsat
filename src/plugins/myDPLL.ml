@@ -1,6 +1,7 @@
 open Formulae
 open MyPatASet
 open Patricia
+open Sums
 open SetConstructions
 
 (* Implementation of formulae for DPLL,

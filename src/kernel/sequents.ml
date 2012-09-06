@@ -1,6 +1,6 @@
 open Formulae
 open Collection
-open Patricia
+open Sums
 open Memoisation
 open Map
 

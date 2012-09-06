@@ -1,12 +1,7 @@
 (* This module contains the basic constructions of Patricia trees to
 represent maps and sets *)
 
-(* We start with standard type constructs *)
-type ('a,'b) sum = A of 'a | F of 'b
-type ('a,'b) almost =
-  | Yes of 'a
-  | Almost of 'b
-  | No
+open Sums
 
 (* The two interfaces Dest and Intern descibe the material that must be provided to construct a Patricia tree
    structure 
