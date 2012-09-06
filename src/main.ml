@@ -1,5 +1,7 @@
 (* Main file *)
 
+open Kernel
+
 open Flags
 open Formulae
 open Io

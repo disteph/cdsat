@@ -1,3 +1,5 @@
+open Lib
+
 module type CollectImplemExt =
   sig
     type e

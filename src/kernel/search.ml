@@ -1,3 +1,5 @@
+open Lib
+
 open Formulae
 open Collection
 open Sums

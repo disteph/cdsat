@@ -1,3 +1,5 @@
+open Kernel
+
 open Formulae
 open Sequents
 open Printf

@@ -2,6 +2,9 @@
    particular implementation of sets of atoms,
    using patricia trees *)
 
+open Lib
+open Kernel
+
 open Formulae
 open Collection
 open Sums

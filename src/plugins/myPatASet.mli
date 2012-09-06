@@ -1,3 +1,6 @@
+open Lib
+open Kernel
+
 open Collection
 open Memoisation
 open Patricia

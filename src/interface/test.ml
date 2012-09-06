@@ -1,5 +1,7 @@
 (* Tests *)
 
+open Kernel
+
 open Strategy
 open Search
 open Io

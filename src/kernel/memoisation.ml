@@ -1,3 +1,4 @@
+open Lib
 open Formulae
 open Sums
 open Patricia

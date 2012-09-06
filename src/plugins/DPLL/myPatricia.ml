@@ -1,3 +1,6 @@
+open Lib
+open Kernel
+
 open Patricia
 open Sums
 open MyPatASet
