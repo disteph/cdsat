@@ -1,4 +1,5 @@
 open Printf
+open Format
 
 module Term = struct
 
@@ -56,36 +57,30 @@ module Term = struct
       H.add table f f;
       f
 
-  let rec print_in_buf t buf =
+  let rec print_in_fmt fmt t =
     match t.reveal with
-    | V a -> bprintf buf "%s" a
-    | XV a -> bprintf buf "?%s" a
-    | C(f, newtl) ->
-      bprintf buf "%s" f;
-      printtl_in_buf newtl buf
-  and printtl_in_buf tl buf =
-    if tl <> [] then (
-      bprintf buf "(";
-      printrtl_in_buf tl buf;
-      bprintf buf ")")
-  and printrtl_in_buf tl buf =
+    | V a -> fprintf fmt "%s" a
+    | XV a -> fprintf fmt "?%s" a
+    | C(f, newtl) -> fprintf fmt "%s%a" f printtl_in_fmt newtl
+  and printtl_in_fmt fmt tl =
+    if tl <> [] then fprintf fmt "(%a)" printrtl_in_fmt tl
+  and printrtl_in_fmt fmt tl =
     match tl with
     | [] -> ()
     | t :: l ->
-      if l = [] then print_in_buf t buf
-      else (
-        print_in_buf t buf;
-        bprintf buf ",";
-        printrtl_in_buf l buf)
+      if l = [] then print_in_fmt fmt t
+      else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt tl
+
+  let print_in_buf t buf = print_in_fmt (formatter_of_buffer buf) t
 
   let toString t =
     let buf = Buffer.create 255 in
-    print_in_buf t buf;
+    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
     Buffer.contents buf
 
   let printtl tl =
     let buf = Buffer.create 255 in
-    printtl_in_buf tl buf;
+    fprintf (formatter_of_buffer buf) "%a%!" printtl_in_fmt tl;
     Buffer.contents buf
 	
   let clear () = H.clear table
@@ -150,23 +145,16 @@ module Atom = struct
 
   let negation t = let (b, a, tl) = t.reveal in build (not b, a, tl)
 
-  (*let toString t = match t.reveal with
-    | (true,s, tl) -> "{"^(Predicates.reveal s)^Term.printtl(tl)^"}"
-    | (false,s, tl) -> "\\non {"^(Predicates.reveal s)^"}"^Term.printtl(tl)*)
-
-  let print_in_buf t buf =
+  let print_in_fmt fmt t =
     match t.reveal with
     | (true, s, tl) ->
-      bprintf buf "{%s" (Predicates.reveal s);
-      Term.printtl_in_buf tl buf;
-      bprintf buf "}"
+      fprintf fmt "{%s%a}" (Predicates.reveal s) Term.printtl_in_fmt tl
     | (false, s, tl) ->
-      bprintf buf "\\non {%s}" (Predicates.reveal s);
-      Term.printtl_in_buf tl buf
+      fprintf fmt "\\non {%s}%a" (Predicates.reveal s) Term.printtl_in_fmt tl
 
   let toString t =
     let buf = Buffer.create 255 in
-    print_in_buf t buf;
+    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
     Buffer.contents buf
 
   let compare t t' = Pervasives.compare t.id t'.id
@@ -200,29 +188,19 @@ module PrintableFormula (F: FormulaImplem) = struct
   type t = F.t
       
   (* Displays a formula *)
-  (*let rec toString f = match F.reveal f with
-      Lit(l) -> Atom.toString l
-    | AndN(f1,f2) -> "("^toString(f1)^") \\andN ("^toString(f2)^")"
-    | OrN(f1,f2) -> "("^toString(f1)^") \\orN ("^toString(f2)^")"
-    | AndP(f1,f2) -> "("^toString(f1)^") \\andP ("^toString(f2)^")"
-    | OrP(f1,f2) -> "("^toString(f1)^") \\orP ("^toString(f2)^")"*)
-  let rec print_in_buf f buf =
+  let rec print_in_fmt fmt f =
     match F.reveal f with
-    | Lit l -> Atom.print_in_buf l buf
-    | AndN(f1, f2) -> print_bin_op_in_buf f1 "\\andN" f2 buf
-    | OrN(f1, f2) -> print_bin_op_in_buf f1 "\\orN" f2 buf
-    | AndP(f1, f2) -> print_bin_op_in_buf f1 "\\andP" f2 buf
-    | OrP(f1, f2) -> print_bin_op_in_buf f1 "\\orP" f2 buf
-  and print_bin_op_in_buf f1 op f2 buf =
-    bprintf buf "(";
-    print_in_buf f1 buf;
-    bprintf buf ") %s (" op;
-    print_in_buf f2 buf;
-    bprintf buf ")"
+    | Lit l -> Atom.print_in_fmt fmt l
+    | AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andN" f2
+    | OrN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\orN" f2
+    | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
+    | OrP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\orP" f2
+  and print_bin_op_in_fmt fmt f1 op f2 =
+    fprintf fmt "(%a) %s (%a)" print_in_fmt f1 op print_in_fmt f2
 
   let toString f =
     let buf = Buffer.create 255 in
-    print_in_buf f buf;
+    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt f;
     Buffer.contents buf
 
   (* Negates a formula *)
