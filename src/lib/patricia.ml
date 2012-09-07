@@ -10,37 +10,16 @@ module type Dest = sig
   val treeHCons : bool
 end
 
-
 module type Intern = sig
-
-  (* Implementation of keys and how to compute them.
-     Typically for a HConsed keys type, common = int *)
   type keys
   type common
   val tag        : keys->common
-    
-  (* branching is the type of data used for discriminating the keys
-     (themselves represented in common via tag) *) 
   type branching
   val bcompare    : branching->branching->int
-
-  (* check discriminates its first argument over second *)
   val check       : common->branching->bool
-
-  (* Given two elements of common, disagree outputs:
-     their common part,
-     the first branching data that discriminates them
-     a boolean saying whether that data was in the first [true] or
-     second [false] argument *)
   val disagree    : common->common->common*branching*bool
-
-  (* Checks whether the first argument is compatible with the second
-     up to some branching data.
-     Should output true if the first two arguments are equal *)
   val match_prefix: common->common->branching->bool
-
 end
-
 
 (* Construction of a Patricia tree structure for maps, given the above *)
 
