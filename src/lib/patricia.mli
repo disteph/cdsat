@@ -25,16 +25,7 @@ module type Intern =
 module PATMap :
   functor (D : Dest) ->
     functor
-      (I : sig
-             type keys = D.keys
-             type common
-             val tag : keys -> common
-             type branching
-             val bcompare : branching -> branching -> int
-             val check : common -> branching -> bool
-             val disagree : common -> common -> common * branching * bool
-             val match_prefix : common -> common -> branching -> bool
-           end) ->
+      (I:Intern with type keys=D.keys) ->
       sig
         module BackOffice :
           sig
@@ -199,27 +190,9 @@ module PATMap :
       end
 module PATSet :
   functor
-    (D : sig
-           type keys
-           val kcompare : keys -> keys -> int
-           type values = unit
-           val vcompare : values -> values -> int
-           type infos
-           val info_build :
-             infos * (keys -> values -> infos) * (infos -> infos -> infos)
-           val treeHCons : bool
-         end) ->
+    (D:Dest with type values = unit) ->
     functor
-      (I : sig
-             type keys = D.keys
-             type common
-             val tag : keys -> common
-             type branching
-             val bcompare : branching -> branching -> int
-             val check : common -> branching -> bool
-             val disagree : common -> common -> common * branching * bool
-             val match_prefix : common -> common -> branching -> bool
-           end) ->
+      (I:Intern with type keys=D.keys) ->
       sig
         module PM :
           sig
