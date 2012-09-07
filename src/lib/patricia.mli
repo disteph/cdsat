@@ -1,16 +1,38 @@
+(** This module contains the basic constructions of Patricia trees to represent
+maps and sets *)
+
 open Sums
 
-module type Dest =
-  sig
-    type keys
-    val kcompare : keys -> keys -> int
-    type values
-    val vcompare : values -> values -> int
-    type infos
-    val info_build :
-      infos * (keys -> values -> infos) * (infos -> infos -> infos)
-    val treeHCons : bool
-  end
+(** The two interfaces Dest and Intern descibe the material that must be
+provided to construct a Patricia tree structure.
+
+Dest describes the info that that the user expects to provide anyway to build a
+map/set.
+Intern describes the structures to be used for the internal mechanisms of
+Patricia trees; standard implementations of Intern are the object of module
+SetConstructions *)
+
+module type Dest = sig
+  (** Domain of the map/set (keys)*)
+  type keys
+  val kcompare : keys -> keys -> int
+
+  (** Co-domain of the map (values), set it to unit for a set *)    
+  type values
+  val vcompare : values -> values -> int
+
+  (** Allows to store information about the Patricia tree:
+  typically, number of bindings stored, etc *) 
+  type infos
+
+  (** Provides info for empty tree, singleton tree, and disjoint union
+     of two tree *)
+  val info_build : infos * (keys -> values -> infos) * (infos -> infos -> infos)
+
+  (** Do you want the patricia trees hconsed? *)
+  val treeHCons : bool
+end
+
 module type Intern =
   sig
     type keys
