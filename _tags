@@ -3,7 +3,8 @@
 # Executable Psyche
 # OASIS_STOP
 
-<src> or <src/plugins> or <src/run-tools> or<src/plugins/DPLL>: include
+<src> or <src/run-tools>: include
 <src/lib/*.cmx>: for-pack(Lib)
 <src/kernel/*.cmx>: for-pack(Kernel)
+<src/plugins/*.cmx> or <src/plugins/DPLL/*.cmx> or <src/plugins/Naive/*.cmx> or <src/plugins/Other/*.cmx>: for-pack(Plugins)
 

@@ -1,6 +1,7 @@
 (* Main file *)
 
 open Kernel
+open Plugins
 
 open Flags
 open Formulae

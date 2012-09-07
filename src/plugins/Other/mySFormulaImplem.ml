@@ -1,3 +1,5 @@
+open Kernel
+
 open Formulae
 
 type tt = {reveal: tt form;id:int;size:int}

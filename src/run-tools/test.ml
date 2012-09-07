@@ -1,6 +1,7 @@
 (* Tests *)
 
 open Kernel
+open Plugins
 
 open Plugin
 open Search
