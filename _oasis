@@ -13,8 +13,8 @@ Executable Psyche
   MainIs: main.ml
   CompiledObject: best
 Document api
-  XOCamlBuildPath: .
+  XOCamlBuildPath: src
   Title: API Documentation
   Type: ocamlbuild (0.2)
   BuildTools: ocamldoc
-  XOCamlbuildModules: Formulae, Patricia, Memoisation
+  XOCamlbuildModules: lib/Patricia
