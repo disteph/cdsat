@@ -17,4 +17,4 @@ Document api
   Title: API Documentation
   Type: ocamlbuild (0.2)
   BuildTools: ocamldoc
-  XOCamlbuildModules: lib/Patricia
+  XOCamlbuildModules: Main
