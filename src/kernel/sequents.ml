@@ -1,3 +1,8 @@
+(*
+  This file contains the kernel's API to be used by a plugin
+*)
+
+
 open Lib
 
 open Formulae
@@ -6,18 +11,27 @@ open Sums
 open Memoisation
 open Map
 
+(* Predicate symbols of the logic are tagged with a polarity *)
+
 type polarity = Pos | Neg | Und
 module Pol  = Map.Make(Atom.Predicates)
 type polmap = polarity Pol.t
 
-(* This is the module type that specifies the FrontEnd to which a user
+
+(* This is the module type that specifies the FrontEnd to which a plugin
    has access *)
 
 module type FrontEndType = sig
 
+(* The kernel knows of an implementation of formulae, collections of
+formulae, and collections of atoms *)
+
   module F: FormulaImplem
   module FSet: CollectImplem with type e = F.t
   module ASet: ACollectImplem
+
+(* The kernel knows of an implementation extending that of formulae
+with two extra functions for prettyprinting and for negation *)
 
   module Form : sig
     type t = F.t
@@ -25,7 +39,36 @@ module type FrontEndType = sig
     val negation : F.t -> F.t
   end
 
+(* The kernel knows, given a polarity assignment for predicate
+symbols, how to compute the polarity of a formula *)
+
   val polarity : polarity Pol.t -> F.t -> polarity
+
+(* The kernel has a module to implement the notion of sequent;
+   the type of sequent states that there are two kinds:
+
+   - focussed sequents of the form
+   EntF(atomN, g, formP, formPSaved, polar)
+   atomN are the atoms assumed to be true
+   g is the formula in focus (i.e. being decomposed)
+   formP are the positive formulae on which we could later place focus
+   formPSaved are the positive formulae on which we have placed focus
+   but we could focus on them again if need be
+   polar is a assignment mapping atoms to polarities
+
+   - unfocussed sequents of the form
+   EntUF(atomN, delta, formP, formPSaved, polar)
+   The arguments are the same as above, except there is no formula in
+   focus; instead, there is a set of formulae delta: the formulae to
+   be decomposed into atomic elements without creating backtrack
+   points along the way
+
+   simplify takes a sequent and outputs the set of atoms and the set
+   of positive formulae (union of formP and formPSaved) 
+
+   toString does the prettyprinting 
+*)
+
 
   module Seq : sig
     type t =
@@ -34,6 +77,17 @@ module type FrontEndType = sig
     val simplify : t -> ASet.t*FSet.t
     val toString : t -> string
   end
+
+(* PT is the module implementing proof-trees:
+   proof-trees are values of type t
+
+   reveal turns a proof-tree into something that can be pattern-matched
+   does the tree have 0 premisses, 1 premisse, 2 premisses ?
+
+   conclusion gives the sequent labelling the root node of the proof-tree
+
+   toString does pretty-printing
+*)
 
   module PT : sig
     type ('a,'b) pt = 
@@ -47,7 +101,7 @@ module type FrontEndType = sig
   end
 
   (* Three abstract types:
-     t is the type of answers that the user is trying to produce
+     t is the type of answers that a plugin is trying to produce
      tomem will ever be inhabited by a function that tells the
      proof-search how to store a result
      tosearch will ever be inhabited by a function that tells the
@@ -57,9 +111,80 @@ module type FrontEndType = sig
   type tomem
   type tosearch
 
+  (* final is the plugin-readable version of type t:
+     a final answer is either
+     - a success of proof-search, with a proof-tree
+     - a failure of proof-search (carrying the sequent for which no proof was found)
+
+     local will be used as the type of intermediary outputs of the
+     proof-search engine. Intuitively, such an output is
+     - either a final answer embedded into that type with Local
+     - or a state of the proof-search that is not yet finished,
+       embedded into that type by Fake
+  *)
 
   type final = Success of PT.t | Fail of Seq.t
   type ('a,'b) local =  Local of 'a | Fake  of 'b
+
+  (* Heart of the API:
+     the actions that a plugin can order to kernel to trigger
+     computation
+
+     description of focusaction 
+     (list of actions that can be instructed by plugin upon reception of AskFocus signal)
+
+     1) Focus(toFocus,inter_fun,l)
+     - place formula toFocus in focus
+     - when I get back the result of doing this, apply inter_fun to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+     - if the result of this focusing fails, then do not ask me for my
+       next instruction but just do l (optional argument)
+
+     2) Cut(i,toCut, inter_fun1, inter_fun2,l)
+     - make a cut_i on formula toCut
+     - when I get back the result from the left branch, apply inter_fun1 to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+     - when I get back the result from the right branch, apply inter_fun2 to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+     - if the result of this cut fails, then do not ask me for my
+       next instruction but just do l (optional argument)
+
+     3) Polarise(l,b, inter_fun)
+     - make the polarity of l Neg (if b) or Pos (if not b)
+     - when I get back the result of doing this, apply inter_fun to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+
+     4) Get(b1,b2,l)
+     - put my current goal on hold as if it was a success (if b1) or
+       as if it was a failure (if not b1)
+     - move to the next unresolved goal (if b2) or to the previous one
+       (if not b2)
+     - when you come back to the current goal, then do not ask me for my
+       next instruction but just do l (optional argument)
+
+     5) Search(tosearch,inter_fun,A l)
+     - search in your database in case we already have an exact answer,
+       using function tosearch
+     - when I get back the result of doing this, apply inter_fun to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+     - if no exact match is found, then do not ask me for my
+       next instruction but just do l (optional argument)
+
+     6) Search(tosearch,inter_fun,F l)
+     - search in your database in case we already have an answer, even
+       approximate, using function tosearch
+     - when I get back the result of doing this, apply inter_fun to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+     - if the result of this cut fails, then do not ask me for my
+       next instruction but just do l (optional argument)
+
+  *)
 
   type focusaction = 
     | Focus    of F.t*receive*focusaction option

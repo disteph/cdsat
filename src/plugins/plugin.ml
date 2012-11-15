@@ -6,7 +6,7 @@ open Sequents
 
 module type Type = sig
 
-  (* A user should provide an implementation of formulae, an
+  (* A plugin should provide an implementation of formulae, an
      implementation of sets of formulae, and an implementation of
      sets of atoms *)
 
@@ -14,7 +14,7 @@ module type Type = sig
   module UFSet: CollectImplem with type e = UF.t
   module UASet: ACollectImplem
 
-  (* A user should provide a strategy: given the datastructures of a
+  (* A plugin should provide a strategy: given the datastructures of a
      FrontEnd (implementation of sequents, answers, outputs, etc), the
      strategy provides a function solve that should convert a
      temporary answer (output) into a final answer (t).  See the
