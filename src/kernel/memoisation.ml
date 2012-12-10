@@ -65,8 +65,8 @@ module PATMapExt
     let bsingleton j x = function
       | A(a) -> (ASet.add a ASet.empty,FSet.empty)
       | F(a) -> (ASet.empty,FSet.add a FSet.empty)
-    let bunion (a,b)(a',b')=if ASet.is_empty a&&FSet.is_empty b then (a',b') else (a,b) 
-      (*             let bunion (a,b)(a',b')=(ASet.union a a',FSet.union b b') *)
+    let bunion (a,b)(a',b')=if ASet.is_empty a&&FSet.is_empty b then (a',b') else (a,b)
+    (* let bunion (a,b)(a',b')=(ASet.union a a',FSet.union b b')  *)
 
     let find_sub alm (k1,k2) =
       let filter =function

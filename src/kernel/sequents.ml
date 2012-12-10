@@ -2,7 +2,6 @@
   This file contains the kernel's API to be used by a plugin
 *)
 
-
 open Lib
 
 open Formulae
@@ -125,13 +124,14 @@ symbols, how to compute the polarity of a formula *)
 
   type final = Success of PT.t | Fail of Seq.t
   type ('a,'b) local =  Local of 'a | Fake  of 'b
-
-  (* Heart of the API:
+    
+  (* Now comes the heart of the API: 
      the actions that a plugin can order to kernel to trigger
      computation
+  *)
 
-     description of focusaction 
-     (list of actions that can be instructed by plugin upon reception of AskFocus signal)
+  (* focusaction: list of actions that can be instructed by plugin
+     upon reception of AskFocus signal
 
      1) Focus(toFocus,inter_fun,l)
      - place formula toFocus in focus
@@ -163,26 +163,31 @@ symbols, how to compute the polarity of a formula *)
        as if it was a failure (if not b1)
      - move to the next unresolved goal (if b2) or to the previous one
        (if not b2)
-     - when you come back to the current goal, then do not ask me for my
+     - when you come back to the current goal, do not ask me for my
        next instruction but just do l (optional argument)
 
      5) Search(tosearch,inter_fun,A l)
      - search in your database in case we already have an exact answer,
        using function tosearch
-     - when I get back the result of doing this, apply inter_fun to it
-     to see whether I accept that result or not or I prefer to do
+     - in case there is an exact answer, apply inter_fun to it
+     to see whether I accept that answer or not or I prefer to do
      another action
      - if no exact match is found, then do not ask me for my
        next instruction but just do l (optional argument)
 
-     6) Search(tosearch,inter_fun,F l)
+     6) Search(tosearch,inter_fun,F f)
      - search in your database in case we already have an answer, even
        approximate, using function tosearch
-     - when I get back the result of doing this, apply inter_fun to it
-     to see whether I accept that result or not or I prefer to do
+     - in case there is an exact answer, apply inter_fun to it
+     to see whether I accept that answer or not or I prefer to do
      another action
-     - if the result of this cut fails, then do not ask me for my
-       next instruction but just do l (optional argument)
+     - otherwise apply f to the potential approximate answers that
+       have been found and perform the resulting action, if any
+
+     7) Restore(l)
+     - restore formPSaved (the formulae on which focus has already
+       been placed) into the set of positive formulae on which focus
+       can be placed
 
   *)
 
@@ -200,12 +205,82 @@ symbols, how to compute the polarity of a formula *)
     | Action of focusaction
   and receive = (final,bool*bool) local -> reception
 
+  (* A function to systematically accept answers *)
+
   val accept:receive
+
+  (* 'a notified = the input that plugin must provide
+     upon reception of Notify signal (a new node has been reached)
+     so as to resume computation, namely
+     (b,data,exit_function,l)
+
+     b: if b=true, plugin accepts defeat if kernel has noticed a loop
+     since last focus (i.e. no progress has been made)
+
+     data: new data with which that node will be labelled
+
+     exit_function: tells the kernel what to do when it is about to
+     leave that node with a certain answer, namely
+     - just accept result, refuse it, or do alternative action
+     (Exit(Accept/Refuse/l))
+     - or memoise it with function f before doing one of the above
+       (Mem(f,Accept/Refuse/l))
+
+     l: next action to do for this newly created node is l (optional)
+  *)
 
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
   type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*focusaction option
+
+
+  (* Output of a call to the kernel:
+
+     it can be either a final answer (type t)
+     or a intermediary answer, i.e. a signal of one of the following 4 forms
+
+     1) Notify(s,loop,action_anaylsis,data)
+     - Kernel has reached a new focus point: a sequent (s) where
+     asynchronous phase is finished
+     - loop is true if no progress has been made since last focus
+     point (kernel is proposing to fail)
+     - data (of type 'a) is the label of the last focus point
+     - action anaylysis is the kernel waiting for a new instruction to
+     be given (kernel's computation is resumed if given a "coin" of
+     type 'a notified)
+
+     2) AskFocus(s,set,action_anaylsis,data)
+     - Kernel is stuck at some focus point (previously notified to
+     plugin), with sequent s
+     - set is the set of positive formulae that haven't yet been tried
+     for focus at this focus point If plugin instruct kernel to place
+     focus on something, it should belong to set.
+     - data (of type 'a) is the label of the last focus point
+     - action anaylysis is the kernel waiting for a new instruction to
+     be given (kernel's computation is resumed if given a "coin" of
+     type focusaction)
+
+     3) AskSide(s,action_anaylsis,data)
+     - Kernel is stuck on sequent s in synchronous phase, having to
+       choose a side for decomposing positive OR
+     - data (of type 'a) is the label of the last focus point
+     - action anaylysis is the kernel waiting for a new instruction to
+     be given (kernel's computation is resumed if given a "coin" of
+     type sideaction)
+
+     4) Stop(b1,b2,action_analysis)
+     - Kernel has finished investigating all branches, possibly having
+       left some of them open
+     - b1 indicates whether the result of proof-search is Succes or
+       Failure, assuming that the remaining open branches can be
+       closed as we pretended they could
+     - b2 indicates whether we were moving to the right or to the left
+     - action anaylysis is the kernel waiting for plugin's green light
+     to change direction and come back to those open branches.
+     (kernel's computation is resumed if given a "coin" of type unit)
+
+  *)
 
   type 'a output = (t,'a fakeoutput) local
   and  'a fakeoutput = 
@@ -215,6 +290,17 @@ symbols, how to compute the polarity of a formula *)
     | Stop     of bool*bool*   (unit        -> 'a output)
 
   val toString : t -> string
+
+  (* API for Memoisation of results.
+     
+     As seen above, plugin can instruct kernel to interact with a
+     memoisation table, by providing the kernel with the appropriate
+     function to run.
+
+     Provided that plugin gives a bit more information about its data
+     structures, module Memo provides 4 memoisation handling
+     functions, and one function to clear the memoisation table
+  *)
 
   module Memo
     (FSetExt: CollectImplemExt with type e = F.t    and type t=FSet.t)
