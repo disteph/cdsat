@@ -1,16 +1,14 @@
 (* Main file *)
 
 open Kernel
-open Plugins
 open Run_tools
-
 open Flags
 open Formulae
 open Io
 open Test
 
-include Tests(DPLL.MyPlugin)
-include PrintableFormula(DPLL.MyPlugin.UF)
+include Tests(DPLL_W.MyPlugin)
+include PrintableFormula(DPLL_W.MyPlugin.UF)
 
 (* p(x) \/- !p(x) *)
 let f1 = 
