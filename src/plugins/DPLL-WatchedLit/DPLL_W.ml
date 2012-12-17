@@ -28,6 +28,20 @@ module MyPlugin : Plugin.Type = struct
     let table = H.create 5003
     let unique = ref 0
     let free = ref UASet.empty
+    let sequent = ref UASet.empty
+    let stack = ref []
+    let etape = ref 1
+    let prioritaire = ref None
+
+    let init()=
+      (H.clear table;
+      unique := 0;
+      free := UASet.empty;
+      sequent := UASet.empty;
+      stack := [];
+      etape := 1;
+      prioritaire := None)
+      
 
     let analyse_litteral l c clause=		
       if not (UASet.is_in l !free) then (free := UASet.add l !free;free:= UASet.add (Atom.negation l) !free);
@@ -52,10 +66,6 @@ module MyPlugin : Plugin.Type = struct
     let cut () = UF.build(let (x,_) = UASet.next !free in Lit(x))
       
 
-    let sequent = ref UASet.empty
-    let stack = ref []
-    let etape = ref 1
-    let prioritaire = ref None
 
 
     (* focus_pick chooses a focus
@@ -119,12 +129,15 @@ module MyPlugin : Plugin.Type = struct
 
     let backtrack s1 s2 =
       let rec back_aux s3 =
-	if (not(UASet.is_empty s3)) then
-	  let (x1,y1) = (UASet.next s3) in
+	if not(UASet.is_empty s3) then
+	  let (x1,y1) = UASet.next s3 in
 	    free:= UASet.add x1 !free;
 	    free:= UASet.add (Atom.negation x1) !free;
+	    if not (H.mem table x1) then H.add table x1 (0,UFSet.empty);
 	    H.replace table x1 (0,let (_,x) = H.find table x1 in x); 
-	    (let y = Atom.negation x1 in H.replace table y (0,let (_,x) = H.find table y in x));
+	    (let y = Atom.negation x1 in 
+	       if not (H.mem table y) then H.add table y (0,UFSet.empty);
+	       H.replace table y (0,let (_,x) = H.find table y in x));
 	    stack  := [];
 	    sequent:= UASet.remove x1 !sequent;
 	    back_aux y1
@@ -138,7 +151,8 @@ module MyPlugin : Plugin.Type = struct
 	    match i with
 	    | 2 -> (false,0)
 	    | 1 -> (true,free)
-	    | 0 -> if free == 1 then begin H.replace table l (0,let(_,m) = H.find table l in UFSet.add claus m);
+	    | 0 -> if free == 1 then begin 
+		H.replace table l (0,let(_,m) = H.find table l in UFSet.add claus m);
 		H.replace table x2 (1, let(_,m) = H.find table x2 in UFSet.remove claus m);
 		(false,0)
 	      end
@@ -147,8 +161,7 @@ module MyPlugin : Plugin.Type = struct
       | _ -> failwith("Can't handle formula") 
 
     let rec clause x2 y =
-      if (not(UFSet.is_empty y))
-      then
+      if not(UFSet.is_empty y) then
 	let (a,b)=UFSet.next y in
 	  match anal_clause x2 a a 0 with
 	  |true,0 -> prioritaire := Some(a);
@@ -158,12 +171,15 @@ module MyPlugin : Plugin.Type = struct
 
     let backtrack_sym s1 s2 =
       let rec back_aux s3 =
-	if (not(UASet.is_empty s3)) then
+	if not(UASet.is_empty s3) then
 	  let (x2,y2) = (UASet.next s3) in
-	    free := UASet.remove x2 !free;
-	    free := UASet.remove (Atom.negation x2) !free;
+	    if UASet.is_in x2 !free then free := UASet.remove x2 !free;
+	    if UASet.is_in (Atom.negation x2) !free then free := UASet.remove (Atom.negation x2) !free;
+	    if not (H.mem table x2) then H.add table x2 (1,UFSet.empty);
 	    H.replace table x2 (1,let (_,x) = H.find table x2 in x);
-	    (let y = Atom.negation x2 in H.replace table y (2,let (_,x) = H.find table y in x));
+	    (let y = Atom.negation x2 in 
+	       if not (H.mem table y) then H.add table y (2,UFSet.empty);
+	       H.replace table y (2,let (_,x) = H.find table y in x));
 	    (let (_,x) = H.find table x2 in match !prioritaire with None -> clause x2 x | _ -> ());
 	    back_aux y2
       in
@@ -175,7 +191,7 @@ module MyPlugin : Plugin.Type = struct
 
       (* When the kernel gives us a final answer, we return it and clear all the caches *)
 
-      | Local ans                    ->
+      | Local ans                    -> init();
 	  Me.clear(); print_endline("   Plugin's report:"); print_endline(print_state 0); print_endline "";
 	  UF.clear(); UASet.clear(); UFSet.clear();Formulae.Atom.clear();address:=No;
 	  for i=0 to Array.length count-1 do count.(i) <- 0 done;
@@ -203,29 +219,34 @@ module MyPlugin : Plugin.Type = struct
 
       | Fake(AskFocus(seq,l,machine,olda)) when !Flags.memo
 	  ->
-	  if !unique=0 then (unique := !unique + 1; let _=analyse l in ());
+	  if !unique=0 then (unique := !unique + 1; analyse l);
 	  prioritaire:=None;
 	  let (newsequent,_) = Seq.simplify seq in
 	  backtrack     !sequent newsequent;
 	  backtrack_sym !sequent newsequent;	  
 	  sequent := newsequent;
-
-	  (match !prioritaire with
-	     | None ->
-		 begin
-		   let rec analyse_stack s =
-		     match !s with
-		       | []   -> ()
-		       | x::y ->
-			   begin
-			     s := y;
-			     if UFSet.is_in x l
-			     then prioritaire:= Some(x)
-			     else analyse_stack s
-			   end
-		   in analyse_stack stack;
-		 end
-	     |_ -> ());
+	  (match seq with
+	       Seq.EntF(_,_,_,_,_)->()
+	     | Seq.EntUF(_,_,l',l'',_)->
+		 (match !prioritaire with
+		    | None ->
+			begin
+			  let rec analyse_stack s =
+			    match !s with
+			      | []   -> ()
+			      | x::y ->
+				  begin
+				    s := y;
+				    if UFSet.is_in x l
+				    then prioritaire:= Some(x)
+				    else analyse_stack s
+				  end
+			  in analyse_stack stack;
+			end
+		    |Some x -> ()
+		 )
+(*		    |Some x -> if not((UFSet.is_in x l')||(UFSet.is_in x l'')) then failwith("Pas autorisé "^PF.toString(x)) *)
+	  );
 	  
 	  (match !prioritaire with
 	    | Some(u) -> solve(machine(Search(Me.search4failure,accept,A(Some(Focus(u,accept,None)))))) 

@@ -456,16 +456,4 @@ let package_default =
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
 (* OASIS_STOP *)
-open Ocamlbuild_plugin
-
-let ( & ) f x = f x
-
-let () = dispatch & function
-  | After_rules ->
-    let list = ["src"; "src/plugins"; "src/plugins/DPLL";
-      "src/plugins/Naive"] in
-    Pathname.define_context "src/plugins/DPLL" list;
-    Pathname.define_context "src/plugins/Naive" list;
-    Pathname.define_context "src/plugins/Other" list
-  | _ -> ()
-
+Ocamlbuild_plugin.dispatch dispatch_default;;
