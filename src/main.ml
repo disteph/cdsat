@@ -7,8 +7,8 @@ open Formulae
 open Io
 open Test
 
-include Tests(DPLL_W.MyPlugin)
-include PrintableFormula(DPLL_W.MyPlugin.UF)
+include Tests(DPLL.MyPlugin)
+include PrintableFormula(DPLL.MyPlugin.UF)
 
 (* p(x) \/- !p(x) *)
 let f1 = 

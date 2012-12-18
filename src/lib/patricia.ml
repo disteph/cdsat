@@ -144,7 +144,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
        argument b decides whether to print the map as a list [b=None]
        or as a tree [b=Some(g,h)], with g printing prefixes and h printing branchings *)
 
-    let toString_aux b f t =
+    let toString b f t =
       let rec aux indent t = match t.reveal with
 	| Empty            -> "{}"
 	| Leaf(j,x)        -> (match b with
@@ -389,8 +389,6 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     in
       elements_aux [] s
 
-  let toString f = toString_aux f
-
   (* find_su looks for element in a patricia tree, in a completely modular way. *)
 
   let find_su yes singleton empty union su bp cond cond' k t =
@@ -455,7 +453,7 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-  let toString b f = toString_aux b (fun (x,y)->f x)
+  let toString b f = toString b (fun (x,y)->f x)
 
   let make l     = List.fold_right add l empty
 
