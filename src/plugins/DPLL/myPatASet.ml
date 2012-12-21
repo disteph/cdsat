@@ -118,42 +118,42 @@ module MyPatA = struct
 
   module CI = struct
     type e        = Atom.t
-    type t        = SS.t*(e option)
-    let hash(a,_)= SS.hash a
-    let equal(a,_)(a',_)= SS.equal a a'
-    let empty     = (SS.empty, None)
-    let is_empty(a,_)  = SS.is_empty a
-    let union(a,_)(a',_)= (SS.union AtSet.union a a',None)
-    let inter(a,_)(a',_)= (SS.inter AtSet.inter a a',None)
-    let is_in l (t,_) =
+    type t        = SS.t
+    let hash      = SS.hash
+    let equal     = SS.equal
+    let empty     = SS.empty
+    let is_empty  = SS.is_empty
+    let union     = SS.union AtSet.union
+    let inter     = SS.inter AtSet.inter
+    let is_in l t =
       let (b,p,tl) = Atom.reveal l in
 	(SS.mem (b,p) t)&&(AtSet.is_in l (SS.find (b,p) t))
-    let add l (h,_) =
+    let add l     =
       let (b,p,tl) = Atom.reveal l in
       let f c = function
 	| None   -> AtSet.SS.singleton c
 	| Some d -> AtSet.add c d
-      in (SS.add f (b,p) l h,Some l)
-    let remove l (h,_) =
+      in SS.add f (b,p) l
+    let remove l  =
       let (b,p,tl) = Atom.reveal l in
-	(SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p) h ,None)
-    let next (t1,a) =
+	SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p)
+    let next t1 =
       let (_,y) = SS.choose t1 in
       let l = AtSet.SS.choose y in
-      (l, remove l (t1,a))
-    let toString (h,_)= SS.toString None (fun (k,l)->AtSet.toString l) h
-    let filter b pred (t,_)=
+      (l, remove l t1)
+    let toString = SS.toString None (fun (k,l)->AtSet.toString l)
+    let filter b pred t=
       if SS.mem (b,pred) t
-      then (SS.leaf((b,pred),SS.find (b,pred) t),None)
+      then SS.leaf((b,pred),SS.find (b,pred) t)
       else empty
   end
 
   module Ext =struct
     include CI
-    let compare(a,_)(a',_)= SS.compare a a'
+    let compare    = SS.compare
     let compareE   = atcompare
-    let first_diff(a,_)(a',_) = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info a a'
-    let sub alm (s1,_) (s2,_) limit =
+    let first_diff = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info
+    let sub alm s1 s2 limit =
       (*      let singl e = let (b,p,_)= Atom.reveal e in SS.Leaf((b,p),AtSet.SS.singleton e) in	  *)
       let f alm k x = function
 	| Some y -> AtSet.sub alm x y limit
@@ -170,8 +170,7 @@ module MyPatA = struct
   include Ext
 
   let clear () = SS.clear();AtSet.clear()
-  let id (a,_)=SS.id a
-  let latest (_,b) = b
+  let id=SS.id
 
 end
 
