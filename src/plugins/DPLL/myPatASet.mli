@@ -14,6 +14,7 @@ module type MyPatCollect = sig
   type t = CI.t
   type common
   type branching
+
   val is_empty : t -> bool
   val is_in : e -> t -> bool
   val empty : t
@@ -69,6 +70,7 @@ module MyPatA : sig
   val hash : t -> int
   val equal : t -> t -> bool
   val empty : t
+  val latest: t -> e option
   val is_empty : t -> bool
   val union : t -> t -> t
   val inter : t -> t -> t

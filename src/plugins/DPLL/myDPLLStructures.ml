@@ -1,6 +1,5 @@
 open Lib
 open Kernel
-
 open Formulae
 open MyPatASet
 open Patricia
@@ -104,7 +103,56 @@ module MyDPLLFSet = struct
     let tString = None (*Some(cstring,bstring)*)
   end
 
-  include MyPat(UT)
+  module D = struct
+    type keys        = UT.keys
+    let kcompare     = UT.compare
+    type values      = unit
+    let vcompare _ _ = 0
+    type infos       = (keys m_infos)*MyPatA.t
+    let info_build   = ((None,MyPatA.empty),
+			(fun x _ -> (Some x,match MyDPLLForm.aset x with None->MyPatA.empty | Some a->a)),
+			(fun (a,b)(a',b') ->
+			   (splmin kcompare a a',MyPatA.union b b'))
+		       )
+
+    let treeHCons    = !Flags.memo
+  end
+
+  module SS = PATSet(D)(UT)
+
+  module CI = struct
+    type e       = UT.keys
+    type t       = SS.t
+    let is_empty = SS.is_empty
+    let is_in    = SS.mem
+    let empty    = SS.empty
+    let add      = SS.add
+    let union    = SS.union
+    let inter    = SS.inter
+    let remove   = SS.remove
+    let hash     = SS.hash
+    let equal    = SS.equal
+    let toString = SS.toString UT.tString UT.toString
+    let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
+  end
+
+  module Ext = struct
+    include CI
+    let compare    = SS.compare
+    let compareE   = UT.compare
+    let first_diff = SS.first_diff (fun x->let (a,_)= SS.info x in a)
+    let sub alm s1 s2 limit =
+      let locprune t = match limit,let (a,_)= SS.info t in a with
+	| Some b,Some x when not (UT.compare x b<0) -> SS.Empty
+	| _                                         -> SS.reveal t
+      in SS.sub locprune alm s1 s2
+  end
+
+  include Ext
+
+  let choose     = SS.choose
+  let clear      = SS.clear
+  let cardinal   = SS.cardinal
 
   let sub = UT.sub (UT1.sub (MyPatA.sub)) (fun _ _ _ _->Yes()) true
 
@@ -121,11 +169,25 @@ module MyDPLLFSet = struct
     | _        -> true
 
   let schoose atms l =
-    find_su byes bsingleton bempty bunion sub true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
+    SS.find_su byes bsingleton bempty bunion sub true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
 
+  let smartchoose atms t treat_UP treat_N =
+    let rec aux t = match SS.reveal t with
+      | SS.Empty           -> (None,t)
+      | SS.Leaf(j,x)       -> (match sub (UT.tag j) (Some(atms),-1) None with
+				 | Yes _                       -> (Some j,t)
+				 | Almost n when filter atms n -> (treat_UP n;(None,t))
+				 | _                           -> (treat_N j;(None,empty))
+			      )
+      | SS.Branch(p,m,l,r) -> (match aux r with
+				 | (None,r') -> let (v,l') = aux l in (v,SS.union l' r')
+				 | v -> v
+			      )
+    in aux t
+	 
   let yes _ _ _ = Yes() 
 
   let rchoose atms l =
-    find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
+    SS.find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
 
 end
