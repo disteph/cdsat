@@ -2,7 +2,7 @@ open Lib
 open Kernel
 
 open Formulae
-open MyPatASet_W
+open MyPatASet
 open Patricia
 open Sums
 open SetConstructions

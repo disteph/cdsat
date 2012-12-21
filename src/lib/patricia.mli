@@ -161,8 +161,8 @@ module PATSet
     val cardinal : t -> int
     val empty : t
       (*
-        val leaf : D.keys * unit -> t
-        val branch : I.common * I.branching * t * t -> t
+	val leaf : D.keys * unit -> t
+	val branch : I.common * I.branching * t * t -> t
         val join : I.common * t * I.common * t -> t
         val remove_aux : (I.keys -> unit -> t) -> I.keys -> t -> t
       *)
