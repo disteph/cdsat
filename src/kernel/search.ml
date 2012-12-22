@@ -4,11 +4,16 @@ open Formulae
 open Collection
 open Sums
 
-module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem) =
+module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem)
+  (DecProc: sig
+     val goal_consistency: ASet.t -> Atom.t -> ASet.t option
+     val consistency: ASet.t -> ASet.t option
+   end)
+  =
   (struct
 
-     (* Loads the FrontEnd *)	   
-     module FE = Sequents.FrontEnd(F)(FSet)(ASet) 
+     (* Loads the FrontEnd *)
+     module FE = Sequents.FrontEnd(F)(FSet)(ASet)
      open FE
      
      (* Array where we count how many events we get *)
@@ -186,26 +191,19 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		 in
 		   Fake(AskSide(seq,side_pick,data))
 
-	     | Lit t ->
-		 let (b,p,_) = Atom.reveal t in
-		 let rec filt_inspect filtered cont =
-		   if ASet.is_empty filtered then cont (throw (Local(Fail seq)) seq)
-		   else
-		     let (at,newfiltered) = ASet.next filtered in
-		     let u2 = filt_inspect newfiltered in
-		       if (Atom.equal at t) then 
-			 cont (throw (Local(Success(PT.build(PT.Axiom(
-							       relevant(seq,(ASet.add t ASet.empty,FSet.empty::FSet.empty::[]))
-							     ))))) seq)
-		       else u2 cont
-		 in filt_inspect (ASet.filter b p atomN) cont
+	     | Lit t -> let x = match DecProc.goal_consistency atomN t with
+		 | None   -> Fail seq
+		 | Some a -> Success(PT.build(PT.Axiom(
+						relevant(seq,(a,FSet.empty::FSet.empty::[]))
+					      )))
+	       in cont (throw (Local x) seq)
 
 	     | _ -> failwith("All cases should have been covered!")
 	   end
 	     
 	 | Seq.EntUF(atomN, delta, formP, formPSaved, polar) when not (FSet.is_empty delta)
 	     -> let (toDecompose,newdelta) = FSet.next delta in
-	       begin match (F.reveal toDecompose) with
+	       begin match F.reveal toDecompose with
 		 | _ when (polarity polar toDecompose) = Sequents.Pos ->
 		     if (FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)
 		     then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
@@ -289,6 +287,18 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
+
+		     | ConsistencyCheck(inter_fun,l) -> (*Checking consistency*)
+			 let u1 cont =
+			   let x = match DecProc.consistency atomN with
+			     | None   -> Fail seq
+			     | Some a -> Success(PT.build(PT.Axiom(
+							    relevant(seq,(a,FSet.empty::FSet.empty::[]))
+							  )))
+			   in cont (throw (Local x) seq)
+			 in
+			 let u2 = lk_solvef formPChoose formP formPSaved l data in
+			   ou u1 u2 (stdone seq) (stdone seq) seq cont
 
 		     | Polarise(l,b, inter_fun) ->
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,

@@ -151,6 +151,14 @@ symbols, how to compute the polarity of a formula *)
      - if the result of this cut fails, then do not ask me for my
        next instruction but just do l (optional argument)
 
+     3) ConsistencyCheck(inter_fun,l)
+     - check the consistency of the set of atoms
+     - when I get back the result, apply inter_fun to it to see
+     whether I accept that result or not or I prefer to do another
+     action
+     - if the result of this cut fails, then do not ask me for my
+       next instruction but just do l (optional argument)
+
      3) Polarise(l,b, inter_fun)
      - make the polarity of l Neg (if b) or Pos (if not b)
      - when I get back the result of doing this, apply inter_fun to it
@@ -193,6 +201,7 @@ symbols, how to compute the polarity of a formula *)
   type focusaction = 
     | Focus    of F.t*receive*focusaction option
     | Cut      of int*F.t*receive*receive*focusaction option
+    | ConsistencyCheck of receive*focusaction option
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool*focusaction option
     | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
@@ -413,6 +422,7 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   type focusaction = 
     | Focus    of F.t*receive*focusaction option
     | Cut      of int*F.t*receive*receive*focusaction option
+    | ConsistencyCheck of receive*focusaction option
     | Polarise of Atom.Predicates.t*bool*receive
     | Get      of bool*bool*focusaction option
     | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum

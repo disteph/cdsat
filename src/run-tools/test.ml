@@ -8,7 +8,7 @@ open Io
 module Tests (P:Plugin.Type) = struct
 
   include P
-  module Src   = ProofSearch(UF)(UFSet)(UASet)
+  module Src   = ProofSearch(UF)(UFSet)(UASet)(Empty.Build(UASet))
   module Strat = Strategy(Src.FE)
 
   let orig_seq my_formula = Src.FE.Seq.EntUF(UASet.empty,UFSet.add my_formula UFSet.empty, UFSet.empty, UFSet.empty,Sequents.Pol.empty)
