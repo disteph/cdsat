@@ -22,7 +22,8 @@ module TypesFromHConsed(S:FromHConsed) = struct
   let branching_bit p0 p1 = lowest_bit (p0 lxor p1)
   let mask p m            = p land (m-1)
 
-  let match_prefix q p m  = (mask q m) == p
+  let match_prefix q p m  = mask q m == p
+
   let disagree p0 p1      = 
     let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
 

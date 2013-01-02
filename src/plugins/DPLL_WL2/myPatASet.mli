@@ -14,7 +14,6 @@ module type MyPatCollect = sig
   type t = CI.t
   type common
   type branching
-
   val is_empty : t -> bool
   val is_in : e -> t -> bool
   val empty : t
@@ -30,6 +29,7 @@ module type MyPatCollect = sig
   val compareE : e -> e -> int
   val sub  : bool->t->t->e option->(unit,e) almost
   val first_diff : t -> t -> e option * bool
+  val iter : (e->unit)->t->unit
   val choose : t -> e
   val clear: unit->unit
   val cardinal: t->int
@@ -70,10 +70,12 @@ module MyPatA : sig
   val hash : t -> int
   val equal : t -> t -> bool
   val empty : t
-  val latest: t -> e option
   val is_empty : t -> bool
   val union : t -> t -> t
   val inter : t -> t -> t
+  val diff : t -> t -> t
+  val latest: t -> e option
+  val choose : t -> Formulae.Atom.t
   val is_in : Formulae.Atom.t -> t -> bool
   val add : Formulae.Atom.t -> t -> t
   val remove : Formulae.Atom.t -> t -> t

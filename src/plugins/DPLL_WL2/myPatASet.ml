@@ -60,6 +60,8 @@ module MyPat(UT:sig
 
   include Ext
 
+  let iter       = SS.iter
+  let diff       = SS.diff
   let choose     = SS.choose
   type common    = UT.common
   type branching = UT.branching
@@ -117,15 +119,15 @@ module MyPatA = struct
   let lleaf(k,x) = if AtSet.is_empty x then SS.empty else SS.leaf(k,x)
 
   module CI = struct
-    type e        = Atom.t
-    type t        = SS.t*(e option)
-    let hash(a,_)= SS.hash a
+    type e              = Atom.t
+    type t              = SS.t*(e option)
+    let hash(a,_)       = SS.hash a
     let equal(a,_)(a',_)= SS.equal a a'
-    let empty     = (SS.empty, None)
-    let is_empty(a,_)  = SS.is_empty a
+    let empty           = (SS.empty, None)
+    let is_empty(a,_)   = SS.is_empty a
     let union(a,_)(a',_)= (SS.union AtSet.union a a',None)
     let inter(a,_)(a',_)= (SS.inter AtSet.inter a a',None)
-    let is_in l (t,_) =
+    let is_in l (t,_)   =
       let (b,p,tl) = Atom.reveal l in
 	(SS.mem (b,p) t)&&(AtSet.is_in l (SS.find (b,p) t))
     let add l (h,_) =
@@ -140,37 +142,39 @@ module MyPatA = struct
     let next (t1,a) =
       let (_,y) = SS.choose t1 in
       let l = AtSet.SS.choose y in
-      (l, remove l (t1,a))
-    let toString (h,_)= SS.toString None (fun (k,l)->AtSet.toString l) h
+	(l, remove l (t1,a))
+    let toString (h,_)= SS.toString None (fun (k,l)->AtSet.toString l) h 
+      (*    let toString (h,_)= SS.toString (Some((fun i->string_of_int i^"|"),(fun i->string_of_int i^"|"))) (fun (k,l)->("F"^string_of_int(AtSet.SS.id l)^AtSet.toString l)) h *)
     let filter b pred (t,_)=
       if SS.mem (b,pred) t
       then (SS.leaf((b,pred),SS.find (b,pred) t),None)
       else empty
   end
 
+  let diff (t1,_)(t2,_) = (SS.diff (fun k v1 v2 -> lleaf(k,AtSet.diff v1 v2)) t1 t2,None)
+
   module Ext =struct
     include CI
-    let compare(a,_)(a',_)= SS.compare a a'
-    let compareE   = atcompare
+    let compare(a,_)(a',_)    = SS.compare a a'
+    let compareE              = atcompare
     let first_diff(a,_)(a',_) = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info a a'
-    let sub alm (s1,_) (s2,_) limit =
-      (*      let singl e = let (b,p,_)= Atom.reveal e in SS.Leaf((b,p),AtSet.SS.singleton e) in	  *)
+    let sub alm (s1,f) (s2,g) limit =
       let f alm k x = function
 	| Some y -> AtSet.sub alm x y limit
 	| None   -> AtSet.sub alm x AtSet.empty limit
       in 
-      let locprune t = match limit,SS.info t with
-	| Some b,Some x when not (compareE x b<0) -> SS.Empty
-	    (*	| Some b,Some(x,Some y) when not (compareE y b<0) -> singl x*)
-	| _                                       -> SS.reveal t
+      let locprune t =
+	match limit,SS.info t with
+	  | Some b,Some x when not (compareE x b<0) -> SS.Empty
+	  | _                                       -> SS.reveal t
       in SS.sub f locprune alm s1 s2
+ end
 
-  end
+include Ext
 
-  include Ext
-
-  let clear () = SS.clear();AtSet.clear()
-  let id (a,_)=SS.id a
+  let choose (t,_) = let (_,b)= SS.choose t in AtSet.choose b
+  let clear ()     = SS.clear();AtSet.clear()
+  let id (a,_)     = SS.id a
   let latest (_,b) = b
 
 end
@@ -202,6 +206,7 @@ sig
   val compareE : e -> e -> int
   val sub  : bool->t->t->e option->(unit,e) almost
   val first_diff : t -> t -> e option * bool
+  val iter : (e->unit)->t->unit
   val choose : t -> e
   val clear: unit->unit
   val cardinal: t->int

@@ -7,7 +7,7 @@ open Formulae
 open Io
 open Test
 
-include Tests(DPLL.MyPlugin)
+include Tests(DPLL_WL2.MyPlugin)
 include PrintableFormula(UF)
 
 (* p(x) \/- !p(x) *)

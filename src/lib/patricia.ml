@@ -129,11 +129,11 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     let remove_aux f k t =
       let rec rmv t = match reveal t with
 	| Empty      -> empty
-	| Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith("Was not there -leaf")
+	| Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith("Remove: Was not there -leaf")
 	| Branch (p,m,t0,t1) ->
 	    if match_prefix (tag k) p m then
 	      if check (tag k) m then branch (p, m, rmv t0, t1) else branch (p, m, t0, rmv t1)
-	    else failwith("Was not there -branch")
+	    else failwith("Remove: Was not there -branch")
       in rmv t
 
     (* remove function: argument f of remove_aux says "delete the key altogether" *)
@@ -283,9 +283,9 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
      We start with an auxiliary function for sub below *)
 
   let aux_and v1 v2 alm = match v1 alm with
-    | Yes()    -> v2 alm
-    | Almost x -> (match v2 false with Yes() -> Almost x | _-> No)
-    | No       -> No
+    | Yes()    -> (*print_endline("left Yes");*)v2 alm
+    | Almost x -> ((*print_endline("left Almost");*)match v2 false with Yes() -> Almost x | _-> No)
+    | No       -> (*print_endline("left No");*)No
 
   let sub f locprune alm s1 s2 =
     let rec aux s1 s2 alm= match locprune s1, locprune s2 with
@@ -300,7 +300,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	    aux_and(aux l1 l2)(aux r1 l2)alm
 	  else 
 	    aux_and(aux l1 r2)(aux r1 r2)alm
-      | Branch(p1,m1,l1,r1),Branch (p2,m2,l2,r2) when bcompare m1 m2 < 0 && match_prefix p1 p2 m1
+      | Branch(p1,m1,l1,r1),Branch (p2,m2,l2,r2) when bcompare m1 m2 < 0 && match_prefix p2 p1 m1
 	  -> if check p2 m1 then 
 	    aux_and(aux r1 empty)(aux l1 s2)alm
 	  else 
