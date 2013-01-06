@@ -26,7 +26,7 @@ let every                  (* Prints every XXX events *)
       (* fakefail failure *)
       1;
       (* memorised new thing *)
-      1000;
+      1;
       (* thing to memorise is weaker than current knowledge *)
       100000;
       (* cut *)

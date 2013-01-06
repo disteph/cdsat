@@ -19,6 +19,8 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
   let initial_data= 0
   let address     = ref No
 
+  let fNone () = None
+
   module Me = Memo(UFSet.Ext)(UASet.Ext)
   module PF = Formulae.PrintableFormula(UF)
 
@@ -44,22 +46,22 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 		  | Local(Success _) when count.(4)==now ->address:=No;Accept
 		  | _-> failwith "Expected Success"
 		in
-		  Focus(a,myaccept,None)
+		  Focus(a,myaccept,fNone)
 	    | F(Some a) ->if !Flags.debug>1 then print_endline("Almost "^PF.toString a);
 		address:=Almost(olda);
 		count.(2)<-count.(2)+1;
-		Focus(a,accept,None)
+		Focus(a,accept,fNone)
 	    | _         ->
 		address:=No;
 		count.(3)<-count.(3)+1;
 		match UFSet.rchoose h l with
 		  | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
-		      Focus(a,accept,None)
+		      Focus(a,accept,fNone)
 		  | _         -> let a = UFSet.choose l in
 		      if !Flags.debug>1 then print_endline("Random problematic focus on "^PF.toString a);
-		      Focus(a,accept,None))
+		      Focus(a,accept,fNone))
     else
-      Focus(UFSet.choose l,accept,None)
+      Focus(UFSet.choose l,accept,fNone)
 
   let print_state olda =
     string_of_int count.(4)^" notifies, "^
@@ -68,7 +70,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
       string_of_int count.(2)^"/"^
       string_of_int count.(3)
       
-  let rec cut_series (a,f) =
+  let rec cut_series (a,f) () =
     if ASet.is_empty a then
       if FSet.is_empty f then
 	None
@@ -93,7 +95,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
        we restore the formulae on which we already placed focus *)
 
     | Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
-	-> solve (machine(Restore None))
+	-> solve (machine(Restore fNone))
 
     (* If Memoisation is on, we
        - start searching whether a bigger sequent doesn't already
@@ -109,7 +111,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 
     | Fake(AskFocus(seq,l,machine,olda)) when !Flags.memo
 	-> let (a,_)=Seq.simplify seq in
-	  solve (machine(Search(Me.search4failure,accept,A(Some(focus_pick a l olda)))))
+	  solve (machine(Search(Me.search4failure,accept,A(fun()->Some(focus_pick a l olda)))))
 
     (* If Memoisation is off, we run focus_pick to determine which
        action to perform, passing it the set of atoms, the set of
@@ -147,7 +149,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 	  solve (machine (true,
 			  count.(4),
 			  (fun _ -> Mem(Me.tomem,Accept)),
-			  Some(Search(Me.search4success,accept,if !Flags.almo then F(cut_series) else A(None)))
+			  fun()->Some(Search(Me.search4success,accept,if !Flags.almo then F(cut_series) else A(fNone)))
 			 ))
 
     (* If Memoisation is off, we
@@ -161,7 +163,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 	if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
 	then print_endline(print_state olda);
 	count.(4)<-count.(4)+1;
-	solve (machine (true,0,(fun _ -> Exit(Accept)),None))
+	solve (machine (true,0,(fun _ -> Exit(Accept)),fNone))
 
     (* When we are asked a side, we always go for the left first *)
 

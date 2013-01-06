@@ -176,6 +176,8 @@ include Ext
   let clear ()     = SS.clear();AtSet.clear()
   let id (a,_)     = SS.id a
   let latest (_,b) = b
+  let cardinal (s,_) = SS.fold (fun _ x accu -> AtSet.cardinal x+accu) s 0
+  let negations (s,_) = SS.fold (fun k x accu -> AtSet.SS.fold (fun k accu -> add (Atom.negation k) accu) x accu) s empty
 
 end
 

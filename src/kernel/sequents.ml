@@ -199,19 +199,20 @@ symbols, how to compute the polarity of a formula *)
   *)
 
   type focusaction = 
-    | Focus    of F.t*receive*focusaction option
-    | Cut      of int*F.t*receive*receive*focusaction option
-    | ConsistencyCheck of receive*focusaction option
+    | Focus    of F.t*receive*alt_action
+    | Cut      of int*F.t*receive*receive*alt_action
+    | ConsistencyCheck of receive*alt_action
     | Polarise of Atom.Predicates.t*bool*receive
-    | Get      of bool*bool*focusaction option
-    | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
-    | Restore  of focusaction option
+    | Get      of bool*bool*alt_action
+    | Search   of tosearch*receive*(alt_action,ASet.t*FSet.t->alt_action)sum
+    | Restore  of alt_action
   and sideaction = bool
   and reception = 
     | Accept
     | Refuse
     | Action of focusaction
   and receive = (final,bool*bool) local -> reception
+  and alt_action = unit->(focusaction option)
 
   (* A function to systematically accept answers *)
 
@@ -240,7 +241,7 @@ symbols, how to compute the polarity of a formula *)
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*focusaction option
+  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*alt_action
 
 
   (* Output of a call to the kernel:
@@ -318,6 +319,7 @@ symbols, how to compute the polarity of a formula *)
       val search4success : tosearch
       val search4failure : tosearch
       val search4both    : tosearch
+      val report         : unit->unit
       val clear          : unit->unit
     end
 
@@ -420,24 +422,25 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
   *)
 
   type focusaction = 
-    | Focus    of F.t*receive*focusaction option
-    | Cut      of int*F.t*receive*receive*focusaction option
-    | ConsistencyCheck of receive*focusaction option
+    | Focus    of F.t*receive*alt_action
+    | Cut      of int*F.t*receive*receive*alt_action
+    | ConsistencyCheck of receive*alt_action
     | Polarise of Atom.Predicates.t*bool*receive
-    | Get      of bool*bool*focusaction option
-    | Search   of tosearch*receive*(focusaction option,ASet.t*FSet.t->focusaction option)sum
-    | Restore  of focusaction option
+    | Get      of bool*bool*alt_action
+    | Search   of tosearch*receive*(alt_action,ASet.t*FSet.t->alt_action)sum
+    | Restore  of alt_action
   and sideaction = bool
   and reception = 
     | Accept
     | Refuse
     | Action of focusaction
   and receive = (final,bool*bool) local -> reception
+  and alt_action = unit->(focusaction option)
 
   type newnode_exit = 
     | Exit   of reception
     | Mem    of tomem*reception
-  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*focusaction option
+  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*alt_action
 
   let accept _ = Accept
 
@@ -531,10 +534,12 @@ module FrontEnd (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet
 	    | A a -> A a
 	    | v   -> v 
 
-      let clear () =
+      let report() = 
 	print_endline("   Memoisation report:");
 	print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries, "
-		      ^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries");
+		      ^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries")
+
+      let clear () =
 	count:=0;newcount:=0;tableS := MP.empty; tableF := MP.empty
     end
 

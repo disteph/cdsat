@@ -106,8 +106,6 @@ module MyDPLLFSet = struct
 
   include MyPat(UT)
 
-  let sub = UT.sub (UT1.sub (MyPatA.sub)) (fun _ _ _ _->Yes()) true
-
   let byes j         = j
   let bempty         = None
   let bsingleton j m = Some j
@@ -119,9 +117,6 @@ module MyDPLLFSet = struct
   let filter atms =function
     | A(Some a)-> not (MyPatA.is_in (Atom.negation a) atms)
     | _        -> true
-
-  let schoose atms l =
-    find_su byes bsingleton bempty bunion sub true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
 
   let yes _ _ _ = Yes() 
 

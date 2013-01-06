@@ -88,4 +88,6 @@ module MyPatA : sig
   val first_diff : t -> t -> Formulae.Atom.t option * bool
   val clear: unit->unit
   val id: t-> int
+  val cardinal: t->int
+  val negations: t->t
 end

@@ -101,8 +101,8 @@ module LexProduct
 
   let disagree (p1,p2) (p1',p2') = 
     if I1.pequals p1 p1'
-    then match I2.disagree p2 p2' with (p2'',d,c) -> ((p1,p2''),F(d),c)
-    else match I1.disagree p1 p1' with (p1'',d,c) -> ((p1'',p2),A(d),c)
+    then let (p2'',d,c) = I2.disagree p2 p2' in ((p1,p2''),F(d),c)
+    else let (p1'',d,c) = I1.disagree p1 p1' in ((p1'',p2),A(d),c)
 
   let sub sub1 sub2 alm (k1,k2) (p1,p2) =
     let lift1 = function Almost a->Almost(A a) | Yes _ -> Yes() | No->No in
@@ -151,13 +151,14 @@ module Lift(I:sig include Intern
 
   let match_prefix q p = function
     | None    -> true
-    | Some mm -> match q, p with
+    | Some mm -> begin match q, p with
 	| Some qq,Some pp -> I.match_prefix qq pp mm
 	| None,None       -> true
 	| _               -> false
+      end
 	    
   let disagree p p' = match p, p' with
-    | Some pp,Some pp' -> (match I.disagree pp pp' with (com,d,b) -> (Some com,Some d,b))
+    | Some pp,Some pp' -> let (com,d,b) = I.disagree pp pp' in (Some com,Some d,b)
     | None , Some _    -> (None,None,true)
     | Some _, None     -> (None,None,false)
     | None, None       -> failwith("Disagree called on two equal arguments!")

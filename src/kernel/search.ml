@@ -18,27 +18,26 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
      
      (* Array where we count how many events we get *)
 
-     let count = [|0;0;0;0;0;0;1|]
+     let count = [|0;0;0;0;0;0;1;0;0;0|]
 
      (* Chooses whether, when faking failure, the natural
 	behaviour is to go right (true) or left (false) *)
 
      let dir = ref true
 
-     (* Remembers time of start *)
-
-     let start_time    = ref (Sys.time())
-     let last_display  = ref (Sys.time())
-     let print_time() =
-       let b=Sys.time() in
-       let c=b-. !last_display  in
-	 if c>float_of_int Flags.every.(8) then
-	   (last_display:=b;
-	    print_endline(string_of_int (int_of_float(b-. !start_time))
-			  ^" seconds, with "
-			  ^string_of_int count.(6)
-			  ^" open branches"))
-	     
+     let report i = 
+       print_endline("With "
+		     ^(string_of_int count.(0))^" Successes, "
+		     ^(string_of_int count.(1))^" Failures, "
+		     ^(string_of_int count.(7))^" Loops detected, "
+		     ^(string_of_int count.(8))^" Notifies, "
+		     ^(string_of_int count.(4))^" Focus, "
+		     ^(string_of_int count.(5))^" Cuts, and "
+		     ^(string_of_int count.(2))^" Fake successes and "
+		     ^(string_of_int count.(3))^" Fake failures, "
+		     ^(string_of_int count.(9))^" operations"
+		     ^(if i>0 then (", "^string_of_int count.(6)^" open branches") else ".")
+		    )
 
      (* Throws a local answer ans on sequent s: printing message
 	on standard output if debug mode is on, incrementing the
@@ -118,6 +117,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	 | Local(Success prooftree)-> cont (Local(Success(fseq prooftree)))
 	 | Local(Fail _)           -> cont (Local(Fail seq))
 	 | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp(straight f fseq seq)))
+(*	 | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp f)) *)
        in
 	 v newcont
 
@@ -166,8 +166,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
       *)
 
      let rec lk_solve inloop seq data cont =
-       
-       if Flags.every.(8)>0 then print_time();
+       count.(9)<-count.(9)+1;
+       if Flags.every.(8)>0 then print_time report;
        if !Flags.debug>1 then print_endline("attack "^print_state seq);
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
@@ -247,7 +247,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
 	   ->begin if !Flags.debug>1 then print_endline("attack "^print_state seq);
-	     let rec lk_solvef formPChoose formP formPSaved actionO data cont = 
+
+	     let rec lk_solvef formPChoose formP formPSaved action0 data cont = 
 
 	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved)) 
 	       then cont (throw (Local(Fail seq)) seq)
@@ -286,7 +287,8 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose formP formPSaved l data in
-			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
+			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont 
+(*			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont *)
 
 		     | ConsistencyCheck(inter_fun,l) -> (*Checking consistency*)
 			 let u1 cont =
@@ -332,7 +334,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 
 		     | _       -> failwith("focus_pick has suggested a stupid action")
 
-		 in match actionO with
+		 in match action0() with
 		   | Some(action)-> action_analysis action
 		   | None        -> Fake(AskFocus(seq,formPChoose,action_analysis,data))
 	     in
@@ -345,23 +347,17 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 					    | Fake _   -> ()
 					  end; recept_analysis recept)
 	     in
-	     let notify_analysis (accept_defeat,newdata,inter_fun,action0) =
-	       if (inloop&&accept_defeat) then cont (throw (Local(Fail seq)) seq)
-	       else lk_solvef formP formP formPSaved action0 newdata (newcont inter_fun)
-	     in Fake(Notify(seq,inloop,notify_analysis,data))
+	     let notify_analysis(accept_defeat,newdata,inter_fun,action1) =
+	       if (inloop&&accept_defeat) then (count.(7)<-count.(7)+1;cont (throw (Local(Fail seq)) seq))
+	       else lk_solvef formP formP formPSaved action1 newdata (newcont inter_fun)
+	     in
+	       count.(8)<-count.(8)+1;
+	       Fake(Notify(seq,inloop,notify_analysis,data))
 		  
 	   end
 	     
 
     let clear() = for i=0 to Array.length count-1 do count.(i) <- 0 done;dir := true
-
-    let report() = "With "
-      ^(string_of_int count.(0))^" Successes, "
-      ^(string_of_int count.(1))^" Failures, "
-      ^(string_of_int count.(4))^" Focus, "
-      ^(string_of_int count.(5))^" Cuts, and "
-      ^(string_of_int count.(2))^" Fake successes and "
-      ^(string_of_int count.(3))^" Fake failures."			
 
      (* Wraps the above function by providing top-level continuation
 	inter (for interaction with user), and printing a couple of
@@ -374,7 +370,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 		       ^", in "
 		       ^string_of_float (Sys.time()-. !start_time)
 		       ^" seconds");
-	 print_endline(report());
+	 report 0;
 	 clear())
       in
        let inter = function
