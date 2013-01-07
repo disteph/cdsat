@@ -215,16 +215,6 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
     | _ -> (None,tset)
 
 
-  let rec cut_series (a,f) () =
-    if ASet.is_empty a then
-      if FSet.is_empty f then
-	None
-      else let (toCut,f')=FSet.next f in
-	(count.(6)<-count.(6)+1;
-	 Some(Cut(7,toCut,accept,accept,cut_series(a,f'))))
-    else let (toCut,a')=ASet.next a in
-      (count.(5)<-count.(5)+1;
-       Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,cut_series(a',f))))
 
   let findaction alternative =
     match !stack with
@@ -234,27 +224,35 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 	  stack:=h;
 	  fun()->Some(Focus(f,accept,fNone))
 
-  (* focus_pick chooses a focus
-     h is the set of literals
-     l is the set of (negated) clauses
-  *)
-
-  let focus_pick h l tset =
-    if not(!stack=[]) then failwith("pas []");
+  let decide atms tset () = 
     if decide_cut && not (UASet.is_empty tset) then
       (let lit = UASet.choose tset in
-	 if UASet.is_in lit h then failwith("Chosen lit in atms");
-	 if UASet.is_in (Atom.negation lit) h then failwith("Chosen nlit in atms");
-	 Cut(7,UF.build (Formulae.Lit lit),accept,accept,fNone))
+	 if UASet.is_in lit atms then failwith("Chosen lit in atms");
+	 if UASet.is_in (Atom.negation lit) atms then failwith("Chosen nlit in atms");
+	 Some(Cut(7,UF.build (Formulae.Lit lit),accept,accept,fNone)))
     else
-      (count.(3)<-count.(3)+1;
-       match UFSet.rchoose h l with
-	 | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
-	     Focus(a,accept,fNone)
-	 | _         -> let a = UFSet.choose l in
-	     if !Flags.debug>1 then print_endline("Random problematic focus on "^PF.toString a);
-	     Focus(a,accept,fNone)
-      )
+      None
+	
+  let clause_pick h l () =
+    if not(!stack=[]) then failwith("pas []");
+    count.(3)<-count.(3)+1;
+    match UFSet.rchoose h l with
+      | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^PF.toString a);
+	  Some(Focus(a,accept,fNone))
+      | _         -> let a = UFSet.choose l in
+	  if !Flags.debug>1 then print_endline("Random problematic focus on "^PF.toString a);
+	  Some(Focus(a,accept,fNone))
+
+  let cut_series alternative (a,f)  () =
+    if ASet.is_empty a then
+      if FSet.is_empty f then
+	alternative()
+      else let (toCut,f')=FSet.next f in
+	(count.(6)<-count.(6)+1;
+	 Some(Cut(7,toCut,accept,accept,fNone)))
+    else let (toCut,a')=ASet.next a in
+      (count.(5)<-count.(5)+1;
+       Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,fNone)))
 
   let model = function
     | Seq.EntF(atomN, g, formP, formPSaved, polar)      -> atomN
@@ -291,11 +289,12 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 		    let (atms,cset)= Seq.simplify seq in 
 		      is_init:=false; initialise atms cset
 		  else tset) in
+	       let atms = model seq in
+	       let (action,tset') = update atms (olda,tsetnew) in
 	       let alternative() = Some(Search(Me.search4success,
 					       (function Local (Success _) -> count.(4)<-count.(4)+1;Accept | _-> Accept),
-					       F cut_series))
+					       F (cut_series (decide atms tset'))))
 	       in
-	       let (action,tset') = update (model seq) (olda,tsetnew) in
 		 (if !Flags.debug >0 then 
 		    (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
 		       if u'>0 then print_endline(string_of_int u')
@@ -331,10 +330,9 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
       *)
 
       | Fake(AskFocus(seq,l,machine,(olda,tset)))
-	-> let alternative() = Some(focus_pick (model seq) l tset) in
-	  solve (machine(Search(Me.search4failure,
-				(function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
-				A(findaction alternative))))
+	-> solve (machine(Search(Me.search4failure,
+				 (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
+				 A(findaction(clause_pick (model seq) l)))))
 
 
       (* When we are asked a side, we always go for the left first *)
