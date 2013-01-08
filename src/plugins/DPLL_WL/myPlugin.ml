@@ -144,7 +144,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 		    | Almost n when not (UASet.is_in (Atom.negation n) atms) ->
 			(* Clause j is allowing Unit Propagation;
 			   we stack it, and leave the table of watched literals unchanged *)
-			stack:= (j,false)::!stack;
+			stack:= (j,n,false)::!stack;
 			(None,t)
 		    | Almost n -> (None,t)
 		    | _ ->
@@ -216,14 +216,6 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 
 
 
-  let findaction alternative =
-    match !stack with
-      | []       -> alternative
-      | (f,_)::h ->
-	  count.(2)<-count.(2)+1;
-	  stack:=h;
-	  fun()->Some(Focus(f,accept,fNone))
-
   let decide atms tset () = 
     if decide_cut && not (UASet.is_empty tset) then
       (let lit = UASet.choose tset in
@@ -253,6 +245,18 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
     else let (toCut,a')=ASet.next a in
       (count.(5)<-count.(5)+1;
        Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,fNone)))
+
+  let rec findaction atms alternative =
+    match !stack with
+      | []       -> alternative
+      | (f,n,_)::h when not (UASet.is_in (Atom.negation n) atms)->
+	  count.(2)<-count.(2)+1;
+	  stack:=h;
+	  fun()->Some(Focus(f,accept,fNone))
+      | (f,n,_)::h ->
+	  stack:=h;
+	  findaction atms alternative
+
 
   let model = function
     | Seq.EntF(atomN, g, formP, formPSaved, polar)      -> atomN
@@ -304,7 +308,7 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
 				 (fun _ -> Mem(Me.tomem,Accept)),
 				 match action with  
 				   | Some action -> (fun()->Some action)
-				   | None        -> findaction alternative
+				   | None        -> findaction atms alternative
 				)
 		       )
 	     )
@@ -330,9 +334,10 @@ module Strategy (FE:Sequents.FrontEndType with module F=UF.FI and module FSet=UF
       *)
 
       | Fake(AskFocus(seq,l,machine,(olda,tset)))
-	-> solve (machine(Search(Me.search4failure,
+	-> let atms = model seq in
+	  solve (machine(Search(Me.search4failure,
 				 (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
-				 A(findaction(clause_pick (model seq) l)))))
+				 A(findaction atms (clause_pick atms l)))))
 
 
       (* When we are asked a side, we always go for the left first *)
