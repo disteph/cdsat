@@ -1,0 +1,26 @@
+===========================
+Treating file dubois29.cnf
+---
+174 atoms and negations present in non-unit clauses
+10 seconds
+With 9244 Successes, 0 Failures, 0 Loops detected, 6737 Notifies, 3898 Focus, 1462 Cuts, and 0 Fake successes and 0 Fake failures, 40162 operations, 36 open branches
+20 seconds
+With 14227 Successes, 0 Failures, 0 Loops detected, 10751 Notifies, 5878 Focus, 2482 Cuts, and 0 Fake successes and 0 Fake failures, 62105 operations, 25 open branches
+30 seconds
+With 20274 Successes, 0 Failures, 0 Loops detected, 15760 Notifies, 8238 Focus, 3811 Cuts, and 0 Fake successes and 0 Fake failures, 88931 operations, 36 open branches
+40 seconds
+With 25922 Successes, 0 Failures, 0 Loops detected, 20496 Notifies, 10420 Focus, 5089 Cuts, and 0 Fake successes and 0 Fake failures, 114049 operations, 25 open branches
+50 seconds
+With 30656 Successes, 0 Failures, 0 Loops detected, 24450 Notifies, 12264 Focus, 6147 Cuts, and 0 Fake successes and 0 Fake failures, 135122 operations, 43 open branches
+60 seconds
+With 35351 Successes, 0 Failures, 0 Loops detected, 28499 Notifies, 14040 Focus, 7283 Cuts, and 0 Fake successes and 0 Fake failures, 156158 operations, 38 open branches
+70 seconds
+With 41338 Successes, 0 Failures, 0 Loops detected, 33515 Notifies, 16356 Focus, 8636 Cuts, and 0 Fake successes and 0 Fake failures, 182786 operations, 30 open branches
+   Kernel's report:
+Total Success, in 76.556784 seconds
+With 45277 Successes, 0 Failures, 0 Loops detected, 36971 Notifies, 17826 Focus, 9624 Cuts, and 0 Fake successes and 0 Fake failures, 200504 operations.
+   Memoisation report:
+Successes had 17008 entries, Failures had 0 entries
+   Plugin's report:
+36971 notifies, 104 Backtrack, 17722 Unit propagate, 0 Decide, 9521 Memo backtrack, 5675 Memo UP 
+

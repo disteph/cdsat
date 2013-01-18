@@ -1,0 +1,12 @@
+===========================
+Treating file par8-3-c.cnf
+---
+150 atoms and negations present in non-unit clauses
+   Kernel's report:
+Total Failure, in 0.276016 seconds
+With 2290 Successes, 374 Failures, 298 Loops detected, 1492 Notifies, 1444 Focus, 47 Cuts, and 0 Fake successes and 0 Fake failures, 10987 operations.
+   Memoisation report:
+Successes had 845 entries, Failures had 1 entries
+   Plugin's report:
+1194 notifies, 43 Backtrack, 1103 Unit propagate, 298 Decide, 0 Memo backtrack, 7 Memo UP 
+

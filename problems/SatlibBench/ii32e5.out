@@ -1,0 +1,30 @@
+===========================
+Treating file ii32e5.cnf
+---
+1044 atoms and negations present in non-unit clauses
+10 seconds
+With 450 Successes, 0 Failures, 0 Loops detected, 439 Notifies, 432 Focus, 7 Cuts, and 0 Fake successes and 0 Fake failures, 26092 operations, 480 open branches
+20 seconds
+With 9320 Successes, 1253 Failures, 1253 Loops detected, 1918 Notifies, 1900 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 49793 operations, 792 open branches
+30 seconds
+With 9343 Successes, 2212 Failures, 2212 Loops detected, 2877 Notifies, 2859 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 53652 operations, 792 open branches
+45 seconds
+With 9392 Successes, 3641 Failures, 3641 Loops detected, 4306 Notifies, 4288 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 59417 operations, 792 open branches
+55 seconds
+With 9432 Successes, 5029 Failures, 5029 Loops detected, 5694 Notifies, 5676 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 65009 operations, 792 open branches
+65 seconds
+With 9467 Successes, 6243 Failures, 6243 Loops detected, 6908 Notifies, 6890 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 69900 operations, 792 open branches
+75 seconds
+With 9512 Successes, 7600 Failures, 7600 Loops detected, 8265 Notifies, 8247 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 75373 operations, 792 open branches
+85 seconds
+With 9556 Successes, 8951 Failures, 8951 Loops detected, 9616 Notifies, 9598 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 80821 operations, 792 open branches
+95 seconds
+With 9600 Successes, 10315 Failures, 10315 Loops detected, 10980 Notifies, 10962 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 86321 operations, 792 open branches
+   Kernel's report:
+Total Failure, in 110.150884 seconds
+With 10096 Successes, 12159 Failures, 11636 Loops detected, 12301 Notifies, 12282 Focus, 18 Cuts, and 0 Fake successes and 0 Fake failures, 92327 operations.
+   Memoisation report:
+Successes had 65 entries, Failures had 1 entries
+   Plugin's report:
+665 notifies, 1 Backtrack, 645 Unit propagate, 11636 Decide, 0 Memo backtrack, 0 Memo UP 
+

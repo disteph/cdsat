@@ -1,0 +1,344 @@
+===========================
+Treating file hanoi4.cnf
+---
+1502 atoms and negations present in non-unit clauses
+10 seconds
+With 109 Successes, 0 Failures, 0 Loops detected, 154 Notifies, 94 Focus, 60 Cuts, and 0 Fake successes and 0 Fake failures, 10801 operations, 261 open branches
+21 seconds
+With 2585 Successes, 0 Failures, 0 Loops detected, 1497 Notifies, 1387 Focus, 109 Cuts, and 0 Fake successes and 0 Fake failures, 21013 operations, 353 open branches
+31 seconds
+With 4802 Successes, 0 Failures, 0 Loops detected, 2739 Notifies, 2566 Focus, 165 Cuts, and 0 Fake successes and 0 Fake failures, 30275 operations, 372 open branches
+41 seconds
+With 6505 Successes, 0 Failures, 0 Loops detected, 3703 Notifies, 3502 Focus, 185 Cuts, and 0 Fake successes and 0 Fake failures, 37500 operations, 522 open branches
+51 seconds
+With 9812 Successes, 0 Failures, 0 Loops detected, 5505 Notifies, 5249 Focus, 232 Cuts, and 0 Fake successes and 0 Fake failures, 51157 operations, 480 open branches
+62 seconds
+With 13060 Successes, 0 Failures, 0 Loops detected, 7188 Notifies, 6888 Focus, 272 Cuts, and 0 Fake successes and 0 Fake failures, 64230 operations, 419 open branches
+73 seconds
+With 14601 Successes, 0 Failures, 0 Loops detected, 8012 Notifies, 7677 Focus, 305 Cuts, and 0 Fake successes and 0 Fake failures, 70536 operations, 498 open branches
+83 seconds
+With 17876 Successes, 0 Failures, 0 Loops detected, 9750 Notifies, 9356 Focus, 358 Cuts, and 0 Fake successes and 0 Fake failures, 83838 operations, 387 open branches
+93 seconds
+With 18745 Successes, 0 Failures, 0 Loops detected, 10234 Notifies, 9831 Focus, 367 Cuts, and 0 Fake successes and 0 Fake failures, 87501 operations, 438 open branches
+103 seconds
+With 20093 Successes, 0 Failures, 0 Loops detected, 10983 Notifies, 10551 Focus, 391 Cuts, and 0 Fake successes and 0 Fake failures, 93119 operations, 456 open branches
+114 seconds
+With 21190 Successes, 0 Failures, 0 Loops detected, 11583 Notifies, 11142 Focus, 397 Cuts, and 0 Fake successes and 0 Fake failures, 97686 operations, 424 open branches
+124 seconds
+With 21397 Successes, 0 Failures, 0 Loops detected, 11712 Notifies, 11265 Focus, 401 Cuts, and 0 Fake successes and 0 Fake failures, 98602 operations, 437 open branches
+135 seconds
+With 21514 Successes, 0 Failures, 0 Loops detected, 11812 Notifies, 11361 Focus, 405 Cuts, and 0 Fake successes and 0 Fake failures, 99279 operations, 587 open branches
+146 seconds
+With 23047 Successes, 0 Failures, 0 Loops detected, 12595 Notifies, 12136 Focus, 411 Cuts, and 0 Fake successes and 0 Fake failures, 105353 operations, 328 open branches
+156 seconds
+With 24998 Successes, 0 Failures, 0 Loops detected, 13786 Notifies, 13297 Focus, 439 Cuts, and 0 Fake successes and 0 Fake failures, 114041 operations, 610 open branches
+168 seconds
+With 25179 Successes, 0 Failures, 0 Loops detected, 13875 Notifies, 13383 Focus, 442 Cuts, and 0 Fake successes and 0 Fake failures, 114747 operations, 585 open branches
+179 seconds
+With 25732 Successes, 0 Failures, 0 Loops detected, 14167 Notifies, 13671 Focus, 445 Cuts, and 0 Fake successes and 0 Fake failures, 117021 operations, 624 open branches
+189 seconds
+With 29113 Successes, 0 Failures, 0 Loops detected, 15961 Notifies, 15422 Focus, 483 Cuts, and 0 Fake successes and 0 Fake failures, 130799 operations, 525 open branches
+201 seconds
+With 30937 Successes, 0 Failures, 0 Loops detected, 16922 Notifies, 16361 Focus, 503 Cuts, and 0 Fake successes and 0 Fake failures, 138205 operations, 448 open branches
+212 seconds
+With 31097 Successes, 0 Failures, 0 Loops detected, 17014 Notifies, 16443 Focus, 510 Cuts, and 0 Fake successes and 0 Fake failures, 138874 operations, 458 open branches
+224 seconds
+With 31246 Successes, 0 Failures, 0 Loops detected, 17122 Notifies, 16546 Focus, 515 Cuts, and 0 Fake successes and 0 Fake failures, 139639 operations, 611 open branches
+235 seconds
+With 32722 Successes, 0 Failures, 0 Loops detected, 17889 Notifies, 17300 Focus, 527 Cuts, and 0 Fake successes and 0 Fake failures, 145615 operations, 592 open branches
+247 seconds
+With 35865 Successes, 0 Failures, 0 Loops detected, 19564 Notifies, 18946 Focus, 549 Cuts, and 0 Fake successes and 0 Fake failures, 158459 operations, 392 open branches
+257 seconds
+With 36051 Successes, 0 Failures, 0 Loops detected, 19682 Notifies, 19056 Focus, 555 Cuts, and 0 Fake successes and 0 Fake failures, 159286 operations, 400 open branches
+268 seconds
+With 36179 Successes, 0 Failures, 0 Loops detected, 19788 Notifies, 19157 Focus, 560 Cuts, and 0 Fake successes and 0 Fake failures, 160007 operations, 557 open branches
+279 seconds
+With 38145 Successes, 0 Failures, 0 Loops detected, 20833 Notifies, 20183 Focus, 571 Cuts, and 0 Fake successes and 0 Fake failures, 167960 operations, 249 open branches
+289 seconds
+With 40796 Successes, 0 Failures, 0 Loops detected, 22371 Notifies, 21686 Focus, 603 Cuts, and 0 Fake successes and 0 Fake failures, 179350 operations, 326 open branches
+300 seconds
+With 40951 Successes, 0 Failures, 0 Loops detected, 22517 Notifies, 21817 Focus, 618 Cuts, and 0 Fake successes and 0 Fake failures, 180296 operations, 554 open branches
+316 seconds
+With 41008 Successes, 0 Failures, 0 Loops detected, 22549 Notifies, 21845 Focus, 621 Cuts, and 0 Fake successes and 0 Fake failures, 180529 operations, 560 open branches
+327 seconds
+With 43003 Successes, 0 Failures, 0 Loops detected, 23680 Notifies, 22938 Focus, 652 Cuts, and 0 Fake successes and 0 Fake failures, 188966 operations, 629 open branches
+337 seconds
+With 43827 Successes, 0 Failures, 0 Loops detected, 24105 Notifies, 23347 Focus, 666 Cuts, and 0 Fake successes and 0 Fake failures, 192288 operations, 669 open branches
+347 seconds
+With 45963 Successes, 0 Failures, 0 Loops detected, 25238 Notifies, 24459 Focus, 685 Cuts, and 0 Fake successes and 0 Fake failures, 201025 operations, 684 open branches
+357 seconds
+With 47370 Successes, 0 Failures, 0 Loops detected, 25956 Notifies, 25165 Focus, 696 Cuts, and 0 Fake successes and 0 Fake failures, 206653 operations, 644 open branches
+367 seconds
+With 49601 Successes, 0 Failures, 0 Loops detected, 27148 Notifies, 26332 Focus, 717 Cuts, and 0 Fake successes and 0 Fake failures, 215824 operations, 644 open branches
+378 seconds
+With 50601 Successes, 0 Failures, 0 Loops detected, 27674 Notifies, 26840 Focus, 732 Cuts, and 0 Fake successes and 0 Fake failures, 219872 operations, 626 open branches
+388 seconds
+With 52116 Successes, 0 Failures, 0 Loops detected, 28468 Notifies, 27606 Focus, 754 Cuts, and 0 Fake successes and 0 Fake failures, 225940 operations, 411 open branches
+398 seconds
+With 53672 Successes, 0 Failures, 0 Loops detected, 29311 Notifies, 28422 Focus, 774 Cuts, and 0 Fake successes and 0 Fake failures, 232397 operations, 545 open branches
+408 seconds
+With 55225 Successes, 0 Failures, 0 Loops detected, 30108 Notifies, 29201 Focus, 788 Cuts, and 0 Fake successes and 0 Fake failures, 238615 operations, 461 open branches
+418 seconds
+With 56773 Successes, 0 Failures, 0 Loops detected, 30929 Notifies, 29991 Focus, 811 Cuts, and 0 Fake successes and 0 Fake failures, 244855 operations, 302 open branches
+429 seconds
+With 56835 Successes, 0 Failures, 0 Loops detected, 31000 Notifies, 30054 Focus, 819 Cuts, and 0 Fake successes and 0 Fake failures, 245294 operations, 420 open branches
+439 seconds
+With 57509 Successes, 0 Failures, 0 Loops detected, 31358 Notifies, 30400 Focus, 824 Cuts, and 0 Fake successes and 0 Fake failures, 247998 operations, 313 open branches
+450 seconds
+With 58276 Successes, 0 Failures, 0 Loops detected, 31877 Notifies, 30888 Focus, 852 Cuts, and 0 Fake successes and 0 Fake failures, 251623 operations, 543 open branches
+464 seconds
+With 58284 Successes, 0 Failures, 0 Loops detected, 31892 Notifies, 30898 Focus, 857 Cuts, and 0 Fake successes and 0 Fake failures, 251702 operations, 571 open branches
+475 seconds
+With 58286 Successes, 0 Failures, 0 Loops detected, 31896 Notifies, 30900 Focus, 859 Cuts, and 0 Fake successes and 0 Fake failures, 251721 operations, 578 open branches
+488 seconds
+With 58732 Successes, 0 Failures, 0 Loops detected, 32133 Notifies, 31135 Focus, 861 Cuts, and 0 Fake successes and 0 Fake failures, 253556 operations, 599 open branches
+500 seconds
+With 58751 Successes, 0 Failures, 0 Loops detected, 32143 Notifies, 31143 Focus, 863 Cuts, and 0 Fake successes and 0 Fake failures, 253633 operations, 612 open branches
+512 seconds
+With 58852 Successes, 0 Failures, 0 Loops detected, 32198 Notifies, 31196 Focus, 865 Cuts, and 0 Fake successes and 0 Fake failures, 254059 operations, 634 open branches
+524 seconds
+With 58958 Successes, 0 Failures, 0 Loops detected, 32256 Notifies, 31252 Focus, 867 Cuts, and 0 Fake successes and 0 Fake failures, 254499 operations, 637 open branches
+537 seconds
+With 59363 Successes, 0 Failures, 0 Loops detected, 32484 Notifies, 31477 Focus, 869 Cuts, and 0 Fake successes and 0 Fake failures, 256227 operations, 683 open branches
+547 seconds
+With 61018 Successes, 0 Failures, 0 Loops detected, 33273 Notifies, 32256 Focus, 873 Cuts, and 0 Fake successes and 0 Fake failures, 262493 operations, 246 open branches
+557 seconds
+With 61148 Successes, 0 Failures, 0 Loops detected, 33425 Notifies, 32397 Focus, 884 Cuts, and 0 Fake successes and 0 Fake failures, 263444 operations, 503 open branches
+569 seconds
+With 61212 Successes, 0 Failures, 0 Loops detected, 33472 Notifies, 32438 Focus, 890 Cuts, and 0 Fake successes and 0 Fake failures, 263765 operations, 567 open branches
+580 seconds
+With 61216 Successes, 0 Failures, 0 Loops detected, 33483 Notifies, 32444 Focus, 895 Cuts, and 0 Fake successes and 0 Fake failures, 263817 operations, 588 open branches
+590 seconds
+With 62260 Successes, 0 Failures, 0 Loops detected, 33999 Notifies, 32953 Focus, 901 Cuts, and 0 Fake successes and 0 Fake failures, 267908 operations, 504 open branches
+600 seconds
+With 62997 Successes, 0 Failures, 0 Loops detected, 34364 Notifies, 33307 Focus, 911 Cuts, and 0 Fake successes and 0 Fake failures, 270780 operations, 425 open branches
+610 seconds
+With 64590 Successes, 0 Failures, 0 Loops detected, 35245 Notifies, 34174 Focus, 923 Cuts, and 0 Fake successes and 0 Fake failures, 277416 operations, 362 open branches
+621 seconds
+With 65090 Successes, 0 Failures, 0 Loops detected, 35560 Notifies, 34475 Focus, 937 Cuts, and 0 Fake successes and 0 Fake failures, 279729 operations, 590 open branches
+632 seconds
+With 67287 Successes, 0 Failures, 0 Loops detected, 36679 Notifies, 35586 Focus, 945 Cuts, and 0 Fake successes and 0 Fake failures, 288537 operations, 506 open branches
+642 seconds
+With 68601 Successes, 0 Failures, 0 Loops detected, 37356 Notifies, 36249 Focus, 957 Cuts, and 0 Fake successes and 0 Fake failures, 293841 operations, 519 open branches
+653 seconds
+With 69566 Successes, 0 Failures, 0 Loops detected, 37872 Notifies, 36756 Focus, 966 Cuts, and 0 Fake successes and 0 Fake failures, 297808 operations, 513 open branches
+663 seconds
+With 70396 Successes, 0 Failures, 0 Loops detected, 38275 Notifies, 37152 Focus, 971 Cuts, and 0 Fake successes and 0 Fake failures, 301018 operations, 412 open branches
+673 seconds
+With 71059 Successes, 0 Failures, 0 Loops detected, 38616 Notifies, 37486 Focus, 978 Cuts, and 0 Fake successes and 0 Fake failures, 303646 operations, 301 open branches
+684 seconds
+With 71207 Successes, 0 Failures, 0 Loops detected, 38767 Notifies, 37629 Focus, 986 Cuts, and 0 Fake successes and 0 Fake failures, 304618 operations, 540 open branches
+695 seconds
+With 71363 Successes, 0 Failures, 0 Loops detected, 38856 Notifies, 37710 Focus, 994 Cuts, and 0 Fake successes and 0 Fake failures, 305279 operations, 570 open branches
+705 seconds
+With 72479 Successes, 0 Failures, 0 Loops detected, 39443 Notifies, 38289 Focus, 1000 Cuts, and 0 Fake successes and 0 Fake failures, 309796 operations, 466 open branches
+715 seconds
+With 73966 Successes, 0 Failures, 0 Loops detected, 40197 Notifies, 39027 Focus, 1011 Cuts, and 0 Fake successes and 0 Fake failures, 315631 operations, 216 open branches
+726 seconds
+With 74078 Successes, 0 Failures, 0 Loops detected, 40293 Notifies, 39106 Focus, 1027 Cuts, and 0 Fake successes and 0 Fake failures, 316246 operations, 312 open branches
+736 seconds
+With 74771 Successes, 0 Failures, 0 Loops detected, 40707 Notifies, 39512 Focus, 1032 Cuts, and 0 Fake successes and 0 Fake failures, 319334 operations, 495 open branches
+746 seconds
+With 75394 Successes, 0 Failures, 0 Loops detected, 41069 Notifies, 39868 Focus, 1036 Cuts, and 0 Fake successes and 0 Fake failures, 322006 operations, 484 open branches
+760 seconds
+With 75401 Successes, 0 Failures, 0 Loops detected, 41077 Notifies, 39873 Focus, 1039 Cuts, and 0 Fake successes and 0 Fake failures, 322052 operations, 498 open branches
+774 seconds
+With 75403 Successes, 0 Failures, 0 Loops detected, 41085 Notifies, 39878 Focus, 1042 Cuts, and 0 Fake successes and 0 Fake failures, 322090 operations, 514 open branches
+790 seconds
+With 75405 Successes, 0 Failures, 0 Loops detected, 41089 Notifies, 39879 Focus, 1045 Cuts, and 0 Fake successes and 0 Fake failures, 322107 operations, 521 open branches
+801 seconds
+With 75432 Successes, 0 Failures, 0 Loops detected, 41101 Notifies, 39889 Focus, 1047 Cuts, and 0 Fake successes and 0 Fake failures, 322205 operations, 526 open branches
+814 seconds
+With 76070 Successes, 0 Failures, 0 Loops detected, 41410 Notifies, 40193 Focus, 1049 Cuts, and 0 Fake successes and 0 Fake failures, 324694 operations, 508 open branches
+826 seconds
+With 76178 Successes, 0 Failures, 0 Loops detected, 41488 Notifies, 40269 Focus, 1051 Cuts, and 0 Fake successes and 0 Fake failures, 325253 operations, 621 open branches
+839 seconds
+With 76180 Successes, 0 Failures, 0 Loops detected, 41493 Notifies, 40272 Focus, 1053 Cuts, and 0 Fake successes and 0 Fake failures, 325277 operations, 630 open branches
+850 seconds
+With 76717 Successes, 0 Failures, 0 Loops detected, 41746 Notifies, 40522 Focus, 1055 Cuts, and 0 Fake successes and 0 Fake failures, 327317 operations, 520 open branches
+860 seconds
+With 76719 Successes, 0 Failures, 0 Loops detected, 41753 Notifies, 40527 Focus, 1057 Cuts, and 0 Fake successes and 0 Fake failures, 327352 operations, 534 open branches
+871 seconds
+With 76721 Successes, 0 Failures, 0 Loops detected, 41756 Notifies, 40528 Focus, 1059 Cuts, and 0 Fake successes and 0 Fake failures, 327366 operations, 539 open branches
+884 seconds
+With 77427 Successes, 0 Failures, 0 Loops detected, 42123 Notifies, 40891 Focus, 1061 Cuts, and 0 Fake successes and 0 Fake failures, 330226 operations, 526 open branches
+896 seconds
+With 77824 Successes, 0 Failures, 0 Loops detected, 42324 Notifies, 41088 Focus, 1063 Cuts, and 0 Fake successes and 0 Fake failures, 331814 operations, 528 open branches
+907 seconds
+With 78075 Successes, 0 Failures, 0 Loops detected, 42473 Notifies, 41232 Focus, 1065 Cuts, and 0 Fake successes and 0 Fake failures, 332901 operations, 533 open branches
+918 seconds
+With 78449 Successes, 0 Failures, 0 Loops detected, 42642 Notifies, 41397 Focus, 1069 Cuts, and 0 Fake successes and 0 Fake failures, 334251 operations, 357 open branches
+929 seconds
+With 78476 Successes, 0 Failures, 0 Loops detected, 42680 Notifies, 41431 Focus, 1073 Cuts, and 0 Fake successes and 0 Fake failures, 334474 operations, 420 open branches
+942 seconds
+With 78478 Successes, 0 Failures, 0 Loops detected, 42691 Notifies, 41438 Focus, 1077 Cuts, and 0 Fake successes and 0 Fake failures, 334525 operations, 442 open branches
+953 seconds
+With 78879 Successes, 0 Failures, 0 Loops detected, 42901 Notifies, 41643 Focus, 1080 Cuts, and 0 Fake successes and 0 Fake failures, 336160 operations, 456 open branches
+963 seconds
+With 79068 Successes, 0 Failures, 0 Loops detected, 43042 Notifies, 41782 Focus, 1082 Cuts, and 0 Fake successes and 0 Fake failures, 337173 operations, 672 open branches
+976 seconds
+With 79623 Successes, 0 Failures, 0 Loops detected, 43300 Notifies, 42032 Focus, 1085 Cuts, and 0 Fake successes and 0 Fake failures, 339237 operations, 521 open branches
+987 seconds
+With 79866 Successes, 0 Failures, 0 Loops detected, 43427 Notifies, 42154 Focus, 1088 Cuts, and 0 Fake successes and 0 Fake failures, 340201 operations, 473 open branches
+997 seconds
+With 80200 Successes, 0 Failures, 0 Loops detected, 43600 Notifies, 42321 Focus, 1092 Cuts, and 0 Fake successes and 0 Fake failures, 341530 operations, 418 open branches
+1009 seconds
+With 80202 Successes, 0 Failures, 0 Loops detected, 43611 Notifies, 42328 Focus, 1096 Cuts, and 0 Fake successes and 0 Fake failures, 341581 operations, 440 open branches
+1019 seconds
+With 80334 Successes, 0 Failures, 0 Loops detected, 43716 Notifies, 42430 Focus, 1099 Cuts, and 0 Fake successes and 0 Fake failures, 342314 operations, 601 open branches
+1031 seconds
+With 81399 Successes, 0 Failures, 0 Loops detected, 44218 Notifies, 42919 Focus, 1104 Cuts, and 0 Fake successes and 0 Fake failures, 346288 operations, 252 open branches
+1041 seconds
+With 81726 Successes, 0 Failures, 0 Loops detected, 44448 Notifies, 43142 Focus, 1111 Cuts, and 0 Fake successes and 0 Fake failures, 347909 operations, 425 open branches
+1052 seconds
+With 82322 Successes, 0 Failures, 0 Loops detected, 44769 Notifies, 43457 Focus, 1116 Cuts, and 0 Fake successes and 0 Fake failures, 350364 operations, 417 open branches
+1062 seconds
+With 84889 Successes, 0 Failures, 0 Loops detected, 46218 Notifies, 44866 Focus, 1152 Cuts, and 0 Fake successes and 0 Fake failures, 361195 operations, 436 open branches
+1072 seconds
+With 86168 Successes, 0 Failures, 0 Loops detected, 46936 Notifies, 45563 Focus, 1170 Cuts, and 0 Fake successes and 0 Fake failures, 366713 operations, 784 open branches
+1082 seconds
+With 87759 Successes, 0 Failures, 0 Loops detected, 47697 Notifies, 46311 Focus, 1181 Cuts, and 0 Fake successes and 0 Fake failures, 372861 operations, 695 open branches
+1092 seconds
+With 89542 Successes, 0 Failures, 0 Loops detected, 48588 Notifies, 47184 Focus, 1192 Cuts, and 0 Fake successes and 0 Fake failures, 379858 operations, 477 open branches
+1102 seconds
+With 90978 Successes, 0 Failures, 0 Loops detected, 49312 Notifies, 47894 Focus, 1203 Cuts, and 0 Fake successes and 0 Fake failures, 385566 operations, 399 open branches
+1114 seconds
+With 91668 Successes, 0 Failures, 0 Loops detected, 49691 Notifies, 48262 Focus, 1213 Cuts, and 0 Fake successes and 0 Fake failures, 388418 operations, 353 open branches
+1125 seconds
+With 92232 Successes, 0 Failures, 0 Loops detected, 50053 Notifies, 48617 Focus, 1220 Cuts, and 0 Fake successes and 0 Fake failures, 391108 operations, 703 open branches
+1136 seconds
+With 93008 Successes, 0 Failures, 0 Loops detected, 50424 Notifies, 48979 Focus, 1225 Cuts, and 0 Fake successes and 0 Fake failures, 394065 operations, 553 open branches
+1149 seconds
+With 94644 Successes, 0 Failures, 0 Loops detected, 51349 Notifies, 49889 Focus, 1234 Cuts, and 0 Fake successes and 0 Fake failures, 401061 operations, 690 open branches
+1162 seconds
+With 94646 Successes, 0 Failures, 0 Loops detected, 51357 Notifies, 49894 Focus, 1237 Cuts, and 0 Fake successes and 0 Fake failures, 401099 operations, 706 open branches
+1173 seconds
+With 95407 Successes, 0 Failures, 0 Loops detected, 51741 Notifies, 50258 Focus, 1256 Cuts, and 0 Fake successes and 0 Fake failures, 404015 operations, 482 open branches
+1183 seconds
+With 96896 Successes, 0 Failures, 0 Loops detected, 52524 Notifies, 51030 Focus, 1260 Cuts, and 0 Fake successes and 0 Fake failures, 410044 operations, 358 open branches
+1194 seconds
+With 97762 Successes, 0 Failures, 0 Loops detected, 53015 Notifies, 51504 Focus, 1275 Cuts, and 0 Fake successes and 0 Fake failures, 413721 operations, 409 open branches
+1205 seconds
+With 97798 Successes, 0 Failures, 0 Loops detected, 53059 Notifies, 51543 Focus, 1280 Cuts, and 0 Fake successes and 0 Fake failures, 413984 operations, 478 open branches
+1217 seconds
+With 98071 Successes, 0 Failures, 0 Loops detected, 53221 Notifies, 51701 Focus, 1283 Cuts, and 0 Fake successes and 0 Fake failures, 415175 operations, 501 open branches
+1227 seconds
+With 100006 Successes, 0 Failures, 0 Loops detected, 54365 Notifies, 52811 Focus, 1307 Cuts, and 0 Fake successes and 0 Fake failures, 423623 operations, 726 open branches
+1238 seconds
+With 102466 Successes, 0 Failures, 0 Loops detected, 55573 Notifies, 54009 Focus, 1316 Cuts, and 0 Fake successes and 0 Fake failures, 433252 operations, 500 open branches
+1248 seconds
+With 103910 Successes, 0 Failures, 0 Loops detected, 56346 Notifies, 54771 Focus, 1326 Cuts, and 0 Fake successes and 0 Fake failures, 439184 operations, 448 open branches
+1259 seconds
+With 105783 Successes, 0 Failures, 0 Loops detected, 57426 Notifies, 55835 Focus, 1337 Cuts, and 0 Fake successes and 0 Fake failures, 447252 operations, 565 open branches
+1269 seconds
+With 106867 Successes, 0 Failures, 0 Loops detected, 57928 Notifies, 56321 Focus, 1349 Cuts, and 0 Fake successes and 0 Fake failures, 451315 operations, 373 open branches
+1280 seconds
+With 106904 Successes, 0 Failures, 0 Loops detected, 57964 Notifies, 56349 Focus, 1357 Cuts, and 0 Fake successes and 0 Fake failures, 451539 operations, 431 open branches
+1292 seconds
+With 107051 Successes, 0 Failures, 0 Loops detected, 58074 Notifies, 56453 Focus, 1363 Cuts, and 0 Fake successes and 0 Fake failures, 452288 operations, 500 open branches
+1303 seconds
+With 107466 Successes, 0 Failures, 0 Loops detected, 58304 Notifies, 56677 Focus, 1367 Cuts, and 0 Fake successes and 0 Fake failures, 454038 operations, 537 open branches
+1314 seconds
+With 108598 Successes, 0 Failures, 0 Loops detected, 58893 Notifies, 57256 Focus, 1372 Cuts, and 0 Fake successes and 0 Fake failures, 458585 operations, 424 open branches
+1324 seconds
+With 108604 Successes, 0 Failures, 0 Loops detected, 58906 Notifies, 57263 Focus, 1378 Cuts, and 0 Fake successes and 0 Fake failures, 458648 operations, 448 open branches
+1336 seconds
+With 108823 Successes, 0 Failures, 0 Loops detected, 59062 Notifies, 57414 Focus, 1382 Cuts, and 0 Fake successes and 0 Fake failures, 459730 operations, 535 open branches
+1346 seconds
+With 110495 Successes, 0 Failures, 0 Loops detected, 60029 Notifies, 58365 Focus, 1392 Cuts, and 0 Fake successes and 0 Fake failures, 466932 operations, 636 open branches
+1356 seconds
+With 111885 Successes, 0 Failures, 0 Loops detected, 60678 Notifies, 58992 Focus, 1411 Cuts, and 0 Fake successes and 0 Fake failures, 472089 operations, 234 open branches
+1367 seconds
+With 112532 Successes, 0 Failures, 0 Loops detected, 61136 Notifies, 59433 Focus, 1426 Cuts, and 0 Fake successes and 0 Fake failures, 475295 operations, 565 open branches
+1377 seconds
+With 112602 Successes, 0 Failures, 0 Loops detected, 61202 Notifies, 59495 Focus, 1430 Cuts, and 0 Fake successes and 0 Fake failures, 475734 operations, 674 open branches
+1388 seconds
+With 112602 Successes, 0 Failures, 0 Loops detected, 61205 Notifies, 59495 Focus, 1433 Cuts, and 0 Fake successes and 0 Fake failures, 475743 operations, 680 open branches
+1400 seconds
+With 112610 Successes, 0 Failures, 0 Loops detected, 61215 Notifies, 59503 Focus, 1435 Cuts, and 0 Fake successes and 0 Fake failures, 475805 operations, 700 open branches
+1410 seconds
+With 113312 Successes, 0 Failures, 0 Loops detected, 61558 Notifies, 59842 Focus, 1436 Cuts, and 0 Fake successes and 0 Fake failures, 478513 operations, 579 open branches
+1421 seconds
+With 113455 Successes, 0 Failures, 0 Loops detected, 61651 Notifies, 59927 Focus, 1441 Cuts, and 0 Fake successes and 0 Fake failures, 479160 operations, 586 open branches
+1431 seconds
+With 113590 Successes, 0 Failures, 0 Loops detected, 61789 Notifies, 60061 Focus, 1445 Cuts, and 0 Fake successes and 0 Fake failures, 480064 operations, 815 open branches
+1441 seconds
+With 114889 Successes, 0 Failures, 0 Loops detected, 62388 Notifies, 60629 Focus, 1474 Cuts, and 0 Fake successes and 0 Fake failures, 484791 operations, 315 open branches
+1452 seconds
+With 115007 Successes, 0 Failures, 0 Loops detected, 62505 Notifies, 60731 Focus, 1489 Cuts, and 0 Fake successes and 0 Fake failures, 485533 operations, 500 open branches
+1463 seconds
+With 115200 Successes, 0 Failures, 0 Loops detected, 62641 Notifies, 60855 Focus, 1501 Cuts, and 0 Fake successes and 0 Fake failures, 486493 operations, 646 open branches
+1473 seconds
+With 115242 Successes, 0 Failures, 0 Loops detected, 62684 Notifies, 60887 Focus, 1512 Cuts, and 0 Fake successes and 0 Fake failures, 486752 operations, 714 open branches
+1483 seconds
+With 115955 Successes, 0 Failures, 0 Loops detected, 63048 Notifies, 61243 Focus, 1518 Cuts, and 0 Fake successes and 0 Fake failures, 489603 operations, 710 open branches
+1493 seconds
+With 116358 Successes, 0 Failures, 0 Loops detected, 63296 Notifies, 61483 Focus, 1525 Cuts, and 0 Fake successes and 0 Fake failures, 491437 operations, 881 open branches
+1504 seconds
+With 117349 Successes, 0 Failures, 0 Loops detected, 63755 Notifies, 61933 Focus, 1532 Cuts, and 0 Fake successes and 0 Fake failures, 495152 operations, 662 open branches
+1514 seconds
+With 117592 Successes, 0 Failures, 0 Loops detected, 63879 Notifies, 62046 Focus, 1542 Cuts, and 0 Fake successes and 0 Fake failures, 496094 operations, 628 open branches
+1524 seconds
+With 118137 Successes, 0 Failures, 0 Loops detected, 64203 Notifies, 62362 Focus, 1549 Cuts, and 0 Fake successes and 0 Fake failures, 498515 operations, 796 open branches
+1535 seconds
+With 119270 Successes, 0 Failures, 0 Loops detected, 64749 Notifies, 62899 Focus, 1557 Cuts, and 0 Fake successes and 0 Fake failures, 502885 operations, 635 open branches
+1545 seconds
+With 119847 Successes, 0 Failures, 0 Loops detected, 65060 Notifies, 63200 Focus, 1565 Cuts, and 0 Fake successes and 0 Fake failures, 505263 operations, 659 open branches
+1556 seconds
+With 120362 Successes, 0 Failures, 0 Loops detected, 65336 Notifies, 63465 Focus, 1575 Cuts, and 0 Fake successes and 0 Fake failures, 507372 operations, 668 open branches
+1567 seconds
+With 120447 Successes, 0 Failures, 0 Loops detected, 65412 Notifies, 63532 Focus, 1584 Cuts, and 0 Fake successes and 0 Fake failures, 507867 operations, 783 open branches
+1578 seconds
+With 120560 Successes, 0 Failures, 0 Loops detected, 65480 Notifies, 63592 Focus, 1592 Cuts, and 0 Fake successes and 0 Fake failures, 508362 operations, 829 open branches
+1588 seconds
+With 121235 Successes, 0 Failures, 0 Loops detected, 65804 Notifies, 63908 Focus, 1598 Cuts, and 0 Fake successes and 0 Fake failures, 510945 operations, 728 open branches
+1599 seconds
+With 121856 Successes, 0 Failures, 0 Loops detected, 66094 Notifies, 64189 Focus, 1605 Cuts, and 0 Fake successes and 0 Fake failures, 513280 operations, 623 open branches
+1609 seconds
+With 121957 Successes, 0 Failures, 0 Loops detected, 66186 Notifies, 64271 Focus, 1614 Cuts, and 0 Fake successes and 0 Fake failures, 513879 operations, 763 open branches
+1620 seconds
+With 123303 Successes, 0 Failures, 0 Loops detected, 66844 Notifies, 64920 Focus, 1620 Cuts, and 0 Fake successes and 0 Fake failures, 519104 operations, 581 open branches
+1630 seconds
+With 123515 Successes, 0 Failures, 0 Loops detected, 66994 Notifies, 65060 Focus, 1630 Cuts, and 0 Fake successes and 0 Fake failures, 520158 operations, 723 open branches
+1640 seconds
+With 124340 Successes, 0 Failures, 0 Loops detected, 67386 Notifies, 65444 Focus, 1637 Cuts, and 0 Fake successes and 0 Fake failures, 523331 operations, 657 open branches
+1651 seconds
+With 125410 Successes, 0 Failures, 0 Loops detected, 67919 Notifies, 65970 Focus, 1644 Cuts, and 0 Fake successes and 0 Fake failures, 527583 operations, 659 open branches
+1661 seconds
+With 125971 Successes, 0 Failures, 0 Loops detected, 68227 Notifies, 66268 Focus, 1652 Cuts, and 0 Fake successes and 0 Fake failures, 529922 operations, 692 open branches
+1671 seconds
+With 127137 Successes, 0 Failures, 0 Loops detected, 68811 Notifies, 66843 Focus, 1659 Cuts, and 0 Fake successes and 0 Fake failures, 534520 operations, 604 open branches
+1682 seconds
+With 127702 Successes, 0 Failures, 0 Loops detected, 69095 Notifies, 67117 Focus, 1668 Cuts, and 0 Fake successes and 0 Fake failures, 536767 operations, 610 open branches
+1694 seconds
+With 127724 Successes, 0 Failures, 0 Loops detected, 69122 Notifies, 67138 Focus, 1674 Cuts, and 0 Fake successes and 0 Fake failures, 536924 operations, 654 open branches
+1707 seconds
+With 128134 Successes, 0 Failures, 0 Loops detected, 69346 Notifies, 67357 Focus, 1678 Cuts, and 0 Fake successes and 0 Fake failures, 538635 operations, 681 open branches
+1717 seconds
+With 128970 Successes, 0 Failures, 0 Loops detected, 69777 Notifies, 67783 Focus, 1681 Cuts, and 0 Fake successes and 0 Fake failures, 541980 operations, 590 open branches
+1727 seconds
+With 129027 Successes, 0 Failures, 0 Loops detected, 69833 Notifies, 67834 Focus, 1686 Cuts, and 0 Fake successes and 0 Fake failures, 542346 operations, 684 open branches
+1738 seconds
+With 129560 Successes, 0 Failures, 0 Loops detected, 70100 Notifies, 68096 Focus, 1690 Cuts, and 0 Fake successes and 0 Fake failures, 544451 operations, 651 open branches
+1749 seconds
+With 130298 Successes, 0 Failures, 0 Loops detected, 70471 Notifies, 68462 Focus, 1694 Cuts, and 0 Fake successes and 0 Fake failures, 547376 operations, 606 open branches
+1760 seconds
+With 131129 Successes, 0 Failures, 0 Loops detected, 70886 Notifies, 68870 Focus, 1701 Cuts, and 0 Fake successes and 0 Fake failures, 550637 operations, 494 open branches
+1770 seconds
+With 131182 Successes, 0 Failures, 0 Loops detected, 70935 Notifies, 68908 Focus, 1712 Cuts, and 0 Fake successes and 0 Fake failures, 550948 operations, 574 open branches
+1780 seconds
+With 131602 Successes, 0 Failures, 0 Loops detected, 71186 Notifies, 69150 Focus, 1720 Cuts, and 0 Fake successes and 0 Fake failures, 552797 operations, 658 open branches
+1790 seconds
+With 132477 Successes, 0 Failures, 0 Loops detected, 71620 Notifies, 69574 Focus, 1727 Cuts, and 0 Fake successes and 0 Fake failures, 556210 operations, 539 open branches
+1802 seconds
+With 132579 Successes, 0 Failures, 0 Loops detected, 71716 Notifies, 69661 Focus, 1736 Cuts, and 0 Fake successes and 0 Fake failures, 556826 operations, 681 open branches
+1813 seconds
+With 133476 Successes, 0 Failures, 0 Loops detected, 72150 Notifies, 70086 Focus, 1744 Cuts, and 0 Fake successes and 0 Fake failures, 560279 operations, 556 open branches
+1824 seconds
+With 133528 Successes, 0 Failures, 0 Loops detected, 72194 Notifies, 70123 Focus, 1751 Cuts, and 0 Fake successes and 0 Fake failures, 560571 operations, 626 open branches
+1836 seconds
+With 134282 Successes, 0 Failures, 0 Loops detected, 72591 Notifies, 70514 Focus, 1756 Cuts, and 0 Fake successes and 0 Fake failures, 563636 operations, 600 open branches
+1846 seconds
+With 134784 Successes, 0 Failures, 0 Loops detected, 72873 Notifies, 70791 Focus, 1761 Cuts, and 0 Fake successes and 0 Fake failures, 565766 operations, 642 open branches
+1856 seconds
+With 135253 Successes, 0 Failures, 0 Loops detected, 73089 Notifies, 70996 Focus, 1772 Cuts, and 0 Fake successes and 0 Fake failures, 567487 operations, 493 open branches

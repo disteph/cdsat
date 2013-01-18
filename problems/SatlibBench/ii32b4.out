@@ -1,0 +1,18 @@
+===========================
+Treating file ii32b4.cnf
+---
+762 atoms and negations present in non-unit clauses
+10 seconds
+With 9453 Successes, 0 Failures, 0 Loops detected, 3805 Notifies, 3660 Focus, 126 Cuts, and 0 Fake successes and 0 Fake failures, 47708 operations, 290 open branches
+21 seconds
+With 18104 Successes, 1447 Failures, 1447 Loops detected, 6091 Notifies, 5927 Focus, 140 Cuts, and 0 Fake successes and 0 Fake failures, 74161 operations, 617 open branches
+31 seconds
+With 18222 Successes, 4439 Failures, 4439 Loops detected, 9083 Notifies, 8919 Focus, 140 Cuts, and 0 Fake successes and 0 Fake failures, 86248 operations, 617 open branches
+   Kernel's report:
+Total Failure, in 40.934558 seconds
+With 18650 Successes, 7300 Failures, 6918 Loops detected, 11562 Notifies, 11397 Focus, 140 Cuts, and 0 Fake successes and 0 Fake failures, 96789 operations.
+   Memoisation report:
+Successes had 2238 entries, Failures had 1 entries
+   Plugin's report:
+4644 notifies, 104 Backtrack, 4375 Unit propagate, 6918 Decide, 24 Memo backtrack, 59 Memo UP 
+

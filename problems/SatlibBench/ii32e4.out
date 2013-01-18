@@ -1,0 +1,38 @@
+===========================
+Treating file ii32e4.cnf
+---
+774 atoms and negations present in non-unit clauses
+10 seconds
+With 11055 Successes, 0 Failures, 0 Loops detected, 3683 Notifies, 3575 Focus, 99 Cuts, and 0 Fake successes and 0 Fake failures, 50848 operations, 258 open branches
+20 seconds
+With 21581 Successes, 0 Failures, 0 Loops detected, 7657 Notifies, 7424 Focus, 204 Cuts, and 0 Fake successes and 0 Fake failures, 87474 operations, 256 open branches
+30 seconds
+With 32482 Successes, 0 Failures, 0 Loops detected, 11615 Notifies, 11273 Focus, 303 Cuts, and 0 Fake successes and 0 Fake failures, 124804 operations, 262 open branches
+40 seconds
+With 43613 Successes, 0 Failures, 0 Loops detected, 15016 Notifies, 14585 Focus, 391 Cuts, and 0 Fake successes and 0 Fake failures, 160467 operations, 396 open branches
+50 seconds
+With 51941 Successes, 0 Failures, 0 Loops detected, 17735 Notifies, 17221 Focus, 468 Cuts, and 0 Fake successes and 0 Fake failures, 187693 operations, 255 open branches
+60 seconds
+With 61232 Successes, 0 Failures, 0 Loops detected, 20976 Notifies, 20371 Focus, 551 Cuts, and 0 Fake successes and 0 Fake failures, 218990 operations, 269 open branches
+70 seconds
+With 66765 Successes, 0 Failures, 0 Loops detected, 23021 Notifies, 22344 Focus, 604 Cuts, and 0 Fake successes and 0 Fake failures, 238000 operations, 160 open branches
+80 seconds
+With 71225 Successes, 0 Failures, 0 Loops detected, 24889 Notifies, 24123 Focus, 673 Cuts, and 0 Fake successes and 0 Fake failures, 254277 operations, 353 open branches
+90 seconds
+With 78525 Successes, 0 Failures, 0 Loops detected, 27521 Notifies, 26690 Focus, 729 Cuts, and 0 Fake successes and 0 Fake failures, 279176 operations, 271 open branches
+100 seconds
+With 84130 Successes, 0 Failures, 0 Loops detected, 29980 Notifies, 29055 Focus, 801 Cuts, and 0 Fake successes and 0 Fake failures, 299977 operations, 260 open branches
+110 seconds
+With 91133 Successes, 1107 Failures, 1107 Loops detected, 31652 Notifies, 30706 Focus, 822 Cuts, and 0 Fake successes and 0 Fake failures, 320748 operations, 632 open branches
+120 seconds
+With 91165 Successes, 2068 Failures, 2068 Loops detected, 32613 Notifies, 31667 Focus, 822 Cuts, and 0 Fake successes and 0 Fake failures, 324624 operations, 632 open branches
+130 seconds
+With 91282 Successes, 4976 Failures, 4976 Loops detected, 35521 Notifies, 34575 Focus, 822 Cuts, and 0 Fake successes and 0 Fake failures, 336374 operations, 632 open branches
+   Kernel's report:
+Total Failure, in 139.872741 seconds
+With 91603 Successes, 7494 Failures, 7106 Loops detected, 37651 Notifies, 36704 Focus, 822 Cuts, and 0 Fake successes and 0 Fake failures, 345341 operations.
+   Memoisation report:
+Successes had 18778 entries, Failures had 1 entries
+   Plugin's report:
+30545 notifies, 670 Backtrack, 28928 Unit propagate, 7106 Decide, 124 Memo backtrack, 468 Memo UP 
+

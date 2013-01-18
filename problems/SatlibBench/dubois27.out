@@ -1,0 +1,16 @@
+===========================
+Treating file dubois27.cnf
+---
+162 atoms and negations present in non-unit clauses
+10 seconds
+With 10989 Successes, 0 Failures, 0 Loops detected, 8229 Notifies, 4562 Focus, 1890 Cuts, and 0 Fake successes and 0 Fake failures, 47918 operations, 55 open branches
+20 seconds
+With 17864 Successes, 0 Failures, 0 Loops detected, 14171 Notifies, 7158 Focus, 3563 Cuts, and 0 Fake successes and 0 Fake failures, 78730 operations, 37 open branches
+   Kernel's report:
+Total Success, in 21.537346 seconds
+With 19048 Successes, 0 Failures, 0 Loops detected, 15191 Notifies, 7600 Focus, 3847 Cuts, and 0 Fake successes and 0 Fake failures, 84002 operations.
+   Memoisation report:
+Successes had 6211 entries, Failures had 0 entries
+   Plugin's report:
+15191 notifies, 104 Backtrack, 7496 Unit propagate, 0 Decide, 3744 Memo backtrack, 2403 Memo UP 
+

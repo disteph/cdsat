@@ -1,0 +1,12 @@
+===========================
+Treating file aim-200-2_0-yes1-4.cnf
+---
+400 atoms and negations present in non-unit clauses
+   Kernel's report:
+Total Failure, in 9.684605 seconds
+With 10419 Successes, 601 Failures, 400 Loops detected, 6252 Notifies, 5147 Focus, 858 Cuts, and 0 Fake successes and 0 Fake failures, 43926 operations.
+   Memoisation report:
+Successes had 2325 entries, Failures had 1 entries
+   Plugin's report:
+5852 notifies, 582 Backtrack, 4165 Unit propagate, 400 Decide, 246 Memo backtrack, 567 Memo UP 
+
