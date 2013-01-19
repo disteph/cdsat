@@ -1,0 +1,45 @@
+Files in this directory are:
+- .cnf files in DIMACS format from the DIMACS Benchmark Instances of
+SATLIB, as retrived from http://www.cs.ubc.ca/~hoos/SATLIB/benchm.html
+
+
+- .out output files : for each <name>.cnf file, a <name>.out log file
+  contains the output of a run of Psyche on this file. Standard
+  output and error output are concatenated so that we see the reason
+  why Psyche (in fact OCaml since Psyche itself does not output
+  messages on the error output) exited without concluding if this is the
+  case. Main examples are "out of memory error" but the standard mode
+  of Psyche raise a "Stack_overflow" exception on g250-29.cnf in the
+  gcp category.
+
+- test_<cat>.sh : a script to run Psyche on every instance of the
+  <name> category of problems of the DIMACS Benchmark Instances and
+  produce the corresponding .out log files.
+  Categories are :
+  aim
+  lran
+  jnh
+  dubois
+  gcp
+  parity
+  ii
+  hanoi
+  bf
+  ssa
+  phole
+  pret
+
+- survey_<cat>.sh : a script to summarize the preformances of Psyche
+  on the problems in the <cat> category. Produces a log file called
+  <name>.txt. For the time being this log
+  is very elementary: it contains one line per problem in the <name>
+  category. Each line has the following structure:
+  <name of the problem> | <number of variables> | <number of clauses>
+  | <success status and time> | <error>
+  The two last colomns are exclusive : either Psyche succeeded to
+  conclude and the <error> column is empty, or it failed
+  and the <success status and time> is empty.
+  In the <success status and time> column, "Total success" means that
+  Psyche proved that the problem is UNSAT, "Total failure" means that
+  a proof tree has been constructed.
+

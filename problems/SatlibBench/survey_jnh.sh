@@ -1,7 +1,7 @@
 #!/bin/sh
-rm -rf aim.txt
-touch aim.txt
-(for file in $(ls aim*.cnf); do
+rm -rf jnh.txt
+touch jnh.txt
+(for file in $(ls jnh*.cnf); do
 problemname="$(echo "$file" | cut -d"." -f1)"
 outputname="$(echo "$file" | cut -d"." -f1).out"
 nbvar="$(grep -w 'p cnf' "$file" | cut -d " " -f3)"
@@ -10,4 +10,4 @@ successtime="$(grep Total "$outputname")"
 error="$(grep error "$outputname")"
 line="$problemname"" | ""$nbvar"" | ""$nbclauses"" | ""$successtime"" | ""$error"
 echo "$line"
-done)> aim.txt
+done)> jnh.txt
