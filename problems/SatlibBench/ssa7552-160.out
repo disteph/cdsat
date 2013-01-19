@@ -3,7 +3,7 @@ Treating file ssa7552-160.cnf
 ---
 3130 atoms and negations present in non-unit clauses
    Kernel's report:
-Total Failure, in 1.468092 seconds
+Total Failure, in 1.456091 seconds
 With 0 Successes, 3132 Failures, 1 Loops detected, 3132 Notifies, 1 Focus, 3130 Cuts, and 0 Fake successes and 0 Fake failures, 9396 operations.
    Memoisation report:
 Successes had 0 entries, Failures had 1 entries

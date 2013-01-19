@@ -3,7 +3,7 @@ Treating file bf0432-007.cnf
 ---
 3671 atoms and negations present in non-unit clauses
    Kernel's report:
-Total Failure, in 2.040127 seconds
+Total Failure, in 2.128133 seconds
 With 0 Successes, 3673 Failures, 1 Loops detected, 3673 Notifies, 1 Focus, 3671 Cuts, and 0 Fake successes and 0 Fake failures, 11019 operations.
    Memoisation report:
 Successes had 0 entries, Failures had 1 entries
