@@ -21,7 +21,7 @@ module Tests (P:Plugin.Type) = struct
 
   let treatfile filename = print_endline("===========================");
     print_endline("Treating file "^filename);
-    go (Gen.generate_cnf(Io.parse_cnf_file (Io.list_from_string (Io.read_from_file(filename)) [] 0)))
+    go (Gen.generate_cnf(Io.parse_cnf_file (Io.list_from_string (Io.read_from_file filename) [] 0)))
 
   let treatdir a = print_endline("Treating directory "^a);
     let b = Sys.readdir(a) in
