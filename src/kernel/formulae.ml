@@ -23,7 +23,7 @@ module Term = struct
     match t1.reveal, t2.reveal with
     | V(a), V(a') -> a = a' 
     | XV(a), XV(a') -> a = a' 
-    | C(a,tl), C(a',tl') -> a = a' && equaltl(tl,tl')
+    | C(a,tl), C(a',tl') -> a = a' && equaltl (tl,tl')
     | V _, XV _ | V _, C(_, _) | XV _, V _ | XV _, C(_, _) |
       C(_, _), V _ | C(_, _), XV _  -> false 
 
@@ -67,9 +67,8 @@ module Term = struct
   and printrtl_in_fmt fmt tl =
     match tl with
     | [] -> ()
-    | t :: l ->
-      if l = [] then print_in_fmt fmt t
-      else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt tl
+    | [t] -> print_in_fmt fmt t
+    | t :: l -> fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt tl
 
   let print_in_buf t buf = print_in_fmt (formatter_of_buffer buf) t
 
@@ -95,9 +94,9 @@ module Atom = struct
     let table  = Hashtbl.create 5003 
     let predid = ref 0
     let build a =
-      let f = {reveal = a; id = !predid} in
 	    try Hashtbl.find table a
 	    with Not_found ->
+        let f = {reveal = a; id = !predid} in
         (* print_endline(a^" "^string_of_int(!predid)); *)
 	      incr predid;
         Hashtbl.add table a f;

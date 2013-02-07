@@ -6,20 +6,26 @@ module Term : sig
   val reveal : t -> term
   val build : term -> t
   val id : t -> int
+  val print_in_fmt : Format.formatter -> t -> unit
+  val printtl_in_fmt : Format.formatter -> t list -> unit
   val toString : t -> string
   val printtl : t list -> string
   val clear : unit -> unit
 end
 
 module Atom : sig
-  module Predicates :
-    sig type t val compare : t -> t -> int val id : t -> int end
+  module Predicates : sig
+    type t
+    val compare : t -> t -> int
+    val id : t -> int
+  end
   type t
   val reveal : t -> bool * Predicates.t * Term.t list
   val build : bool * Predicates.t * Term.t list -> t
   val bbuild : bool * string * Term.t list -> t
   val id : t -> int 
   val negation : t -> t
+  val print_in_fmt : Format.formatter -> t -> unit
   val toString : t -> string
   val compare : t -> t -> int
   val equal : t -> t -> bool
@@ -40,8 +46,9 @@ module type FormulaImplem = sig
   val build : t form -> t
 end
 
-module PrintableFormula : functor (F : FormulaImplem) -> sig
+module PrintableFormula (F : FormulaImplem) : sig
   type t = F.t
+  val print_in_fmt : Format.formatter -> t -> unit
   val toString : F.t -> string
   val negation : F.t -> F.t
   val lit : bool * string * Term.t list -> F.t
