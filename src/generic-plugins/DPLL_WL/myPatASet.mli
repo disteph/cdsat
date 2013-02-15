@@ -8,11 +8,9 @@ open Patricia
 open Sums
 
 module type MyPatCollect = sig
-  module CI  : CollectImplem
-  module Ext : CollectImplemExt with type e = CI.e and type t = CI.t
 
-  type e = CI.e
-  type t = CI.t
+  type e
+  type t
   type common
   type branching
   val is_empty : t -> bool
@@ -54,21 +52,19 @@ module MyPat(UT:sig
 	       val compare : keys->keys->int
 	       val toString: keys->string
 	       val tString: ((common -> string)*(branching->string)) option
-	     end):MyPatCollect with type CI.e = UT.keys and type common=UT.common and type branching = UT.branching
+	     end):MyPatCollect with type e = UT.keys and type common=UT.common and type branching = UT.branching
 
 module MyPatriciaCollectImplem(M : sig
            type t
            val id : t -> int
            val compare : t -> t -> int
            val toString : t -> string
-         end):MyPatCollect with type CI.e = M.t
+         end):MyPatCollect with type e = M.t
 
 module MyPatA(Atom:AtomType) : sig
-  module CI  : CollectImplem with type e = Atom.t
-  module Ext : CollectImplemExt with type e = Atom.t and type t = CI.t
 
   type e = Atom.t
-  type t = CI.t
+  type t
   val hash : t -> int
   val equal : t -> t -> bool
   val empty : t

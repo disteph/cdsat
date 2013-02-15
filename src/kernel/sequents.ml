@@ -308,8 +308,8 @@ with two extra functions for prettyprinting and for negation *)
   *)
 
   module Memo
-    (FSetExt: CollectImplemExt with type e = formulaType    and type t=fsetType)
-    (ASetExt: CollectImplemExt with type e = litType  and type t=asetType)
+    (FSetExt: CollectImplemExt with type e = formulaType and type t=fsetType)
+    (ASetExt: CollectImplemExt with type e = litType     and type t=asetType)
     : sig
       val tomem          : tomem
       val search4success : tosearch

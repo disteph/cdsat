@@ -35,7 +35,8 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
     let address     = ref No
 
     let fNone () = None
-    module Me = Memo(UFSet.Ext)(UASet.Ext)
+
+    module Me = Memo(UFSet)(UASet)
     module PF = Formulae.PrintableFormula(MyTheory.Atom)(UF)
 
     (* We record a stack of clauses that will definitely do a Unit Propagate *)

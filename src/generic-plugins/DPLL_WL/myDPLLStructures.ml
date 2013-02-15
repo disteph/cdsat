@@ -110,7 +110,11 @@ module MyDPLLFSet(Atom:AtomType) = struct
     let tString = None (*Some(cstring,bstring)*)
   end
 
-  include MyPat(UT)
+  module SS:(MyPatCollect with type e        = F.t
+			  and type common    = UT.common 
+			  and type branching = UT.branching    
+	    ) = MyPat(UT)
+  include SS
 
   let byes j         = j
   let bempty         = None

@@ -398,8 +398,8 @@ module ProofSearch (MyTheory: Theory.Type)
 
    end: sig
      module FE : (FrontEndType  with type litType     = MyTheory.Atom.t
-					 and  type formulaType = F.t
-					 and  type fsetType    = FSet.t
-					 and  type asetType    = ASet.t)
+				and  type formulaType = F.t
+				and  type fsetType    = FSet.t
+				and  type asetType    = ASet.t)
      val machine : FE.Seq.t -> 'a ->'a FE.output
    end)
