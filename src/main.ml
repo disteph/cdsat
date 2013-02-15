@@ -7,12 +7,12 @@ open Formulae
 open Test
 
 include Empty
-module MyPlugin = DPLL_WL.MyPlugin.GenPlugin(MyTheory)
+module MyPlugin = Naive.MyPlugin.GenPlugin(MyTheory)
 
 include Tests(MyTheory)(MyPlugin)
 
-(*
-
+module MP = MyTheory.Parser(MyPlugin.UF)
+open MP
 include PrintableFormula(MyTheory.Atom)(MyPlugin.UF)
 
 (* p(x) \/- !p(x) *)
@@ -101,7 +101,6 @@ let f9=
   )
 *)
 
-*)
 
 let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 
@@ -111,7 +110,6 @@ let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
 ";;
 
 
-(*
 if Array.length Sys.argv = 1 then
   write_to_file "latex/output.tex" (print_test f1^
 				      print_test f2^
@@ -122,13 +120,11 @@ if Array.length Sys.argv = 1 then
 				      print_test f7^
 				      print_test f8
 				   )
-else *)
-
-let a = Sys.argv.(1) in
+else let a = Sys.argv.(1) in
   if Sys.is_directory a
   then let _ = treatdir a in ()
   else let _ = treatfile a in ()
-(* write_to_file "latex/output.tex" (printanswer ss);;*)
+				(* write_to_file "latex/output.tex" (printanswer ss);;*)
 ;;  
 
 

@@ -45,14 +45,12 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
 	| AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
 	| OrP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\orP" f2
     and print_bin_op_in_fmt fmt f1 op f2 =
-      fprintf fmt "(%a) %s (%a)" print_in_fmt f1 op print_in_fmt f2
+      fprintf fmt "(%a %s %a)" print_in_fmt f1 op print_in_fmt f2
 
     let toString f =
       let buf = Buffer.create 255 in
 	fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt f;
 	Buffer.contents buf
-
-    let toString f = ""
 
     (* Negates a formula *)
     let rec negation f =
@@ -63,8 +61,6 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
 	| AndP(f1, f2) -> OrN(negation f1, negation f2)
 	| OrP(f1, f2) -> AndN(negation f1, negation f2) in
 	F.build f1
-
-  (*  let lit (b, f, tl) = F.build (Lit(Atom.bbuild (b, f, tl))) *)
 
     let andN (f1, f2) = F.build(AndN(f1, f2))
 

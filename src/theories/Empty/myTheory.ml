@@ -25,8 +25,10 @@ module DecProc(ASet: Collection.CollectImplem with type e = Atom.t)
   end
 
 module Parser(F:FormulaImplem with type lit = Atom.t)
-  = MyParser.Generate(F)
-
+  = struct
+    include MyParser.Generate(F)
+    let lit (b, f, tl) = F.build (Lit(Atom.bbuild (b, f, tl)))
+  end
 
 (* OLD CODE, useful for first-order 
 
