@@ -3,6 +3,7 @@ module type AtomType = sig
   val equal : t -> t -> bool
   val compare : t -> t -> int
   val negation: t -> t
+  val print_in_fmt: Format.formatter -> t -> unit
   val toString: t -> string
   val id: t -> int
   val hash: t -> int

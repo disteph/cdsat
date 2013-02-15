@@ -20,6 +20,7 @@ module Atom : sig
   val bbuild : bool * string * Term.t list -> t
   val id : t -> int 
   val negation : t -> t
+  val print_in_fmt: Format.formatter -> t -> unit
   val toString : t -> string
   val compare : t -> t -> int
   val equal : t -> t -> bool

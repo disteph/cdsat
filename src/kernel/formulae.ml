@@ -6,6 +6,7 @@ module type AtomType = sig
   val equal : t -> t -> bool
   val compare : t -> t -> int
   val negation: t -> t
+  val print_in_fmt: Format.formatter -> t -> unit
   val toString: t -> string
   val id: t -> int
   val hash: t -> int
@@ -35,7 +36,7 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
 
     type t = F.t
 	
-    (* Displays a formula 
+    (* Displays a formula *)
     let rec print_in_fmt fmt f =
       match F.reveal f with
 	| Lit l -> Atom.print_in_fmt fmt l
@@ -49,7 +50,7 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
     let toString f =
       let buf = Buffer.create 255 in
 	fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt f;
-	Buffer.contents buf *)
+	Buffer.contents buf
 
     let toString f = ""
 

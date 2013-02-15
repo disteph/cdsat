@@ -3,6 +3,7 @@ open Kernel
 open Formulae
 open Printf
 open Atoms
+open String
 
 (* converts a file to a string with its contents *)
 
@@ -12,14 +13,13 @@ let read_from_file filename =
     try
       while true; do
 	let line = input_line chan in
-	  if not (line.[0]='c') then 
+	  if (length line>0)&&(not (line.[0]='c')) then 
 	    lines := (!lines)^"\n"^line
       done; ""
     with End_of_file ->
       close_in chan;
-      !lines;
+      !lines
 
-open String
 
 let rec list_from_string s list_so_far n = 
   if (n>=length s) then List.rev list_so_far 
@@ -101,6 +101,7 @@ module Generate(F:FormulaImplem with type lit = Atom.t) = struct
 			  F.build (Lit (Atom.bbuild(false,"p",[])))
 			))
 
-  let parse filename = generate_cnf(parse_cnf_file (list_from_string (read_from_file filename) [] 0))
-
+  let parse filename = 
+    generate_cnf(parse_cnf_file (list_from_string (read_from_file filename) [] 0))
+    
 end

@@ -5,7 +5,31 @@ module Atom = Atoms.Atom
   
 module DecProc(ASet: Collection.CollectImplem with type e = Atom.t)
   = struct    
-      
+    
+    let goal_consistency atomN t = 
+      if ASet.is_in t atomN then Some (ASet.add t ASet.empty)
+      else None
+
+    let rec consistency atomN =
+      ASet.fold 
+	(function l -> function
+	   | Some a -> Some a
+	   | None   -> 
+	       (match goal_consistency atomN (Atom.negation l) with
+		  | None -> None
+		  | Some set -> Some (ASet.add l set)
+	       )
+	)
+	atomN
+	None
+  end
+
+module Parser(F:FormulaImplem with type lit = Atom.t)
+  = MyParser.Generate(F)
+
+
+(* OLD CODE, useful for first-order 
+
     let goal_consistency atomN t =
       let (b,p,_) = Atom.reveal t in
       let rec filt_inspect filtered =
@@ -16,14 +40,4 @@ module DecProc(ASet: Collection.CollectImplem with type e = Atom.t)
 	    else filt_inspect newfiltered
       in filt_inspect (atomN)
 
-    let rec consistency atomN =
-      if ASet.is_empty atomN then None
-      else
-	let (at,newatomN) = ASet.next atomN in
-	  match goal_consistency newatomN (Atom.negation at) with
-	    | None   -> consistency newatomN
-	    | Some a -> Some(ASet.add at a)
-  end
-
-module Parser(F:FormulaImplem with type lit = Atom.t)
-  = MyParser.Generate(F)
+*)
