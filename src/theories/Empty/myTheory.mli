@@ -1,1 +1,1 @@
-../TheoryInterface.mli
+../myTheory.mli
