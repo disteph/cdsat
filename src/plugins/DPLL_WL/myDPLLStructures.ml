@@ -13,9 +13,13 @@ open SetConstructions
 
 (* Implementation of formulae for DPLL *)
 
-module MyDPLLForm = struct
+module MyDPLLForm(Atom:AtomType) = struct
 
-  type tt = {reveal: tt form; id:int; aset:MyPatA.t option}
+  module ASet = MyPatA(Atom)
+
+  type lit = Atom.t
+
+  type tt = {reveal: (tt,Atom.t) form; id:int; aset: ASet.t option}
 
   let id f   = f.id
   let aset f = f.aset
@@ -35,7 +39,7 @@ module MyDPLLForm = struct
 	   | _                          -> false 
        let hash t1 =
 	 match t1.reveal with
-	   | Lit l        -> Atom.hash l
+	   | Lit l        -> Atom.id l
 	   | AndP (x1,x2) -> 5*x1.id+17*x2.id
 	   | OrP (x1,x2)  -> 7*x1.id+19*x2.id
 	   | AndN (x1,x2) -> 11*x1.id+23*x2.id
@@ -47,9 +51,9 @@ module MyDPLLForm = struct
   module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
 
   let aset_build = function
-    | Lit l        -> Some(MyPatA.add l MyPatA.empty)
+    | Lit l        -> Some(ASet.add l ASet.empty)
     | AndP (x1,x2) -> (match x1.aset, x2.aset with
-			 | Some(a),Some(b) -> Some(MyPatA.union a b)
+			 | Some(a),Some(b) -> Some(ASet.union a b)
 			 | _ -> None) 
     | OrP (x1,x2)  -> None
     | AndN (x1,x2) -> None
@@ -82,21 +86,23 @@ end
 
 (* Implementation of sets of formulae for DPLL *)
 
-module MyDPLLFSet = struct
+module MyDPLLFSet(Atom:AtomType) = struct
 
-  module UF   = PrintableFormula(MyDPLLForm)
-  module UT0  = TypesFromCollect(struct include MyPatA type keys=t let tag s= s end)
-  module UT1  = Lift(struct include UT0 type newkeys=MyDPLLForm.t let project = MyDPLLForm.aset end)
+  module ASet = MyPatA(Atom)
+  module F    = MyDPLLForm(Atom)
+  module UF   = PrintableFormula(Atom)(F)
+  module UT0  = TypesFromCollect(struct include ASet type keys=t let tag s= s end)
+  module UT1  = Lift(struct include UT0 type newkeys=F.t let project = F.aset end)
   module UT2  = struct include UT1 let pequals = UT1.pequals UT0.pequals end
-  module UT3  = TypesFromHConsed(struct type t = MyDPLLForm.t let id = MyDPLLForm.id end)
+  module UT3  = TypesFromHConsed(struct type t = F.t let id = F.id end)
 
   module UT   = struct
     include LexProduct(UT2)(UT3)
-    let compare = MyDPLLForm.compare
+    let compare = F.compare
     let toString = UF.toString
     let cstring (a,b) = match a with
       | None -> "NC"
-      | Some aa-> string_of_int (MyPatA.id aa)
+      | Some aa-> string_of_int (ASet.id aa)
     let bstring = function
       | A(Some at)-> Atom.toString at
       | A(None)   -> "NC"
@@ -115,7 +121,7 @@ module MyDPLLFSet = struct
     | _            -> failwith("Shouldn't be a union here")
 
   let filter atms =function
-    | A(Some a)-> not (MyPatA.is_in (Atom.negation a) atms)
+    | A(Some a)-> not (ASet.is_in (Atom.negation a) atms)
     | _        -> true
 
   let yes _ _ _ = Yes() 

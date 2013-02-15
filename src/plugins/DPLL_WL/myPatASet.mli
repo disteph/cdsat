@@ -1,6 +1,7 @@
 open Lib
 open Kernel
 
+open Formulae
 open Collection
 open Memoisation
 open Patricia
@@ -24,6 +25,7 @@ module type MyPatCollect = sig
   val hash : t -> int
   val equal : t -> t -> bool
   val next : t -> e * t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString : t -> string
   val compare : t -> t -> int
   val compareE : e -> e -> int
@@ -61,11 +63,11 @@ module MyPatriciaCollectImplem(M : sig
            val toString : t -> string
          end):MyPatCollect with type CI.e = M.t
 
-module MyPatA : sig
-  module CI  : ACollectImplem with type e = Formulae.Atom.t
-  module Ext : CollectImplemExt with type e = Formulae.Atom.t and type t = CI.t
+module MyPatA(Atom:AtomType) : sig
+  module CI  : CollectImplem with type e = Atom.t
+  module Ext : CollectImplemExt with type e = Atom.t and type t = CI.t
 
-  type e = Formulae.Atom.t
+  type e = Atom.t
   type t = CI.t
   val hash : t -> int
   val equal : t -> t -> bool
@@ -75,17 +77,18 @@ module MyPatA : sig
   val inter : t -> t -> t
   val diff : t -> t -> t
   val latest: t -> e option
-  val choose : t -> Formulae.Atom.t
-  val is_in : Formulae.Atom.t -> t -> bool
-  val add : Formulae.Atom.t -> t -> t
-  val remove : Formulae.Atom.t -> t -> t
-  val next : t -> Formulae.Atom.t * t
+  val choose : t -> Atom.t
+  val is_in : Atom.t -> t -> bool
+  val add : Atom.t -> t -> t
+  val remove : Atom.t -> t -> t
+  val next : t -> Atom.t * t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString : t -> string
-  val filter : bool -> Formulae.Atom.Predicates.t -> t -> t
+(*  val filter : bool -> Atom.Predicates.t -> t -> t *)
   val compare : t -> t -> int
-  val compareE : Formulae.Atom.t -> Formulae.Atom.t -> int
+  val compareE : Atom.t -> Atom.t -> int
   val sub      : bool->t->t->e option->(unit,e) almost
-  val first_diff : t -> t -> Formulae.Atom.t option * bool
+  val first_diff : t -> t -> Atom.t option * bool
   val clear: unit->unit
   val id: t-> int
   val cardinal: t->int

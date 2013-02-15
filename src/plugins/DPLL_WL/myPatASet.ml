@@ -42,6 +42,7 @@ module MyPat(UT:sig
     let remove   = SS.remove
     let hash     = SS.hash
     let equal    = SS.equal
+    let fold     = SS.fold
     let toString = SS.toString UT.tString UT.toString
     let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
   end
@@ -88,10 +89,11 @@ module MyPatriciaCollectImplem(M:sig
 
 (* Particular implementation of sets of atoms *)
 
-module MyPatA = struct
+module MyPatA(Atom:AtomType) = struct
 
   module AtSet = MyPatriciaCollectImplem(Atom)
-  module M = struct
+
+(*  module M = struct
     type t       = bool*Atom.Predicates.t
     let id (b,f) = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
   end
@@ -117,67 +119,46 @@ module MyPatA = struct
   module SS = PATMap(Destination)(TypesFromHConsed(M))
 
   let lleaf(k,x) = if AtSet.is_empty x then SS.empty else SS.leaf(k,x)
+*)
 
   module CI = struct
     type e              = Atom.t
-    type t              = SS.t*(e option)
-    let hash(a,_)       = SS.hash a
-    let equal(a,_)(a',_)= SS.equal a a'
-    let empty           = (SS.empty, None)
-    let is_empty(a,_)   = SS.is_empty a
-    let union(a,_)(a',_)= (SS.union AtSet.union a a',None)
-    let inter(a,_)(a',_)= (SS.inter AtSet.inter a a',None)
-    let is_in l (t,_)   =
-      let (b,p,tl) = Atom.reveal l in
-	(SS.mem (b,p) t)&&(AtSet.is_in l (SS.find (b,p) t))
-    let add l (h,_) =
-      let (b,p,tl) = Atom.reveal l in
-      let f c = function
-	| None   -> AtSet.SS.singleton c
-	| Some d -> AtSet.add c d
-      in (SS.add f (b,p) l h,Some l)
-    let remove l (h,_) =
-      let (b,p,tl) = Atom.reveal l in
-	(SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p) h ,None)
-    let next (t1,a) =
-      let (_,y) = SS.choose t1 in
-      let l = AtSet.SS.choose y in
-	(l, remove l (t1,a))
-    let toString (h,_)= SS.toString None (fun (k,l)->AtSet.toString l) h 
+    type t              = AtSet.t*(e option)
+    let hash(a,_)       = AtSet.hash a
+    let equal(a,_)(a',_)= AtSet.equal a a'
+    let empty           = (AtSet.empty, None)
+    let is_empty(a,_)   = AtSet.is_empty a
+    let union(a,_)(a',_)= (AtSet.union a a',None)
+    let inter(a,_)(a',_)= (AtSet.inter a a',None)
+    let is_in l (t,_)   = AtSet.is_in l t
+    let add l (h,_)     = (AtSet.add l h,Some l)
+    let remove l (h,_)  = (AtSet.remove l h, None)
+    let next (t1,a)     = 
+      let (l,t2) = AtSet.next t1 in
+	(l, (t2,None))
+    let fold f (a,_)   = AtSet.fold f a
+    let toString (h,_)= AtSet.toString h 
       (*    let toString (h,_)= SS.toString (Some((fun i->string_of_int i^"|"),(fun i->string_of_int i^"|"))) (fun (k,l)->("F"^string_of_int(AtSet.SS.id l)^AtSet.toString l)) h *)
-    let filter b pred (t,_)=
-      if SS.mem (b,pred) t
-      then (SS.leaf((b,pred),SS.find (b,pred) t),None)
-      else empty
   end
 
-  let diff (t1,_)(t2,_) = (SS.diff (fun k v1 v2 -> lleaf(k,AtSet.diff v1 v2)) t1 t2,None)
+  let diff (t1,_)(t2,_) = (AtSet.diff t1 t2,None)
 
   module Ext =struct
     include CI
-    let compare(a,_)(a',_)    = SS.compare a a'
-    let compareE              = atcompare
-    let first_diff(a,_)(a',_) = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info a a'
-    let sub alm (s1,f) (s2,g) limit =
-      let f alm k x = function
-	| Some y -> AtSet.sub alm x y limit
-	| None   -> AtSet.sub alm x AtSet.empty limit
-      in 
-      let locprune t =
-	match limit,SS.info t with
-	  | Some b,Some x when not (compareE x b<0) -> SS.Empty
-	  | _                                       -> SS.reveal t
-      in SS.sub f locprune alm s1 s2
+    let compare(a,_)(a',_)    = AtSet.compare a a'
+    let compareE              = AtSet.compareE
+    let first_diff(a,_)(a',_) = AtSet.first_diff a a'
+    let sub alm (s1,f) (s2,g) limit = AtSet.sub alm s1 s2 limit
  end
 
 include Ext
 
-  let choose (t,_) = let (_,b)= SS.choose t in AtSet.choose b
-  let clear ()     = SS.clear();AtSet.clear()
-  let id (a,_)     = SS.id a
+  let choose (t,_) = AtSet.choose t
+  let clear ()     = AtSet.clear()
+  let id (a,_)     = AtSet.SS.id a
   let latest (_,b) = b
-  let cardinal (s,_) = SS.fold (fun _ x accu -> AtSet.cardinal x+accu) s 0
-  let negations (s,_) = SS.fold (fun k x accu -> AtSet.SS.fold (fun k accu -> add (Atom.negation k) accu) x accu) s empty
+  let cardinal (s,_) = AtSet.cardinal s
+  let negations (s,_) = AtSet.SS.fold (fun k accu -> add (Atom.negation k) accu) s empty
 
 end
 
@@ -203,6 +184,7 @@ sig
   val hash : t -> int
   val equal : t -> t -> bool
   val next : t -> e * t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString : t -> string
   val compare : t -> t -> int
   val compareE : e -> e -> int
