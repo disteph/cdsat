@@ -3,3 +3,4 @@ kernel/Collection
 kernel/Memoisation
 kernel/Sequents
 kernel/Search
+kernel/Theory
