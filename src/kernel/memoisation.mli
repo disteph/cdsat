@@ -12,6 +12,7 @@ sig
   val inter : t -> t -> t
   val remove : e -> t -> t
   val next : t -> e * t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString : t -> string
   val hash : t -> int
   val equal : t -> t -> bool
@@ -22,54 +23,17 @@ sig
 end
 
 module PATMapExt
-  (F : Formulae.FormulaImplem)
-  (FSet : sig
-     type e = F.t
-     type t
-     val is_empty : t -> bool
-     val is_in : e -> t -> bool
-     val empty : t
-     val add : e -> t -> t
-     val union : t -> t -> t
-     val inter : t -> t -> t
-     val remove : e -> t -> t
-     val next : t -> e * t
-     val toString : t -> string
-     val hash : t -> int
-     val equal : t -> t -> bool
-     val compare : t -> t -> int
-     val compareE : e -> e -> int
-     val sub :
-       bool -> t -> t -> e option -> (unit, e) Sums.almost
-     val first_diff : t -> t -> e option * bool
-   end)
-  (ASet : sig
-     type e = Formulae.Atom.t
-     type t
-     val is_empty : t -> bool
-     val is_in : e -> t -> bool
-     val empty : t
-     val add : e -> t -> t
-     val union : t -> t -> t
-     val inter : t -> t -> t
-     val remove : e -> t -> t
-     val next : t -> e * t
-     val toString : t -> string
-     val hash : t -> int
-     val equal : t -> t -> bool
-     val compare : t -> t -> int
-     val compareE : e -> e -> int
-     val sub :
-       bool -> t -> t -> e option -> (unit, e) Sums.almost
-     val first_diff : t -> t -> e option * bool
-   end)
-  (V : sig type values val vcompare : values -> values -> int end)
+  (Atom: Formulae.AtomType)
+  (F: Formulae.FormulaImplem with type lit = Atom.t)
+  (FSet: CollectImplemExt with type e = F.t)
+  (ASet: CollectImplemExt with type e = Atom.t)
+  (V: sig type values val vcompare:values->values->int end)
   : sig
 
     module UT : sig
       type keys   = ASet.t * FSet.t
       type common = ASet.t * FSet.t
-      type branching = (Formulae.Atom.t,F.t) Sums.sum
+      type branching = (F.lit,F.t) Sums.sum
     end
 
     type 'a pat =

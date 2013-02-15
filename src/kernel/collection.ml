@@ -9,14 +9,8 @@ module type CollectImplem = sig
   val inter: t -> t -> t
   val remove: e -> t -> t
   val next: t -> e*t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString: t -> string
   val hash: t -> int
   val equal: t->t->bool
-end
-
-open Formulae
-
-module type ACollectImplem = sig
-  include CollectImplem with type e = Atom.t
-  val filter : bool -> Atom.Predicates.t -> t -> t
 end

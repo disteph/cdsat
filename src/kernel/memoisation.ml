@@ -33,7 +33,8 @@ end
 
 
 module PATMapExt
-  (F: FormulaImplem)
+  (Atom: AtomType)
+  (F: FormulaImplem with type lit = Atom.t)
   (FSet: CollectImplemExt with type e = F.t)
   (ASet: CollectImplemExt with type e = Atom.t)
   (V: sig type values val vcompare:values->values->int end)

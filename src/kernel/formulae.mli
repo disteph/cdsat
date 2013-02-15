@@ -1,40 +1,16 @@
-module Term : sig
-  type variables (*= string*)
-  type fsymb (*= string*)
-  type term = V of variables | XV of variables | C of fsymb * t list
-  and t
-  val reveal : t -> term
-  val build : term -> t
-  val id : t -> int
-  val print_in_fmt : Format.formatter -> t -> unit
-  val printtl_in_fmt : Format.formatter -> t list -> unit
-  val toString : t -> string
-  val printtl : t list -> string
-  val clear : unit -> unit
-end
-
-module Atom : sig
-  module Predicates : sig
-    type t
-    val compare : t -> t -> int
-    val id : t -> int
-  end
+module type AtomType = sig
   type t
-  val reveal : t -> bool * Predicates.t * Term.t list
-  val build : bool * Predicates.t * Term.t list -> t
-  val bbuild : bool * string * Term.t list -> t
-  val id : t -> int 
-  val negation : t -> t
-  val print_in_fmt : Format.formatter -> t -> unit
-  val toString : t -> string
-  val compare : t -> t -> int
   val equal : t -> t -> bool
-  val hash : t -> int
-  val clear : unit -> unit
+  val compare : t -> t -> int
+  val negation: t -> t
+  val toString: t -> string
+  val id: t -> int
+  val hash: t -> int
+  val clear: unit->unit
 end
 
-type 'a form =
-    Lit of Atom.t
+type ('a,'b) form =
+  | Lit of 'b
   | AndP of 'a * 'a
   | OrP of 'a * 'a
   | AndN of 'a * 'a
@@ -42,16 +18,16 @@ type 'a form =
 
 module type FormulaImplem = sig
   type t
-  val reveal : t -> t form
-  val build : t form -> t
+  type lit
+  val reveal : t -> (t,lit) form
+  val build : (t,lit) form -> t
 end
 
-module PrintableFormula (F : FormulaImplem) : sig
+module PrintableFormula(Atom: AtomType)(F: FormulaImplem with type lit = Atom.t) : sig
   type t = F.t
-  val print_in_fmt : Format.formatter -> t -> unit
   val toString : F.t -> string
   val negation : F.t -> F.t
-  val lit : bool * string * Term.t list -> F.t
+(*  val lit : bool * string * Term.t list -> F.t *)
   val andN : F.t * F.t -> F.t
   val andP : F.t * F.t -> F.t
   val orN : F.t * F.t -> F.t

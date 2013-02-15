@@ -3,17 +3,20 @@ open Lib
 open Formulae
 open Collection
 open Sums
+open Sequents
 
-module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (ASet: ACollectImplem)
-  (DecProc: sig
-     val goal_consistency: ASet.t -> Atom.t -> ASet.t option
-     val consistency: ASet.t -> ASet.t option
-   end)
+module ProofSearch (MyTheory: Theory.Type)
+  (F: FormulaImplem with type lit = MyTheory.Atom.t)
+  (FSet: CollectImplem with type e = F.t)
+  (ASet: CollectImplem with type e = MyTheory.Atom.t)
   =
   (struct
 
+     (* Loads the decision procedures *)
+     module DecProc = MyTheory.DecProc(ASet)
+
      (* Loads the FrontEnd *)
-     module FE = Sequents.FrontEnd(F)(FSet)(ASet)
+     module FE = FrontEnd(MyTheory.Atom)(F)(FSet)(ASet)
      open FE
      
      (* Array where we count how many events we get *)
@@ -172,7 +175,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
        match seq with
 	 | Seq.EntF(atomN, g, formP, formPSaved, polar)
            -> begin match (F.reveal g) with
-	     | _ when ((polarity polar g) <> Sequents.Pos) ->
+	     | _ when ((polarity polar g) <> Pos) ->
 		 straight 
 		   (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
 		   (stdone seq) seq cont
@@ -204,7 +207,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	 | Seq.EntUF(atomN, delta, formP, formPSaved, polar) when not (FSet.is_empty delta)
 	     -> let (toDecompose,newdelta) = FSet.next delta in
 	       begin match F.reveal toDecompose with
-		 | _ when (polarity polar toDecompose) = Sequents.Pos ->
+		 | _ when (polarity polar toDecompose) = Pos ->
 		     if (FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)
 		     then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
 		       straight u (stdone seq) seq cont
@@ -216,7 +219,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 											     else gfP)::l)
 									  | _           -> failwith("Should not happen")), pt))) seq cont
 			 
-		 | Lit t when (polarity polar toDecompose) = Sequents.Neg -> let t' = (Atom.negation t) in
+		 | Lit t when (polarity polar toDecompose) = Neg -> let t' = (MyTheory.Atom.negation t) in
 		     if ASet.is_in t' atomN
 		     then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
 		       straight u (stdone seq) seq cont
@@ -226,10 +229,10 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 									  ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l))
 								 , pt))) seq cont
 
-		 | Lit t when (polarity polar toDecompose) = Sequents.Und -> let (b,f,_)=Atom.reveal t in
+		 | Lit t when (polarity polar toDecompose) = Und ->
 		     (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
 		     straight 
-		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Sequents.Pol.add f (if b then Sequents.Neg else Sequents.Pos) polar)) data)
+		       (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar))) data)
 		       (fun pt->pt) seq cont
 
 		 | AndN (a1, a2) -> 
@@ -248,9 +251,9 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
 	   ->begin if !Flags.debug>1 then print_endline("attack "^print_state seq);
 
-	     let rec lk_solvef formPChoose formP formPSaved action0 data cont = 
+	     let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
 
-	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved)) 
+	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) ) 
 	       then cont (throw (Local(Fail seq)) seq)
 	       else
 
@@ -266,7 +269,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 			 else
 			   let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
-			   let u2 = lk_solvef (FSet.remove toFocus formPChoose) formP formPSaved l data in
+			   let u2 = lk_solvef (FSet.remove toFocus formPChoose) conschecked formP formPSaved l data in
 			     ou (intercept inter_fun u1) u2
 			       (fun pt -> PT.build(PT.OnePre (relevant(seq,match ext [pt] with
 									 | (ga,gfP::l) -> (ga,(FSet.add toFocus gfP)::l)
@@ -278,7 +281,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			 let u3 = lk_solvef formPChoose formP formPSaved l data in
+			 let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 			     
 		     | Cut(7,toCut, inter_fun1, inter_fun2,l) -> (*cut_7*)
@@ -286,7 +289,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
-			 let u3 = lk_solvef formPChoose formP formPSaved l data in
+			 let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont 
 (*			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont *)
 
@@ -299,22 +302,22 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 							  )))
 			   in cont (throw (Local x) seq)
 			 in
-			 let u2 = lk_solvef formPChoose formP formPSaved l data in
+			 let u2 = lk_solvef formPChoose true formP formPSaved l data in
 			   ou u1 u2 (stdone seq) (stdone seq) seq cont
 
 		     | Polarise(l,b, inter_fun) ->
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							    Sequents.Pol.add l (if b then Sequents.Neg else Sequents.Pos) polar)) data in
+							    Pol.add l (if b then Neg else Pos) polar)) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
-		     | Get(b1,b2,l) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose formP formPSaved l data)))
+		     | Get(b1,b2,l) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose conschecked formP formPSaved l data)))
 
 		     | Search(tosearch,inter_fun,A l) ->
 			 begin match tosearch false seq with
 			   | A(a) -> if !Flags.debug>1 then print_endline("Found previous success/failure, looking for exact on "^print_state seq);
 			       intercept inter_fun (fun cc->cc (throw (Local(a)) seq)) cont
 			   | _    -> if !Flags.debug>1 then print_endline("Found no previous success/failure, looking for exact on "^print_state seq);
-			       lk_solvef formPChoose formP formPSaved l data cont
+			       lk_solvef formPChoose conschecked formP formPSaved l data cont
 			 end
 
 		     | Search(tosearch,inter_fun,F f) ->
@@ -326,11 +329,11 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 			       then print_endline(if not(ASet.is_empty d1) then "Found approx. in atoms on "^print_state seq
 						  else if not(FSet.is_empty d2) then "Found approx. in pos form on "^print_state seq
 						  else "Found no approx on "^print_state seq);
-			       lk_solvef formPChoose formP formPSaved (f (d1,d2)) data cont
+			       lk_solvef formPChoose conschecked formP formPSaved (f (d1,d2)) data cont
 			 end
 
 		     | Restore l ->
-			 lk_solvef (FSet.union formPChoose formPSaved) (FSet.union formP formPSaved) FSet.empty l data cont
+			 lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l data cont
 
 		     | _       -> failwith("focus_pick has suggested a stupid action")
 
@@ -349,7 +352,7 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
 	     in
 	     let notify_analysis(accept_defeat,newdata,inter_fun,action1) =
 	       if (inloop&&accept_defeat) then (count.(7)<-count.(7)+1;cont (throw (Local(Fail seq)) seq))
-	       else lk_solvef formP formP formPSaved action1 newdata (newcont inter_fun)
+	       else lk_solvef formP false formP formPSaved action1 newdata (newcont inter_fun)
 	     in
 	       count.(8)<-count.(8)+1;
 	       Fake(Notify(seq,inloop,notify_analysis,data))
@@ -394,6 +397,9 @@ module ProofSearch (F: FormulaImplem) (FSet: CollectImplem with type e = F.t) (A
        wrap (lk_solve false seq data)
 
    end: sig
-     module FE : (Sequents.FrontEndType with module F=F and module FSet=FSet and module ASet=ASet)
+     module FE : (FrontEndType  with type litType     = MyTheory.Atom.t
+					 and  type formulaType = F.t
+					 and  type fsetType    = FSet.t
+					 and  type asetType    = ASet.t)
      val machine : FE.Seq.t -> 'a ->'a FE.output
    end)
