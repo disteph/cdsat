@@ -30,35 +30,29 @@ module MyPat(UT:sig
 
   module SS = PATSet(D)(UT)
 
-  module CI = struct
-    type e       = UT.keys
-    type t       = SS.t
-    let is_empty = SS.is_empty
-    let is_in    = SS.mem
-    let empty    = SS.empty
-    let add      = SS.add
-    let union    = SS.union
-    let inter    = SS.inter
-    let remove   = SS.remove
-    let hash     = SS.hash
-    let equal    = SS.equal
-    let toString = SS.toString UT.tString UT.toString
-    let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
-  end
+  type e       = UT.keys
+  type t       = SS.t
+  let is_empty = SS.is_empty
+  let is_in    = SS.mem
+  let empty    = SS.empty
+  let add      = SS.add
+  let union    = SS.union
+  let inter    = SS.inter
+  let remove   = SS.remove
+  let hash     = SS.hash
+  let equal    = SS.equal
+  let fold     = SS.fold
+  let toString = SS.toString UT.tString UT.toString
+  let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
 
-  module Ext = struct
-    include CI
-    let compare    = SS.compare
-    let compareE   = UT.compare
-    let first_diff = SS.first_diff SS.info
-    let sub alm s1 s2 limit =
-      let locprune t = match limit,SS.info t with
-	| Some b,Some x when not (UT.compare x b<0) -> SS.Empty
-	| _                                         -> SS.reveal t
-      in SS.sub locprune alm s1 s2
-  end
-
-  include Ext
+  let compare    = SS.compare
+  let compareE   = UT.compare
+  let first_diff = SS.first_diff SS.info
+  let sub alm s1 s2 limit =
+    let locprune t = match limit,SS.info t with
+      | Some b,Some x when not (UT.compare x b<0) -> SS.Empty
+      | _                                         -> SS.reveal t
+    in SS.sub locprune alm s1 s2
 
   let choose     = SS.choose
   type common    = UT.common
@@ -86,91 +80,13 @@ module MyPatriciaCollectImplem(M:sig
 
 (* Particular implementation of sets of atoms *)
 
-module MyPatA = struct
+module MyPatA(Atom:AtomType) = struct
 
   module AtSet = MyPatriciaCollectImplem(Atom)
-  module M = struct
-    type t       = bool*Atom.Predicates.t
-    let id (b,f) = 2*(Atom.Predicates.id f)+(if b then 1 else 0)
-  end
+  include AtSet
 
-  let pcompare p1 p2 = Pervasives.compare (M.id p1) (M.id p2)
-    
-  let atcompare at1 at2=
-    let (b1,p1,tl1)=Atom.reveal at1 in
-    let (b2,p2,tl2)=Atom.reveal at2 in
-    let c= pcompare(b1,p1)(b2,p2) in
-      if c==0 then Atom.compare at1 at2 else c
-
-  module Destination = struct
-    type keys      = M.t
-    let kcompare   = pcompare  
-    type values    = AtSet.t
-    let vcompare   = AtSet.compare
-    type infos     = Atom.t m_infos
-    let info_build = (None,(fun _ v -> AtSet.SS.info v),splmin atcompare)
-    let treeHCons  = !Flags.memo
-  end
-
-  module SS = PATMap(Destination)(TypesFromHConsed(M))
-
-  let lleaf(k,x) = if AtSet.is_empty x then SS.empty else SS.leaf(k,x)
-
-  module CI = struct
-    type e        = Atom.t
-    type t        = SS.t
-    let hash      = SS.hash
-    let equal     = SS.equal
-    let empty     = SS.empty
-    let is_empty  = SS.is_empty
-    let union     = SS.union AtSet.union
-    let inter     = SS.inter AtSet.inter
-    let is_in l t =
-      let (b,p,tl) = Atom.reveal l in
-	(SS.mem (b,p) t)&&(AtSet.is_in l (SS.find (b,p) t))
-    let add l     =
-      let (b,p,tl) = Atom.reveal l in
-      let f c = function
-	| None   -> AtSet.SS.singleton c
-	| Some d -> AtSet.add c d
-      in SS.add f (b,p) l
-    let remove l  =
-      let (b,p,tl) = Atom.reveal l in
-	SS.remove_aux (fun k x -> lleaf(k,AtSet.remove l x)) (b,p)
-    let next t1 =
-      let (_,y) = SS.choose t1 in
-      let l = AtSet.SS.choose y in
-      (l, remove l t1)
-    let toString = SS.toString None (fun (k,l)->AtSet.toString l)
-    let filter b pred t=
-      if SS.mem (b,pred) t
-      then SS.leaf((b,pred),SS.find (b,pred) t)
-      else empty
-  end
-
-  module Ext =struct
-    include CI
-    let compare    = SS.compare
-    let compareE   = atcompare
-    let first_diff = SS.first_diff (fun _->AtSet.first_diff) compareE SS.info
-    let sub alm s1 s2 limit =
-      (*      let singl e = let (b,p,_)= Atom.reveal e in SS.Leaf((b,p),AtSet.SS.singleton e) in	  *)
-      let f alm k x = function
-	| Some y -> AtSet.sub alm x y limit
-	| None   -> AtSet.sub alm x AtSet.empty limit
-      in 
-      let locprune t = match limit,SS.info t with
-	| Some b,Some x when not (compareE x b<0) -> SS.Empty
-	    (*	| Some b,Some(x,Some y) when not (compareE y b<0) -> singl x*)
-	| _                                       -> SS.reveal t
-      in SS.sub f locprune alm s1 s2
-
-  end
-
-  include Ext
-
-  let clear () = SS.clear();AtSet.clear()
-  let id=SS.id
+  let id a     = AtSet.SS.id a
+  let negations s = AtSet.SS.fold (fun k accu -> add (Atom.negation k) accu) s empty
 
 end
 
@@ -178,11 +94,8 @@ end
 
 module type MyPatCollect =
 sig
-  module CI  : CollectImplem
-  module Ext : Memoisation.CollectImplemExt with type e = CI.e and type t = CI.t
-
-  type e = CI.e
-  type t = CI.t
+  type e
+  type t
   type common
   type branching
 
@@ -196,6 +109,7 @@ sig
   val hash : t -> int
   val equal : t -> t -> bool
   val next : t -> e * t
+  val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString : t -> string
   val compare : t -> t -> int
   val compareE : e -> e -> int

@@ -12,7 +12,8 @@ module type Type = sig
 
   module Parser(F:FormulaImplem with type lit = Atom.t)
     :sig
-      val parse: string -> F.t
+      val parse   : string -> F.t
+      val examples: F.t list
     end
 
 end

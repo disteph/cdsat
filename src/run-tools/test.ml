@@ -21,7 +21,7 @@ module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.
   let go formula = print_endline("---");
     if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then Src.FE.Form.toString formula else "");
     Strat.solve(Src.machine (orig_seq formula) Strat.initial_data)
-      
+
   module MyParser = MyTheory.Parser(UF)
 
   let treatfile filename = print_endline("===========================");
@@ -34,4 +34,11 @@ module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.
       for i=0 to Array.length b-1 do
 	let _ = treatfile (a^Filename.dir_sep^b.(i)) in ();
       done
+
+  let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
+
+  \\vspace{10pt}\n"^
+  Src.FE.toString (go f)^"\\vspace{30pt}
+
+  "
 end
