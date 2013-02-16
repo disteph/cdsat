@@ -4,7 +4,7 @@ Authors: Dr Stephane Lengrand <lengrand@lix.polytechnique.fr>,
          Miss Mahfuza Farooque <mahfuza@lix.polytechnique.fr>,
          Mlle Assia Mahboubi <assia.mahboubi@inria.fr>
          Alexis Bernadet <bernadet@lix.polytechnique.fr>
-Version: 1.1
+Version: 1.3
 Name: Psyche
 Synopsis: Proof-Search factorY for Collaborative HEuristics
 BuildTools: ocamlbuild

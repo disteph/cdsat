@@ -7,7 +7,7 @@ open Formulae
 open Test
 
 include Empty
-module MyPlugin = DPLL_WL.MyPlugin.GenPlugin(MyTheory)
+module MyPlugin = DPLL_Pat.MyPlugin.GenPlugin(MyTheory)
 
 include Tests(MyTheory)(MyPlugin)
 
