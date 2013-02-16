@@ -155,8 +155,14 @@ with two extra functions for prettyprinting and for negation *)
      - if the result of this cut fails, then do not ask me for my
        next instruction but just do l (optional argument)
 
-     3) Polarise(l,b, inter_fun)
-     - make the polarity of l Neg (if b) or Pos (if not b)
+     3a) Polarise(l, inter_fun)
+     - make the polarity of l Pos (and of not l Neg)
+     - when I get back the result of doing this, apply inter_fun to it
+     to see whether I accept that result or not or I prefer to do
+     another action
+
+     3b) DePolarise(l, inter_fun)
+     - remove the polarity of l
      - when I get back the result of doing this, apply inter_fun to it
      to see whether I accept that result or not or I prefer to do
      another action
@@ -198,7 +204,8 @@ with two extra functions for prettyprinting and for negation *)
     | Focus    of formulaType*receive*alt_action
     | Cut      of int*formulaType*receive*receive*alt_action
     | ConsistencyCheck of receive*alt_action
-    | Polarise of litType*bool*receive
+    | Polarise   of litType*receive
+    | DePolarise of litType*receive
     | Get      of bool*bool*alt_action
     | Search   of tosearch*receive*(alt_action,asetType*fsetType->alt_action)sum
     | Restore  of alt_action
@@ -290,7 +297,7 @@ with two extra functions for prettyprinting and for negation *)
   type 'a output = (t,'a fakeoutput) local
   and  'a fakeoutput = 
     | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
-    | AskFocus of Seq.t*fsetType*(focusaction -> 'a output)*'a
+    | AskFocus of Seq.t*fsetType*bool*bool*(focusaction -> 'a output)*'a
     | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
 
@@ -426,7 +433,8 @@ module FrontEnd
       | Focus    of F.t*receive*alt_action
       | Cut      of int*F.t*receive*receive*alt_action
       | ConsistencyCheck of receive*alt_action
-      | Polarise of F.lit*bool*receive
+      | Polarise   of litType*receive
+      | DePolarise of litType*receive
       | Get      of bool*bool*alt_action
       | Search   of tosearch*receive*(alt_action,ASet.t*FSet.t->alt_action)sum
       | Restore  of alt_action
@@ -457,7 +465,7 @@ module FrontEnd
     type 'a output = (t,'a fakeoutput) local
     and 'a fakeoutput = 
       | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
-      | AskFocus of Seq.t*FSet.t*(focusaction -> 'a output)*'a
+      | AskFocus of Seq.t*FSet.t*bool*bool*(focusaction -> 'a output)*'a
       | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
       | Stop     of bool*bool*   (unit        -> 'a output)
 

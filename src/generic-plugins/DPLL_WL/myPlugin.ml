@@ -259,12 +259,12 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
       match !stack with
 	| []       -> alternative
 	| (f,n,_)::h when not (UASet.is_in (MyTheory.Atom.negation n) atms)->
-	    count.(2)<-count.(2)+1;
+	    (count.(2)<-count.(2)+1;
+	     stack:=h;
+	     fun()->Some(Focus(f,accept,fNone)))
+	| (f,n,_)::h ->
 	    stack:=h;
-	    fun()->Some(Focus(f,accept,fNone))
-	    | (f,n,_)::h ->
-		stack:=h;
-		findaction atms alternative
+	    findaction atms alternative
 
 
     let model = function
@@ -327,8 +327,13 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	(* If there is no more positive formulae to place the focus on,
 	   we restore the formulae on which we already placed focus *)
 
-	| Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
-	    -> solve (machine(Restore fNone))
+	| Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
+	    ->  solve (machine(Restore fNone))
+
+	| Fake(AskFocus(_,l,false,_,machine,_)) when UFSet.is_empty l
+	    -> solve (machine(Search(Me.search4failure,
+				     (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
+				     A(fun()->Some(ConsistencyCheck(accept,fNone))))))
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -342,7 +347,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	   allowed, and the address of the current focus point
 	*)
 
-	| Fake(AskFocus(seq,l,machine,(olda,tset)))
+	| Fake(AskFocus(seq,l,_,_,machine,(olda,tset)))
 	  -> let atms = model seq in
 	    solve (machine(Search(Me.search4failure,
 				  (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),

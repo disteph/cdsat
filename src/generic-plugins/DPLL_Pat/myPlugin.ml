@@ -108,8 +108,16 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
       (* If there is no more positive formulae to place the focus on,
 	 we restore the formulae on which we already placed focus *)
 
-      | Fake(AskFocus(_,l,machine,_)) when UFSet.is_empty l
-	  -> solve (machine(Restore fNone))
+      | Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
+	  ->  solve (machine(Restore fNone))
+
+      | Fake(AskFocus(_,l,false,_,machine,_)) when UFSet.is_empty l&& !Flags.memo
+	  -> solve (machine(Search(Me.search4failure,
+				   accept,
+				   A(fun()->Some(ConsistencyCheck(accept,fNone))))))
+
+      | Fake(AskFocus(_,l,false,_,machine,_)) when UFSet.is_empty l
+	  -> solve (machine(ConsistencyCheck(accept,fNone)))
 
       (* If Memoisation is on, we
 	 - start searching whether a bigger sequent doesn't already
@@ -123,7 +131,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	 allowed, and the address of the current focus point
       *)
 
-      | Fake(AskFocus(seq,l,machine,olda)) when !Flags.memo
+      | Fake(AskFocus(seq,l,_,_,machine,olda)) when !Flags.memo
 	  -> let (a,_)=Seq.simplify seq in
 	    solve (machine(Search(Me.search4failure,accept,A(fun()->Some(focus_pick a l olda)))))
 
@@ -132,7 +140,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	 formulae on which focus is allowed, and the address of the
 	 current focus point *)
 
-      | Fake(AskFocus(seq,l,machine,olda))
+      | Fake(AskFocus(seq,l,_,_,machine,olda))
 	-> let (a,_)=Seq.simplify seq in
 	  solve (machine (focus_pick a l olda))
 

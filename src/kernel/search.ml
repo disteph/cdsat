@@ -253,7 +253,7 @@ module ProofSearch (MyTheory: Theory.Type)
 
 	     let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
 
-	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) ) 
+	       if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) && conschecked) 
 	       then cont (throw (Local(Fail seq)) seq)
 	       else
 
@@ -293,7 +293,7 @@ module ProofSearch (MyTheory: Theory.Type)
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont 
 (*			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont *)
 
-		     | ConsistencyCheck(inter_fun,l) -> (*Checking consistency*)
+		     | ConsistencyCheck(inter_fun,l) when not conschecked -> (*Checking consistency*)
 			 let u1 cont =
 			   let x = match DecProc.consistency atomN with
 			     | None   -> Fail seq
@@ -305,9 +305,14 @@ module ProofSearch (MyTheory: Theory.Type)
 			 let u2 = lk_solvef formPChoose true formP formPSaved l data in
 			   ou u1 u2 (stdone seq) (stdone seq) seq cont
 
-		     | Polarise(l,b, inter_fun) ->
+		     | Polarise(l, inter_fun) when polarity polar (F.build(Lit l)) = Und ->
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							    Pol.add l (if b then Neg else Pos) polar)) data in
+							    Pol.add l Pos ( Pol.add (MyTheory.Atom.negation l) Neg polar))) data in
+			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
+
+		     | DePolarise(l, inter_fun) when not (polarity polar (F.build(Lit l)) = Und) ->
+			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
+							    Pol.remove l ( Pol.remove (MyTheory.Atom.negation l) polar))) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
 		     | Get(b1,b2,l) -> cont (Fake(b1,!dir=b2,Comp(lk_solvef formPChoose conschecked formP formPSaved l data)))
@@ -332,14 +337,14 @@ module ProofSearch (MyTheory: Theory.Type)
 			       lk_solvef formPChoose conschecked formP formPSaved (f (d1,d2)) data cont
 			 end
 
-		     | Restore l ->
+		     | Restore l when not (FSet.is_empty formPSaved) ->
 			 lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l data cont
 
 		     | _       -> failwith("focus_pick has suggested a stupid action")
 
 		 in match action0() with
 		   | Some(action)-> action_analysis action
-		   | None        -> Fake(AskFocus(seq,formPChoose,action_analysis,data))
+		   | None        -> Fake(AskFocus(seq,formPChoose,not (FSet.is_empty formPSaved),conschecked,action_analysis,data))
 	     in
 	     let newcont inter_fun loc_ans =
 	       let recept_analysis = function _ -> cont loc_ans in

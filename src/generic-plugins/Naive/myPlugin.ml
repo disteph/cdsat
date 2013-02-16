@@ -94,12 +94,13 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
       type data = unit
       let initial_data=()
       let rec solve = function
-	| Local ans                       -> ans
-	| Fake(Notify  (_,_,machine,_))   -> solve (machine (true,(),(fun _->Exit(Accept)),fun _->None))
-	| Fake(AskFocus(_,[],machine,_))  -> solve (machine (Restore (fun _->None)))
-	| Fake(AskFocus(_,a::l,machine,_))-> solve (machine (Focus(a, accept,fun _->None)))
-	| Fake(AskSide (_,machine,_))     -> solve (machine true)
-	| Fake(Stop(b1,b2, machine))      -> solve (machine ())
+	| Local ans                              -> ans
+	| Fake(Notify  (_,_,machine,_))          -> solve (machine (true,(),(fun _->Exit(Accept)),fun _->None))
+	| Fake(AskFocus(_,[],true,_,machine,_))  -> solve (machine (Restore (fun _->None)))
+	| Fake(AskFocus(_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fun _->None)))
+	| Fake(AskFocus(_,a::l,_,_,machine,_))   -> solve (machine (Focus(a, accept,fun _->None)))
+	| Fake(AskSide (_,machine,_))            -> solve (machine true)
+	| Fake(Stop(b1,b2, machine))             -> solve (machine ())
 	    
     end
 
