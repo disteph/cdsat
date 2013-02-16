@@ -262,16 +262,25 @@ with two extra functions for prettyprinting and for negation *)
      be given (kernel's computation is resumed if given a "coin" of
      type 'a notified)
 
-     2) AskFocus(s,set,action_anaylsis,data)
+     2) AskFocus(s,set,more,conschecked,action_anaylsis,data)
      - Kernel is stuck at some focus point (previously notified to
      plugin), with sequent s
      - set is the set of positive formulae that haven't yet been tried
-     for focus at this focus point If plugin instruct kernel to place
+     for focus at this focus point; if plugin instruct kernel to place
      focus on something, it should belong to set.
+     - more is a boolean: true if there is some backup formulae
+       besides set, i.e. in formPSaved (focus has already been put on
+       them earlier); authorises Restore to load them back into set.
+     - conschecked is a boolean: true if consistency of the current
+       set atomN of atoms has been checked to be consistent;
+       authorises action ConsistencyCheck 
      - data (of type 'a) is the label of the last focus point
      - action anaylysis is the kernel waiting for a new instruction to
      be given (kernel's computation is resumed if given a "coin" of
      type focusaction)
+
+     Kernel accepts that there is no proof when set becomes empty,
+     more=false, and conschecked=false
 
      3) AskSide(s,action_anaylsis,data)
      - Kernel is stuck on sequent s in synchronous phase, having to
