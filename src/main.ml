@@ -1,22 +1,26 @@
 (* Main file *)
 
-open Kernel
-open Run_tools
-open Flags
-open Formulae
-open Test
+(* Choosing theory: *)
+open Empty
 
-include Empty
-module MyPlugin = DPLL_WL.MyPlugin.GenPlugin(MyTheory)
+(* Choosing plugin: *)
+open DPLL_WL
 
-include Tests(MyTheory)(MyPlugin)
+open Run_tools.Test
 
-let rec treat_ex = function
-  | []   -> ""
-  | a::l -> (print_test a)^(treat_ex l);;
+(* The following line loads the architecture:
+Kernel + Theory + Plugin 
+Generic plugin is to be generated from the theory,
+with its type "literals" being the same as type Atom.t from theory
+*)
+include Tests(MyTheory)(MyPlugin.GenPlugin(MyTheory));;
 
+(* Main function:
+If command-line argument is given, it is considered as the name of the file or directory to treat (using the parser of MyTheory).
+If not, the examples of formulae given in MyTheory are treated and the output is produced in latex format.
+*)
 if (Array.length Sys.argv) = 1 then
-  write_to_file "latex/output.tex" (treat_ex MyParser.examples)
+  write_to_file "latex/output.tex" (treatexamples MyParser.examples)
 else
   let a = Sys.argv.(1) in
     if Sys.is_directory a

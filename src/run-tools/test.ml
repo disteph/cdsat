@@ -24,6 +24,13 @@ module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.
 
   module MyParser = MyTheory.Parser(UF)
 
+  let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
+
+  \\vspace{10pt}\n"^
+    Src.FE.toString (go f)^"\\vspace{30pt}
+
+  "
+
   let treatfile filename = print_endline("===========================");
     print_endline("Treating file "^filename);
     go(MyParser.parse filename)
@@ -35,10 +42,8 @@ module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.
 	let _ = treatfile (a^Filename.dir_sep^b.(i)) in ();
       done
 
-  let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
+  let rec treatexamples = function
+    | []   -> ""
+    | a::l -> (print_test a)^(treatexamples l)
 
-  \\vspace{10pt}\n"^
-  Src.FE.toString (go f)^"\\vspace{30pt}
-
-  "
 end
