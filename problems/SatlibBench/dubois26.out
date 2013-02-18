@@ -3,12 +3,14 @@ Treating file dubois26.cnf
 ---
 156 atoms and negations present in non-unit clauses
 10 seconds
-With 13232 Successes, 0 Failures, 0 Loops detected, 10146 Notifies, 5413 Focus, 2413 Cuts, and 0 Fake successes and 0 Fake failures, 57908 operations, 17 open branches
+With 8102 Successes, 0 Failures, 0 Loops detected, 5829 Notifies, 3449 Focus, 1238 Cuts, and 0 Fake successes and 0 Fake failures, 35123 operations, 58 open branches
+20 seconds
+With 12908 Successes, 0 Failures, 0 Loops detected, 9790 Notifies, 5323 Focus, 2287 Cuts, and 0 Fake successes and 0 Fake failures, 56384 operations, 45 open branches
    Kernel's report:
-Total Success, in 10.148633 seconds
-With 13356 Successes, 0 Failures, 0 Loops detected, 10257 Notifies, 5454 Focus, 2447 Cuts, and 0 Fake successes and 0 Fake failures, 58454 operations.
+Total Success, in 24.357522 seconds
+With 14528 Successes, 0 Failures, 0 Loops detected, 11251 Notifies, 5904 Focus, 2719 Cuts, and 0 Fake successes and 0 Fake failures, 63686 operations.
    Memoisation report:
-Successes had 4185 entries, Failures had 0 entries
+Successes had 4620 entries, Failures had 0 entries
    Plugin's report:
-10257 notifies, 92 Backtrack, 5362 Unit propagate, 0 Decide, 2356 Memo backtrack, 1190 Memo UP 
+11251 notifies, 92 Backtrack, 5812 Unit propagate, 0 Decide, 2628 Memo backtrack, 1526 Memo UP 
 

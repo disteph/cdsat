@@ -3,84 +3,18 @@ Treating file aim-200-3_4-yes1-3.cnf
 ---
 400 atoms and negations present in non-unit clauses
 10 seconds
-With 19789 Successes, 0 Failures, 0 Loops detected, 10335 Notifies, 9625 Focus, 614 Cuts, and 0 Fake successes and 0 Fake failures, 80424 operations, 135 open branches
+With 9244 Successes, 0 Failures, 0 Loops detected, 4931 Notifies, 4420 Focus, 439 Cuts, and 0 Fake successes and 0 Fake failures, 38227 operations, 75 open branches
 20 seconds
-With 31112 Successes, 0 Failures, 0 Loops detected, 16218 Notifies, 15081 Focus, 980 Cuts, and 0 Fake successes and 0 Fake failures, 125408 operations, 63 open branches
+With 16770 Successes, 0 Failures, 0 Loops detected, 8864 Notifies, 8035 Focus, 720 Cuts, and 0 Fake successes and 0 Fake failures, 68115 operations, 44 open branches
 30 seconds
-With 37291 Successes, 0 Failures, 0 Loops detected, 19516 Notifies, 18036 Focus, 1240 Cuts, and 0 Fake successes and 0 Fake failures, 150081 operations, 51 open branches
+With 21013 Successes, 0 Failures, 0 Loops detected, 11143 Notifies, 10039 Focus, 957 Cuts, and 0 Fake successes and 0 Fake failures, 84972 operations, 48 open branches
 40 seconds
-With 45625 Successes, 0 Failures, 0 Loops detected, 23933 Notifies, 22023 Focus, 1617 Cuts, and 0 Fake successes and 0 Fake failures, 183254 operations, 79 open branches
-50 seconds
-With 52680 Successes, 0 Failures, 0 Loops detected, 27638 Notifies, 25411 Focus, 1879 Cuts, and 0 Fake successes and 0 Fake failures, 211323 operations, 49 open branches
-60 seconds
-With 58701 Successes, 0 Failures, 0 Loops detected, 30844 Notifies, 28292 Focus, 2162 Cuts, and 0 Fake successes and 0 Fake failures, 235325 operations, 91 open branches
-72 seconds
-With 62690 Successes, 0 Failures, 0 Loops detected, 32937 Notifies, 30203 Focus, 2316 Cuts, and 0 Fake successes and 0 Fake failures, 251173 operations, 69 open branches
-82 seconds
-With 66811 Successes, 0 Failures, 0 Loops detected, 35125 Notifies, 32188 Focus, 2487 Cuts, and 0 Fake successes and 0 Fake failures, 267643 operations, 105 open branches
-92 seconds
-With 73679 Successes, 0 Failures, 0 Loops detected, 38748 Notifies, 35458 Focus, 2803 Cuts, and 0 Fake successes and 0 Fake failures, 294868 operations, 83 open branches
-102 seconds
-With 80833 Successes, 0 Failures, 0 Loops detected, 42529 Notifies, 38897 Focus, 3082 Cuts, and 0 Fake successes and 0 Fake failures, 323409 operations, 89 open branches
-112 seconds
-With 87180 Successes, 0 Failures, 0 Loops detected, 45865 Notifies, 41949 Focus, 3309 Cuts, and 0 Fake successes and 0 Fake failures, 348691 operations, 62 open branches
-122 seconds
-With 92285 Successes, 0 Failures, 0 Loops detected, 48594 Notifies, 44389 Focus, 3533 Cuts, and 0 Fake successes and 0 Fake failures, 369068 operations, 53 open branches
-132 seconds
-With 98843 Successes, 0 Failures, 0 Loops detected, 52059 Notifies, 47524 Focus, 3815 Cuts, and 0 Fake successes and 0 Fake failures, 395151 operations, 47 open branches
-142 seconds
-With 103438 Successes, 0 Failures, 0 Loops detected, 54590 Notifies, 49710 Focus, 4097 Cuts, and 0 Fake successes and 0 Fake failures, 413608 operations, 150 open branches
-152 seconds
-With 108864 Successes, 0 Failures, 0 Loops detected, 57485 Notifies, 52273 Focus, 4377 Cuts, and 0 Fake successes and 0 Fake failures, 435136 operations, 111 open branches
-162 seconds
-With 113302 Successes, 0 Failures, 0 Loops detected, 59850 Notifies, 54390 Focus, 4578 Cuts, and 0 Fake successes and 0 Fake failures, 452814 operations, 102 open branches
-172 seconds
-With 117566 Successes, 0 Failures, 0 Loops detected, 62086 Notifies, 56428 Focus, 4743 Cuts, and 0 Fake successes and 0 Fake failures, 469738 operations, 74 open branches
-182 seconds
-With 122399 Successes, 0 Failures, 0 Loops detected, 64651 Notifies, 58743 Focus, 4954 Cuts, and 0 Fake successes and 0 Fake failures, 488992 operations, 83 open branches
-192 seconds
-With 125885 Successes, 0 Failures, 0 Loops detected, 66492 Notifies, 60438 Focus, 5079 Cuts, and 0 Fake successes and 0 Fake failures, 502972 operations, 129 open branches
-202 seconds
-With 129603 Successes, 0 Failures, 0 Loops detected, 68415 Notifies, 62212 Focus, 5198 Cuts, and 0 Fake successes and 0 Fake failures, 517662 operations, 47 open branches
-212 seconds
-With 133101 Successes, 0 Failures, 0 Loops detected, 70276 Notifies, 63883 Focus, 5363 Cuts, and 0 Fake successes and 0 Fake failures, 531583 operations, 56 open branches
-222 seconds
-With 137609 Successes, 0 Failures, 0 Loops detected, 72664 Notifies, 66021 Focus, 5580 Cuts, and 0 Fake successes and 0 Fake failures, 549449 operations, 28 open branches
-232 seconds
-With 142417 Successes, 0 Failures, 0 Loops detected, 75234 Notifies, 68317 Focus, 5806 Cuts, and 0 Fake successes and 0 Fake failures, 568638 operations, 50 open branches
-242 seconds
-With 146552 Successes, 0 Failures, 0 Loops detected, 77444 Notifies, 70267 Focus, 6027 Cuts, and 0 Fake successes and 0 Fake failures, 585025 operations, 24 open branches
-253 seconds
-With 147580 Successes, 0 Failures, 0 Loops detected, 78001 Notifies, 70756 Focus, 6089 Cuts, and 0 Fake successes and 0 Fake failures, 589138 operations, 51 open branches
-263 seconds
-With 151561 Successes, 0 Failures, 0 Loops detected, 80144 Notifies, 72648 Focus, 6297 Cuts, and 0 Fake successes and 0 Fake failures, 605015 operations, 67 open branches
-273 seconds
-With 155085 Successes, 0 Failures, 0 Loops detected, 82071 Notifies, 74301 Focus, 6531 Cuts, and 0 Fake successes and 0 Fake failures, 619048 operations, 93 open branches
-283 seconds
-With 158524 Successes, 0 Failures, 0 Loops detected, 83917 Notifies, 75924 Focus, 6715 Cuts, and 0 Fake successes and 0 Fake failures, 632704 operations, 80 open branches
-293 seconds
-With 161648 Successes, 0 Failures, 0 Loops detected, 85617 Notifies, 77382 Focus, 6907 Cuts, and 0 Fake successes and 0 Fake failures, 645105 operations, 48 open branches
-303 seconds
-With 165142 Successes, 0 Failures, 0 Loops detected, 87505 Notifies, 79028 Focus, 7100 Cuts, and 0 Fake successes and 0 Fake failures, 659009 operations, 35 open branches
-313 seconds
-With 168083 Successes, 0 Failures, 0 Loops detected, 89132 Notifies, 80396 Focus, 7311 Cuts, and 0 Fake successes and 0 Fake failures, 670727 operations, 44 open branches
-323 seconds
-With 171864 Successes, 0 Failures, 0 Loops detected, 91192 Notifies, 82164 Focus, 7555 Cuts, and 0 Fake successes and 0 Fake failures, 685750 operations, 46 open branches
-333 seconds
-With 174987 Successes, 0 Failures, 0 Loops detected, 92892 Notifies, 83641 Focus, 7739 Cuts, and 0 Fake successes and 0 Fake failures, 698223 operations, 71 open branches
-343 seconds
-With 178287 Successes, 0 Failures, 0 Loops detected, 94637 Notifies, 85220 Focus, 7880 Cuts, and 0 Fake successes and 0 Fake failures, 711358 operations, 72 open branches
-353 seconds
-With 183533 Successes, 0 Failures, 0 Loops detected, 97396 Notifies, 87724 Focus, 8102 Cuts, and 0 Fake successes and 0 Fake failures, 732165 operations, 40 open branches
-363 seconds
-With 187671 Successes, 0 Failures, 0 Loops detected, 99648 Notifies, 89662 Focus, 8370 Cuts, and 0 Fake successes and 0 Fake failures, 748607 operations, 50 open branches
-373 seconds
-With 192712 Successes, 0 Failures, 0 Loops detected, 102355 Notifies, 92028 Focus, 8677 Cuts, and 0 Fake successes and 0 Fake failures, 768558 operations, 49 open branches
+With 24568 Successes, 0 Failures, 0 Loops detected, 13068 Notifies, 11696 Focus, 1204 Cuts, and 0 Fake successes and 0 Fake failures, 99025 operations, 53 open branches
    Kernel's report:
-Total Failure, in 381.031814 seconds
-With 195376 Successes, 881 Failures, 680 Loops detected, 104307 Notifies, 93825 Focus, 8819 Cuts, and 0 Fake successes and 0 Fake failures, 781259 operations.
+Total Failure, in 43.882742 seconds
+With 26856 Successes, 882 Failures, 680 Loops detected, 14819 Notifies, 13313 Focus, 1318 Cuts, and 0 Fake successes and 0 Fake failures, 110240 operations.
    Memoisation report:
-Successes had 51957 entries, Failures had 1 entries
+Successes had 7367 entries, Failures had 1 entries
    Plugin's report:
-103627 notifies, 7459 Backtrack, 85686 Unit propagate, 680 Decide, 1662 Memo backtrack, 7434 Memo UP 
+14139 notifies, 1169 Backtrack, 11464 Unit propagate, 680 Decide, 187 Memo backtrack, 1056 Memo UP 
 

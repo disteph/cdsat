@@ -1,4 +1,4 @@
-bf0432-007 | 1040 | 3668 | Total Failure, in 2.128133 seconds | 
-bf1355-075 | 2180 | 6778 | Total Failure, in 7.324458 seconds | 
-bf1355-638 | 2177 | 6768 | Total Failure, in 7.100444 seconds | 
-bf2670-001 | 1393 | 3434 | Total Failure, in 1.816113 seconds | 
+bf0432-007 | 1040 | 3668 |  | Fatal error: out of memory.
+bf1355-075 | 2180 | 6778 |  | Fatal error: out of memory.
+bf1355-638 | 2177 | 6768 |  | Fatal error: out of memory.
+bf2670-001 | 1393 | 3434 | Total Success, in 118.899431 seconds | 

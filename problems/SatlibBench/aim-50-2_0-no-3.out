@@ -3,10 +3,10 @@ Treating file aim-50-2_0-no-3.cnf
 ---
 100 atoms and negations present in non-unit clauses
    Kernel's report:
-Total Success, in 0.052003 seconds
-With 592 Successes, 0 Failures, 0 Loops detected, 350 Notifies, 265 Focus, 61 Cuts, and 0 Fake successes and 0 Fake failures, 2572 operations.
+Total Success, in 0.200011 seconds
+With 822 Successes, 0 Failures, 0 Loops detected, 491 Notifies, 364 Focus, 93 Cuts, and 0 Fake successes and 0 Fake failures, 3490 operations.
    Memoisation report:
-Successes had 162 entries, Failures had 0 entries
+Successes had 191 entries, Failures had 0 entries
    Plugin's report:
-350 notifies, 38 Backtrack, 227 Unit propagate, 0 Decide, 24 Memo backtrack, 28 Memo UP 
+491 notifies, 60 Backtrack, 304 Unit propagate, 0 Decide, 34 Memo backtrack, 40 Memo UP 
 

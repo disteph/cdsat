@@ -2,11 +2,13 @@
 Treating file dubois22.cnf
 ---
 132 atoms and negations present in non-unit clauses
+10 seconds
+With 8744 Successes, 0 Failures, 0 Loops detected, 6535 Notifies, 3631 Focus, 1488 Cuts, and 0 Fake successes and 0 Fake failures, 38107 operations, 14 open branches
    Kernel's report:
-Total Success, in 8.708543 seconds
-With 13101 Successes, 0 Failures, 0 Loops detected, 10027 Notifies, 5366 Focus, 2368 Cuts, and 0 Fake successes and 0 Fake failures, 57260 operations.
+Total Success, in 15.900993 seconds
+With 12191 Successes, 0 Failures, 0 Loops detected, 9455 Notifies, 4950 Focus, 2290 Cuts, and 0 Fake successes and 0 Fake failures, 53464 operations.
    Memoisation report:
-Successes had 4302 entries, Failures had 0 entries
+Successes had 4208 entries, Failures had 0 entries
    Plugin's report:
-10027 notifies, 76 Backtrack, 5290 Unit propagate, 0 Decide, 2293 Memo backtrack, 1254 Memo UP 
+9455 notifies, 76 Backtrack, 4874 Unit propagate, 0 Decide, 2215 Memo backtrack, 1263 Memo UP 
 

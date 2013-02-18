@@ -3,14 +3,24 @@ Treating file dubois30.cnf
 ---
 180 atoms and negations present in non-unit clauses
 10 seconds
-With 11812 Successes, 0 Failures, 0 Loops detected, 8575 Notifies, 4996 Focus, 1849 Cuts, and 0 Fake successes and 0 Fake failures, 51162 operations, 50 open branches
+With 8643 Successes, 0 Failures, 0 Loops detected, 6029 Notifies, 3736 Focus, 1188 Cuts, and 0 Fake successes and 0 Fake failures, 37236 operations, 34 open branches
 20 seconds
-With 18353 Successes, 0 Failures, 0 Loops detected, 14162 Notifies, 7491 Focus, 3392 Cuts, and 0 Fake successes and 0 Fake failures, 80401 operations, 40 open branches
+With 13248 Successes, 0 Failures, 0 Loops detected, 9672 Notifies, 5593 Focus, 2091 Cuts, and 0 Fake successes and 0 Fake failures, 57438 operations, 52 open branches
+30 seconds
+With 16036 Successes, 0 Failures, 0 Loops detected, 11920 Notifies, 6701 Focus, 2669 Cuts, and 0 Fake successes and 0 Fake failures, 69713 operations, 60 open branches
+40 seconds
+With 17982 Successes, 0 Failures, 0 Loops detected, 13585 Notifies, 7433 Focus, 3132 Cuts, and 0 Fake successes and 0 Fake failures, 78386 operations, 33 open branches
+50 seconds
+With 20073 Successes, 0 Failures, 0 Loops detected, 15432 Notifies, 8215 Focus, 3666 Cuts, and 0 Fake successes and 0 Fake failures, 87831 operations, 42 open branches
+60 seconds
+With 22408 Successes, 0 Failures, 0 Loops detected, 17476 Notifies, 9087 Focus, 4251 Cuts, and 0 Fake successes and 0 Fake failures, 98329 operations, 30 open branches
+70 seconds
+With 25454 Successes, 0 Failures, 0 Loops detected, 20063 Notifies, 10263 Focus, 4964 Cuts, and 0 Fake successes and 0 Fake failures, 111958 operations, 63 open branches
    Kernel's report:
-Total Success, in 26.701669 seconds
-With 22400 Successes, 0 Failures, 0 Loops detected, 17583 Notifies, 9036 Focus, 4327 Cuts, and 0 Fake successes and 0 Fake failures, 98406 operations.
+Total Success, in 72.960559 seconds
+With 26261 Successes, 0 Failures, 0 Loops detected, 20769 Notifies, 10548 Focus, 5164 Cuts, and 0 Fake successes and 0 Fake failures, 115524 operations.
    Memoisation report:
-Successes had 6962 entries, Failures had 0 entries
+Successes had 8195 entries, Failures had 0 entries
    Plugin's report:
-17583 notifies, 108 Backtrack, 8928 Unit propagate, 0 Decide, 4220 Memo backtrack, 2569 Memo UP 
+20769 notifies, 108 Backtrack, 10440 Unit propagate, 0 Decide, 5057 Memo backtrack, 2895 Memo UP 
 

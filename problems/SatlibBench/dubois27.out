@@ -3,14 +3,22 @@ Treating file dubois27.cnf
 ---
 162 atoms and negations present in non-unit clauses
 10 seconds
-With 10989 Successes, 0 Failures, 0 Loops detected, 8229 Notifies, 4562 Focus, 1890 Cuts, and 0 Fake successes and 0 Fake failures, 47918 operations, 55 open branches
+With 7112 Successes, 0 Failures, 0 Loops detected, 5267 Notifies, 2972 Focus, 1191 Cuts, and 0 Fake successes and 0 Fake failures, 31079 operations, 51 open branches
 20 seconds
-With 17864 Successes, 0 Failures, 0 Loops detected, 14171 Notifies, 7158 Focus, 3563 Cuts, and 0 Fake successes and 0 Fake failures, 78730 operations, 37 open branches
+With 11658 Successes, 0 Failures, 0 Loops detected, 8924 Notifies, 4774 Focus, 2130 Cuts, and 0 Fake successes and 0 Fake failures, 51066 operations, 49 open branches
+30 seconds
+With 14534 Successes, 0 Failures, 0 Loops detected, 11471 Notifies, 5842 Focus, 2869 Cuts, and 0 Fake successes and 0 Fake failures, 64047 operations, 46 open branches
+40 seconds
+With 18839 Successes, 0 Failures, 0 Loops detected, 15187 Notifies, 7471 Focus, 3911 Cuts, and 0 Fake successes and 0 Fake failures, 83340 operations, 39 open branches
+50 seconds
+With 23232 Successes, 0 Failures, 0 Loops detected, 18977 Notifies, 9132 Focus, 4973 Cuts, and 0 Fake successes and 0 Fake failures, 103021 operations, 19 open branches
+60 seconds
+With 26845 Successes, 0 Failures, 0 Loops detected, 22125 Notifies, 10491 Focus, 5871 Cuts, and 0 Fake successes and 0 Fake failures, 119254 operations, 22 open branches
    Kernel's report:
-Total Success, in 21.537346 seconds
-With 19048 Successes, 0 Failures, 0 Loops detected, 15191 Notifies, 7600 Focus, 3847 Cuts, and 0 Fake successes and 0 Fake failures, 84002 operations.
+Total Success, in 62.971935 seconds
+With 27670 Successes, 0 Failures, 0 Loops detected, 22865 Notifies, 10790 Focus, 6089 Cuts, and 0 Fake successes and 0 Fake failures, 122974 operations.
    Memoisation report:
-Successes had 6211 entries, Failures had 0 entries
+Successes had 9238 entries, Failures had 0 entries
    Plugin's report:
-15191 notifies, 104 Backtrack, 7496 Unit propagate, 0 Decide, 3744 Memo backtrack, 2403 Memo UP 
+22865 notifies, 104 Backtrack, 10686 Unit propagate, 0 Decide, 5986 Memo backtrack, 3731 Memo UP 
 

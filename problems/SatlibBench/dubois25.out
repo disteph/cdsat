@@ -3,12 +3,18 @@ Treating file dubois25.cnf
 ---
 150 atoms and negations present in non-unit clauses
 10 seconds
-With 11735 Successes, 0 Failures, 0 Loops detected, 8863 Notifies, 4846 Focus, 2050 Cuts, and 0 Fake successes and 0 Fake failures, 51217 operations, 21 open branches
+With 7380 Successes, 0 Failures, 0 Loops detected, 5183 Notifies, 3177 Focus, 1040 Cuts, and 0 Fake successes and 0 Fake failures, 31832 operations, 36 open branches
+20 seconds
+With 12325 Successes, 0 Failures, 0 Loops detected, 9155 Notifies, 5148 Focus, 2048 Cuts, and 0 Fake successes and 0 Fake failures, 53600 operations, 45 open branches
+30 seconds
+With 16864 Successes, 0 Failures, 0 Loops detected, 13363 Notifies, 6767 Focus, 3344 Cuts, and 0 Fake successes and 0 Fake failures, 74317 operations, 33 open branches
+40 seconds
+With 19909 Successes, 0 Failures, 0 Loops detected, 16605 Notifies, 7710 Focus, 4490 Cuts, and 0 Fake successes and 0 Fake failures, 88763 operations, 12 open branches
    Kernel's report:
-Total Success, in 15.468966 seconds
-With 16075 Successes, 0 Failures, 0 Loops detected, 13197 Notifies, 6288 Focus, 3498 Cuts, and 0 Fake successes and 0 Fake failures, 71428 operations.
+Total Success, in 48.807049 seconds
+With 22427 Successes, 0 Failures, 0 Loops detected, 19319 Notifies, 8482 Focus, 5462 Cuts, and 0 Fake successes and 0 Fake failures, 100764 operations.
    Memoisation report:
-Successes had 6558 entries, Failures had 0 entries
+Successes had 9991 entries, Failures had 0 entries
    Plugin's report:
-13197 notifies, 88 Backtrack, 6200 Unit propagate, 0 Decide, 3411 Memo backtrack, 2015 Memo UP 
+19319 notifies, 88 Backtrack, 8394 Unit propagate, 0 Decide, 5375 Memo backtrack, 3276 Memo UP 
 
