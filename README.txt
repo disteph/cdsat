@@ -1,4 +1,21 @@
-Compiling (requires ocamlbuild):
+=====================================================
+         	PSYCHE,
+The Proof-Search factorY for Collaborative HEuristics
+=====================================================
+
+
+LICENSING
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the CeCILL C FREE SOFTWARE LICENSE.
+
+You should have received a copy of the CeCILL C License with this
+Kit, in the file named "LICENSE.txt".
+If not, visit http://www.cecill.info
+
+===================
+
+COMPILING (requires ocamlbuild):
 
 ocaml setup.ml -configure
 ocaml setup.ml -build
@@ -11,14 +28,14 @@ oasis setup
 If you don't, then do not change setup.ml by hand
 
 ===================
-Running the programme:
+RUNNING PSYCHE:
 
 ./main.native
 
-If no argument is given, the small examples written by hand in main.ml
-are treated, and printed in latex/output.tex
-Otherwise, you may give, as an argument, a file in DIMACS format,
-or a directory containing such files.
+If no argument is given, the examples written by hand in the parser
+are treated, and printed in latex/output.tex 
+Otherwise, you may give, as a command-line argument, a file to be
+parsed, or a directory containing such files.
 
 
 Alternatively:

@@ -1,9 +1,9 @@
 OASISFormat: 0.2
-License: PROP
-Authors: Dr Stephane Lengrand <lengrand@lix.polytechnique.fr>,
-         Miss Mahfuza Farooque <mahfuza@lix.polytechnique.fr>,
-         Mlle Assia Mahboubi <assia.mahboubi@inria.fr>
-         Alexis Bernadet <bernadet@lix.polytechnique.fr>
+License: CeCILL-C
+Authors: Alexis Bernadet <bernadet@lix.polytechnique.fr>, Ecole Polytechnique
+         Mahfuza Farooque <mahfuza@lix.polytechnique.fr>, CNRS
+         Stephane Graham-Lengrand <graham-lengrand@lix.polytechnique.fr>, CNRS
+         Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA
 Version: 1.3
 Name: Psyche
 Synopsis: Proof-Search factorY for Collaborative HEuristics
