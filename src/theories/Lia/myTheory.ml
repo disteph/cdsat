@@ -1,6 +1,5 @@
 open Kernel
 open Formulae
-open Simplex
 open LibSimplex
 open EqAst
 
