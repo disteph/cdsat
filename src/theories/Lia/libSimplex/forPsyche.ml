@@ -6,7 +6,6 @@ exception InvalidInput of exn
 
 let inconsistency_model = fun eqs -> function
   |`NC_Base (coeffs1, coeffs2) ->
-    let coeffs1 = Array.to_list coeffs1 in
     let coeffs2 = Array.to_list coeffs2 in
     let rec mask coefs ieqs res =
       match coefs, ieqs with
@@ -78,4 +77,27 @@ let toString = fun e ->
       |`Gt -> mk_string " > " 
   end
 
-let print_in_fmt = fun fmt e -> ()
+let print_in_fmt fmt e =
+  let print_sign_in_fmt = fun fmt -> function
+    |`Le -> Format.fprintf fmt "%s" " <= " 
+    |`Ge ->  Format.fprintf fmt "%s" " => " 
+    |`Lt ->  Format.fprintf fmt "%s" " < " 
+    |`Gt ->  Format.fprintf fmt "%s" " > " 
+  in
+  let print_mon_in_fmt fmt (id, c) =
+    Format.fprintf fmt "%s%s" (Num.string_of_num c) id
+  in
+  let rec print_lcoef_in_fmt fmt l =
+    begin
+      match l with
+        |[] -> ()
+        |[m] -> Format.fprintf fmt "%a" print_mon_in_fmt m
+        |m :: tl -> 
+          Format.fprintf fmt "%a@+@%a" 
+            print_mon_in_fmt m print_lcoef_in_fmt tl
+    end in
+  let coefs_bindings = Core.StringMap.bindings e.eq_coeffs in
+    Format.fprintf fmt "%a%a%s" 
+      print_lcoef_in_fmt coefs_bindings 
+      print_sign_in_fmt e.eq_sign 
+      (Num.string_of_num e.eq_bound)
