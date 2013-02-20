@@ -8,6 +8,7 @@
 <src/kernel/*.cmx>: for-pack(Kernel)
 <src/run-tools/*.cmx>: for-pack(Run_tools)
 <src/theories/Empty/*.cmx>: for-pack(Empty)
+<src/theories/Lia/*.cmx>: for-pack(Lia)
 <src/generic-plugins/DPLL_Pat/*.cmx>: for-pack(DPLL_Pat)
 <src/generic-plugins/DPLL_WL/*.cmx>: for-pack(DPLL_WL)
 <src/generic-plugins/Naive/*.cmx>: for-pack(Naive)

@@ -1,7 +1,9 @@
 (* Main file *)
 
 (* Choosing theory: *)
+
 open Empty
+open Lia
 
 (* Choosing plugin: *)
 open DPLL_WL
