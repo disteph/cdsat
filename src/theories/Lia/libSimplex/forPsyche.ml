@@ -97,7 +97,7 @@ let print_in_fmt fmt e =
             print_mon_in_fmt m print_lcoef_in_fmt tl
     end in
   let coefs_bindings = Core.StringMap.bindings e.eq_coeffs in
-    Format.fprintf fmt "%a%a%s" 
+    Format.fprintf fmt "%a %a %s" 
       print_lcoef_in_fmt coefs_bindings 
       print_sign_in_fmt e.eq_sign 
       (Num.string_of_num e.eq_bound)
