@@ -3,7 +3,7 @@ Treating file ii32b1.cnf
 ---
 456 atoms and negations present in non-unit clauses
    Kernel's report:
-Total Failure, in 2.100132 seconds
+Total Failure, in 2.376149 seconds
 With 4061 Successes, 1603 Failures, 1374 Loops detected, 2416 Notifies, 2327 Focus, 77 Cuts, and 0 Fake successes and 0 Fake failures, 20293 operations.
    Memoisation report:
 Successes had 487 entries, Failures had 1 entries

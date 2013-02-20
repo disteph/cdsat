@@ -452,3 +452,4 @@ With 105037 Successes, 0 Failures, 0 Loops detected, 66759 Notifies, 65834 Focus
 With 105628 Successes, 0 Failures, 0 Loops detected, 67148 Notifies, 66219 Focus, 818 Cuts, and 0 Fake successes and 0 Fake failures, 484415 operations, 902 open branches
 3277 seconds
 With 106467 Successes, 0 Failures, 0 Loops detected, 67750 Notifies, 66811 Focus, 828 Cuts, and 0 Fake successes and 0 Fake failures, 488583 operations, 1195 open branches
+Fatal error: out of memory.
