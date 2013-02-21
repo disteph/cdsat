@@ -14,7 +14,6 @@ module Atom =
 
   let negation = ForPsyche.negation
 
-(* assia : for the time being this is a dummy printer *)
   let print_in_fmt = ForPsyche.print_in_fmt
   (* val print_in_fmt: Format.formatter -> t -> unit*)
 

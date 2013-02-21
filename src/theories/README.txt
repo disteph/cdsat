@@ -15,5 +15,5 @@ Hygiene policy:
 - Write your theory in a subdirectory XXX of the present directory
 - It should contain a module MyTheory (e.g. a file myTheory.ml), implementing TheoryInterface
 - Add an mlpack file to package the directory into a module XXX
-- Edit the main file main.ml to include XXX
+- Edit the main file main.ml to refer to XXX
 - To compile, do not forget to add to the top-level _tag file an entry to include your directory src/theories/XXX for pack XXX

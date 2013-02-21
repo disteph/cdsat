@@ -6,7 +6,7 @@ module Term = struct
   type variables = string
   type fsymb = string
 
-  type term = V of string | XV of string | C of string * (t list)
+  type term = V of variables | XV of variables | C of fsymb * (t list)
   and t = {reveal : term; id : int}
 	(* A term is either a variable or a function symbol applied to arguments *)
 
@@ -88,8 +88,10 @@ end
 
 module Atom = struct
 
+  type psymb = string
+
   module Predicates = struct
-    type t = {reveal : string; id : int}
+    type t = {reveal : psymb; id : int}
     let reveal t = t.reveal
     let id t = t.id
     let table  = Hashtbl.create 5003 
