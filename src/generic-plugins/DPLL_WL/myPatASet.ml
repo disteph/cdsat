@@ -5,8 +5,7 @@
 open Lib
 open Kernel
 
-open Formulae
-open Collection
+open Interfaces
 open Sums
 open Patricia
 open SetConstructions

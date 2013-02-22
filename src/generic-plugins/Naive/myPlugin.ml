@@ -1,10 +1,9 @@
 open Kernel
 
 open Formulae
-open Collection
-open Sequents
+open Interfaces
 
-module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
+module GenPlugin(MyTheory: TheoryType):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
 
   type literals = MyTheory.Atom.t
 

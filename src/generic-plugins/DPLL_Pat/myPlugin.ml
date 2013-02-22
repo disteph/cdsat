@@ -1,12 +1,13 @@
 open Lib
 open Kernel
 
+open Interfaces
 open Patricia
 open Sums
 open MyPatASet
 open MyDPLLStructures
 
-module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
+module GenPlugin(MyTheory: TheoryType):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
   
   type literals = MyTheory.Atom.t
 
@@ -23,10 +24,10 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
   let decide_cut = true
 
     
-  module Strategy(FE:Sequents.FrontEndType with type litType     = literals
-					   and  type formulaType = UF.t
-					   and  type fsetType    = UFSet.t
-					   and  type asetType    = UASet.t) = struct
+  module Strategy(FE:FrontEndType with type litType     = literals
+				  and  type formulaType = UF.t
+				  and  type fsetType    = UFSet.t
+				  and  type asetType    = UASet.t) = struct
     include FE
 
     type data       = int
@@ -91,7 +92,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	else let (toCut,f')=UFSet.next f in
 	  Some(Cut(7,toCut,accept,accept,cut_series(a,f')))
       else let (toCut,a')=UASet.next a in
-	Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,cut_series(a',f)))
+	Some(Cut(7,UF.build (Lit toCut),accept,accept,cut_series(a',f)))
 
     let rec solve = function
 

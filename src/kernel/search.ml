@@ -1,11 +1,11 @@
 open Lib
 
 open Formulae
-open Collection
+open Interfaces
 open Sums
 open Sequents
 
-module ProofSearch (MyTheory: Theory.Type)
+module ProofSearch (MyTheory: TheoryType)
   (F: FormulaImplem with type lit = MyTheory.Atom.t)
   (FSet: CollectImplem with type e = F.t)
   (ASet: CollectImplem with type e = MyTheory.Atom.t)

@@ -1,16 +1,12 @@
 (* Tests *)
 
 open Kernel
+open Interfaces
 open Plugin
 open Search
 open Printf
 
-let write_to_file filename s =
-  let chan = open_out filename in 
-    fprintf chan "%s\n" s;  
-    close_out chan
-
-module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.Atom.t) = struct
+module Prepare(MyTheory:TheoryType)(P:Plugin.Type with type literals = MyTheory.Atom.t) = struct
 
   open P
   module Src   = ProofSearch(MyTheory)(UF)(UFSet)(UASet)
@@ -31,9 +27,13 @@ module Tests (MyTheory:Theory.Type)(P:Plugin.Type with type literals = MyTheory.
 
   "
 
+  let treatstdin () = print_endline("===========================");
+    print_endline("Treating stdin");
+    go(MyParser.parse(IO.read_from_stdin()))
+
   let treatfile filename = print_endline("===========================");
     print_endline("Treating file "^filename);
-    go(MyParser.parse filename)
+    go(MyParser.parse(IO.read_from_file filename))
 
   let treatdir a = print_endline("Treating directory "^a);
     let b = Sys.readdir(a) in

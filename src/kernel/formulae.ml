@@ -1,33 +1,6 @@
 open Printf
 open Format
-
-module type AtomType = sig
-  type t
-  val equal : t -> t -> bool
-  val compare : t -> t -> int
-  val negation: t -> t
-  val print_in_fmt: Format.formatter -> t -> unit
-  val toString: t -> string
-  val id: t -> int
-  val hash: t -> int
-  val clear: unit->unit
-end
-
-type ('a,'b) form =
-  | Lit of 'b
-  | AndP of 'a * 'a
-  | OrP of 'a * 'a
-  | AndN of 'a * 'a
-  | OrN of 'a * 'a
-
-(* Interface for an implementation of formulae *)
-
-module type FormulaImplem = sig
-  type t
-  type lit
-  val reveal : t -> (t,lit) form
-  val build : (t,lit) form -> t
-end
+open Interfaces
 
 (* Generic code providing standard functions about formulae *)
 

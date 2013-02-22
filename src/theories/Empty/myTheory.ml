@@ -1,9 +1,10 @@
 open Kernel
+open Interfaces
 open Formulae
 
 module Atom = Atoms.Atom
   
-module DecProc(ASet: Collection.CollectImplem with type e = Atom.t)
+module DecProc(ASet: CollectImplem with type e = Atom.t)
   = struct    
     
     let goal_consistency atomN t = 

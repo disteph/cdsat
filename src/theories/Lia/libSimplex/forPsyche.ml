@@ -49,7 +49,8 @@ let negation = fun e ->
   let mk_neg s = 
         { eq_coeffs = coefs ;
           eq_sign   = s ;
-          eq_bound  = bound }
+          eq_bound  = bound ;
+	  id        = 0 }
   in
   begin
     match sign with

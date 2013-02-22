@@ -1,1 +1,1 @@
-include Kernel.Theory.Type
+include Kernel.Interfaces.TheoryType

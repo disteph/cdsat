@@ -1,9 +1,7 @@
 open Lib
 open Kernel
 
-open Formulae
-open Collection
-open Memoisation
+open Interfaces
 open Patricia
 open Sums
 

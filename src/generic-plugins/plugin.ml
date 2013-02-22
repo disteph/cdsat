@@ -1,8 +1,7 @@
 open Kernel
 
 open Formulae
-open Collection
-open Sequents
+open Interfaces
 
 module type Type = sig
 
@@ -36,7 +35,7 @@ end
 
 
 module type GenType =
-  functor(MyTheory: Theory.Type) 
+  functor(MyTheory: TheoryType) 
     -> sig
       include Type with type literals = MyTheory.Atom.t
     end

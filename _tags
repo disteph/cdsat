@@ -19,7 +19,9 @@
 <src> or <src/generic-plugins> or <src/theories>: include
 <src/lib/*.cmx>: for-pack(Lib)
 <src/kernel/*.cmx>: for-pack(Kernel)
-<src/run-tools/*.cmx>: for-pack(Run_tools)
+<src/run_tools/*.cmx>: for-pack(Run_tools)
+<src/parsing_tools/*.cmx>: for-pack(Parsing_tools)
+<src/parsing_tools/SMTLib2/*>: for-pack(Parsing_tools.SMTLib2)
 <src/theories/Empty/*.cmx>: for-pack(Empty)
 <src/theories/Lia/libSimplex/*.cmx>: for-pack(Lia.LibSimplex)
 <src/theories/Lia/*.cmx>: for-pack(Lia)

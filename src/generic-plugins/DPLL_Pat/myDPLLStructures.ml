@@ -2,6 +2,7 @@ open Lib
 open Kernel
 
 open Formulae
+open Interfaces
 open MyPatASet
 open Patricia
 open Sums

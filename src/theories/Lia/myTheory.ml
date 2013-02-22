@@ -1,5 +1,6 @@
 open Kernel
-open Formulae
+
+open Interfaces
 open LibSimplex
 open EqAst
 
@@ -30,7 +31,7 @@ module Atom =
   (* val clear: unit -> unit *)
 end
 
-module DecProc (ASet : Collection.CollectImplem with type e = Atom.t)
+module DecProc (ASet : CollectImplem with type e = Atom.t)
  = struct
     let list_of_aset = fun aset ->
       ASet.fold (fun elt l -> (elt :: l)) aset []
@@ -54,12 +55,16 @@ module DecProc (ASet : Collection.CollectImplem with type e = Atom.t)
 
 module Parser (F:FormulaImplem with type lit = Atom.t)
   = struct
-(* assia : for the time being this is a dummy parser *)
-    let parse = fun s -> 
+
+    let parse contents =
+      let ast = Parsing_tools.ParsingPrimitives.smtlib2 contents in
+	(* steph: now we have to traverse ast and build the corresponding formula;
+	   not done yet; below is dummy *)
       let dummy_eq = 
         { eq_coeffs = Core.StringMap.empty ;
           eq_sign   = `Le ;
-          eq_bound  = Core.Num.num_0}
+          eq_bound  = Core.Num.num_0;
+	  id        = 0}
       in 
       let dummy_form = Lit dummy_eq
       in (F.build dummy_form : F.t)

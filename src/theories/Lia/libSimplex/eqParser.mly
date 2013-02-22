@@ -18,7 +18,9 @@
   let _equation = fun coeffs sign bound ->
     { eq_coeffs = _coeffs_map coeffs ;
       eq_sign   = sign               ;
-      eq_bound  = bound              }
+      eq_bound  = bound              ;
+      id        = 0
+    }
 %}
 
 %token <Big_int.big_int> INTEGER

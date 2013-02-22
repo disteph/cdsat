@@ -3,6 +3,7 @@ type equation = {
   eq_coeffs : Num.num Core.StringMap.t;
   eq_sign   : [ (*`Eq |*) `Le | `Ge | `Lt | `Gt ];
   eq_bound  : Num.num;
+  id        : int
 }
 
 (* -------------------------------------------------------------------- *)

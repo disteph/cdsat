@@ -1,6 +1,7 @@
 open Lib
 open Kernel
 
+open Interfaces
 open Formulae
 open MyPatASet
 open Patricia

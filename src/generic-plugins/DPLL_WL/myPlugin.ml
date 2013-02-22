@@ -1,5 +1,6 @@
 open Lib
 open Kernel
+open Interfaces
 open Formulae
 open Patricia
 open Sums
@@ -7,7 +8,7 @@ open MyPatASet
 open MyDPLLStructures
 
 
-module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
+module GenPlugin(MyTheory: TheoryType):(Plugin.Type with type literals = MyTheory.Atom.t) = struct
     
   type literals = MyTheory.Atom.t
 
@@ -24,7 +25,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
   let decide_cut = true
 
     
-  module Strategy(FE:Sequents.FrontEndType with type litType     = literals
+  module Strategy(FE:FrontEndType with type litType     = literals
 					   and  type formulaType = UF.t
 					   and  type fsetType    = UFSet.t
 					   and  type asetType    = UASet.t) = struct
@@ -230,7 +231,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	(let lit = UASet.choose tset in
 	   if UASet.is_in lit atms then failwith("Chosen lit in atms");
 	   if UASet.is_in (MyTheory.Atom.negation lit) atms then failwith("Chosen nlit in atms");
-	   Some(Cut(7,UF.build (Formulae.Lit lit),accept,accept,fNone)))
+	   Some(Cut(7,UF.build (Lit lit),accept,accept,fNone)))
       else
 	None
 	  
@@ -253,7 +254,7 @@ module GenPlugin(MyTheory: Theory.Type):(Plugin.Type with type literals = MyTheo
 	   Some(Cut(7,toCut,accept,accept,fNone)))
       else let (toCut,a')=UASet.next a in
 	(count.(5)<-count.(5)+1;
-	 Some(Cut(7,UF.build (Formulae.Lit toCut),accept,accept,fNone)))
+	 Some(Cut(7,UF.build (Lit toCut),accept,accept,fNone)))
 
     let rec findaction atms alternative =
       match !stack with
