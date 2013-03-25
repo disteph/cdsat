@@ -1,0 +1,50 @@
+
+\begin{definition}[Formulae]\strut
+  \[
+  \begin{array}{ll}
+    P&= p\mid \trueP \mid \falseP \mid A\andP B \mid A\orP B\\
+    N&= \non p\mid \trueN \mid \falseN \mid A\andN B \mid A\orN B\\
+    A,B&= P\mid N
+  \end{array}
+  \]
+\end{definition}
+
+
+\begin{definition}[System]
+  \[
+  \begin{array}{|c|}
+    \hline\\
+    \infer{\DerOSPos{\Gamma}{A\andP B}{\Delta}}
+    {\DerOSPos{\Gamma}{A}{\Delta}\qquad \DerOSPos{\Gamma}{B}{\Delta}}
+    \qquad
+    \infer{\DerOSPos{\Gamma}{A_1\orP A_2}{\Delta}}
+    {\DerOSPos{\Gamma}{A_i}{\Delta}}
+    \\\\
+    \infer[\Gamma\models_{\mathcal T}p]{\DerOSPos{\Gamma}{p}{\Delta}}{\strut}
+    \qquad
+    \infer{\DerOSPos{\Gamma}{\trueP}{\Delta}}{\strut}
+    \\\\
+    \infer[N\mbox{ not positive}]{\DerOSPos \Gamma N{\Delta}}{\DerOSNeg \Gamma N{\Delta}}
+    \\\hline\\
+    \infer{\DerOSNeg{\Gamma}{A\andN B,\Pi}{\Delta}}
+    {\DerOSNeg{\Gamma}{A,\Pi}{\Delta}\qquad \DerOSNeg{\Gamma}{B,\Pi}{\Delta}}
+    \qquad
+    \infer{\DerOSNeg{\Gamma}{A_1\orN A_2,\Pi}{\Delta}}
+    {\DerOSNeg{\Gamma}{A_1,A_2,\Pi}{\Delta}}
+    \\\\
+    \infer{\DerOSNeg \Gamma {\trueN,\Pi}\Delta}{\strut}
+    \qquad
+    \infer{\DerOSNeg \Gamma {\falseN,\Pi}\Delta}{\DerOSNeg {\Gamma} {\Pi}{\Delta}}
+    \\\\
+    \infer[P\mbox{ positive}]{\DerOSNeg \Gamma {P,\Pi}}{\DerOSNeg {\Gamma} {\Pi}{\Delta,P}}
+    \qquad
+    \infer[\non p\mbox{ negative literal}]{\DerOSNeg \Gamma {\non p,\Pi}}{\DerOSNeg {\Gamma,p} {\Pi}{\Delta}}
+    \\\hline\\
+    \infer{\DerOSNeg {\Gamma} {}{\Delta,P}}{\DerOSPos {\Gamma} {P}{\Delta,P}}
+    \qquad
+    \infer[\Gamma\models_{\mathcal T}]{\DerOSNeg{\Gamma}{}{\Delta}}{\strut}
+    \\
+    \hline
+  \end{array}
+  \]
+\end{definition}
