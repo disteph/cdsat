@@ -1,4 +1,3 @@
-open Flags
 open LibSimplex
 open EqAst
 

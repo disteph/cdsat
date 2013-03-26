@@ -307,7 +307,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 						(function Local (Success _) -> count.(4)<-count.(4)+1;Accept | _-> Accept),
 						F (cut_series (decide atms tset'))))
 		in
-		  (if !Flags.debug >0 then 
+		  (if !Flags.debug >1 then 
 		     (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
 			if u'>0 then print_endline(string_of_int u')
 			else if u>0 then report()));

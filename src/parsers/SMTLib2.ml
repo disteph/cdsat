@@ -61,10 +61,10 @@ let getStatus = function
   | AttributeValSymbol(_,s) -> 
       begin
 	match getsymbSymbol s with
-	  | "unsat"      -> Some(true)
-	  | "sat"        -> Some(false) 
-	  | "provable"   -> Some(true)
-	  | "unprovable" -> Some(false) 
+	  | "unsat"      -> Some true
+	  | "sat"        -> Some false 
+	  | "provable"   -> Some true
+	  | "unprovable" -> Some false 
 	  | "unknown"    -> None
 	  | _            -> print_endline("Status could not be parsed");None
       end
@@ -100,10 +100,10 @@ let glance input =
   let lexbuf = Lexing.from_string input in
   let h = 
     try Smtlib2_parse.main Smtlib2_lex.token lexbuf 
-    with _ -> raise (ParsingError "Alt-Ergo's parser could not parse input")
+    with Parsing.Parse_error -> raise (ParsingError "Alt-Ergo's parser could not parse input (raised exception)")
   in
     match h with
-      | None    -> raise (ParsingError "Alt-Ergo's parser could not parse input")
+      | None    -> raise (ParsingError "Alt-Ergo's parser could not parse input (returned None)")
       | Some ast-> transformCommands ast
 	  
 let guessThDecProc(theory,_,_,_,_) =  
@@ -118,7 +118,7 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
 
   let rec transformTermBase env expsort s l =
     try i.symbmodel s expsort (List.map (transformTerm  env) l)
-    with ParsingError msg ->
+    with ParsingError msg | TypingError msg ->
       (match l with
 	 | [] when SM.mem s declared
 	     -> i.varmodel s expsort (Some(SM.find s declared))
@@ -140,6 +140,6 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
 	  let fformula =
 	    if satprov then formula
 	    else 
-	      i.symbmodel "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "")]
+	      i.symbmodel "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
 	  in
 	    (Some fformula,status)

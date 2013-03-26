@@ -6,13 +6,12 @@ let bank:(module Theories.ThDecProc)array =
     (module LRA.MyTheory)
   |]
 
-module StringMaps = Map.Make(String)
-open StringMaps
+exception NotFound of string
 
-let getbyname = 
-  let aux = ref empty in
-    aux:= add "empty" bank.(0) !aux;
-    aux:= add "propositional" bank.(0) !aux;
-    aux:= add "lra" bank.(1) !aux;
-    aux:= add "lia" bank.(1) !aux;
-    !aux
+let getbyname = function
+  | "empty" | "propositional"
+      -> bank.(0)
+  | "lra" | "LRA" | "QF_LRA"
+  | "lia" | "LIA" | "QF_LIA"
+      -> bank.(1)
+  | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))

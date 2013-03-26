@@ -7,12 +7,10 @@ let bank:(module Plugins.GenType)array=
     (module DPLL_WL.MyPlugin.GenPlugin);
   |]
 
-module StringMaps = Map.Make(String)
-open StringMaps
+exception NotFound of string
 
-let getbyname = 
-  let aux = ref empty in
-    aux:= add "naive"    bank.(0) !aux;
-    aux:= add "dpll_pat" bank.(1) !aux;
-    aux:= add "dpll_wl"  bank.(2) !aux;
-    !aux
+let getbyname = function
+  | "naive"    -> bank.(0)
+  | "dpll_pat" -> bank.(1)
+  | "dpll_wl"  -> bank.(2)
+  | s -> raise (NotFound ("Generic plugin "^s^" does not exist; see -help"))

@@ -74,6 +74,7 @@ module LRASig = struct
       sortParse = (function
 		     | "Rat"  -> `Rat
 		     | "Real" -> `Rat
+		     | "Int"  -> `Rat
 		     | s      -> PropSig.forParsing.sortParse s);
       symbParse = (function s -> 
 		     let l = match s with

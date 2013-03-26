@@ -208,12 +208,12 @@ module FrontEnd
 		let k = Seq.simplify s in
 		  begin match algo k !table with
 		    | F _ -> incr count;
-			if !Flags.debug>0&&(!count mod Flags.every.(4) =0)
+			if !Flags.debug>1&&(!count mod Flags.every.(4) =0)
 			then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Recording "^(if b then "success" else "failure")^" for");
 			      print_endline(print_state s));
 			table := MP.add k (fun _ ->ans) !table
 		    | A a -> incr newcount;
-			if !Flags.debug>0&&(!newcount mod Flags.every.(5) =0)
+			if !Flags.debug>1&&(!newcount mod Flags.every.(5) =0)
 			then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Already know better "^(if b then "success" else "failure")^" than");
 			      print_endline(print_state s);
 			      let (j,_)=Seq.simplify(match a with Success pt->PT.conclusion pt |Fail d->d) in print_endline(ASet.toString j))

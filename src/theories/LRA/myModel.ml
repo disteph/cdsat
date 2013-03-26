@@ -1,4 +1,3 @@
-open Flags
 open Kernel.Interfaces
 
 (* open Lib.Sums *)

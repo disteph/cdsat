@@ -26,22 +26,18 @@ open Run_tools.IO
 open Run_tools.Test
 open Arg
 
-let getme table msg s = try StringMaps.find s table with Not_found->failwith(msg)
-
 (* Deals with command line arguments *)
 let options =
   ("-theory",        String(fun s->
 			      mytheory:=
-				Some(getme
-				       ThDecProc_register.getbyname
-				       "Theory does not exist; see -help"
-				       s)),"selects theory (among empty, lra)")::
+				Some(try ThDecProc_register.getbyname s
+				     with ThDecProc_register.NotFound msg
+					 -> failwith msg)),"selects theory (among empty, lra)")::
     ("-gplugin",     String(fun s->
 			      mygplugin:=
-				Some(getme
-				       GPlugins_register.getbyname
-				       "Generic plugin does not exist; see -help"
-				       s)),"selects generic plugin (among naive, dpll_pat, dpll_wl)")::
+				Some(try GPlugins_register.getbyname s
+				     with GPlugins_register.NotFound msg
+					 -> failwith msg)),"selects generic plugin (among naive, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true),        "allows latex output")::
     ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::
     ("-skipsat",     Unit(fun()->skipsat:=true),      "skips instances expected to be sat")::

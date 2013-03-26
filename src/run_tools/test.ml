@@ -17,8 +17,6 @@ forced by the user (from command-line) *)
 let mytheory  = ref None 
 let mygplugin = ref None
 
-module StringMaps = Map.Make(String)
-
 (* guessThPlug guesses the pair Theory+DecProc + Plugin, taking into
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
@@ -28,8 +26,11 @@ let guessThPlug s =
     match !mytheory with
       | Some a -> a
       | None ->
-	  try StringMaps.find s ThDecProc_register.getbyname
-	  with Not_found -> ThDecProc_register.bank.(0)
+	  try ThDecProc_register.getbyname s
+	  with Not_found 
+	      -> (if !Flags.debug>0
+		  then print_endline("Could not find theory "^s^" in the theory signatures register, using Empty(Propositional)");
+		  ThDecProc_register.bank.(0))
   in
   let module MyThDecProc = (val myth:Theories.ThDecProc) in
   let plugin =
@@ -112,7 +113,9 @@ let parseNrun input =
 	      in
 		R.go(a,b)
 	    with
-		Parsers.ParsingError s | Theories_tools.TypingError s -> print_endline s;trying (i+1)
+		Parsers.ParsingError s | Theories_tools.TypingError s
+		  -> (if !Flags.debug>0 then print_endline s;
+		      trying (i+1))
 	  end
     | _ -> print_endline "No parser seems to work for this input."; function _ -> None
   in
