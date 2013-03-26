@@ -1,20 +1,25 @@
 open Patricia
 open Sums
 
-module type FromHConsed = sig type t val id : t -> int end
+module type FromHConsed = sig
+  type t 
+  val id : t -> int 
+end
 
 module TypesFromHConsed(S : FromHConsed) 
-  :Intern with type keys =S.t and type common  = int and type branching = int
+  :Intern with type keys      = S.t
+	  and  type common    = int
+	  and  type branching = int
   
 module type FromCollect = sig
   type keys
   type t
   val tag : keys -> t
   type e
-  val is_in : e -> t -> bool
-  val inter : t -> t -> t
-  val compare : t -> t -> int
-  val compareE : e -> e -> int
+  val is_in      : e -> t -> bool
+  val inter      : t -> t -> t
+  val compare    : t -> t -> int
+  val compareE   : e -> e -> int
   val first_diff : t -> t -> e option * bool
 end
 
@@ -28,7 +33,10 @@ module TypesFromCollect(S : FromCollect)
   
 
 module LexProduct  
-  (I1:sig include Intern val pequals:common->common->bool end)
+  (I1:sig
+     include Intern 
+     val pequals:common->common->bool 
+   end)
   (I2:Intern with type keys=I1.keys)
   :sig
     include Intern with type keys     = I1.keys

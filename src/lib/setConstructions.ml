@@ -22,7 +22,7 @@ module TypesFromHConsed(S:FromHConsed) = struct
   let branching_bit p0 p1 = lowest_bit (p0 lxor p1)
   let mask p m            = p land (m-1)
 
-  let match_prefix q p m  = mask q m == p
+  let match_prefix q p m  = mask q m == mask p m
 
   let disagree p0 p1      = 
     let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
@@ -68,7 +68,7 @@ module TypesFromCollect(S: FromCollect) = struct
     | (Some b,c) -> (S.inter p0 p1,b,c)
     | (None,_)   -> failwith("disagree called with two arguments that are equal")
 
-  let pequals p1 p2 = (S.compare p1 p2==0) 	
+  let pequals p1 p2 = (S.compare p1 p2==0)
 end
 
 
@@ -76,7 +76,10 @@ end
    given I1:Intern and I2:Intern *)
 
 module LexProduct
-  (I1:sig include Intern val pequals:common->common->bool end)
+  (I1:sig
+     include Intern 
+     val pequals:common->common->bool 
+   end)
   (I2:Intern with type keys=I1.keys) = struct
 
   type keys   = I1.keys

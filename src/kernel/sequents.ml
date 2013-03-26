@@ -29,7 +29,11 @@ module FrontEnd
 
     (* Computes polarity of formula *)
     let polarity polar f = match F.reveal f with
-      | Lit t -> (try Pol.find t polar with _ -> Und)
+      | Lit t  -> (try Pol.find t polar with _ -> Und)
+      | TrueP  -> Pos
+      | TrueN  -> Neg
+      | FalseP -> Pos
+      | FalseN -> Neg
       | AndN(f1,f2) -> Neg
       | OrN(f1,f2) -> Neg
       | AndP(f1,f2) -> Pos
@@ -63,7 +67,7 @@ module FrontEnd
 	      "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
     end
 
-    let print_state = if !Flags.printrhs = true then Seq.toString else function
+    let print_state seq = if !Flags.printrhs = true then Seq.toString seq else match seq with
       | Seq.EntUF(atms,_,_,_,_) -> ASet.toString atms
       | Seq.EntF(atms,_,_,_,_)  -> ASet.toString atms
 
@@ -97,6 +101,7 @@ module FrontEnd
 
     (* Type of final answers, NOT known in interface FrontEndType. *)		       
     type t = final
+    let reveal ans = ans
 
     (* Generator of local answer types, either definitive answer or a fake answer *)
     type ('a,'b) local = Local of 'a | Fake  of 'b
@@ -203,12 +208,12 @@ module FrontEnd
 		let k = Seq.simplify s in
 		  begin match algo k !table with
 		    | F _ -> incr count;
-			if !Flags.debug>0&&(!count mod Flags.every.(4) =0)
+			if !Flags.debug>1&&(!count mod Flags.every.(4) =0)
 			then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Recording "^(if b then "success" else "failure")^" for");
 			      print_endline(print_state s));
-			table := MP.add (fun x _ ->x) k ans !table
+			table := MP.add k (fun _ ->ans) !table
 		    | A a -> incr newcount;
-			if !Flags.debug>0&&(!newcount mod Flags.every.(5) =0)
+			if !Flags.debug>1&&(!newcount mod Flags.every.(5) =0)
 			then (print_endline(string_of_int !count^"/"^string_of_int !newcount^" Already know better "^(if b then "success" else "failure")^" than");
 			      print_endline(print_state s);
 			      let (j,_)=Seq.simplify(match a with Success pt->PT.conclusion pt |Fail d->d) in print_endline(ASet.toString j))
@@ -230,7 +235,7 @@ module FrontEnd
 			^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries")
 
 	let clear () =
-	  count:=0;newcount:=0;tableS := MP.empty; tableF := MP.empty
+	  count:=0;newcount:=0;tableS := MP.empty; tableF := MP.empty;MP.clear();
       end
 
   end

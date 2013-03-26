@@ -1,20 +1,89 @@
-OASISFormat: 0.2
-License: CeCILL-C
-Authors: Alexis Bernadet <bernadet@lix.polytechnique.fr>, Ecole Polytechnique
-         Mahfuza Farooque <mahfuza@lix.polytechnique.fr>, CNRS
-         Stephane Graham-Lengrand <graham-lengrand@lix.polytechnique.fr>, CNRS
-         Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA
-Version: 1.3
-Name: Psyche
-Synopsis: Proof-Search factorY for Collaborative HEuristics
-BuildTools: ocamlbuild
-Executable Psyche
-  Path: ./src
-  MainIs: main.ml
+OASISFormat: 0.3
+Name:        Psyche
+Version:     1.3
+Synopsis:    Proof-Search factorY for Collaborative HEuristics
+Authors: Alexis Bernadet, Ecole Polytechnique
+         Mahfuza Farooque, CNRS
+         Stephane Graham-Lengrand, CNRS
+         Assia Mahboubi, INRIA
+         Matthieu Vegreville, Ecole Polytechnique
+License:     CeCILL-C
+LicenseFile: LICENCE.txt
+
+Executable psyche
+  Path:       src
+  BuildTools: ocamlbuild
+  MainIs:     main.ml
   CompiledObject: best
-Document api
+  
+Document "API"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's API
+  InstallDir: API
   XOCamlBuildPath: src
-  Title: API Documentation
-  Type: ocamlbuild (0.2)
-  BuildTools: ocamldoc
-  XOCamlbuildModules: Main
+  XOCamlbuildModules: Main,Plugins,GPlugins_register,Parsers,Parsers_register,DIMACS,SMTLib2,Theories,Theories_tools,ThSig_register,ThDecProc_register
+
+Document "Kernel"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Kernel API
+  InstallDir: API/kernel
+  XOCamlBuildPath: src/kernel
+  XOCamlbuildModules: Interfaces,Formulae,Search,Memoisation,Sequents
+
+Document "Run_tools"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Run_tools API
+  InstallDir: API/run_tools
+  XOCamlBuildPath: src/run_tools
+  XOCamlbuildModules: IO,Test
+
+Document "Lib"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Lib API
+  InstallDir: API/lib
+  XOCamlBuildPath: src/lib
+  XOCamlbuildModules: Patricia,Sums,SetConstructions
+
+Document "Empty"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Empty API
+  InstallDir: API/theories/Empty
+  XOCamlBuildPath: src/theories/Empty
+  XOCamlbuildModules: MyAtom,MyTheory
+
+Document "LRA"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Lia API
+  InstallDir: API/theories/LRA
+  XOCamlBuildPath: src/theories/LRA
+  XOCamlbuildModules: MyAtom,MyModel,MyTheory
+
+Document "Naive"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Naive API
+  InstallDir: API/gplugins/Naive
+  XOCamlBuildPath: src/gplugins/Naive
+  XOCamlbuildModules: MyPlugin
+
+Document "DPLL_Pat"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's DPLL_Pat API
+  InstallDir: API/gplugins/DPLL_Pat
+  XOCamlBuildPath: src/gplugins/DPLL_Pat
+  XOCamlbuildModules: MyPlugin,SetInterface,Patricia_ext,DataStructures
+
+Document "DPLL_WL"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's DPLL_WL API
+  InstallDir: API/gplugins/DPLL_WL
+  XOCamlBuildPath: src/gplugins/DPLL_WL
+  XOCamlbuildModules: MyPlugin,SetInterface,Patricia_ext,DataStructures

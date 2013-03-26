@@ -5,15 +5,15 @@ open Interfaces
 open Sums
 open Sequents
 
-module ProofSearch (MyTheory: TheoryType)
-  (F: FormulaImplem with type lit = MyTheory.Atom.t)
+module ProofSearch (MyTheory: DecProc)
+  (F: FormulaImplem    with type lit = MyTheory.Atom.t)
   (FSet: CollectImplem with type e = F.t)
   (ASet: CollectImplem with type e = MyTheory.Atom.t)
   =
   (struct
 
      (* Loads the decision procedures *)
-     module DecProc = MyTheory.DecProc(ASet)
+     module DecProc = MyTheory.Consistency(ASet)
 
      (* Loads the FrontEnd *)
      module FE = FrontEnd(MyTheory.Atom)(F)(FSet)(ASet)
@@ -69,19 +69,19 @@ module ProofSearch (MyTheory: TheoryType)
      let rec ou v1 v2 fseq1 fseq2 seq cont = count.(6)<-count.(6)+1;
        let newcont1 ans = count.(6)<-count.(6)-1;match ans with
 	 | Local(Success prooftree1)       -> cont (Local(Success(fseq1 prooftree1)))
-	 | Local(Fail seq1) ->
+	 | Local(Fail seq1) as u1 ->
 	     let newcont2 = function
 	       | Local(Success(prooftree2))-> cont (Local(Success(fseq2 prooftree2)))
 	       | Local(Fail _)             -> cont (Local(Fail seq))
-	       | Fake(b1,b2,Comp f2)       -> cont (Fake(b1,b2,Comp(ou (fun cc -> cc (Local(Fail seq1))) f2 fseq1 fseq2 seq)))
+	       | Fake(b1,b2,Comp f2)       -> cont (Fake(b1,b2,Comp(ou (fun cc -> cc u1) f2 fseq1 fseq2 seq)))
 	     in
 	       v2 newcont2
-	 | Fake(false,true,Comp f1) ->
+	 | Fake(false,true,Comp f1) as u1 ->
 	     let newcont2 = function
 	       | Local(Success prooftree2) -> cont (Local(Success(fseq2 prooftree2)))
 	       | Local(Fail seq2)          -> cont (Fake(false,true,Comp(ou f1 (fun cc -> cc (Local(Fail seq2))) fseq1 fseq2 seq)))
 	       | Fake(false,false,Comp f2) -> ou f1 f2 fseq1 fseq2 seq cont
-	       | Fake(b1,b2,Comp f2)       -> cont (Fake(b1,b2,Comp(ou (fun cc -> cc (Fake(false,true,Comp f1))) f2 fseq1 fseq2 seq)))
+	       | Fake(b1,b2,Comp f2)       -> cont (Fake(b1,b2,Comp(ou (fun cc -> cc u1) f2 fseq1 fseq2 seq)))
 	     in
 	       v2 newcont2
 	 | Fake(b1,b2,Comp f1)             -> cont (Fake(b1,b2,Comp(ou f1 v2 fseq1 fseq2 seq)))
@@ -93,20 +93,20 @@ module ProofSearch (MyTheory: TheoryType)
 
      let rec et v1 v2 fseq seq cont = count.(6)<-count.(6)+1;
        let newcont1 ans = count.(6)<-count.(6)-1;match ans with
-	 | Local(Success prooftree1) ->
+	 | Local(Success prooftree1) as u1 ->
 	     let newcont2 = function
 	       | Local(Success prooftree2)-> cont (Local(Success(fseq prooftree1 prooftree2)))
 	       | Local(Fail _)            -> cont (Local(Fail seq))
-	       | Fake(b1,b2,Comp f2)      -> cont (Fake(b1,b2,Comp(et (fun cc -> cc (Local(Success prooftree1))) f2 fseq seq)))
+	       | Fake(b1,b2,Comp f2)      -> cont (Fake(b1,b2,Comp(et (fun cc -> cc u1) f2 fseq seq)))
 	     in
 	       v2 newcont2
 	 | Local(Fail _)                  -> cont (Local(Fail seq))
-	 | Fake(true,true,Comp f1) ->
+	 | Fake(true,true,Comp f1) as u1 ->
 	     let newcont2 = function
 	       | Local(Success prooftree2)-> cont (Fake(true,true,Comp(et f1 (fun cc -> cc (Local(Success prooftree2))) fseq seq)))
 	       | Local(Fail _)            -> cont (Local(Fail seq))
 	       | Fake(true,false,Comp f2) -> et f1 f2 fseq seq cont
-	       | Fake(b1,b2,Comp f2)      -> cont (Fake(b1,b2,Comp(et (fun cc -> cc (Fake(true,true,Comp f1))) f2 fseq seq)))
+	       | Fake(b1,b2,Comp f2)      -> cont (Fake(b1,b2,Comp(et (fun cc -> cc u1) f2 fseq seq)))
 	     in
 	       v2 newcont2
 	 | Fake(b1,b2,Comp f1)            -> cont (Fake(b1,b2,Comp(et f1 v2 fseq seq)))
@@ -120,7 +120,7 @@ module ProofSearch (MyTheory: TheoryType)
 	 | Local(Success prooftree)-> cont (Local(Success(fseq prooftree)))
 	 | Local(Fail _)           -> cont (Local(Fail seq))
 	 | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp(straight f fseq seq)))
-(*	 | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp f)) *)
+	     (*	 | Fake(b1,b2,Comp f)      -> cont (Fake(b1,b2,Comp f)) *)
        in
 	 v newcont
 
@@ -179,7 +179,12 @@ module ProofSearch (MyTheory: TheoryType)
 		 straight 
 		   (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
 		   (stdone seq) seq cont
-		   
+
+	     | TrueP -> let x = Success(PT.build(PT.Axiom(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[])))))
+	       in cont (throw (Local x) seq)
+
+	     | FalseP -> cont (throw (Local(Fail seq)) seq)
+		 
 	     | AndP(a1, a2) ->
 		 let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar)) data in
 		 let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar)) data in
@@ -218,7 +223,13 @@ module ProofSearch (MyTheory: TheoryType)
 											     then FSet.remove toDecompose gfP
 											     else gfP)::l)
 									  | _           -> failwith("Should not happen")), pt))) seq cont
-			 
+
+		 | TrueN -> let x = Success(PT.build(PT.Axiom(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[])))))
+		   in cont (throw (Local x) seq)
+
+		 | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
+		     straight u (stdone seq) seq cont
+
 		 | Lit t when (polarity polar toDecompose) = Neg -> let t' = (MyTheory.Atom.negation t) in
 		     if ASet.is_in t' atomN
 		     then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
@@ -248,7 +259,7 @@ module ProofSearch (MyTheory: TheoryType)
 		 | _ -> failwith("All cases should have been covered!")
 	       end
 
-	 | Seq.EntUF(atomN, _, formP, formPSaved, polar) 
+	 | Seq.EntUF(atomN, _, formP', formPSaved', polar) 
 	   ->begin if !Flags.debug>1 then print_endline("attack "^print_state seq);
 
 	     let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
@@ -266,6 +277,17 @@ module ProofSearch (MyTheory: TheoryType)
 		   in function
 		     | Focus(toFocus,inter_fun,l) ->  count.(4)<-count.(4)+1;(* real focus *)
 			 (* print_endline(Form.toString toFocus);*)
+			 if (not (FSet.is_in toFocus formPChoose))&&(not (FSet.is_in toFocus formP))
+			 then (let _ = FSet.fold 
+				 (fun g h -> let o = FSet.add g h in if g=toFocus then print_endline("Il y est");o)
+				 formP
+				 FSet.empty in
+				 (* print_endline(FSet.toString formP); *)
+				 (* print_endline(FSet.toString y); *)
+			       	 (* print_endline(string_of_bool (FSet.is_in toFocus formP)); *)
+			       	 (* print_endline(string_of_bool (FSet.is_in toFocus y)); *)
+				 (* print_endline(string_of_bool (FSet.equal y formP)); *)
+				 failwith("Not allowed to focus at all!!!!!!!!! "^Form.toString toFocus));
 			 if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 			 else
 			   let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
@@ -277,6 +299,7 @@ module ProofSearch (MyTheory: TheoryType)
 			       (fun pt -> pt) seq cont
 			       
 		     | Cut(3,toCut, inter_fun1, inter_fun2,l)-> (*cut_3*)
+			 if !Flags.cuts = false then failwith("Cuts are not allowed");
 			 count.(5)<-count.(5)+1; 
 			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut3 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
@@ -285,13 +308,14 @@ module ProofSearch (MyTheory: TheoryType)
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont
 			     
 		     | Cut(7,toCut, inter_fun1, inter_fun2,l) -> (*cut_7*)
+			 if !Flags.cuts = false then failwith("Cuts are not allowed");
 			 count.(5)<-count.(5)+1; 
 			 if !Flags.debug>1&& count.(5) mod Flags.every.(6)=0 then print_endline("Cut7 on "^Form.toString toCut);
 			 let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
 			 let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
 			 let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
 			   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq) u3 (fun pt -> pt) (fun pt -> pt) seq cont 
-(*			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont *)
+			     (*			   et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (stdtwo seq) seq cont *)
 
 		     | ConsistencyCheck(inter_fun,l) when not conschecked -> (*Checking consistency*)
 			 let u1 cont =
@@ -305,12 +329,13 @@ module ProofSearch (MyTheory: TheoryType)
 			 let u2 = lk_solvef formPChoose true formP formPSaved l data in
 			   ou u1 u2 (stdone seq) (stdone seq) seq cont
 
-		     | Polarise(l, inter_fun) when polarity polar (F.build(Lit l)) = Und ->
+		     | Polarise(l, inter_fun) when polarity polar (Form.lit l) = Und ->
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
 							    Pol.add l Pos ( Pol.add (MyTheory.Atom.negation l) Neg polar))) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
 
-		     | DePolarise(l, inter_fun) when not (polarity polar (F.build(Lit l)) = Und) ->
+		     | DePolarise(l, inter_fun) when not (polarity polar (Form.lit l) = Und) ->
+			 if !Flags.depol = false then failwith("Depolarisation is not allowed");
 			 let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
 							    Pol.remove l ( Pol.remove (MyTheory.Atom.negation l) polar))) data in
 			   straight (intercept inter_fun u) (fun pt -> pt) seq cont
@@ -338,6 +363,10 @@ module ProofSearch (MyTheory: TheoryType)
 			 end
 
 		     | Restore l when not (FSet.is_empty formPSaved) ->
+			 if !Flags.fair && not (FSet.is_empty formPChoose)
+			 then failwith("Trying to restore formulae on which focus has already been placed,
+ but there still are formulae that you have not tried;
+ your treatment is unfair");
 			 lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l data cont
 
 		     | _       -> failwith("focus_pick has suggested a stupid action")
@@ -357,37 +386,37 @@ module ProofSearch (MyTheory: TheoryType)
 	     in
 	     let notify_analysis(accept_defeat,newdata,inter_fun,action1) =
 	       if (inloop&&accept_defeat) then (count.(7)<-count.(7)+1;cont (throw (Local(Fail seq)) seq))
-	       else lk_solvef formP false formP formPSaved action1 newdata (newcont inter_fun)
+	       else lk_solvef formP' false formP' formPSaved' action1 newdata (newcont inter_fun)
 	     in
 	       count.(8)<-count.(8)+1;
 	       Fake(Notify(seq,inloop,notify_analysis,data))
-		  
+		 
 	   end
 	     
 
-    let clear() = for i=0 to Array.length count-1 do count.(i) <- 0 done;dir := true
+     let clear() = for i=0 to Array.length count-1 do count.(i) <- 0 done;dir := true
 
      (* Wraps the above function by providing top-level continuation
 	inter (for interaction with user), and printing a couple of
 	messages for standard output *)
 
-    let rec wrap f =
-      let fin = fun w ->
-	(print_endline("   Kernel's report:");
-	 print_endline(w
-		       ^", in "
-		       ^string_of_float (Sys.time()-. !start_time)
-		       ^" seconds");
-	 report 0;
-	 clear())
-      in
+     let rec wrap f =
+       let fin = fun w ->
+	 (print_endline("   Kernel's report:");
+	  print_endline(w
+			^", in "
+			^string_of_float (Sys.time()-. !start_time)
+			^" seconds");
+	  report 0;
+	  clear())
+       in
        let inter = function
 	 | Fake(b1,b2,Comp v)  -> dir:= not b2 ;
 	     begin
 	       if !Flags.debug>0 then print_endline("No more "
-					      ^(if b1 then "Success" else "Failure")
-					      ^" branch on the "
-					      ^(if b2 then "right" else "left"))
+						    ^(if b1 then "Success" else "Failure")
+						    ^" branch on the "
+						    ^(if b2 then "right" else "left"))
 	     end;
 	     Fake(Stop(b1,b2,fun _ -> wrap v))
 	 | Local(Success(p))   -> fin "Total Success"; Local(Success(p))
@@ -405,6 +434,7 @@ module ProofSearch (MyTheory: TheoryType)
      module FE : (FrontEndType  with type litType     = MyTheory.Atom.t
 				and  type formulaType = F.t
 				and  type fsetType    = FSet.t
-				and  type asetType    = ASet.t)
+				and  type asetType    = ASet.t
+		 )
      val machine : FE.Seq.t -> 'a ->'a FE.output
    end)

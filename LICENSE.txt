@@ -1,17 +1,26 @@
-Copyright CNRS - INRIA - Ecole Polytechnique.
+=====================================================
+         	PSYCHE,
+The Proof-Search factorY for Collaborative HEuristics
+=====================================================
+Copyright (C) 2012 - 1013
 
-Authors (since 05/09/2012):
-Alexis Bernadet <bernadet@lix.polytechnique.fr>, Ecole Polytechnique
-Mahfuza Farooque <mahfuza@lix.polytechnique.fr>, CNRS
 Stephane Graham-Lengrand <graham-lengrand@lix.polytechnique.fr>, CNRS
 Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA
 
+Alexis Bernadet, Ecole Polytechnique
+Mahfuza Farooque, CNRS
+Matthieu Vegreville, Ecole Polytechnique
 
-This software is governed by the CeCILL-C license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the CeCILL-C
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
+Some plugins use some (unmodified) code
+- from the Alt-Ergo theorem prover (Its SMTLib2 parser), also
+  distributed under CeCILL-C
+- written by Pierre-Yves Strub
+
+The Psyche software is governed by the CeCILL-C license under French
+law and abiding by the rules of distribution of free software.  You
+can use, modify and/ or redistribute the software under the terms of
+the CeCILL-C license as circulated by CEA, CNRS and INRIA at the
+following URL "http://www.cecill.info".
 
 As a counterpart to the access to the source code and  rights to copy,
 modify and redistribute granted by the license, users are provided only

@@ -1,49 +1,206 @@
-(* Tests *)
+(************************************)
+(* Main entry point for Psyche runs *)
+(************************************)
 
-open Kernel
-open Interfaces
-open Plugin
-open Search
-open Printf
+open Lib.Sums
 
-module Prepare(MyTheory:TheoryType)(P:Plugin.Type with type literals = MyTheory.Atom.t) = struct
+(* Module type for Theory+DecProc+Plugin compatible with each other *)
 
-  open P
-  module Src   = ProofSearch(MyTheory)(UF)(UFSet)(UASet)
-  module Strat = Strategy(Src.FE)
+module type ThPlug = sig
+  module MyThDecProc:Theories.ThDecProc
+  module MyPlugin:Plugins.Type with type literals = MyThDecProc.Atom.t
+end
 
-  let orig_seq my_formula = Src.FE.Seq.EntUF(UASet.empty,UFSet.add my_formula UFSet.empty, UFSet.empty, UFSet.empty,Src.FE.emptypolmap)
-    
-  let go formula = print_endline("---");
-    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then Src.FE.Form.toString formula else "");
-    Strat.solve(Src.machine (orig_seq formula) Strat.initial_data)
+(* Variables containing the Theory+DecProc (resp. generic plugin)
+forced by the user (from command-line) *)
 
-  module MyParser = MyTheory.Parser(UF)
+let mytheory  = ref None 
+let mygplugin = ref None
 
-  let print_test f = "Trying to prove: $"^Src.FE.Form.toString f^"$
+(* guessThPlug guesses the pair Theory+DecProc + Plugin, taking into
+account user input, and argument s, which is a theory name (string),
+as possibly indicated by the parser when glancing at the input *)
 
-  \\vspace{10pt}\n"^
-    Src.FE.toString (go f)^"\\vspace{30pt}
+let guessThPlug s =
+  let myth = 
+    match !mytheory with
+      | Some a -> a
+      | None ->
+	  try ThDecProc_register.getbyname s
+	  with Not_found 
+	      -> (if !Flags.debug>0
+		  then print_endline("Could not find theory "^s^" in the theory signatures register, using Empty(Propositional)");
+		  ThDecProc_register.bank.(0))
+  in
+  let module MyThDecProc = (val myth:Theories.ThDecProc) in
+  let plugin =
+    match !mygplugin,MyThDecProc.sugPlugin with
+      | None,Some a -> a
+      | _,_ -> 
+	  let a = match !mygplugin with
+	    | None   -> GPlugins_register.bank.(1)
+	    | Some a -> a
+	  in
+	  let module MyGPlugin = (val a) in
+	    (module MyGPlugin(MyThDecProc.Atom))
+  in
+  let module MyThPlug  = struct
+    module MyThDecProc = MyThDecProc 
+    module MyPlugin    = (val plugin)
+  end
+  in (module MyThPlug:ThPlug)
 
-  "
 
-  let treatstdin () = print_endline("===========================");
-    print_endline("Treating stdin");
-    go(MyParser.parse(IO.read_from_stdin()))
+(* Given a compatibleTheory+DecProc + Plugin, module Run provides the
+main run function: go *)
 
-  let treatfile filename = print_endline("===========================");
-    print_endline("Treating file "^filename);
-    go(MyParser.parse(IO.read_from_file filename))
+module Run(MyThPlug:ThPlug)= struct
 
-  let treatdir a = print_endline("Treating directory "^a);
-    let b = Sys.readdir(a) in
-      Array.sort Pervasives.compare b;
-      for i=0 to Array.length b-1 do
-	let _ = treatfile (a^Filename.dir_sep^b.(i)) in ();
-      done
+  open MyThPlug.MyPlugin
+  module Src         = Kernel.Search.ProofSearch(MyThPlug.MyThDecProc)(UF)(UFSet)(UASet)
+  module FE          = Src.FE
+  module Strat       = Strategy(FE)
 
-  let rec treatexamples = function
-    | []   -> ""
-    | a::l -> (print_test a)^(treatexamples l)
+  let go f stringOrunit =
+    let result = match f with 
+      | None,_                                   -> print_endline("No formula to treat");None 
+      | Some _,None       when !Flags.skipunknown-> print_endline("Skipping problem with no expectation");None
+      | Some _,Some(true) when !Flags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
+      | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
+      | Some b,c    ->
+	  let orig_seq = 
+	    FE.Seq.EntUF(UASet.empty,UFSet.add b UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
+	  in
+	  let d =
+	    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString b else "");
+	    Strat.solve(Src.machine orig_seq Strat.initial_data)
+	  in 
+	    print_endline(match c,FE.reveal d with
+			    |None ,_                 -> "Nothing expected"
+			    |Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
+			    |Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
+			    |Some false,FE.Success _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
+			    |Some false,FE.Fail _    -> "Expected Failure (SAT/unprovable), got it"
+			 );
+	    Some d
+    in 
+      match result with
+	| None -> None
+	| Some r when stringOrunit-> Some(A(FE.toString r))
+	| Some r                  -> Some(F ())
 
 end
+
+
+
+(* Now we run on a particular input, trying out various parsers *)
+
+let parseNrun input =
+  let rec trying = function
+    | i when i < Array.length Parsers_register.bank ->
+	let module MyParser = (val Parsers_register.bank.(i):Parsers.Type) in
+	  begin
+	    try 
+	      let aft      = MyParser.glance input in
+	      let module MyThPlug    = (val guessThPlug(MyParser.guessThDecProc aft):ThPlug) in
+	      let module R           = Run(MyThPlug) in
+	      let module MyThDecProc = MyThPlug.MyThDecProc in
+	      let module MyStructure = MyThDecProc.Structure(R.FE.Form) in
+	      let i = Theories_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
+	      let (a,b) = match MyParser.parse MyThDecProc.Sig.forParser i aft with
+		| None,b  -> None,b
+		| Some a,b-> Some(MyStructure.toform a),b
+	      in
+		R.go(a,b)
+	    with
+		Parsers.ParsingError s | Theories_tools.TypingError s
+		  -> (if !Flags.debug>0 then print_endline s;
+		      trying (i+1))
+	  end
+    | _ -> print_endline "No parser seems to work for this input."; function _ -> None
+  in
+    trying 0
+
+
+(* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:
+- init is the initial data before any run is made
+- accu is what do do after every run ('b option is the return type of the run) 
+- final is what to do with the accumulated data
+Think of init and accu as what will be fed, together with a list of
+inputs, to a List.fold_left call. And final as what will be done to
+the result of that call. *)
+
+type ('a,'b)wrap = {init: 'a ; accu: string->'a->(bool->'b option)->'a ; final: 'a->unit}
+
+let latex_wrap =
+  { init  = "";
+    accu  = (fun text aux output ->
+	       "Trying to prove: "^text^"\n\\vspace{10pt}\n\n"^(match output true with Some(A o) -> o | _ -> "No run")^"\\vspace{30pt}\n"^aux) ;
+    final = IO.write_to_file "latex/output.tex" }
+
+let empty_wrap =
+  { init  = ();
+    accu  = (fun text aux output -> let _ = output false in ()) ;
+    final = fun () -> () }
+
+(* treatstdin uses stdin as input *)
+
+let treatstdin pack () =
+  print_endline("===========================");
+  print_endline("Treating stdin");
+  pack.final(pack.accu "Treating stdin" pack.init (parseNrun (IO.read_from_stdin())))
+
+(* treatfile_aux uses file called filename as input *)
+
+let treatfile_aux accu filename aux = 
+  let filename4latex  = "file \\verb="^filename^"=" in
+  let filename4stdout = "===========================\nTreating file "^filename in
+    print_endline filename4stdout;
+    accu filename4latex aux (parseNrun(IO.read_from_file filename))
+
+(* treatfile wraps treatfile_aux in case 1 file is treated *)
+
+let treatfile pack filename =
+  pack.final(treatfile_aux pack.accu filename pack.init)
+
+(* treatdir wraps treatfile_aux in case a whole directory is treated *)
+
+let treatdir pack dirname =
+  print_endline("Treating directory "^dirname);
+  let b = Sys.readdir dirname in
+    Array.sort Pervasives.compare b;
+    let current = ref pack.init in
+      for i=0 to Array.length b-1 do
+	let name = dirname^Filename.dir_sep^b.(i) in
+	  if not(Sys.is_directory name)
+	  then current:= treatfile_aux pack.accu name !current;
+      done;
+      pack.final !current
+
+(* treatname does both *)
+
+let treatname pack name =
+  if Sys.is_directory name
+  then treatdir pack name
+  else treatfile pack name
+
+(* treatexamples treats the examples provided by the theory *)
+
+let treatexamples pack () =
+  let mythplug = guessThPlug("") in
+  let module MyThPlug    = (val mythplug:ThPlug) in
+  let module R           = Run(MyThPlug) in
+  let module MyStructure = MyThPlug.MyThDecProc.Structure(R.FE.Form) in
+  let examples = MyStructure.examples in
+  let rec aux = function
+    | []            -> pack.init
+    | (a,expect)::l ->
+	let formulastring = R.FE.Form.toString a in
+	  pack.accu ("$"^formulastring^"$") (aux l) (print_endline ("---\n"^formulastring); R.go(Some a,Some expect))
+  in
+    pack.final(aux examples)
+
+let treatprimitives =
+  if !Flags.latex
+  then (treatname latex_wrap, treatexamples latex_wrap, treatstdin latex_wrap)
+  else (treatname empty_wrap, treatexamples empty_wrap, treatstdin empty_wrap)

@@ -85,6 +85,7 @@ module PATMap
     val clear : unit -> unit
     val compare : t -> t -> int
     val is_empty : t -> bool
+    (* val checktree : I.branching list -> t -> bool *)
     val mem : I.keys -> t -> bool
     val find : I.keys -> t -> D.values
     val cardinal : t -> int
@@ -94,8 +95,7 @@ module PATMap
     val join : I.common * t * I.common * t -> t
     val remove_aux : (I.keys -> D.values -> t) -> I.keys -> t -> t
     val remove : I.keys -> t -> t
-    val add :
-      ('a -> D.values option -> D.values) -> I.keys -> 'a -> t -> t
+    val add : I.keys -> (D.values option -> D.values) -> t -> t
     val merge : (D.values -> D.values -> D.values) -> t * t -> t
     val union : (D.values -> D.values -> D.values) -> t -> t -> t
     val inter : (D.values -> D.values -> D.values) -> t -> t -> t
@@ -156,6 +156,7 @@ module PATSet
     val clear : unit -> unit
     val compare : t -> t -> int
     val is_empty : t -> bool
+    (* val checktree : I.branching list -> t -> bool *)
     val mem : I.keys -> t -> bool
     val find : I.keys -> t -> unit
     val cardinal : t -> int

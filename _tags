@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ff03c2c76acb46146efe9735265d3c88)
+# DO NOT EDIT (digest: f743ec7175bfdfbf108789f5006834d8)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -13,19 +13,18 @@
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
-# Executable Psyche
+# Executable psyche
 # OASIS_STOP
 
-<src> or <src/generic-plugins> or <src/theories>: include
-<src/lib/*.cmx>: for-pack(Lib)
-<src/kernel/*.cmx>: for-pack(Kernel)
-<src/run_tools/*.cmx>: for-pack(Run_tools)
-<src/parsing_tools/*.cmx>: for-pack(Parsing_tools)
-<src/parsing_tools/SMTLib2/*>: for-pack(Parsing_tools.SMTLib2)
-<src/theories/Empty/*.cmx>: for-pack(Empty)
-<src/theories/Lia/libSimplex/*.cmx>: for-pack(Lia.LibSimplex)
-<src/theories/Lia/*.cmx>: for-pack(Lia)
-<src/generic-plugins/DPLL_Pat/*.cmx>: for-pack(DPLL_Pat)
-<src/generic-plugins/DPLL_WL/*.cmx>: for-pack(DPLL_WL)
-<src/generic-plugins/Naive/*.cmx>: for-pack(Naive)
-<src/*.{byte,native}>     : use_nums, use_str
+<src> or <src/gplugins> or <src/theories> or <src/parsers>: include
+<src/lib/*.cmx>:                      for-pack(Lib)
+<src/kernel/*.cmx>:                   for-pack(Kernel)
+<src/run_tools/*.cmx>:                for-pack(Run_tools)
+<src/parsers/SMTLib2_tools/*>:        for-pack(SMTLib2_tools)
+<src/theories/Empty/*.cmx>:           for-pack(Empty)
+<src/theories/LRA/libSimplex/*.cmx>:  for-pack(LRA.LibSimplex)
+<src/theories/LRA/*.cmx>:             for-pack(LRA)
+<src/gplugins/DPLL_Pat/*.cmx>:        for-pack(DPLL_Pat)
+<src/gplugins/DPLL_WL/*.cmx>:         for-pack(DPLL_WL)
+<src/gplugins/Naive/*.cmx>:           for-pack(Naive)
+<src/*.{byte,native}>:                use_nums, use_str

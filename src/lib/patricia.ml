@@ -45,11 +45,12 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     module PATPrimitive = struct
       type t = {reveal: t pat ; id:int ; info: infos}
 
-      let equal t1 t2 = if not treeHCons then (t1=t2) else
+      let rec equal t1 t2 = if not treeHCons then (t1=t2) else
 	match t1.reveal,t2.reveal with
 	  | Empty, Empty                             -> true
 	  | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2==0) && (vcompare value1 value2==0)
-	  | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (bcompare b1 b2==0) && (match_prefix c1 c2 b1) && t3==t4 && t3'==t4'
+	  | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> let i,j,k,l = (bcompare b1 b2==0),(match_prefix c1 c2 b1),(t3==t4),(t3'==t4') in
+	      (*if (not i)||(not j) then print_endline("B");*) i&&j&&k&&l
 	  | _                                        -> false
 
       let hash t1 = if not treeHCons then Hashtbl.hash t1 else
@@ -73,20 +74,33 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 
     module H = Hashtbl.Make(PATPrimitive)
     let table = H.create 5003 
-    let uniq =ref 0
+    let uniqq =ref 0
     let build a =
-      let f = {reveal =  a; id = !uniq ; info = info_gen a} in
+      let f = {reveal =  a; id = !uniqq ; info = info_gen a} in
 	if treeHCons then
 	  try H.find table f
-	  with Not_found ->  (* print_endline(string_of_int(!uniq)); *)
-	    incr uniq; H.add table f f; f
+	  with Not_found -> (*print_endline("New item found "^string_of_int(!uniqq)); *)
+	    incr uniqq; H.add table f f; f
 	else f
 
-    let clear() = H.clear table
+    let clear() = uniqq := 0;H.clear table
 
     let compare t1 t2 = if treeHCons then Pervasives.compare t1.id t2.id else failwith("Cannot compare patricia trees (not HConsed)")
 
     (* Now we start the standard functions on maps/sets *)
+
+    (* let rec checktree aux t = match reveal t with *)
+    (*   | Empty               -> true *)
+    (*   | Leaf (j,_)          -> List.fold_left (fun b m -> let g =(check (tag j) m) in if not g then print_endline("Warning leaf"); b&&g) true aux  *)
+    (*   | Branch (_, m, l, r) -> *)
+    (* 	  let aux' = m::aux in *)
+    (* 	  let o = match aux with *)
+    (* 	    | []   -> true *)
+    (* 	    | a::l when bcompare a m < 0 -> true *)
+    (* 	    | _    -> false *)
+    (* 	  in *)
+    (* 	    if not o then print_endline("Warning Branch"); *)
+    (* 	    o&&(checktree aux r)&&(checktree aux' l) *)
 
     let is_empty t = match reveal t with Empty -> true | _ -> false
 
@@ -155,12 +169,10 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	    let h1 d = aux (indent^d) t1 in
 	      match b with
 		| None     -> (h0 "")^","^(h1 "")
-		| Some(g,h)-> (h0 (g p^"+"^h m))^"
-"^(h1 (g p^"-"^h m))
+		| Some(g,h)-> (h0 (g p^"+"^h m))^"\n"^(h1 (g p^"-"^h m))
       in match b with
 	| None   -> (aux "" t)
-	| Some _ -> "
-"^(aux "" t)
+	| Some _ -> "\n"^(aux "" t)
 
 
   (* Now we have finished the material that is common to Maps AND Sets,
@@ -173,12 +185,12 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 
   (* argument f says what to do in case a binding is already found *)
 
-  let add f k x t =
+  let add k f t =
     let rec ins t = match reveal t with
-      | Empty      -> leaf(k,f x None)
+      | Empty      -> leaf(k,f None)
       | Leaf (j,y) ->
-	  if  kcompare k j ==0 then leaf (k,f x (Some y))
-	  else join(tag k, leaf(k,f x None), tag j, t)
+	  if  kcompare k j ==0 then leaf (k,f (Some y))
+	  else join(tag k, leaf(k,f None), tag j, t)
       | Branch (c,b,t0,t1) ->
 	  if match_prefix (tag k) c b then
 	    if check (tag k) b then 
@@ -186,7 +198,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 	    else
 	      branch (c,b, t0, ins t1)
 	  else
-	    join (tag k, leaf(k,f x None), c, t)
+	    join (tag k, leaf(k,f None), c, t)
     in ins t
 
   (* In merge, union, inter, subset, diff,
@@ -199,8 +211,8 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     in match reveal u1,reveal u2 with
       | Empty, _     -> u2
       | _, Empty     -> u1
-      | Leaf(k,x), _ -> add newf k x u2
-      | _, Leaf(k,x) -> add newf k x u1
+      | Leaf(k,x), _ -> add k (newf x) u2
+      | _, Leaf(k,x) -> add k (newf x) u1
       | Branch (p,m,s0,s1), Branch (q,n,t0,t1) ->
 	  if (bcompare m n==0) && match_prefix q p m then
 	    (* The trees have the same prefix. Merge the subtrees. *)
@@ -379,7 +391,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     | Leaf(k,x) -> (k,x)
     | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
 	  
-  let make f l     = List.fold_right (function (k,x)->add f k x) l empty
+  let make f l     = List.fold_right (function (k,x)->add k (f x)) l empty
 
   let elements s =
     let rec elements_aux acc t = match reveal t with
@@ -433,7 +445,7 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
      Starting with similar functions *)
 
   let singleton k= PM.leaf(k,())
-  let add k t    = PM.add   (fun _ _ -> ()) k () t
+  let add k t    = PM.add k (fun _ -> ()) t
   let union      = PM.union (fun _ _ -> ())
   let inter      = PM.inter (fun _ _ -> ())
   let subset     = PM.subset(fun _ _ -> true)

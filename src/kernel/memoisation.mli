@@ -43,8 +43,7 @@ module PATMapExt
     val join : UT.common * t * UT.common * t -> t
     val remove_aux : (UT.keys -> V.values -> t) -> UT.keys -> t -> t
     val remove : UT.keys -> t -> t
-    val add :
-      ('a -> V.values option -> V.values) -> UT.keys -> 'a -> t -> t
+    val add : UT.keys -> (V.values option -> V.values) -> t -> t
     val merge : (V.values -> V.values -> V.values) -> t * t -> t
     val union : (V.values -> V.values -> V.values) -> t -> t -> t
     val inter : (V.values -> V.values -> V.values) -> t -> t -> t

@@ -2,6 +2,18 @@
 
 (* Kernel flags *)
 
+let latex     = ref false  (* Activates latex output *)
+let texamples = ref false  (* Treats examples, rather than standard input *)
+let fname                  (* List of files or directories to treat *)
+    = ref ([]:string list)
+
+let skipsat     = ref false  (* Skips instances expected to be sat *)
+let skipunsat   = ref false  (* Skips instances expected to be unsat *)
+let skipunknown = ref false  (* Skips instances without any result expectation *)
+
+let cuts       = ref true  (* Allows cuts *) 
+let depol      = ref true  (* Allows depolarisation *)
+let fair       = ref false (* Ensures fairness between formulae for focus *)
 let weakenings = ref true  (* Activates a-posteriori weakening mode
 			      (irrelevant formulae are not in proof-tree) *)
 
@@ -36,4 +48,3 @@ let every                  (* Prints every XXX events *)
       (* time display, set to negative if you want no display *) 
       10
     |] 
-
