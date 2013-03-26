@@ -39,6 +39,7 @@ let options =
 				     with GPlugins_register.NotFound msg
 					 -> failwith msg)),"selects generic plugin (among naive, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true),        "allows latex output")::
+    ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
     ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::
     ("-skipsat",     Unit(fun()->skipsat:=true),      "skips instances expected to be sat")::
     ("-skipunsat",   Unit(fun()->skipunsat:=true),    "skips instances expected to be unsat")::
@@ -87,4 +88,4 @@ in
   match !fname with
     | [] when !texamples-> trexamples ()
     | []                -> trstdin    ()
-    | l                 -> treat (List.rev l)
+    | l                 -> treat (collect_sort(List.rev l))

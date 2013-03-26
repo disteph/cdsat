@@ -88,6 +88,7 @@ Available options are:
   -theory selects theory (among empty, lia; default is empty)
   -gplugin selects generic plugin (among naive, dpll_pat, dpll_wl; default is dpll_wl)
   -latex allows latex output
+  -alphasort treats input files in alphabetical order (default is from smaller to bigger)
   -examples treats theory examples instead of standard input
   -noweakenings disallows conflict analysis
   -debug decides level of debug printing (0,1,2); 0 is no debug
@@ -97,12 +98,3 @@ Available options are:
   -nounitpropagation disallows eager unit propagation in MyPatricia
   -help  Display this list of options
   --help  Display this list of options
-
-Alternatively, the command:
-
-./run.sh
-
-executed at the root of the directory containing the sources of
-Psyche, runs psyche -examples, then pdflatex, then acroread
-
-

@@ -3,6 +3,7 @@
 open SMTLib2_tools
 open Smtlib2_ast
 open Parsers
+open Parsing_tools
 
 type 'a environment =
   | EmptyEnv
@@ -114,7 +115,6 @@ let guessThDecProc(theory,_,_,_,_) =
 let parse ts i (theory,satprov,status,declared,formulalist) = 
 
   let open Theories in
-  let open Theories_tools in
 
   let rec transformTermBase env expsort s l =
     try i.symbmodel s expsort (List.map (transformTerm  env) l)

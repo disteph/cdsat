@@ -106,14 +106,14 @@ let parseNrun input =
 	      let module R           = Run(MyThPlug) in
 	      let module MyThDecProc = MyThPlug.MyThDecProc in
 	      let module MyStructure = MyThDecProc.Structure(R.FE.Form) in
-	      let i = Theories_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
+	      let i = Parsing_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
 	      let (a,b) = match MyParser.parse MyThDecProc.Sig.forParser i aft with
 		| None,b  -> None,b
 		| Some a,b-> Some(MyStructure.toform a),b
 	      in
 		R.go(a,b)
 	    with
-		Parsers.ParsingError s | Theories_tools.TypingError s
+		Parsing_tools.ParsingError s | Parsing_tools.TypingError s
 		  -> (if !Flags.debug>0 then print_endline s;
 		      trying (i+1))
 	  end
@@ -165,17 +165,30 @@ let treatfile pack filename =
 
 (* treatdir wraps treatfile_aux in case a whole directory is treated *)
 
+let collect_sort s =
+  match Sys.os_type with
+    | "Unix" when !Flags.sizesort ->
+	let open Unix in
+	let size_of s = (stat s).st_size in
+	let l = List.map (fun filename -> (filename,size_of filename)) s in
+	let l'= List.sort (fun (a,b)(c,d)->Pervasives.compare b d) l in 
+	  List.map (fun (filename,size) -> filename) l'
+    | _ -> List.sort Pervasives.compare s
+
 let treatdir pack dirname =
   print_endline("Treating directory "^dirname);
-  let b = Sys.readdir dirname in
-    Array.sort Pervasives.compare b;
-    let current = ref pack.init in
-      for i=0 to Array.length b-1 do
-	let name = dirname^Filename.dir_sep^b.(i) in
+  let b = collect_sort(List.map 
+			 (fun filename -> dirname^Filename.dir_sep^filename) 
+			 (Array.to_list (Sys.readdir dirname))) in
+  let rec aux = function
+    | []          -> pack.init
+    | name::l ->
+	let next = aux l in
 	  if not(Sys.is_directory name)
-	  then current:= treatfile_aux pack.accu name !current;
-      done;
-      pack.final !current
+	  then treatfile_aux pack.accu name next
+	  else next
+  in
+    pack.final(aux (List.rev b))
 
 (* treatname does both *)
 

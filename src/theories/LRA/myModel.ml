@@ -37,8 +37,7 @@ let simplify_novar n = function
 module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 
   open Theories
-  open Theories_tools
-  module PS = PropStructure(F)
+  module PS = Theories_tools.PropStructure(F)
 
   type t = 
     | Rat of (StringMap.t*Num.num) PS.ite
@@ -60,7 +59,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 
   let toform = function
     | Prop f -> f
-    | _      -> raise (TypingError "TypingError")
+    | _      -> raise (Parsing_tools.TypingError "TypingError: trying to convert into a formula an expression that clearly is not one")
 
   let st = 
     { symb_i 
@@ -88,7 +87,8 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 	  | `Prop ->
 	      match aux var `Rat with
 		| Rat a -> Prop(build_lit `Gt a)
-		| _     -> raise (TypingError "TypingError")
+		| _     -> raise (Parsing_tools.TypingError
+				    ("Should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
 	in aux
     }
 

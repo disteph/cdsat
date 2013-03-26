@@ -1,6 +1,9 @@
+(**************************************************************)
+(* This is the register of all theories' signatures in Psyche *)
+(**************************************************************)
+
 open Theories
 
-(* This is the register of all theories' signatures in Psyche *)
 
 module PropSig = struct
   type sort   = [ `Prop ]

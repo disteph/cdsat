@@ -44,7 +44,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 	var_i = 
 	  fun (var:string) -> function
 	    | `Prop -> lit(true,var,[])
-	    | _     -> raise (Theories_tools.TypingError ("Variable "^var^" not of expected type `Prop"))
+	    | _     -> raise (Parsing_tools.TypingError ("Variable "^var^" not of expected type `Prop"))
       }
 
     let toform a = a

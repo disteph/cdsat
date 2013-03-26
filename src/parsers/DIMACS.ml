@@ -64,7 +64,7 @@ let guessThDecProc _ = "empty"
 let parse ts i l = 
 
   let open Theories in
-  let open Theories_tools in
+  let open Parsing_tools in
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
