@@ -1,0 +1,12 @@
+===========================
+Treating file jnh7.cnf
+---
+200 atoms and negations present in non-unit clauses
+   Kernel's report:
+Total Failure, in 1.364084 seconds
+With 3700 Successes, 951 Failures, 850 Loops detected, 2453 Notifies, 2372 Focus, 79 Cuts, and 0 Fake successes and 0 Fake failures, 18677 operations.
+   Memoisation report:
+Successes had 1029 entries, Failures had 1 entries
+   Plugin's report:
+1603 notifies, 65 Backtrack, 1457 Unit propagate, 850 Decide, 1 Memo backtrack, 25 Memo UP 
+

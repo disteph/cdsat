@@ -1,0 +1,24 @@
+===========================
+Treating file ii8c2.cnf
+---
+1880 atoms and negations present in non-unit clauses
+10 seconds
+With 2589 Successes, 0 Failures, 0 Loops detected, 1385 Notifies, 1243 Focus, 134 Cuts, and 0 Fake successes and 0 Fake failures, 23881 operations, 840 open branches
+21 seconds
+With 3417 Successes, 517 Failures, 517 Loops detected, 2140 Notifies, 1946 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 28522 operations, 1239 open branches
+31 seconds
+With 3670 Successes, 1298 Failures, 1298 Loops detected, 2921 Notifies, 2727 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 31899 operations, 1239 open branches
+41 seconds
+With 4091 Successes, 2635 Failures, 2635 Loops detected, 4258 Notifies, 4064 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 37668 operations, 1239 open branches
+51 seconds
+With 4454 Successes, 4076 Failures, 4076 Loops detected, 5699 Notifies, 5505 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 43795 operations, 1239 open branches
+61 seconds
+With 4914 Successes, 5486 Failures, 5486 Loops detected, 7109 Notifies, 6915 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 49895 operations, 1239 open branches
+   Kernel's report:
+Total Failure, in 77.364835 seconds
+With 6015 Successes, 7600 Failures, 6649 Loops detected, 8272 Notifies, 8077 Focus, 186 Cuts, and 0 Fake successes and 0 Fake failures, 55995 operations.
+   Memoisation report:
+Successes had 207 entries, Failures had 1 entries
+   Plugin's report:
+1623 notifies, 15 Backtrack, 1413 Unit propagate, 6649 Decide, 8 Memo backtrack, 5 Memo UP 
+

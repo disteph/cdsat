@@ -1,0 +1,32 @@
+===========================
+Treating file bf2670-001.cnf
+---
+15 seconds
+With 0 Successes, 0 Failures, 0 Loops detected, 0 Notifies, 0 Focus, 0 Cuts, and 0 Fake successes and 0 Fake failures, 5178 operations, 1 open branches
+2769 atoms and negations present in non-unit clauses
+30 seconds
+With 61 Successes, 0 Failures, 0 Loops detected, 87 Notifies, 84 Focus, 3 Cuts, and 0 Fake successes and 0 Fake failures, 7358 operations, 113 open branches
+43 seconds
+With 1205 Successes, 0 Failures, 0 Loops detected, 1054 Notifies, 1023 Focus, 30 Cuts, and 0 Fake successes and 0 Fake failures, 13492 operations, 437 open branches
+53 seconds
+With 2393 Successes, 0 Failures, 0 Loops detected, 2070 Notifies, 2006 Focus, 45 Cuts, and 0 Fake successes and 0 Fake failures, 19818 operations, 208 open branches
+63 seconds
+With 3309 Successes, 0 Failures, 0 Loops detected, 2946 Notifies, 2863 Focus, 59 Cuts, and 0 Fake successes and 0 Fake failures, 25127 operations, 315 open branches
+73 seconds
+With 4495 Successes, 0 Failures, 0 Loops detected, 3961 Notifies, 3837 Focus, 91 Cuts, and 0 Fake successes and 0 Fake failures, 31516 operations, 569 open branches
+84 seconds
+With 5276 Successes, 0 Failures, 0 Loops detected, 4594 Notifies, 4441 Focus, 108 Cuts, and 0 Fake successes and 0 Fake failures, 35530 operations, 515 open branches
+94 seconds
+With 5991 Successes, 0 Failures, 0 Loops detected, 5192 Notifies, 5009 Focus, 122 Cuts, and 0 Fake successes and 0 Fake failures, 39271 operations, 400 open branches
+104 seconds
+With 6647 Successes, 0 Failures, 0 Loops detected, 5766 Notifies, 5549 Focus, 140 Cuts, and 0 Fake successes and 0 Fake failures, 42792 operations, 342 open branches
+114 seconds
+With 6962 Successes, 0 Failures, 0 Loops detected, 6005 Notifies, 5775 Focus, 146 Cuts, and 0 Fake successes and 0 Fake failures, 44312 operations, 72 open branches
+   Kernel's report:
+Total Success, in 118.899431 seconds
+With 7378 Successes, 0 Failures, 0 Loops detected, 6377 Notifies, 6141 Focus, 150 Cuts, and 0 Fake successes and 0 Fake failures, 46595 operations.
+   Memoisation report:
+Successes had 1831 entries, Failures had 0 entries
+   Plugin's report:
+6377 notifies, 65 Backtrack, 6076 Unit propagate, 0 Decide, 86 Memo backtrack, 52 Memo UP 
+

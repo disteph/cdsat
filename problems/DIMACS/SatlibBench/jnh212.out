@@ -1,0 +1,14 @@
+===========================
+Treating file jnh212.cnf
+---
+200 atoms and negations present in non-unit clauses
+10 seconds
+With 23540 Successes, 0 Failures, 0 Loops detected, 11433 Notifies, 10721 Focus, 650 Cuts, and 0 Fake successes and 0 Fake failures, 92422 operations, 53 open branches
+   Kernel's report:
+Total Failure, in 11.636727 seconds
+With 26147 Successes, 901 Failures, 800 Loops detected, 13212 Notifies, 12434 Focus, 711 Cuts, and 0 Fake successes and 0 Fake failures, 104563 operations.
+   Memoisation report:
+Successes had 7432 entries, Failures had 1 entries
+   Plugin's report:
+12412 notifies, 626 Backtrack, 11008 Unit propagate, 800 Decide, 66 Memo backtrack, 401 Memo UP 
+

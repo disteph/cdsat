@@ -1,0 +1,12 @@
+===========================
+Treating file ii8b1.cnf
+---
+660 atoms and negations present in non-unit clauses
+   Kernel's report:
+Total Failure, in 4.00825 seconds
+With 895 Successes, 2399 Failures, 2062 Loops detected, 2399 Notifies, 2347 Focus, 51 Cuts, and 0 Fake successes and 0 Fake failures, 15169 operations.
+   Memoisation report:
+Successes had 0 entries, Failures had 1 entries
+   Plugin's report:
+337 notifies, 0 Backtrack, 285 Unit propagate, 2062 Decide, 0 Memo backtrack, 0 Memo UP 
+

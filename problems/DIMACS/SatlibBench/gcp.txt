@@ -1,0 +1,4 @@
+g125-17 | 2125 | 66272 |  | Fatal error: out of memory.
+g125-18 | 2250 | 70163 |  | Fatal error: out of memory.
+g250-15 | 3750 | 233965 |  | Fatal error: out of memory.
+g250-29 | 7250 | 454622 |  | Fatal error: exception Stack_overflow

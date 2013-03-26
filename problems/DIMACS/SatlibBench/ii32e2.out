@@ -1,0 +1,12 @@
+===========================
+Treating file ii32e2.cnf
+---
+534 atoms and negations present in non-unit clauses
+   Kernel's report:
+Total Failure, in 8.240514 seconds
+With 8866 Successes, 3014 Failures, 2746 Loops detected, 5604 Notifies, 5511 Focus, 90 Cuts, and 0 Fake successes and 0 Fake failures, 45155 operations.
+   Memoisation report:
+Successes had 1431 entries, Failures had 1 entries
+   Plugin's report:
+2858 notifies, 51 Backtrack, 2714 Unit propagate, 2746 Decide, 2 Memo backtrack, 20 Memo UP 
+
