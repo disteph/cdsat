@@ -30,7 +30,7 @@ Document "Kernel"
   Title:      Psyche's Kernel API
   InstallDir: API/kernel
   XOCamlBuildPath: src/kernel
-  XOCamlbuildModules: Interfaces,Formulae,Search,Memoisation,Sequents
+  XOCamlbuildModules: Interfaces,Formulae,Search,Sequents
 
 Document "Run_tools"
   Type: ocamlbuild
@@ -78,7 +78,7 @@ Document "DPLL_Pat"
   Title:      Psyche's DPLL_Pat API
   InstallDir: API/gplugins/DPLL_Pat
   XOCamlBuildPath: src/gplugins/DPLL_Pat
-  XOCamlbuildModules: MyPlugin,SetInterface,Patricia_ext,DataStructures
+  XOCamlbuildModules: MyPlugin,DataStructures
 
 Document "DPLL_WL"
   Type: ocamlbuild
@@ -86,4 +86,12 @@ Document "DPLL_WL"
   Title:      Psyche's DPLL_WL API
   InstallDir: API/gplugins/DPLL_WL
   XOCamlBuildPath: src/gplugins/DPLL_WL
-  XOCamlbuildModules: MyPlugin,SetInterface,Patricia_ext,DataStructures
+  XOCamlbuildModules: MyPlugin,DataStructures
+
+Document "Common"
+  Type: ocamlbuild
+  BuildTools: ocamlbuild,ocamldoc
+  Title:      Psyche's Common API
+  InstallDir: API/gplugins/Common
+  XOCamlBuildPath: src/gplugins/Common
+  XOCamlbuildModules: Patricia_ext,SetInterface,Utils
