@@ -14,7 +14,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
   module UF    = DataStruct.F
   module UFSet = DataStruct.FSet
 
-  let count = [|0;0;0;0;0;0;0;0;0;0|]
+  let count = [|0;0;0;0|]
 
   (* Flag decide whether we do
      - binary decide rules, using cut (decide_cut is true)
@@ -28,14 +28,12 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 				  and  type fsetType    = UFSet.t
 				  and  type asetType    = UASet.t) = struct
     include FE
+    include Common.Utils.FEext(FE)
+    module Me = Common.Utils.Memo(Atom)(FE)(UFSet)(UASet)
 
     type data       = int*UASet.t
     let initial_data= (0,UASet.empty)
     let address     = ref No
-
-    let fNone () = None
-
-    module Me = Memo(UFSet)(UASet)
 
     (* We record a stack of clauses that will definitely do a Unit Propagate *)
     let stack   = ref []
@@ -47,8 +45,8 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		      string_of_int count.(1)^" Backtrack, "^
 		      string_of_int count.(2)^" Unit propagate, "^
 		      string_of_int count.(3)^" Decide, "^
-		      string_of_int count.(4)^" Memo backtrack, "^
-		      string_of_int count.(5)^" Memo UP "); 
+		      string_of_int (Dump.Plugin.read_count 7)^" Memo backtrack, "^
+		      string_of_int (Dump.Plugin.read_count 8)^" Memo UP "); 
       print_endline ""
 
 
@@ -212,9 +210,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		       address:=Yes(olda);
 		       count.(1)<-count.(1)+1;
 		       let now = count.(0) in
-		       let myaccept = function 
-			 | Local(Success _) when count.(0)==now ->address:=No;Accept
-			 | _-> failwith "Expected Success"
+		       let myaccept a = 
+                         if (isSuccess a&& count.(0)==now)
+                         then (address:=No;Accept)
+                         else failwith "Expected Success"
 		       in
 			 stack:=[];
 			 (Some(Focus(a,myaccept,fun ()->failwith("Expected success"))),tset')
@@ -234,26 +233,14 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       else
 	None
 	  
-    let clause_pick h l () =
+    let clause_pick h l =
       if not(!stack=[]) then failwith("pas []");
       count.(3)<-count.(3)+1;
       match UFSet.rchoose h l with
-	| A a       -> if !Flags.debug>1 then print_endline("Random focus on "^Form.toString a);
-	    Some(Focus(a,accept,fNone))
+	| A a       -> if !Flags.debug>1 then print_endline("Random focus on "^Form.toString a); a
 	| _         -> let a = UFSet.choose l in
-	    if !Flags.debug>1 then print_endline("Random problematic focus on "^Form.toString a);
-	    Some(Focus(a,accept,fNone))
+	    if !Flags.debug>1 then print_endline("Random problematic focus on "^Form.toString a); a
 
-    let cut_series alternative (a,f)  () =
-      if UASet.is_empty a then
-	if UFSet.is_empty f then
-	  alternative()
-	else let (toCut,f')=UFSet.next f in
-	  (count.(6)<-count.(6)+1;
-	   Some(Cut(7,toCut,accept,accept,fNone)))
-      else let (toCut,a')=UASet.next a in
-	(count.(5)<-count.(5)+1;
-	 Some(Cut(7,UF.build (Lit toCut),accept,accept,fNone)))
 
     let rec findaction atms alternative =
       match !stack with
@@ -265,10 +252,6 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	| (f,n,_)::h ->
 	    stack:=h;
 	    findaction atms alternative
-
-    let model = function
-      | Seq.EntF(atomN, g, formP, formPSaved, polar)      -> atomN
-      | Seq.EntUF(atomN, delta, formP, formPSaved, polar) -> atomN
 
     let rec solve input = (*print_time report;*)
       match input with
@@ -287,39 +270,37 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	*)
 
 	| Fake(Notify(seq,inloop,machine,(olda,tset)))
-	  ->(match !address with
-	       | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp)
-	       | Yes(exp) -> failwith("Yes not expected")
-	       | _ -> address:=No);
-	    if inloop then solve(machine(true,(count.(0),tset),(fun _ -> Exit Accept),fNone))
-	    else
-	      (
-		if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
-		count.(0)<-count.(0)+1;
-		let tsetnew = 
-		  (if !is_init then
-		     let (atms,cset)= Seq.simplify seq in 
-		       is_init:=false; initialise atms cset
-		   else tset) in
-		let atms = model seq in
-		let (action,tset') = update atms (olda,tsetnew) in
-		let alternative() = Some(Search(Me.search4success,
-						(function Local (Success _) -> count.(4)<-count.(4)+1;Accept | _-> Accept),
-						F (cut_series (decide atms tset'))))
-		in
-		  (if !Flags.debug >1 then 
-		     (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
-			if u'>0 then print_endline(string_of_int u')
-			else if u>0 then report()));
-		  solve (machine (true,
-				  (count.(0),tset'),
-				  (fun _ -> Mem(Me.tomem,Accept)),
-				  match action with  
-				    | Some action -> (fun()->Some action)
-				    | None        -> findaction atms alternative
-				 )
-			)
+	  ->(* (match !address with *)
+	    (*    | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
+	    (*    | Yes(exp) -> failwith("Yes not expected") *)
+	  (*    | _ -> address:=No); *)
+	  if inloop then solve(machine(true,(count.(0),tset),accept,fNone))
+	  else
+	    (
+	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
+	      count.(0)<-count.(0)+1;
+	      let tsetnew = 
+		(if !is_init then
+		    let (atms,cset)= Seq.simplify seq in 
+		    is_init:=false; initialise atms cset
+		 else tset) in
+	      let atms = model seq in
+	      let (action,tset') = update atms (olda,tsetnew) in
+	      let alternative = Me.search4successNact seq (decide atms tset')
+	      in
+	      (if !Flags.debug >1 then 
+		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
+		   if u'>0 then print_endline(string_of_int u')
+		   else if u>0 then report()));
+	      solve (machine (true,
+			      (count.(0),tset'),
+			      Me.memAccept,
+			      match action with  
+			      | Some action as saction -> (fun()->saction)
+			      | None        -> findaction atms alternative
 	      )
+	      )
+	    )
 		
 	(* When we are asked for focus: *)
 
@@ -327,12 +308,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	   we restore the formulae on which we already placed focus *)
 
 	| Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
-	    ->  solve (machine(Restore fNone))
+	    -> solve(machine(Restore fNone))
 
-	| Fake(AskFocus(_,l,false,_,machine,_)) when UFSet.is_empty l
-	    -> solve (machine(Search(Me.search4failure,
-				     (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
-				     A(fun()->Some(ConsistencyCheck(accept,fNone))))))
+	| Fake(AskFocus(seq,l,false,_,machine,_)) when UFSet.is_empty l
+	    -> solve(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -348,9 +327,11 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
 	| Fake(AskFocus(seq,l,_,_,machine,(olda,tset)))
 	  -> let atms = model seq in
-	    solve (machine(Search(Me.search4failure,
-				  (function Local (Fail _) -> count.(9)<-count.(9)+1;Accept|_->Accept),
-				  A(findaction atms (clause_pick atms l)))))
+             let alternative()= match findaction atms fNone () with
+               | Some action -> action
+               | None -> Focus(clause_pick atms l,accept,fNone)
+             in
+	     solve(machine(Me.search4failureNact seq alternative))
 
 
 	(* When we are asked a side, we always go for the left first *)
@@ -366,7 +347,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
 	| Local ans                    -> report(); stack := []; is_init:=true; address:=No;
-	    H.clear watched; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();
+	    H.clear watched; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
 

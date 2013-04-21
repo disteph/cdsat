@@ -1,5 +1,3 @@
-open Lib.Sums
-
 module type CollectImplem = sig
   type e
   type t
@@ -9,39 +7,13 @@ module type CollectImplem = sig
   val add: e -> t -> t
   val union: t -> t -> t
   val inter: t -> t -> t
+  val subset: t -> t -> bool
   val remove: e -> t -> t
   val next: t -> e*t
   val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val toString: t -> string
   val hash: t -> int
   val equal: t->t->bool
-end
-
-module type CollectImplemExt = sig
-  include CollectImplem
-
-    (* Comparison of collections *)
-  val compare    : t->t->int
-
-    (* Comparison of elements *)
-  val compareE   : e->e->int
-
-    (* sub false k1 k2 (Some limit)
-       computes whether k1 is a subset of k2
-       up to the element limit (excluded);
-       replace (Some limit) with None if you want no limit.
-       It answers Yes() or No.
-
-       sub true... refines the answer No into the answer Almost(a)
-       if k1 is almost a subset of k2, were it not for element a
-       (necessarily smaller than the limit if there is one)
-    *)
-  val sub       : bool->t->t->e option->(unit,e) almost
-
-    (* Computes the smallest element that is in one set 
-       and not in the other *)
-  val first_diff : t->t->(e option*bool)
-
 end
 
 module type AtomType = sig
@@ -186,16 +158,9 @@ with two extra functions for prettyprinting and for negation *)
     val conclusion : t -> Seq.t
   end
 
-  (* Three abstract types:
-     t is the type of answers that a plugin is trying to produce
-     tomem will ever be inhabited by a function that tells the
-     proof-search how to store a result
-     tosearch will ever be inhabited by a function that tells the
-     proof-search to remember a result instead of working on it again
-  *)
+  (* The abstract type of answers, t, that a plugin is trying to
+  produce *) 
   type t
-  type tomem
-  type tosearch
 
   (* final is the plugin-readable version of type t:
      a final answer is either
@@ -210,7 +175,9 @@ with two extra functions for prettyprinting and for negation *)
   *)
 
   type final = Success of PT.t | Fail of Seq.t
-  val reveal: t->final
+  val reveal   : t->final
+  val sequent  : t->Seq.t
+  val toString : t->string
 
   type ('a,'b) local =  Local of 'a | Fake  of 'b
     
@@ -269,25 +236,11 @@ with two extra functions for prettyprinting and for negation *)
      - when you come back to the current goal, do not ask me for my
        next instruction but just do l (optional argument)
 
-     5) Search(tosearch,inter_fun,A l)
-     - search in your database in case we already have an exact answer,
-       using function tosearch
-     - in case there is an exact answer, apply inter_fun to it
-     to see whether I accept that answer or not or I prefer to do
-     another action
-     - if no exact match is found, then do not ask me for my
-       next instruction but just do l (optional argument)
+     5) Propose(ans)
+     - proposes an answer to the kernel (only works if the answer
+       applies to current goal)
 
-     6) Search(tosearch,inter_fun,F f)
-     - search in your database in case we already have an answer, even
-       approximate, using function tosearch
-     - in case there is an exact answer, apply inter_fun to it
-     to see whether I accept that answer or not or I prefer to do
-     another action
-     - otherwise apply f to the potential approximate answers that
-       have been found and perform the resulting action, if any
-
-     7) Restore(l)
+     6) Restore(l)
      - restore formPSaved (the formulae on which focus has already
        been placed) into the set of positive formulae on which focus
        can be placed
@@ -301,19 +254,15 @@ with two extra functions for prettyprinting and for negation *)
     | Polarise   of litType*receive
     | DePolarise of litType*receive
     | Get      of bool*bool*alt_action
-    | Search   of tosearch*receive*(alt_action,asetType*fsetType->alt_action)sum
+    | Propose  of t
     | Restore  of alt_action
   and sideaction = bool
   and reception = 
     | Accept
     | Refuse
     | Action of focusaction
-  and receive = (final,bool*bool) local -> reception
+  and receive = (t,bool*bool) local -> reception
   and alt_action = unit->(focusaction option)
-
-  (* A function to systematically accept answers *)
-
-  val accept:receive
 
   (* 'a notified = the input that plugin must provide
      upon reception of Notify signal (a new node has been reached)
@@ -326,19 +275,12 @@ with two extra functions for prettyprinting and for negation *)
      data: new data with which that node will be labelled
 
      exit_function: tells the kernel what to do when it is about to
-     leave that node with a certain answer, namely
-     - just accept result, refuse it, or do alternative action
-     (Exit(Accept/Refuse/l))
-     - or memoise it with function f before doing one of the above
-       (Mem(f,Accept/Refuse/l))
+     leave that node with a certain answer
 
      l: next action to do for this newly created node is l (optional)
   *)
 
-  type newnode_exit = 
-    | Exit   of reception
-    | Mem    of tomem*reception
-  type 'a notified = bool*'a*((final,bool*bool) local -> newnode_exit)*alt_action
+  type 'a notified = bool*'a*((t,bool*bool) local->reception)*alt_action
 
 
   (* Output of a call to the kernel:
@@ -404,29 +346,5 @@ with two extra functions for prettyprinting and for negation *)
     | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
 
-  val toString : t -> string
-
-  (* API for Memoisation of results.
-     
-     As seen above, plugin can instruct kernel to interact with a
-     memoisation table, by providing the kernel with the appropriate
-     function to run.
-
-     Provided that plugin gives a bit more information about its data
-     structures, module Memo provides 4 memoisation handling
-     functions, and one function to clear the memoisation table
-  *)
-
-  module Memo
-    (FSetExt: CollectImplemExt with type e = formulaType and type t=fsetType)
-    (ASetExt: CollectImplemExt with type e = litType     and type t=asetType)
-    : sig
-      val tomem          : tomem
-      val search4success : tosearch
-      val search4failure : tosearch
-      val search4both    : tosearch
-      val report         : unit->unit
-      val clear          : unit->unit
-    end
 
 end

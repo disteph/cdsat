@@ -1,5 +1,34 @@
-(* Interface for the output of the set constructions in myPatAset *)
+(* Interface for the input of the Memoisation module and output of
+myPatAset *)
+
 open Lib.Sums
+
+module type CollectImplemExt = sig
+  include Kernel.Interfaces.CollectImplem
+
+    (* Comparison of collections *)
+  val compare    : t->t->int
+
+    (* Comparison of elements *)
+  val compareE   : e->e->int
+
+    (* sub false k1 k2 (Some limit)
+       computes whether k1 is a subset of k2
+       up to the element limit (excluded);
+       replace (Some limit) with None if you want no limit.
+       It answers Yes() or No.
+
+       sub true... refines the answer No into the answer Almost(a)
+       if k1 is almost a subset of k2, were it not for element a
+       (necessarily smaller than the limit if there is one)
+    *)
+  val sub       : bool->t->t->e option->(unit,e) almost
+
+    (* Computes the smallest element that is in one set 
+       and not in the other *)
+  val first_diff : t->t->(e option*bool)
+
+end
 
 module type MyPatCollect =
 sig
@@ -16,6 +45,7 @@ sig
   val empty : t
   val add   : e -> t -> t
   val union : t -> t -> t
+  val subset : t -> t -> bool
   val inter : t -> t -> t
   val remove : e -> t -> t
   val hash : t -> int

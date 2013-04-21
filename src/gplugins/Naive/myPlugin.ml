@@ -52,12 +52,15 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 | y::l -> y::(remove x l)
        let next = function
 	 | (a::l) -> (a,l)
-	 | _ -> failwith("No more item to pick")
+	 | [] -> failwith("No more item to pick")
        let rec fold f l0 init= match l0 with
 	 | (a::l) -> fold f l (f a init)
-	 | _ -> init
+	 | [] -> init
+       let subset gamma1 gamma2 =
+         fold (fun a b ->b && is_in a gamma2) gamma1 true
+
        let rec toString = function
-	   [] -> ""
+	 | [] -> ""
 	 | f::[] -> MyPType.toString(f)
 	 | f::l -> MyPType.toString(f)^", "^(toString l)
        let hash = Hashtbl.hash
@@ -80,6 +83,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 				  and  type asetType    = UASet.t)
     = struct
       include FE
+      include Common.Utils.FEext(FE)
 	(* The strategy provides the following function solve:
 	   In case the temporary answers happens to be a final
 	   answer, then the strategy returns that final answer.
@@ -94,10 +98,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       let initial_data=()
       let rec solve = function
 	| Local ans                              -> ans
-	| Fake(Notify  (_,_,machine,_))          -> solve (machine (true,(),(fun _->Exit(Accept)),fun _->None))
-	| Fake(AskFocus(_,[],true,_,machine,_))  -> solve (machine (Restore (fun _->None)))
-	| Fake(AskFocus(_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fun _->None)))
-	| Fake(AskFocus(_,a::l,_,_,machine,_))   -> solve (machine (Focus(a, accept,fun _->None)))
+	| Fake(Notify  (_,_,machine,_))          -> solve (machine (true,(),accept,fNone))
+	| Fake(AskFocus(_,[],true,_,machine,_))  -> solve (machine (Restore fNone))
+	| Fake(AskFocus(_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
+	| Fake(AskFocus(_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
 	| Fake(AskSide (_,machine,_))            -> solve (machine true)
 	| Fake(Stop(b1,b2, machine))             -> solve (machine ())
 	    

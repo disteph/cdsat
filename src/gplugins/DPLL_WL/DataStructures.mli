@@ -4,6 +4,7 @@ open Kernel
 open Interfaces
 open Sums
 open Patricia
+open Common.SetInterface
 
 module Generate(Atom:AtomType) : sig
 

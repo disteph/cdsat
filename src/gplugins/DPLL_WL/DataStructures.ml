@@ -11,7 +11,7 @@ open Interfaces
 open Formulae
 open Sums
 open SetConstructions
-open SetInterface
+open Common.SetInterface
 
 
 module Generate(Atom:AtomType) = struct
@@ -21,7 +21,7 @@ module Generate(Atom:AtomType) = struct
 
   module ASet = struct
 
-    module AtSet = Patricia_ext.MyPatriciaCollectImplem(Atom)
+    module AtSet = Common.Patricia_ext.MyPatriciaCollectImplem(Atom)
 
     type e              = Atom.t
     type t              = AtSet.t*(e option)
@@ -31,6 +31,7 @@ module Generate(Atom:AtomType) = struct
     let is_empty(a,_)   = AtSet.is_empty a
     let union(a,_)(a',_)= (AtSet.union a a',None)
     let inter(a,_)(a',_)= (AtSet.inter a a',None)
+    let subset(a,_)(a',_)= AtSet.subset a a'
     let is_in l (t,_)   = AtSet.is_in l t
     let add l (h,_)     = (AtSet.add l h,Some l)
     let remove l (h,_)  = (AtSet.remove l h, None)
@@ -207,7 +208,7 @@ module Generate(Atom:AtomType) = struct
 	(* Some(cstring,bstring) *)
     end
 
-    module SS = Patricia_ext.MyPat(UT)
+    module SS = Common.Patricia_ext.MyPat(UT)
     include SS
 
     (* let add f u = add f u *)

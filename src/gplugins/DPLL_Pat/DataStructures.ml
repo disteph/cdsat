@@ -11,7 +11,7 @@ open Formulae
 open Interfaces
 open Sums
 open SetConstructions
-open SetInterface
+open Common.SetInterface
 
 
 module Generate(Atom:AtomType) = struct
@@ -22,7 +22,7 @@ module Generate(Atom:AtomType) = struct
 
   module ASet = struct
 
-    module AtSet = Patricia_ext.MyPatriciaCollectImplem(Atom)
+    module AtSet = Common.Patricia_ext.MyPatriciaCollectImplem(Atom)
     include AtSet
 
     let id          = AtSet.id
@@ -133,7 +133,7 @@ module Generate(Atom:AtomType) = struct
       let tString = None (*Some(cstring,bstring)*)
     end
 
-    module SS = Patricia_ext.MyPat(UT)
+    module SS = Common.Patricia_ext.MyPat(UT)
     include SS
 
     let sous = UT.sub (UT1.sub (ASet.sub)) (fun _ _ _ _->Yes()) true
