@@ -19,14 +19,14 @@ module Generate(Atom:AtomType) : sig
 
   module F : sig
     include FormulaImplem with type lit=Atom.t
-    val aset   : t->ASet.t option
+    val aset   : t->ASet.t
+    val fset   : t->bool
     val compare: t->t-> int
     val clear  : unit->unit
   end
 
   module FSet : sig
-    include (CollectImplemExt with type e=F.t)
-    module UT:Intern with type keys=e
+    include CollectImplemExt with type e=F.t
     val iter    : (F.t -> unit) -> t -> unit
     val choose  : t -> e
     val schoose : ASet.t -> t -> (F.t,F.t option)sum

@@ -64,6 +64,29 @@ module type PrintableFormulaType = sig
   val orP    : t * t -> t
 end
 
+module type ProofType = sig
+  type t
+  type seq
+  val zero : seq->t
+  val one  : seq->t->t
+  val two  : seq->t->t->t
+  val toString: t->string
+end
+
+type ('a,'aset,'f,'fset) datastruct = {
+  aset:(module CollectImplem with type e = 'a and type t='aset);
+  f:   (module FormulaImplem with type lit = 'a);
+  fset:(module CollectImplem with type e = 'f and type t='fset);
+}
+
+module type DataStruct = sig
+  type a
+  type aset
+  type f
+  type fset
+  val datastruct: (a,aset,f,fset) datastruct
+end
+
 module type DecProc = sig
 
   module Atom: AtomType
@@ -147,16 +170,8 @@ with two extra functions for prettyprinting and for negation *)
    toString does pretty-printing
 *)
 
-  module PT : sig
-    type ('a,'b) pt = 
-      | Axiom  of 'b 
-      | OnePre of 'b*'a 
-      | TwoPre of 'b*'a*'a
-    type t
-    val reveal : t -> (t, Seq.t) pt
-    val toString : t -> string
-    val conclusion : t -> Seq.t
-  end
+  module PT : ProofType with type seq=Seq.t
+  module Proof : ProofType with type seq=Seq.t
 
   (* The abstract type of answers, t, that a plugin is trying to
   produce *) 
@@ -174,7 +189,7 @@ with two extra functions for prettyprinting and for negation *)
        embedded into that type by Fake
   *)
 
-  type final = Success of PT.t | Fail of Seq.t
+  type final = Success of Seq.t*Proof.t | Fail of Seq.t
   val reveal   : t->final
   val sequent  : t->Seq.t
   val toString : t->string

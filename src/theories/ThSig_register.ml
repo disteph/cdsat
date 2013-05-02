@@ -55,7 +55,7 @@ module LRASig = struct
   | `Plus | `Minus | `Times | `Divide | `Op | `ITERat]
 
   let forParser =
-    {names   = ["lra";"qflra"];
+    {names   = ["lra";"qflra"; "QF_LRA"];
      prop    = `Prop }
 
   let forParsing =

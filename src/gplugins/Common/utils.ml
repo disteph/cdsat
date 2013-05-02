@@ -102,7 +102,7 @@ module Memo
 
     let tomem ans = 
       let (table,algo,b) = match reveal ans with
-	| Success(pt)-> (tableS,find_sub false,true)
+	| Success(s,_)-> (tableS,find_sub false,true)
 	| Fail(s)    -> (tableF,find_sup false,false)
       in
       let s = sequent ans in

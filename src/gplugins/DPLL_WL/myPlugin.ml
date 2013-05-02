@@ -96,9 +96,9 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  if not(UASet.is_in lit set) then failwith("Found");
 	  lit::(pickaux (UASet.remove lit set) setatms' (n-1))
 
-    let picklit formula atms n = match UF.aset formula with
-      | None   -> failwith("Trying to pick watched literals from something that's not a clause")
-      | Some l -> pickaux l (UASet.diff l atms) n
+    let picklit formula atms n = 
+      let l = UF.aset formula in
+      pickaux l (UASet.diff l atms) n
 
     let addlit lit formula lit2 = 
       if not (H.mem watched lit) then H.add watched lit CSet.empty;
@@ -113,13 +113,11 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  (fun formula -> 
 	     (
 	       (match picklit formula atms 2 with
-		  | lit1::lit2::_ -> (addlit lit1 formula lit2 ;
-				      addlit lit2 formula lit1 )
+		  | lit1::lit2::_ when not (UF.fset formula)-> (addlit lit1 formula lit2 ;
+				                                addlit lit2 formula lit1 )
 		  | _ -> ());
 	       if decide_cut then
-		 match UF.aset formula with
-		   | None   -> failwith("Trying to get literals from something that's not a clause")
-		   | Some l -> alllits := UASet.union !alllits l
+                 alllits := UASet.union !alllits (UF.aset formula)
 	     )
 	  )
 	  cset;
@@ -140,45 +138,41 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       let rec aux t = match CSet.reveal t with
 	| CSet.Empty           -> (None,t)
 	| CSet.Leaf(j,x)       ->
-	    (match UF.aset j with
-	       | None   -> failwith("Should find a set of atoms")
-	       | Some l ->
-		   (match UASet.sub true l atms None with
-		      | Yes _    ->
+	  (match UASet.sub true (UF.aset j) atms None with
+	  | Yes _   ->
 			  (* Clause j is allowing backtrack;
 			     we stop investigating the table of watched literals and return j *)
-			  (Some j,t)
-		      | Almost n when not (UASet.is_in (Atom.negation n) atms) ->
+	    (Some j,t)
+	  | Almost n when not (UASet.is_in (Atom.negation n) atms) ->
 			  (* Clause j is allowing Unit Propagation;
 			     we stack it, and leave the table of watched literals unchanged *)
-			  stack:= (j,n,false)::!stack;
-			  (None,t)
-		      | Almost n -> (None,t)
-		      | _ ->
-			  (* Clause j allows neither backtrack nor unit propagate;
-			     we need to change the watched literal lit *)
-			  (* Pick a new literal to be watched in l *)
-			  let tobcf = UASet.remove x l in
-			    (match pickaux tobcf (UASet.diff tobcf atms) 1 with
-			       | [] -> failwith("Disgrace")
-			       | newlit::_ ->
-				   if (x=newlit) then failwith("x=newlit");
-				   if (lit=newlit) then failwith("lit=newlit");
-				   if (x=lit) then failwith("x=lit");
-				   (* Updating entry of other watched literal x:
-				      lit -> newlit *)
-				   if not (H.mem watched x) then failwith("fad");
-				   (let watchingx = H.find watched x in
-				      H.replace watched x (CSet.add j (fun _ -> newlit) (CSet.remove j watchingx)));
-				   (* Updating entry of new literal newlit *)
-				   if not (H.mem watched newlit) then H.add watched newlit CSet.empty;
-				   let watchingnewlit = H.find watched newlit in
-				     H.replace watched newlit (CSet.add j (fun _ -> x) watchingnewlit);
-				     (* Final output: no backtrack clause, clause j removed from entry of lit *)
-				     (None,CSet.empty)
-			    )
-		   )
+	    stack:= (j,n,false)::!stack;
+	    (None,t)
+	  | Almost n -> (None,t)
+	  | _ ->
+	    (* Clause j allows neither backtrack nor unit propagate;
+	       we need to change the watched literal lit *)
+	    (* Pick a new literal to be watched in l *)
+	    let tobcf = UASet.remove x (UF.aset j) in
+	    (match pickaux tobcf (UASet.diff tobcf atms) 1 with
+	    | [] -> failwith("Disgrace")
+	    | newlit::_ ->
+	      (* if (x=newlit)   then failwith("x=newlit"); *)
+	      (* if (lit=newlit) then failwith("lit=newlit"); *)
+	      (* if (x=lit)      then failwith("x=lit"); *)
+	      (* Updating entry of other watched literal x:
+		 lit -> newlit *)
+	      if not (H.mem watched x) then failwith("fad");
+	      (let watchingx = H.find watched x in
+	       H.replace watched x (CSet.add j (fun _ -> newlit) (CSet.remove j watchingx)));
+	      (* Updating entry of new literal newlit *)
+	      if not (H.mem watched newlit) then H.add watched newlit CSet.empty;
+	      let watchingnewlit = H.find watched newlit in
+	      H.replace watched newlit (CSet.add j (fun _ -> x) watchingnewlit);
+	      (* Final output: no backtrack clause, clause j removed from entry of lit *)
+	      (None,CSet.empty)
 	    )
+	  )  
 	| CSet.Branch(p,m,l,r) -> 
 	    (match aux r with
 	       | (None,r')   -> let (v,l') = aux l in (v,CSet.union (fun a _ -> a) l' r')

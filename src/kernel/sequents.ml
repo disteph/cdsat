@@ -32,24 +32,24 @@ module FrontEnd
       | FalseP -> Pos
       | FalseN -> Neg
       | AndN(f1,f2) -> Neg
-      | OrN(f1,f2) -> Neg
+      | OrN(f1,f2)  -> Neg
       | AndP(f1,f2) -> Pos
-      | OrP(f1,f2) -> Pos
+      | OrP(f1,f2)  -> Pos
 
 
     module Seq = struct
       (* Type of sequents *)
       type t = 
-      |	EntF  of ASet.t*F.t   *FSet.t*FSet.t*polmap
-      | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*polmap
+      |	EntF  of asetType*formulaType*fsetType*fsetType*polmap
+      | EntUF of asetType*fsetType*fsetType*fsetType*polmap
 
       let interesting = function
 	| EntF(atomN, g, formP, formPSaved, polar)      -> (atomN, formP::formPSaved::[])
 	| EntUF(atomN, delta, formP, formPSaved, polar) -> (atomN, formP::formPSaved::[])
 
-    let simplify s = match interesting s with
-      | (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
-      | _ -> failwith("Not enough items in interesting")
+      let simplify s = match interesting s with
+        | (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
+        | _ -> failwith("Not enough items in interesting")
 
       let subseq s1 s2 =
         match s1,s2 with
@@ -74,7 +74,7 @@ module FrontEnd
 
     end
 
-    module PT = struct
+    module PT:(ProofType with type seq = Seq.t) = struct
       type ('a,'b) pt = 
       | Axiom of 'b 
       | OnePre of 'b*'a 
@@ -82,13 +82,19 @@ module FrontEnd
 
       (* Type of proof-trees *)
       type t = Build of (t,Seq.t) pt
+      type seq = Seq.t
 
       let reveal (Build a) = a
       let build a = Build a
-      let conclusion p = match reveal p with
-	| Axiom(s) -> s
-	| OnePre(s,b) -> s
-	| TwoPre(s,b,c) -> s
+
+      let zero seq = build(Axiom seq)
+      let one seq pt = build(OnePre(seq,pt))
+      let two seq pt1 pt2 = build(TwoPre(seq,pt1,pt2))
+
+      (* let conclusion p = match reveal p with *)
+      (*   | Axiom(s) -> s *)
+      (*   | OnePre(s,b) -> s *)
+      (*   | TwoPre(s,b,c) -> s *)
 
       (* Displays prooftree *)
       let rec toString pt = match reveal pt with
@@ -97,15 +103,24 @@ module FrontEnd
 	| Axiom (a) -> "\\infer {"^(Seq.toString a)^"}{}"         
     end
 
+    module Proof:(ProofType with type seq = Seq.t) = struct
+      type t   = unit
+      type seq = Seq.t
+      let zero seq = ()
+      let one seq pt = ()
+      let two seq pt1 pt2 = ()
+      let toString () = ""
+    end
+
     (* Type of final answers, known in interface FrontEndType. *)
-    type final = Success of PT.t | Fail of Seq.t
+    type final = Success of Seq.t*Proof.t | Fail of Seq.t
 
     (* Type of final answers, NOT known in interface FrontEndType. *)		       
     type t = final
     let reveal ans = ans
     let sequent = function 
-      | Success pt -> PT.conclusion pt
-      | Fail s     -> s
+      | Success(s,_) -> s
+      | Fail s       -> s
 
     (* Generator of local answer types, either definitive answer or a fake answer *)
     type ('a,'b) local = Local of 'a | Fake  of 'b
@@ -117,8 +132,8 @@ module FrontEnd
     *)
 
     type focusaction = 
-    | Focus    of F.t*receive*alt_action
-    | Cut      of int*F.t*receive*receive*alt_action
+    | Focus    of formulaType*receive*alt_action
+    | Cut      of int*formulaType*receive*receive*alt_action
     | ConsistencyCheck of receive*alt_action
     | Polarise   of litType*receive
     | DePolarise of litType*receive
@@ -146,7 +161,7 @@ module FrontEnd
     type 'a output = (t,'a fakeoutput) local
     and 'a fakeoutput = 
     | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
-    | AskFocus of Seq.t*FSet.t*bool*bool*(focusaction -> 'a output)*'a
+    | AskFocus of Seq.t*fsetType*bool*bool*(focusaction -> 'a output)*'a
     | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
 
@@ -163,7 +178,7 @@ module FrontEnd
 
     (* Displays answer *)
     let toString a = match a with
-      | Success(p) -> "$$"^(PT.toString p)^"$$";
+      | Success(s,p) -> "$$"^(Seq.toString s)^"$$";
       | Fail(s) -> "\\textsf {FAIL} \\\\$$"^(Seq.toString s)^"$$"
 
   end

@@ -32,23 +32,22 @@ module MyPat(UT:sig
       let treeHCons    = !Flags.memo
     end
 
-    module SS = PATSet(D)(UT)
-    include SS
+    include PATSet(D)(UT)
 
-    type e       = UT.keys
+    type e         = UT.keys
     type common    = UT.common
     type branching = UT.branching
 
-    let is_in    = SS.mem
-    let toString = SS.toString UT.tString UT.toString
-    let next  t1 = let e1 = SS.choose t1 in (e1, SS.remove e1 t1) 
+    let is_in      = mem
+    let toString   = toString UT.tString UT.toString
+    let next  t1   = let e1 = choose t1 in (e1, remove e1 t1) 
     let compareE   = UT.compare
-    let first_diff = SS.first_diff SS.info
+    let first_diff = first_diff info
     let sub alm s1 s2 limit =
-      let locprune t = match limit,SS.info t with
-	| Some b,Some x when not (UT.compare x b<0) -> SS.Empty
-	| _                                         -> SS.reveal t
-      in SS.sub locprune alm s1 s2
+      let locprune t = match limit,info t with
+	| Some b,Some x when not (UT.compare x b<0) -> Empty
+	| _                                         -> reveal t
+      in sub locprune alm s1 s2
 
   end
 

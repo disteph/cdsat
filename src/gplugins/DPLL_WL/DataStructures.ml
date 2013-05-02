@@ -40,14 +40,10 @@ module Generate(Atom:AtomType) = struct
 	(l, (t2,None))
     let fold f (a,_)    = AtSet.fold f a
     let toString (h,_)  = AtSet.toString h 
-      (*    let toString (h,_)= SS.toString (Some((fun i->string_of_int i^"|"),(fun i->string_of_int i^"|"))) (fun (k,l)->("F"^string_of_int(AtSet.SS.id l)^AtSet.toString l)) h *)
-    let diff (t1,_)(t2,_) = (AtSet.diff t1 t2,None)
+    let diff (t1,_)(t2,_)     = (AtSet.diff t1 t2,None)
     let compare(a,_)(a',_)    = AtSet.compare a a'
     let compareE              = AtSet.compareE
     let first_diff(a,_)(a',_) = AtSet.first_diff a a'
-    (* let first_diff(a,_)(a',_) = match AtSet.first_diff a a' with  *)
-    (*   |(Some c,g) -> print_endline("first_diff "^AtSet.toString a^"   "^AtSet.toString a'^"   "^Atom.toString c);(Some c,g)  *)
-    (*   |(c,g)->(c,g)  *)
     let sub alm (s1,f) (s2,g) limit = AtSet.sub alm s1 s2 limit
     let choose (t,_)    = AtSet.choose t
     let clear ()        = AtSet.clear()
@@ -66,10 +62,11 @@ module Generate(Atom:AtomType) = struct
 
     type lit = Atom.t
 
-    type tt = {reveal: (tt,Atom.t) form; id:int; aset: ASet.t option}
+    type tt = {reveal: (tt,Atom.t) form; id:int; aset: ASet.t; fset: bool}
 
     let id f   = f.id
     let aset f = f.aset
+    let fset f = f.fset
       
     (* HashedType for formulae *)
 
@@ -83,8 +80,7 @@ module Generate(Atom:AtomType) = struct
 	     | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
 	     | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
 	     | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
-	     | a, b when a=b              -> true
-	     | _                          -> false 
+	     | a, b                       -> a=b
 	 let hash t1 =
 	   match t1.reveal with
 	     | Lit l        -> Atom.id l
@@ -103,47 +99,26 @@ module Generate(Atom:AtomType) = struct
     module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
 
     let aset_build = function
-      | Lit l        -> Some(ASet.add l ASet.empty)
-      | AndP (x1,x2) -> (match x1.aset, x2.aset with
-			   | Some(a),Some(b) -> Some(ASet.union a b)
-			       (* | Some a,None -> Some a *)
-			       (* | None,Some b -> Some b *)
-			   (* | _,_   -> None) *)
-			   | _,_   -> failwith("None found in aset_build"))
-      | _            -> Some(ASet.empty)
-      (* | _            -> None *)
+      | Lit l        -> ASet.add l ASet.empty
+      | AndP (x1,x2) -> ASet.union x1.aset x2.aset
+      | _            -> ASet.empty
+
+    let fset_build = function
+      | Lit l        -> false
+      | AndP (x1,x2) -> x1.fset||x2.fset
+      | _            -> true
 
     (* Constructing a formula with HConsing techniques *)
 
     let table = H.create 5003
     let funique =ref 0
+    let build a =
+      let f = {reveal =  a; id = !funique; aset = aset_build a; fset = fset_build a} in
+      try H.find table f
+      with Not_found -> incr funique; H.add table f f; f
+    let reveal f = f.reveal
 
-    module FI = struct
-      type t = tt
-      let build a =
-	let f = {reveal =  a; id = !funique; aset = aset_build a} in
-	  try H.find table f
-	  with Not_found -> incr funique; H.add table f f; f
-
-      let reveal f = f.reveal
-    end
-
-    let build  = FI.build
-    let reveal = FI.reveal
-
-    let compare t1 t2 = 
-      let g = Pervasives.compare t1.id t2.id in
-	(*     print_endline("Comparing "^string_of_int t1.id^" "^string_of_int t2.id^" "^string_of_int g^" "^(
-	       match t1.aset,t2.aset with
-	       | Some a,Some b -> ASet.toString a^" "^ASet.toString b
-	       | Some a,None -> ASet.toString a^" second no aset"
-	       | None,Some a -> "First no aset "^ASet.toString a
-	       | None,None -> "No asets"
-	       )
-	       );*)
-	g
-	  
-	  
+    let compare t1 t2 = Pervasives.compare t1.id t2.id	  
     let clear() = H.clear table
   end
 
@@ -156,46 +131,21 @@ module Generate(Atom:AtomType) = struct
   module FSet = struct
 
     module UF   = PrintableFormula(Atom)(F)
-    module UT0  = TypesFromCollect(struct
-				     include ASet 
-				     type keys=t 
-				     let tag s= s 
-				   end)
-    module UT1  = Lift(struct
-			 include UT0 
-			 type newkeys=F.t 
-			 let project = F.aset
-		       end)
-    module UT2  = struct
-      include UT1 
-      let pequals = UT1.pequals UT0.pequals 
-    end
+    module UT4  = TypesFromCollect(
+      struct
+	include ASet 
+        type keys=F.t
+	let tag = F.aset
+      end)
+
     module UT3  = TypesFromHConsed(struct
 				     type t = F.t 
 				     let id = F.id 
 				   end)
 
     module UT   = struct
-      include LexProduct(UT2)(UT3)
-      (* let match_prefix (q1,q2) (p1,p2) m =  *)
-      (* 	if q2==636 || p2==636 then  *)
-      (* 	  ( *)
-      (* 	    print_endline("\nStarting match_prefix "^string_of_int q2^" "^string_of_int p2); *)
-      (* 	    (match q1,p1 with *)
-      (* 	       |(Some(h,_)),(Some(h',_)) -> print_endline("q1= "^string_of_int(ASet.AtSet.id h)^" q1= "^(ASet.AtSet.toString h)^" p1="^string_of_int(ASet.AtSet.id h')^" p1= "^(ASet.AtSet.toString h')) *)
-      (* 	       | _ -> ()); *)
-      (* 	    let b = match_prefix (q1,q2) (p1,p2) m in *)
-      (* 	      ((\* print_endline("TT"); *\) *)
-      (* 		match m with *)
-      (* 		  | A(Some a)->print_endline("match_prefix up to "^Atom.toString a^" "^string_of_bool b) *)
-      (* 		  | _   -> print_endline("match_prefix up to id "^string_of_bool b)); *)
-      (* 	      b *)
-      (* 	  ) *)
-      (* 	else *)
-      (* 	  match_prefix (q1,q2) (p1,p2) m *)
-
+      include LexProduct(UT4)(UT3)
       let compare = F.compare
-      (* let toString f = string_of_int (F.id f) *)
       let toString = UF.toString
       let cstring (a,b) = match a with
 	| None -> "NC"
@@ -208,29 +158,8 @@ module Generate(Atom:AtomType) = struct
 	(* Some(cstring,bstring) *)
     end
 
-    module SS = Common.Patricia_ext.MyPat(UT)
-    include SS
+    include Common.Patricia_ext.MyPat(UT)
 
-    (* let add f u = add f u *)
-    (* if not (SS.checktree [] u) then failwith("Tree not ok before adding "^string_of_int (F.id f)); *)
-    (* let u' = add f u in  *)
-    (* 	if not (SS.checktree [] u') then  *)
-    (* 	  (print_endline(string_of_int (F.id f)^" now printing\n" *)
-    (* 			 ^toString u^"\n That was before, and now after add\n" *)
-    (* 			 ^toString u'); *)
-    (* 	   failwith("Tree not ok after add") *)
-    (* 	  ); *)
-    (* if F.id f = 636 *)
-    (* then (); *)
-    (* u' *)
-    (*  let remove f u = 
-	let u' = remove f u in 
-	if F.id f = 631
-	then (print_endline(string_of_int (F.id f)^"\n"
-	^toString u^"\n"
-	^toString u');
-	failwith("hh"))
-	else u'*)
     let byes j         = j
     let bempty         = None
     let bsingleton j m = Some j
@@ -240,13 +169,13 @@ module Generate(Atom:AtomType) = struct
       | _            -> failwith("Shouldn't be a union here")
 
     let filter atms =function
-      | A(Some a)-> not (ASet.is_in (Atom.negation a) atms)
-      | _        -> true
+      | A a-> not (ASet.is_in (Atom.negation a) atms)
+      | _  -> true
 
     let yes _ _ _ = Yes() 
 
     let rchoose atms l =
-      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (Some(atms),-1) l
+      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,-1) l
 
   end
 
