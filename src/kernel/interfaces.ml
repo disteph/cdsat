@@ -170,8 +170,8 @@ with two extra functions for prettyprinting and for negation *)
    toString does pretty-printing
 *)
 
-  module PT : ProofType with type seq=Seq.t
   module Proof : ProofType with type seq=Seq.t
+  module NoProof : ProofType with type seq=Seq.t
 
   (* The abstract type of answers, t, that a plugin is trying to
   produce *) 

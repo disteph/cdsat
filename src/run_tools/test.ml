@@ -213,7 +213,7 @@ let treatexamples pack () =
   in
     pack.final(aux examples)
 
-let treatprimitives =
+let treatprimitives () =
   if !Flags.latex
   then (treatname latex_wrap, treatexamples latex_wrap, treatstdin latex_wrap)
   else (treatname empty_wrap, treatexamples empty_wrap, treatstdin empty_wrap)

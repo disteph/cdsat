@@ -150,9 +150,9 @@ module Atom = struct
   let print_in_fmt fmt t =
     match t.reveal with
     | (true, s, tl) ->
-      fprintf fmt "{%s%a(%s)}" (Predicates.reveal s) Term.printtl_in_fmt tl (string_of_int t.id)
+      fprintf fmt "{%s(%a)}" (Predicates.reveal s) Term.printtl_in_fmt tl
     | (false, s, tl) ->
-      fprintf fmt "\\non {%s}%a(%s)" (Predicates.reveal s) Term.printtl_in_fmt tl (string_of_int t.id)
+      fprintf fmt "\\non {%s}(%a)" (Predicates.reveal s) Term.printtl_in_fmt tl
 
   let toString t =
     let buf = Buffer.create 255 in

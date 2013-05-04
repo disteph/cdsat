@@ -74,7 +74,7 @@ module FrontEnd
 
     end
 
-    module PT:(ProofType with type seq = Seq.t) = struct
+    module Proof:(ProofType with type seq = Seq.t) = struct
       type ('a,'b) pt = 
       | Axiom of 'b 
       | OnePre of 'b*'a 
@@ -103,7 +103,7 @@ module FrontEnd
 	| Axiom (a) -> "\\infer {"^(Seq.toString a)^"}{}"         
     end
 
-    module Proof:(ProofType with type seq = Seq.t) = struct
+    module NoProof:(ProofType with type seq = Seq.t) = struct
       type t   = unit
       type seq = Seq.t
       let zero seq = ()
@@ -178,7 +178,7 @@ module FrontEnd
 
     (* Displays answer *)
     let toString a = match a with
-      | Success(s,p) -> "$$"^(Seq.toString s)^"$$";
+      | Success(s,p) -> "$$"^(Proof.toString p)^"$$";
       | Fail(s) -> "\\textsf {FAIL} \\\\$$"^(Seq.toString s)^"$$"
 
   end
