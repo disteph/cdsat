@@ -83,7 +83,7 @@ module Term = struct
     fprintf (formatter_of_buffer buf) "%a%!" printtl_in_fmt tl;
     Buffer.contents buf
 	
-  let clear () = atomid := 0;H.clear table
+  let clear () = atomid := 0; H.clear table
 end 
 
 module Atom = struct
@@ -105,7 +105,7 @@ module Atom = struct
         Hashtbl.add table a f;
         f
     let compare s s' = Pervasives.compare s.id s'.id
-    let clear () = predid := 0;Hashtbl.clear table
+    let clear () = predid := 0;  Hashtbl.clear table
   end
 
   type t = {reveal : bool * Predicates.t * Term.t list; id : int}
@@ -130,6 +130,23 @@ module Atom = struct
     let hash = hash
   end)
 
+  let print_in_fmt fmt t =
+    match t.reveal with
+    | (true, s, tl) ->
+      if tl<>[] then fprintf fmt "{%s(%a)}" (Predicates.reveal s) Term.printtl_in_fmt tl
+      else fprintf fmt "{%s}" (Predicates.reveal s)
+    | (false, s, tl) ->
+      if tl<>[] then fprintf fmt "\\non {%s}(%a)" (Predicates.reveal s) Term.printtl_in_fmt tl
+      else fprintf fmt "\\non {%s}" (Predicates.reveal s)
+
+  let toString t =
+    let buf = Buffer.create 255 in
+    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
+    (* let (b,p,tl)=t.reveal in *)
+    (* (if b then "+" else "-")^"("^Predicates.reveal p^string_of_int (Predicates.id p)^")"^(string_of_int t.id) *)
+    Buffer.contents buf
+    (* ^"-"^(string_of_int t.id) *)
+
   let table = H.create 5003
 
   let attomid = ref 0
@@ -138,8 +155,8 @@ module Atom = struct
     let f = {reveal = a; id = !attomid} in
     try H.find table f
     with Not_found ->
-      (* print_endline(string_of_int(!atomid)); *)
-	    incr attomid;
+      (* print_endline("HashConsing "^toString f); *)
+      incr attomid;
       H.add table f f;
       f
 
@@ -147,23 +164,12 @@ module Atom = struct
 
   let negation t = let (b, a, tl) = t.reveal in build (not b, a, tl)
 
-  let print_in_fmt fmt t =
-    match t.reveal with
-    | (true, s, tl) ->
-      fprintf fmt "{%s(%a)}" (Predicates.reveal s) Term.printtl_in_fmt tl
-    | (false, s, tl) ->
-      fprintf fmt "\\non {%s}(%a)" (Predicates.reveal s) Term.printtl_in_fmt tl
-
-  let toString t =
-    let buf = Buffer.create 255 in
-    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
-    Buffer.contents buf
 
   let compare t t' = Pervasives.compare t.id t'.id
 
   let clear () =
+    attomid := 0;
     Predicates.clear();
     Term.clear();
-    attomid := 0;
     H.clear table
 end

@@ -51,6 +51,6 @@ module type ThDecProc = sig
     type t
     val st      : (Sig.sort,Sig.symbol,t) structureType
     val toform  : t->F.t
-    val examples: (F.t*bool) list
+    val examples: ((unit->F.t)*bool) list
   end
 end

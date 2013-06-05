@@ -69,10 +69,10 @@ module Run(MyThPlug:ThPlug)= struct
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
       | Some b,c    ->
 	  let orig_seq = 
-	    FE.Seq.EntUF(UASet.empty,UFSet.add b UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
+	    FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
 	  in
 	  let d =
-	    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString b else "");
+	    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
 	    Strat.solve(Src.machine orig_seq Strat.initial_data)
 	  in 
 	    print_endline(match c,FE.reveal d with
@@ -109,7 +109,7 @@ let parseNrun input =
 	      let i = Parsing_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
 	      let (a,b) = match MyParser.parse MyThDecProc.Sig.forParser i aft with
 		| None,b  -> None,b
-		| Some a,b-> Some(MyStructure.toform a),b
+		| Some a,b-> Some(fun ()-> MyStructure.toform a),b
 	      in
 		R.go(a,b)
 	    with
@@ -207,8 +207,8 @@ let treatexamples pack () =
   let examples = MyStructure.examples in
   let rec aux = function
     | []            -> pack.init
-    | (a,expect)::l ->
-	let formulastring = R.FE.Form.toString a in
+    | (a,expect)::l -> 
+	let formulastring = R.FE.Form.toString (a()) in
 	  pack.accu ("$"^formulastring^"$") (aux l) (print_endline ("---\n"^formulastring); R.go(Some a,Some expect))
   in
     pack.final(aux examples)

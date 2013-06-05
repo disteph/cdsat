@@ -51,21 +51,21 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 
 
     (* p(x) \/- !p(x) *)
-    let f1 = 
+    let f1() = 
       F.orN(
 	lit(true,"p",[]),
 	lit(false,"p",[])
       )
 
     (* p(x) \/+ !p(x) *)
-    let f2 = 
+    let f2() = 
       F.orP(
 	lit(true,"p",[]),
 	lit(false,"p",[])
       )
 
     (* !p(x) \/+ p(x) : infinite computation if proof-search is depth-first*)
-    let f3 = 
+    let f3() = 
       F.orP(
 	lit(false,"p",[]),
 	lit(true,"p",[])
@@ -73,7 +73,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 
     (* (a \/- b) \/- (!a /\- !b) *)
 
-    let f4 = 
+    let f4() = 
       F.orN(
 	F.orN(
 	  lit(true,"a",[]),
@@ -86,7 +86,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
       )
 
     (* (a \/+ b) \/- (!a /\- !b) *)
-    let f5 = 
+    let f5() = 
       F.orN(
 	F.orP(
 	  lit(true,"a",[]),
@@ -99,7 +99,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
       )
 
     (* (!a \/+ !b) not provable - naive algorithm goes into infinite computation *)
-    let f6 = 
+    let f6() = 
       F.orP(
 	lit(false,"a", []), 
 	lit(false,"b", [])
@@ -107,13 +107,13 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 
     (* (!a /\- !b) *)
 
-    let f7=
+    let f7() =
       F.andN(
 	lit(false,"a", []), 
 	lit(false,"b", [])
       )
 
-    let f8=
+    let f8()=
       F.orN(
 	F.orP(
 	  lit(false,"p",[]),

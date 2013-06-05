@@ -87,8 +87,8 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       (* When the kernel gives us a final answer, we return it and clear all the caches *)
 
       | Local ans                    ->
-	  Me.report();Me.clear(); print_endline("   Plugin's report:"); print_endline(print_state 0); print_endline "";
-	  UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();address:=No;
+	  Me.report(); Me.clear(); print_endline("   Plugin's report (DPLL_Pat):"); print_endline(print_state 0); print_endline "";
+	  UF.clear(); UASet.clear(); UFSet.clear();Atom.clear(); address:=No;
 	  for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	  ans
 

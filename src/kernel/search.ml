@@ -123,7 +123,7 @@ module ProofSearch (MyTheory: DecProc)
         
     let success2 fseq = fun (seq1,pt1) (seq2,pt2) -> let seq = fseq seq1 seq2 in Success(seq,Proof.two seq pt1 pt2)
     let success1 fseq = fun (seqrec,pt)           -> let seq = fseq seqrec    in Success(seq,Proof.one seq pt)
-    let successId     = fun (seq,pt)           -> Success(seq,pt)
+    let successId     = fun (seq,pt)              -> Success(seq,pt)
     let success0 seq = Success(seq,Proof.zero seq)
 
     let std2 seq = let aux seq1 seq2 = relevant(seq,ext [seq1;seq2]) in success2 aux
@@ -216,10 +216,14 @@ module ProofSearch (MyTheory: DecProc)
 							           ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l)))) seq cont
 
 	     | Lit t when ((polarity polar toDecompose) = Und)
-                 -> (* print_string ("Hitting "^f^" or -"^f^" in asynchronous phase\n"); *)
-               straight 
-		 (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar))) data)
-		 successId seq cont
+                 ->  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
+                   (* let newpolar = Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar) *)
+                   let newpolar = Pol.add (MyTheory.Atom.negation t) Pos (Pol.add t Neg polar)
+                   in
+                   (* Pol.iter (fun l pol->print_endline(MyTheory.Atom.toString l^"->"^(match pol with Pos -> "Pos"| Neg->"Neg"|Und->"Und")))newpolar; *)
+                   straight 
+		     (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, newpolar)) data)
+		     successId seq cont
                  
 	     | AndN (a1, a2) -> 
 	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in

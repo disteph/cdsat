@@ -40,7 +40,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
     let report i =
       Me.report();
-      print_endline("   Plugin's report:");
+      print_endline("   Plugin's report (DPLL_WL):");
       print_endline(string_of_int count.(0)^" notifies, "^
 		      string_of_int count.(1)^" Backtrack, "^
 		      string_of_int count.(2)^" Unit propagate, "^
