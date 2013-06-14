@@ -216,7 +216,9 @@ module ProofSearch (MyTheory: DecProc)
 							           ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l)))) seq cont
 
 	     | Lit t when ((polarity polar toDecompose) = Und)
-                 ->  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
+                 ->
+                    if !Flags.debug>0 then Dump.msg None (Some ("Literal "^MyTheory.Atom.toString t^" of undefined polarity, I'm making it negative")) None;
+  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
                    (* let newpolar = Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar) *)
                    let newpolar = Pol.add (MyTheory.Atom.negation t) Pos (Pol.add t Neg polar)
                    in
@@ -239,9 +241,7 @@ module ProofSearch (MyTheory: DecProc)
 	     end
 
       | Seq.EntUF(atomN, _, formP', formPSaved', polar) 
-	-> if !Flags.debug>0 then Dump.msg None (Some("attack "^Seq.toString seq)) None;
-
-	  let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
+	-> let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
 
 	    if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) && conschecked) 
 	    then cont (Local(throw(Fail seq)))
@@ -256,6 +256,7 @@ module ProofSearch (MyTheory: DecProc)
 		in function
 		| Focus(toFocus,inter_fun,l) 
                   ->Dump.Kernel.incr_count 4;(* real focus *)
+                    if !Flags.debug>0 then Dump.msg None (Some ("Focus on "^Form.toString toFocus)) None;
 		    if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 		    else
 		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
@@ -287,14 +288,16 @@ module ProofSearch (MyTheory: DecProc)
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)
 
 		| ConsistencyCheck(inter_fun,l) when not conschecked (*Checking consistency*)
-		    ->let u1 cont =
+		    ->
+                  if !Flags.debug>0 then Dump.msg None (Some ("Checking consistency")) None;
+                      let u1 cont =
 			let x = match DecProc.consistency atomN with
 			  | None   -> Fail seq
 			  | Some a -> success0(relevant(seq,(a,FSet.empty::FSet.empty::[])))
 			in cont (Local(throw x))
 		      in
 		      let u2 = lk_solvef formPChoose true formP formPSaved l data in
-		      ou u1 u2 (std1 seq) (std1 seq) seq cont
+		      ou u1 u2 successId (std1 seq) seq cont
 
 		| Polarise(l, inter_fun) when (polarity polar (Form.lit l) = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
