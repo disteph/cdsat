@@ -4,6 +4,8 @@ open Interfaces
 open Formulae
 open String
 
+let name = "DIMACS"
+
 let rec list_from_string s list_so_far n = 
   if (n>=length s) then List.rev list_so_far 
   else
@@ -64,23 +66,22 @@ let guessThDecProc _ = "empty"
 let parse ts i l = 
 
   let open Theories in
-  let open Parsing_tools in
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
-    let v = i.varmodel var ts.prop None in
+    let v = i.decsymb var ts.prop [] ("prop",[]) in
       if b then v 
-      else i.symbmodel "not" ts.prop [fun _->v]
+      else i.sigsymb "not" ts.prop [fun _->v]
   in
 
   (* parse a clause from list of literal descriptions *)
   let generate_clause l =
-    i.symbmodel "and" ts.prop (List.map (fun t _ -> generate_atom t) l)
+    i.sigsymb "and" ts.prop (List.map (fun t _ -> generate_atom t) l)
   in
 
   (* parse a cnf from list of clause descriptions *)
   let generate_cnf l =
-    i.symbmodel "or" ts.prop (List.map (fun t _ -> generate_clause t) l)
+    i.sigsymb "or" ts.prop (List.map (fun t _ -> generate_clause t) l)
   in
 
     (Some(generate_cnf l),None)

@@ -23,12 +23,12 @@ module Consistency(ASet : CollectImplem with type e = Atom.t) = struct
 
   (* val consistency: ASet.t -> ASet.t option *)
   let consistency = fun a ->
-    if !debug>0 then print_endline("Procedure called on\n"^ASet.toString a);
+    if !debug>0 then Dump.msg (Some("Procedure called on\n"^ASet.toString a)) None None;
     let list_of_a = list_of_aset a in
     let lres = ForPsyche.test_inconsistency list_of_a in
     let b =      Core.fopt aset_of_list lres
     in
-      if !debug>0 then print_endline("Procedure finished with "^(match b with None -> "CONSISTENT" | Some x -> "INCONSISTENT: "^ASet.toString x)); 
+      if !debug>0 then Dump.msg (Some("Procedure finished with "^(match b with None -> "CONSISTENT" | Some x -> "INCONSISTENT: "^ASet.toString x))) None None; 
       b
 
 

@@ -1,13 +1,17 @@
-(********************************************************)
-(* This file contains the description of theory modules *)
-(********************************************************)
+(**********************************************************)
+(* This file contains the specification of theory modules *)
+(**********************************************************)
+
+exception TypingError of string
+exception ModelError of string
 
 type 'sort forParser =
     { names: string list ;
       prop: 'sort}
 
-type ('sort,'symbol) forParsing =
-    { arity     : 'symbol -> 'sort*('sort list)*('symbol option);
+type ('sort,'symbol,'a) forParsing =
+    { arity     : 'symbol -> 'sort*('sort list);
+      multiary  : ('symbol->'a list->'a list)->'symbol->'a list->'a;
       sortParse : string  -> 'sort;
       symbParse : string  -> 'symbol list}
 
@@ -17,19 +21,33 @@ module type SigType = sig
   type sort
   type symbol
   val forParser : sort forParser
-  val forParsing: (sort,symbol) forParsing
+  val forParsing: (sort,symbol,'a) forParsing
 end
 
 
 (* type of a model structure for a theory signature 
 (to be used for parsing):
-symb_i : an interpretation for symbols,
-var_i  : an interpretation for (sorted) variables
+symb_i : an interpretation for signature symbols,
+var_i  : an interpretation for declared symbols
 *)
 
 type ('sort,'symbol,'t) structureType = 
-    { symb_i: 'symbol -> 't list -> 't;
-      var_i : string  -> 'sort   -> 't}
+    { sigsymb_i: 'symbol -> 't list -> 't;
+      decsymb_i: 'sort -> string  -> 't list -> 't}
+
+(* Type of interpretation functions for applied symbols, pertaining to
+the signature (sigsymb) or declared in the input problem (decsymb).
+The arguments are:
+- the string to be interpreted as a symbol
+- its expected sort
+- its given list of arguments
+For declared symbols, there is an extra argument, which is the
+declared signature for the symbol (for signature symbols, that
+information is to be found in the signature). *)
+
+type ('sort,'t) interpretType = 
+    { sigsymb : string -> 'sort -> ('sort->'t) list -> 't ;
+      decsymb : string -> 'sort -> ('sort->'t) list -> (string * string list) -> 't}
 
 (* Type of a Theory with Decision Procedure *)
 
@@ -54,3 +72,4 @@ module type ThDecProc = sig
     val examples: ((unit->F.t)*bool) list
   end
 end
+

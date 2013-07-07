@@ -57,9 +57,9 @@ main run function: go *)
 module Run(MyThPlug:ThPlug)= struct
 
   open MyThPlug.MyPlugin
-  module Src         = Kernel.Search.ProofSearch(MyThPlug.MyThDecProc)(UF)(UFSet)(UASet)
-  module FE          = Src.FE
-  module Strat       = Strategy(FE)
+  module Src   = Kernel.Search.ProofSearch(MyThPlug.MyThDecProc)(UF)(UFSet)(UASet)
+  module FE    = Src.FE
+  module Strat = Strategy(FE)
 
   let go f stringOrunit =
     let result = match f with 
@@ -68,26 +68,26 @@ module Run(MyThPlug:ThPlug)= struct
       | Some _,Some(true) when !Flags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
       | Some b,c    ->
-	  let orig_seq = 
-	    FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
-	  in
-	  let d =
-	    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
-	    Strat.solve(Src.machine orig_seq Strat.initial_data)
-	  in 
-	    print_endline(match c,FE.reveal d with
-			    |None ,_                 -> "Nothing expected"
-			    |Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
-			    |Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
-			    |Some false,FE.Success _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
-			    |Some false,FE.Fail _    -> "Expected Failure (SAT/unprovable), got it"
-			 );
-	    Some d
+	let orig_seq = 
+	  FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
+	in
+	let d =
+	  if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
+	  Strat.solve(Src.machine orig_seq (Strat.initial_data orig_seq))
+	in 
+	print_endline(match c,FE.reveal d with
+	|None ,_                 -> "Nothing expected"
+	|Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
+	|Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
+	|Some false,FE.Success _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
+	|Some false,FE.Fail _    -> "Expected Failure (SAT/unprovable), got it"
+	);
+	Some d
     in 
-      match result with
-	| None -> None
-	| Some r when stringOrunit-> Some(A(FE.toString r))
-	| Some r                  -> Some(F ())
+    match result with
+    | None -> None
+    | Some r when stringOrunit-> Some(A(FE.toString r))
+    | Some r                  -> Some(F ())
 
 end
 
@@ -98,28 +98,29 @@ end
 let parseNrun input =
   let rec trying = function
     | i when i < Array.length Parsers_register.bank ->
-	let module MyParser = (val Parsers_register.bank.(i):Parsers.Type) in
-	  begin
-	    try 
-	      let aft      = MyParser.glance input in
-	      let module MyThPlug    = (val guessThPlug(MyParser.guessThDecProc aft):ThPlug) in
-	      let module R           = Run(MyThPlug) in
-	      let module MyThDecProc = MyThPlug.MyThDecProc in
-	      let module MyStructure = MyThDecProc.Structure(R.FE.Form) in
-	      let i = Parsing_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
-	      let (a,b) = match MyParser.parse MyThDecProc.Sig.forParser i aft with
-		| None,b  -> None,b
-		| Some a,b-> Some(fun ()-> MyStructure.toform a),b
-	      in
-		R.go(a,b)
-	    with
-		Parsing_tools.ParsingError s | Parsing_tools.TypingError s
-		  -> (if !Flags.debug>0 then print_endline s;
-		      trying (i+1))
-	  end
+      let module MyParser = (val Parsers_register.bank.(i):Parsers.Type) in
+      begin
+	try 
+	  let aft      = MyParser.glance input in
+	  let module MyThPlug    = (val guessThPlug(MyParser.guessThDecProc aft):ThPlug) in
+	  let module R           = Run(MyThPlug) in
+	  let module MyThDecProc = MyThPlug.MyThDecProc in
+	  let module MyStructure = MyThDecProc.Structure(R.FE.Form) in
+	  let inter = ThSig_tools.interpret MyThDecProc.Sig.forParsing MyStructure.st in
+	  let (a,b) = match MyParser.parse MyThDecProc.Sig.forParser inter aft with
+	    | None,b  -> None,b
+	    | Some a,b-> Some(fun ()-> MyStructure.toform a),b
+	  in
+          Dump.msg (Some ("Successfully parsed by "^MyParser.name^" parser.")) None None;
+	  R.go(a,b)
+	with
+	  Parsers.ParsingError s
+	  -> (if !Flags.debug>0 then print_endline s;
+	      trying (i+1))
+      end
     | _ -> print_endline "No parser seems to work for this input."; function _ -> None
   in
-    trying 0
+  trying 0
 
 
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:

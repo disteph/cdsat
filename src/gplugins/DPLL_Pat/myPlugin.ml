@@ -30,7 +30,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
     module Me = Common.Utils.Memo(Atom)(FE)(UFSet)(UASet)
 
     type data       = int
-    let initial_data= 0
+    let initial_data _ = 0
     let address     = ref No
 
     (* focus_pick chooses a focus

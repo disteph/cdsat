@@ -37,14 +37,17 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
     let lit (b, f, tl) = F.lit(Atom.bbuild (b, f, tl))
 
     let st = 
-      { symb_i 
+      { sigsymb_i 
 	= (fun symb ->
-	     let module TT = Theories_tools.PropStructure(F) in
+	     let module TT = ThDecProc_tools.PropStructure(F) in
 	       TT.symb_i symb);
-	var_i = 
-	  fun (var:string) -> function
-	    | `Prop -> lit(true,var,[])
-	    | _     -> raise (Parsing_tools.TypingError ("Variable "^var^" not of expected type `Prop"))
+	decsymb_i = 
+	  function
+	  | `Prop -> fun (var:string) l ->
+            if l <> [] 
+            then raise (ModelError ("ModelError: Variable"^var^"shouldn't have any argument"))  
+	    else lit(true,var,[])
+	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: Variable "^var^" not of expected type `Prop"))
       }
 
     let toform a = a

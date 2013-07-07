@@ -3,7 +3,8 @@
 open SMTLib2_tools
 open Smtlib2_ast
 open Parsers
-open Parsing_tools
+
+let name = "SMTLib2"
 
 type 'a environment =
   | EmptyEnv
@@ -73,7 +74,7 @@ let getStatus = function
 
 module SM = Map.Make(String)
 
-type afterglance = (string option)*bool*(bool option)*(string SM.t)*(Smtlib2_ast.term list)
+type afterglance = (string option)*bool*(bool option)*((string * (string list)) SM.t)*(Smtlib2_ast.term list)
 
 let transformCommand (theory,satprov,status,declared,formula) = function
   | CAssert(_,t)                 -> (theory,satprov,status,declared,t::formula)
@@ -90,8 +91,8 @@ let transformCommand (theory,satprov,status,declared,formula) = function
 	  | None   ->(theory,satprov,getStatus attribute,declared,formula)
       end
   | CCheckSat _                  -> (theory,false,status,declared,formula)
-  | CDeclareFun(_,symbol,_,sort) ->
-      (theory,satprov,status,SM.add (getsymbSymbol symbol) (getsort sort) declared,formula)
+  | CDeclareFun(_,symbol,(_,l),sort) ->
+      (theory,satprov,status,SM.add (getsymbSymbol symbol) (getsort sort,List.map (fun s -> getsort s) l) declared,formula)
   | _                            -> (theory,satprov,status,declared,formula)
 
 let transformCommands (Commands(_,(_,li))) =
@@ -115,15 +116,18 @@ let guessThDecProc(theory,_,_,_,_) =
 let parse ts i (theory,satprov,status,declared,formulalist) = 
 
   let open Theories in
-
+  
   let rec transformTermBase env expsort s l =
-    try i.symbmodel s expsort (List.map (transformTerm  env) l)
-    with ParsingError msg | TypingError msg ->
-      (match l with
-	 | [] when SM.mem s declared
-	     -> i.varmodel s expsort (Some(SM.find s declared))
-	 | _ -> raise (ParsingError(msg^"\nString "^s^" is not a declared variable")))
-
+    let l' = List.map (transformTerm  env) l in
+    try i.sigsymb s expsort l'
+    with TypingError msg ->
+      if SM.mem s declared
+      then 
+        try i.decsymb s expsort l' (SM.find s declared) 
+        with TypingError msg'
+          -> raise (ParsingError("\nParsingError: string "^s^" cannot be interpreted, because\n"^msg^"\n"^msg'))
+      else raise (ParsingError("\nParsingError: string "^s^" cannot be interpreted, because\n"^msg^"\nand it is not a declared symbol either"))
+        
   and transformTerm env t expsort =
     let (s,l,newenv) = getsymb env t in
       transformTermBase newenv expsort s l
@@ -136,10 +140,10 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
     match formulalist with
       | []          -> (None,status)
       | _ -> 
-	  let formula = transformTermBase  EmptyEnv ts.prop "and" formulalist in
+	  let formula = transformTermBase EmptyEnv ts.prop "and" formulalist in
 	  let fformula =
 	    if satprov then formula
 	    else 
-	      i.symbmodel "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
+	      i.sigsymb "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
 	  in
 	    (Some fformula,status)

@@ -32,14 +32,13 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
     module Me = Common.Utils.Memo(Atom)(FE)(UFSet)(UASet)
 
     type data       = int*UASet.t
-    let initial_data= (0,UASet.empty)
+    let initial_data _ = (0,UASet.empty)
     let address     = ref No
 
     (* We record a stack of clauses that will definitely do a Unit Propagate *)
     let stack   = ref []
 
     let report i =
-      Me.report();
       print_endline("   Plugin's report (DPLL_WL):");
       print_endline(string_of_int count.(0)^" notifies, "^
 		      string_of_int count.(1)^" Backtrack, "^
@@ -47,6 +46,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		      string_of_int count.(3)^" Decide, "^
 		      string_of_int (Dump.Plugin.read_count 7)^" Memo backtrack, "^
 		      string_of_int (Dump.Plugin.read_count 8)^" Memo UP "); 
+      Me.report();
       print_endline ""
 
 

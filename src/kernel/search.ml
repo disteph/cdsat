@@ -168,14 +168,20 @@ module ProofSearch (MyTheory: DecProc)
 	    
 	| OrP(a1, a2) -> 
 	  let side_pick b = 
+            Dump.Kernel.fromPlugin();
 	    let (a1',a2') = if b then (a1,a2) else (a2,a1) in
 	    let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar)) data in
 	    let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar)) data in
 	    ou u1 u2 (std1 seq) (std1 seq) seq cont
 	  in
+          Dump.Kernel.toPlugin();
 	  Fake(AskSide(seq,side_pick,data))
 
-	| Lit t -> let x = match DecProc.goal_consistency atomN t with
+	| Lit t -> 
+          Dump.Kernel.toTheory();
+          let oracle = DecProc.goal_consistency atomN t in
+          Dump.Kernel.fromTheory();
+          let x = match oracle with
 	  | None   -> Fail seq
 	  | Some a -> success0(relevant(seq,(a,FSet.empty::FSet.empty::[])))
 	           in cont (Local(throw x))
@@ -216,9 +222,7 @@ module ProofSearch (MyTheory: DecProc)
 							           ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l)))) seq cont
 
 	     | Lit t when ((polarity polar toDecompose) = Und)
-                 ->
-                    if !Flags.debug>0 then Dump.msg None (Some ("Literal "^MyTheory.Atom.toString t^" of undefined polarity, I'm making it negative")) None;
-  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
+                 ->  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
                    (* let newpolar = Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar) *)
                    let newpolar = Pol.add (MyTheory.Atom.negation t) Pos (Pol.add t Neg polar)
                    in
@@ -241,22 +245,26 @@ module ProofSearch (MyTheory: DecProc)
 	     end
 
       | Seq.EntUF(atomN, _, formP', formPSaved', polar) 
-	-> let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
+	-> if !Flags.debug>0 then Dump.msg None (Some("attack "^Seq.toString seq)) None;
+
+	  let rec lk_solvef formPChoose conschecked formP formPSaved action0 data cont = 
 
 	    if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) && conschecked) 
 	    then cont (Local(throw(Fail seq)))
 	    else
 
 	      let rec action_analysis =
-		let intercept inter_fun v cont =
+                let intercept inter_fun v cont =
 		  let newcont loc_ans = match inter_fun (prune loc_ans) with
-		    | Action(f) -> action_analysis f
+		    | Action(f) -> Dump.Kernel.toPlugin();action_analysis f
 		    | _         -> cont loc_ans
 		  in v newcont
-		in function
+		in function instruction 
+              ->
+                Dump.Kernel.fromPlugin();	
+                match instruction with
 		| Focus(toFocus,inter_fun,l) 
                   ->Dump.Kernel.incr_count 4;(* real focus *)
-                    if !Flags.debug>0 then Dump.msg None (Some ("Focus on "^Form.toString toFocus)) None;
 		    if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 		    else
 		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
@@ -288,10 +296,11 @@ module ProofSearch (MyTheory: DecProc)
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)
 
 		| ConsistencyCheck(inter_fun,l) when not conschecked (*Checking consistency*)
-		    ->
-                  if !Flags.debug>0 then Dump.msg None (Some ("Checking consistency")) None;
-                      let u1 cont =
-			let x = match DecProc.consistency atomN with
+		    ->let u1 cont =
+                        Dump.Kernel.toTheory();
+                        let oracle = DecProc.consistency atomN in
+                        Dump.Kernel.fromTheory();
+			let x = match oracle with
 			  | None   -> Fail seq
 			  | Some a -> success0(relevant(seq,(a,FSet.empty::FSet.empty::[])))
 			in cont (Local(throw x))
@@ -329,18 +338,21 @@ module ProofSearch (MyTheory: DecProc)
 		| _ -> failwith("focus_pick has suggested a stupid action")
 
 	      in match action0() with
-	      | Some(action)-> action_analysis action
-	      | None        -> Fake(AskFocus(seq,formPChoose,not (FSet.is_empty formPSaved),conschecked,action_analysis,data))
+	      | Some(action)-> Dump.Kernel.toPlugin();action_analysis action
+	      | None        -> (Dump.Kernel.toPlugin();
+                                Fake(AskFocus(seq,formPChoose,not (FSet.is_empty formPSaved),conschecked,action_analysis,data)))
 	  in
 	  let newcont inter_fun loc_ans =
 	    let recept_analysis _ = cont loc_ans in
 	    recept_analysis (inter_fun (prune loc_ans))
 	  in
 	  let notify_analysis(accept_defeat,newdata,inter_fun,action1) =
+            Dump.Kernel.fromPlugin();
 	    if (inloop&&accept_defeat) then (Dump.Kernel.incr_count 7; cont (Local(throw(Fail seq))))
 	    else lk_solvef formP' false formP' formPSaved' action1 newdata (newcont inter_fun)
 	  in
 	  Dump.Kernel.incr_count 8;
+          Dump.Kernel.toPlugin();
 	  Fake(Notify(seq,inloop,notify_analysis,data))
 
 	

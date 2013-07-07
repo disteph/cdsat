@@ -22,6 +22,7 @@
 <src/run_tools/*.cmx>:                for-pack(Run_tools)
 <src/parsers/SMTLib2_tools/*>:        for-pack(SMTLib2_tools)
 <src/theories/Empty/*.cmx>:           for-pack(Empty)
+<src/theories/CC/*.cmx>:              for-pack(CC)
 <src/theories/LRA/libSimplex/*.cmx>:  for-pack(LRA.LibSimplex)
 <src/theories/LRA/*.cmx>:             for-pack(LRA)
 <src/gplugins/Common/*.cmx>:          for-pack(Common)

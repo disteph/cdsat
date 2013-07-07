@@ -37,7 +37,7 @@ let simplify_novar n = function
 module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 
   open Theories
-  module PS = Theories_tools.PropStructure(F)
+  module PS = ThDecProc_tools.PropStructure(F)
 
   type t = 
     | Rat of (StringMap.t*Num.num) PS.ite
@@ -59,36 +59,39 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 
   let toform = function
     | Prop f -> f
-    | _      -> raise (Parsing_tools.TypingError "TypingError: trying to convert into a formula an expression that clearly is not one")
+    | _      -> raise (ModelError "ModelError: trying to convert into a formula an expression that clearly is not one")
 
   let st = 
-    { symb_i 
-      = (fun (symb:ThSig_register.LRASig.symbol) l ->
-	   match symb, l with
-	     | `CstRat i,[]         -> Rat(PS.Leaf(StringMap.empty,i))
-	     | `Plus,[Rat a;Rat b]  -> Rat(PS.mmap plus a b)
-	     | `Minus,[Rat a;Rat b] -> Rat(PS.mmap minus a b)
-	     | `Times,[Rat a;Rat b] -> Rat(PS.mmap times a b)
-	     | `Divide,[Rat a;Rat b]-> Rat(PS.mmap div a b)
-	     | `Op,[Rat a]          -> Rat(PS.map (ctimes (Int(-1))) a)
-	     | `ITERat,[Prop c;Rat a;Rat b] -> Rat(PS.INode(c,a,b))
-	     | `Ge, [Rat a;Rat b]
-	     | `Gt, [Rat a;Rat b]
-	     | `Le, [Rat a;Rat b]
-	     | `Lt, [Rat a;Rat b]
-	     | `EqRat,[Rat a;Rat b]
-	     | `NEqRat,[Rat a;Rat b] as g
-		 -> Prop(build_lit (fst g) (PS.mmap minus a b))
-	     | s,l                  -> Prop(PS.symb_i s (List.map toform l)));
+    { sigsymb_i =
+        (fun (symb:ThSig_register.LRASig.symbol) l ->
+	  match symb, l with
+	  | `CstRat i,[]         -> Rat(PS.Leaf(StringMap.empty,i))
+	  | `Plus,[Rat a;Rat b]  -> Rat(PS.mmap plus a b)
+	  | `Minus,[Rat a;Rat b] -> Rat(PS.mmap minus a b)
+	  | `Times,[Rat a;Rat b] -> Rat(PS.mmap times a b)
+	  | `Divide,[Rat a;Rat b]-> Rat(PS.mmap div a b)
+	  | `Op,[Rat a]          -> Rat(PS.map (ctimes (Int(-1))) a)
+	  | `ITERat,[Prop c;Rat a;Rat b] -> Rat(PS.INode(c,a,b))
+	  | `Ge, [Rat a;Rat b]
+	  | `Gt, [Rat a;Rat b]
+	  | `Le, [Rat a;Rat b]
+	  | `Lt, [Rat a;Rat b]
+	  | `EqRat,[Rat a;Rat b]
+	  | `NEqRat,[Rat a;Rat b] as g
+	    -> Prop(build_lit (fst g) (PS.mmap minus a b))
+	  | s,l                  -> Prop(PS.symb_i s (List.map toform l)));
 
-      var_i =
-	let rec aux var = function
+      decsymb_i =
+	let rec aux so var l = 
+	  if l <> [] then
+	    raise (ModelError ("ModelError: variable "^var^" shouldn't have any argument"))
+	  else match so with
 	  | `Rat  -> Rat(PS.Leaf(StringMap.add (StringComparable.build var) (fun _ -> Int 1) StringMap.empty,num_0))
 	  | `Prop ->
-	      match aux var `Rat with
-		| Rat a -> Prop(build_lit `Gt a)
-		| _     -> raise (Parsing_tools.TypingError
-				    ("Should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
+	    match aux `Rat var [] with
+	    | Rat a -> Prop(build_lit `Gt a)
+	    | _     -> raise (ModelError
+				("ModelError: should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
 	in aux
     }
 

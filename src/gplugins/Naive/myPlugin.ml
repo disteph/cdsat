@@ -95,7 +95,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	   available one) *)
 
       type data = unit
-      let initial_data=()
+      let initial_data _ =()
       let rec solve = function
 	| Local ans                              -> ans
 	| Fake(Notify  (_,_,machine,_))          -> solve (machine (true,(),accept,fNone))
