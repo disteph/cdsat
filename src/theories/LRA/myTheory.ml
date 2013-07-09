@@ -44,7 +44,7 @@ module Consistency(ASet : CollectImplem with type e = Atom.t) = struct
 	 | None   -> None
 	 | Some c -> Some(if ASet.is_in e' c then ASet.remove e' c else c)
        in
-	 if !debug>0 then print_endline("Procedure finished with "^(match b with None -> "CONSISTENT with hypotheses" | Some x -> "INCONSISTENT with hypotheses: "^ASet.toString x)); 
+	 if !debug>0 then print_endline("Procedure finished with "^(match b with None -> "CONSISTENT with hypotheses:" | Some x -> "INCONSISTENT with hypotheses: "^ASet.toString x)); 
 	 b)	
 
 end
