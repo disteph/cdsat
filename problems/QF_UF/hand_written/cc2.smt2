@@ -1,0 +1,7 @@
+(set-logic emptyCC)
+(set-info :status unsat)
+(declare-fun f (Term) Term)
+(declare-fun a () Term)
+(assert (and (and (= a (f (f (f a)))) (= a (f (f (f (f (f a))))))) (not (= a (f a)))))
+(check-sat)
+(exit)
