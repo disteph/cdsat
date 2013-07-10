@@ -63,11 +63,9 @@ let symb arit multiary symb_i sym expsort l =
   let aux sym l =
     let (output,input) = arit sym in
     let (combo,rest) = mapdbl l input in
-    let a = 
-      (fun expsort
-      -> if output <> expsort
-        then raise (TypingError "TypingError: symbol's output sort does not match expected sort")
-        else symb_i sym combo)
+    let a expsort =
+      if output = expsort then symb_i sym combo
+      else raise (TypingError "TypingError: symbol's output sort does not match expected sort")
     in
     a::rest
   in
@@ -87,12 +85,12 @@ let interpret
   { sigsymb =
       (fun s expsort l ->
         let rec aux = function
-          | sym::k -> 
+          | sym::k ->
             (try symb ts.arity ts.multiary st.sigsymb_i sym expsort l
-	     with TypingError msg 
-	       -> (if !Flags.debug>0
-                 then Dump.msg (Some ("\nWarning: could not understand string "^s^" as a specific (well-typed) signature symbol (now trying other ones) because:\n"^msg^"\n")) None None;
-		   aux k))
+	     with TypingError msg -> 
+               if !Flags.debug>0
+               then Dump.msg (Some ("\nWarning: could not understand string "^s^" as a specific (well-typed) signature symbol (now trying other ones) because:\n"^msg^"\n")) None None;
+	       aux k)
           | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
         in aux (ts.symbParse s));
 

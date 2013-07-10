@@ -113,10 +113,10 @@ let parseNrun input =
 	  in
           Dump.msg (Some ("Successfully parsed by "^MyParser.name^" parser.")) None None;
 	  R.go(a,b)
-	with
-	  Parsers.ParsingError s
-	  -> (if !Flags.debug>0 then print_endline s;
-	      trying (i+1))
+	with Parsers.ParsingError s ->
+          if !Flags.debug>0 
+          then Dump.msg (Some ("Parser "^MyParser.name^" could not parse input, because \n"^s)) None None;
+	  trying (i+1)
       end
     | _ -> print_endline "No parser seems to work for this input."; function _ -> None
   in

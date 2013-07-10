@@ -115,18 +115,17 @@ let guessThDecProc(theory,_,_,_,_) =
 
 let parse ts i (theory,satprov,status,declared,formulalist) = 
 
+  (* i's functions may raise Theories.TypingError *)
+
   let open Theories in
   
+  (* The following may raise Theories.TypingError *)
+
   let rec transformTermBase env expsort s l =
     let l' = List.map (transformTerm  env) l in
-    try i.sigsymb s expsort l'
-    with TypingError msg ->
-      if SM.mem s declared
-      then 
-        try i.decsymb s expsort l' (SM.find s declared) 
-        with TypingError msg'
-          -> raise (ParsingError("\nParsingError: string "^s^" cannot be interpreted, because\n"^msg^"\n"^msg'))
-      else raise (ParsingError("\nParsingError: string "^s^" cannot be interpreted, because\n"^msg^"\nand it is not a declared symbol either"))
+    if SM.mem s declared
+    then i.decsymb s expsort l' (SM.find s declared)
+    else i.sigsymb s expsort l'
         
   and transformTerm env t expsort =
     let (s,l,newenv) = getsymb env t in
@@ -140,6 +139,7 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
     match formulalist with
       | []          -> (None,status)
       | _ -> 
+        try
 	  let formula = transformTermBase EmptyEnv ts.prop "and" formulalist in
 	  let fformula =
 	    if satprov then formula
@@ -147,3 +147,5 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
 	      i.sigsymb "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
 	  in
 	    (Some fformula,status)
+        with Theories.TypingError msg -> 
+          raise(ParsingError ("ParsingError: uncaught TypingError:\n"^msg))
