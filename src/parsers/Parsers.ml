@@ -8,3 +8,7 @@ module type Type = sig
   val parse         :
       ('sort Theories.forParser) -> (('sort,'t) Theories.interpretType) -> afterglance -> ('t option*bool option)
 end
+
+let latexescaped = function
+  | '%' | '{' | '}' as c -> "\\"^Char.escaped c
+  | c -> Char.escaped c
