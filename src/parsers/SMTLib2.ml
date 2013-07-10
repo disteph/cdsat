@@ -139,7 +139,6 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
     match formulalist with
       | []          -> (None,status)
       | _ -> 
-        try
 	  let formula = transformTermBase EmptyEnv ts.prop "and" formulalist in
 	  let fformula =
 	    if satprov then formula
@@ -147,5 +146,3 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
 	      i.sigsymb "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
 	  in
 	    (Some fformula,status)
-        with Theories.TypingError msg -> 
-          raise(ParsingError ("ParsingError: uncaught TypingError:\n"^msg))

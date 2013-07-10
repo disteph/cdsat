@@ -113,7 +113,7 @@ let parseNrun input =
 	  in
           Dump.msg (Some ("Successfully parsed by "^MyParser.name^" parser.")) None None;
 	  R.go(a,b)
-	with Parsers.ParsingError s ->
+	with Parsers.ParsingError s | Theories.TypingError s ->
           if !Flags.debug>0 
           then Dump.msg (Some ("Parser "^MyParser.name^" could not parse input, because \n"^s)) None None;
 	  trying (i+1)
