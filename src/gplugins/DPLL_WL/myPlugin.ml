@@ -34,7 +34,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
     type data       = int*UASet.t
     let initial_data _ = (0,UASet.empty)
     let address     = ref No
-
+    
+    exception Restart
+    let next_restart = ref 200
+    
     (* We record a stack of clauses that will definitely do a Unit Propagate *)
     let stack   = ref []
 
@@ -247,7 +250,19 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	    stack:=h;
 	    findaction atms alternative
 
-    let rec solve input = (*print_time report;*)
+    (* Closely related to the Memo.memAccept function. Raises Restart every time
+       the size of Me reaches a certain threshold. *)
+    let memAccept_restart = function 
+      | Local a -> 
+        (
+          Me.tomem a;
+          if !Flags.restarts && Me.size() == !next_restart then
+            raise Restart;
+          Accept
+        )
+      | _ -> Accept
+
+    let rec solve_rec input = (*print_time report;*)
       match input with
 
 	(* When we are notified of new focus point, we
@@ -268,7 +283,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	    (*    | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	    (*    | Yes(exp) -> failwith("Yes not expected") *)
 	  (*    | _ -> address:=No); *)
-	  if inloop then solve(machine(true,(count.(0),tset),accept,fNone))
+	  if inloop then solve_rec(machine(true,(count.(0),tset),accept,fNone))
 	  else
 	    (
 	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
@@ -286,12 +301,12 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
 		   if u'>0 then print_endline(string_of_int u')
 		   else if u>0 then report()));
-	      solve (machine (true,
-			      (count.(0),tset'),
-			      Me.memAccept,
-			      match action with  
-			      | Some action as saction -> (fun()->saction)
-			      | None        -> findaction atms alternative
+	      solve_rec (machine (true,
+			          (count.(0),tset'),
+			          memAccept_restart,
+			          match action with  
+			          | Some action as saction -> (fun()->saction)
+			          | None        -> findaction atms alternative
 	      )
 	      )
 	    )
@@ -302,10 +317,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	   we restore the formulae on which we already placed focus *)
 
 	| Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
-	    -> solve(machine(Restore fNone))
+	    -> solve_rec(machine(Restore fNone))
 
 	| Fake(AskFocus(seq,l,false,_,machine,_)) when UFSet.is_empty l
-	    -> solve(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))
+	    -> solve_rec(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -325,18 +340,18 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
                | Some action -> action
                | None -> Focus(clause_pick atms l,accept,fNone)
              in
-	     solve(machine(Me.search4failureNact seq alternative))
+	     solve_rec(machine(Me.search4failureNact seq alternative))
 
 
 	(* When we are asked a side, we always go for the left first *)
 
-	| Fake(AskSide(seq,machine,_)) -> solve (machine true)
+	| Fake(AskSide(seq,machine,_)) -> solve_rec (machine true)
 
 	(* When kernel has explored all branches and proposes to go
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| Fake(Stop(b1,b2, machine))   -> solve (machine ())
+	| Fake(Stop(b1,b2, machine))   -> solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
@@ -344,6 +359,21 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	    H.clear watched; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
+
+    (* solve_restart handles restarts, launching solve_rec once, 
+       then re-launching it every time a Restart exception is raised. *)
+    let rec solve_restart input =
+      try 
+        solve_rec input
+      with Restart ->
+        next_restart := 2 * !next_restart;
+        Dump.msg (Some (Printf.sprintf "Restarting (next restart: %d clauses)" !next_restart)) None None;
+        Dump.Kernel.toPlugin ();
+        solve_restart input
+
+    (* solve_restart is just an alias of solve. *)
+    let solve input = 
+      solve_restart input
 
   end
 

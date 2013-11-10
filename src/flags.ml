@@ -27,6 +27,9 @@ let memo  = ref true   (* For using Memoisation in MyPatricia -currently has to 
 let almo  = ref true   (* For using almost in Memoisation in MyPatricia *)
 let unitp = ref true   (* Eager Unit propagate in MyPatricia *)
 
+(* Plugin flags *)
+let restarts = ref false (* Allows restarts. Currently only implemented in DPLL_WL *) 
+
 (* Periodicity of events *)
 
 let every                  (* Prints every XXX events *)

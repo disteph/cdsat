@@ -29,6 +29,7 @@ module Memo
 
     val report         : unit->unit
     val clear          : unit->unit
+    val size           : unit->int
   end
 
 

@@ -55,6 +55,7 @@ let options =
     ("-nomemo",      Unit(fun ()->memo:=false),       "disallows memoisation")::
     ("-noalmo",      Unit(fun ()->almo:=false),       "memoisation is done on exact match only")::
     ("-nounitpropagation",Unit(fun()->printrhs:=true),"disallows eager unit propagation in MyPatricia")::
+    ("-restarts",    Unit(fun ()->restarts:=true),    "allows plugins to perform restarts (currently only implemented in DPLL_WL)")::
     []
 
 let description =

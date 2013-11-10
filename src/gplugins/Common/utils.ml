@@ -162,6 +162,8 @@ module Memo
       print_endline("   Memoisation report:");
       print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries, "
 		    ^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries")
-
-    let clear () = tableS := MP.empty; tableF := MP.empty; MP.clear();
+	
+    let clear () = tableS := MP.empty; tableF := MP.empty; MP.clear()
+      
+    let size () = (MP.cardinal !tableS) + (MP.cardinal !tableF)
   end
