@@ -28,7 +28,12 @@ let almo  = ref true   (* For using almost in Memoisation in MyPatricia *)
 let unitp = ref true   (* Eager Unit propagate in MyPatricia *)
 
 (* Plugin flags *)
-let restarts = ref false (* Allows restarts. Currently only implemented in DPLL_WL *) 
+let restarts_strategy = ref "none" (* Allows restarts. Currently only implemented in DPLL_WL *) 
+let restarts_p1 = ref 10 (* First restart strategy parameter *)
+let restarts_p2 = ref 0  (* Second restart strategy parameter *)
+
+(* Plotting *)
+let plot = ref false (* Produce debug output in a form suitable for plotting *)
 
 (* Periodicity of events *)
 

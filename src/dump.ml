@@ -97,24 +97,44 @@ let ktimer = Timer.newtimer "Kernel"
 let ptimer = Timer.newtimer "Plugin"
 let ttimer = Timer.newtimer "Theory"
 
+let plot label y =  
+  if (!Flags.plot) then
+    Printf.printf ">> %s\t%f\t%d\n" label (Timer.watch gtimer) y
+
 (********************)
 (* Kernel dump area *)
 (********************)
 
 module Kernel = struct
+  (* Array where we count how many events we get *)
+  let count = [|0;0;0;0;0;0;0;0;0;0;0|]
+  let count_labels = [|"00: Local successes";"01: Local failures";"kernel2";"kernel3";"04: Focuses";"05: Cuts";"06: Open branches";"kernel7";"kernel8";"09: Kernel operations";"10: Calls to plugin"|]
+
+  let read_count i = count.(i)
+
+  let incr_count i = 
+    count.(i) <- count.(i) + 1;
+    plot count_labels.(i) count.(i)
+  
+  let reset_branches() = 
+    count.(6) <- 0;
+    plot count_labels.(6) count.(6)
+  
+  let incr_branches() = 
+    count.(6) <- count.(6) + 1;
+    plot count_labels.(6) count.(6)
+  
+  let decr_branches() = 
+    count.(6) <- count.(6) - 1;
+    plot count_labels.(6) count.(6)
 
   let fromPlugin() = Timer.transfer ptimer ktimer
-  let toPlugin  () = Timer.transfer ktimer ptimer
+  let toPlugin  () = 
+    incr_count 10;
+    Timer.transfer ktimer ptimer
+
   let fromTheory() = Timer.transfer ttimer ktimer
   let toTheory  () = Timer.transfer ktimer ttimer
-
-  (* Array where we count how many events we get *)
-  let count = [|0;0;0;0;0;0;0;0;0;0|]
-
-  let incr_count i = count.(i) <- count.(i) + 1
-  let read_count i = count.(i)
-  let incr_branches() = count.(6) <- count.(6) + 1
-  let decr_branches() = count.(6) <- count.(6) - 1
 
   let init() = incr_branches();
     Timer.reset gtimer;Timer.start gtimer;
@@ -171,11 +191,16 @@ end
 module Plugin = struct
 
   (* Array where we count how many events we get *)
-  let count = [|0;0;0;0;0;0;0;0;0|]
+  let count = [|0;0;0;0;0;0;0;0;0;0;0|]
+  let count_labels = [|"plugin0";"plugin1";"plugin2";"plugin3";"04: Clauses recorded";"05: Clauses dropped"; "plugin6"; "07: Approximate matches"; "08: Successful lookups (successes)"; "09: Failed lookups";"10: Plugin-specific (restarts)"|] 
 
-  let incr_count i = count.(i) <- count.(i) + 1
+  let incr_count i = 
+    count.(i) <- count.(i) + 1;
+    plot count_labels.(i) count.(i)
+
   let read_count i = count.(i)
 
   let clear() = for i=0 to Array.length count-1 do count.(i) <- 0 done
 
 end
+

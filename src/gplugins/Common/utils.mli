@@ -20,10 +20,10 @@ module Memo
   : sig
     open FE
     val tomem          : t -> unit
-    val search4success : bool->Seq.t->(t,ASet.t*FSet.t)sum
-    val search4failure : bool->Seq.t->(t,ASet.t*FSet.t)sum
 
     val memAccept          : receive
+    val get_usage_stats4success : t->int 
+    val reset_stats4success : t->unit
     val search4successNact : Seq.t->alt_action->alt_action
     val search4failureNact : Seq.t->(unit->focusaction)->focusaction
 

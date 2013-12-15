@@ -21,7 +21,6 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
      - or random focus on remaining clauses (decide_cut is false)
   *)
   let decide_cut = true
-
     
   module Strategy(FE:FrontEndType with type litType     = literals
 				  and  type formulaType = UF.t
@@ -35,11 +34,12 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
     let initial_data _ = (0,UASet.empty)
     let address     = ref No
     
-    exception Restart
-    let next_restart = ref 200
-    
+    module Restarts = RestartStrategies.RestartStrategies(UASet)
+    let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
+        
     (* We record a stack of clauses that will definitely do a Unit Propagate *)
     let stack   = ref []
+    let priority_lits = ref (Queue.create ())
 
     let report i =
       print_endline("   Plugin's report (DPLL_WL):");
@@ -220,15 +220,25 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       | _ -> (None,tset)
 
 
+    exception Nonempty_intersection of UASet.t
+
+    let pick_lit_from tset =
+      let select_pool lemma_litterals =
+        let inter = UASet.inter lemma_litterals tset in
+        if not (UASet.is_empty inter) then raise (Nonempty_intersection inter) in
+      let pool = 
+        try Queue.iter select_pool !priority_lits; tset
+        with Nonempty_intersection inter -> inter
+      in UASet.choose pool
 
     let decide atms tset () = 
       if decide_cut && not (UASet.is_empty tset) then
-	(let lit = UASet.choose tset in
-	   if UASet.is_in lit atms then failwith("Chosen lit in atms");
-	   if UASet.is_in (Atom.negation lit) atms then failwith("Chosen nlit in atms");
-	   Some(Cut(7,UF.build (Lit lit),accept,accept,fNone)))
+	(let lit = pick_lit_from tset in
+         if UASet.is_in lit atms then failwith("Chosen lit in atms");
+         if UASet.is_in (Atom.negation lit) atms then failwith("Chosen nlit in atms");
+         Some(Cut(7,UF.build (Lit lit),accept,accept,fNone)))
       else
-	None
+        None
 	  
     let clause_pick h l =
       if not(!stack=[]) then failwith("pas []");
@@ -250,17 +260,9 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	    stack:=h;
 	    findaction atms alternative
 
-    (* Closely related to the Memo.memAccept function. Raises Restart every time
-       the size of Me reaches a certain threshold. *)
-    let memAccept_restart = function 
-      | Local a -> 
-        (
-          Me.tomem a;
-          if !Flags.restarts && Me.size() == !next_restart then
-            raise Restart;
-          Accept
-        )
-      | _ -> Accept
+    let extract_lits a =
+      let lits, _ = Seq.simplify (sequent a)
+      in lits
 
     let rec solve_rec input = (*print_time report;*)
       match input with
@@ -301,12 +303,29 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
 		   if u'>0 then print_endline(string_of_int u')
 		   else if u>0 then report()));
+              
+              let alternative_restart () =
+                let out = alternative () in
+                if restart_strategy#is_enabled then
+                  (match out with
+                  | Some (Propose (a)) ->
+                    let count = Me.get_usage_stats4success a in
+                    
+                    if count >= restart_strategy#next then (
+                      Dump.Plugin.incr_count 10;
+                      Me.reset_stats4success a;
+                      raise (Restarts.Restart (extract_lits a))
+                    )
+                  | _ -> ());
+                out
+              in
+
 	      solve_rec (machine (true,
 			          (count.(0),tset'),
-			          memAccept_restart,
+			          Me.memAccept,
 			          match action with  
 			          | Some action as saction -> (fun()->saction)
-			          | None        -> findaction atms alternative
+			          | None        -> findaction atms alternative_restart
 	      )
 	      )
 	    )
@@ -360,15 +379,24 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
 
+    let reset () =
+      stack := [];
+      is_init:=true;
+      address:=No;
+      H.clear watched
+
     (* solve_restart handles restarts, launching solve_rec once, 
        then re-launching it every time a Restart exception is raised. *)
     let rec solve_restart input =
       try 
         solve_rec input
-      with Restart ->
-        next_restart := 2 * !next_restart;
-        Dump.msg (Some (Printf.sprintf "Restarting (next restart: %d clauses)" !next_restart)) None None;
+      with Restarts.Restart lits -> 
+        reset();
+        Queue.push lits !priority_lits;
+        restart_strategy#increment ();
         Dump.Kernel.toPlugin ();
+        Dump.Kernel.reset_branches ();
+        Dump.msg (Some (Printf.sprintf "Restarting (next restart: %d)" restart_strategy#next)) None None;
         solve_restart input
 
     (* solve_restart is just an alias of solve. *)

@@ -63,7 +63,7 @@ module Memo
       let kcompare (a1,f1)(a2,f2) =
 	let c=ASet.compare a1 a2 in
 	  if c==0 then FSet.compare f1 f2 else c
-      type values  = t
+      type values  = t*int
       let vcompare = Pervasives.compare
       type infos     = unit
       let info_build = empty_info_build
@@ -100,6 +100,8 @@ module Memo
     let tableS = ref MP.empty
     let tableF = ref MP.empty
 
+    let size () = (MP.cardinal !tableS) + (MP.cardinal !tableF)
+
     let tomem ans = 
       let (table,algo,b) = match reveal ans with
 	| Success(s,_)-> (tableS,find_sub false,true)
@@ -114,7 +116,7 @@ module Memo
                 (Some(string_of_int (Dump.Plugin.read_count 4)^"/"^string_of_int (Dump.Plugin.read_count 5)^" Recording "^(if b then "success" else "failure")^" for"))
                 (Some 4);
               Dump.msg None (Some(Seq.toString s)) (Some 4));
-	table := MP.add k (fun _ ->ans) !table
+	table := MP.add k (fun _ -> (ans, 1)) !table;
       | A a -> Dump.Plugin.incr_count 5;
 	if !Flags.debug>1
         then (Dump.msg None
@@ -133,9 +135,10 @@ module Memo
       if ASet.is_empty a then
 	if FSet.is_empty f then
           (if !Flags.debug>1 then Dump.msg None (Some("Found no previous success for "^Seq.toString seq)) None;
+           Dump.Plugin.incr_count 9;
 	   alternative())
 	else let (toCut,f')=FSet.next f in
-	     (Dump.Plugin.incr_count 6;
+	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
               if !Flags.debug>1 then Dump.msg None (Some("Found approx. in pos form of\n"^Seq.toString seq^"\n"^Form.toString toCut)) None;
 	      Some(Cut(7,toCut,(fun _->Accept),(fun _->Accept),(fun _-> None))))
       else let (toCut,a')=ASet.next a in
@@ -143,18 +146,26 @@ module Memo
             if !Flags.debug>1 then Dump.msg None (Some("Found approx. in atoms of\n"^Seq.toString seq^"\n"^Atom.toString toCut)) None;
 	    Some(Cut(7,Form.lit toCut,(fun _->Accept),(fun _->Accept),(fun _->None))))
 
+    let get_usage_stats4success ans =
+      snd (MP.find (Seq.simplify (sequent ans)) !tableS)
+
+    let reset_stats4success ans =
+      tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, 0)) !tableS
+
     let search4successNact seq alternative () =
       match search4success !Flags.almo seq with
       | A(a) 
         -> Dump.Plugin.incr_count 8;
           if !Flags.debug>1 then Dump.msg None (Some("Found previous success for "^Seq.toString seq)) None;
-          Some(Propose a)
+          let ans, count = a in
+          tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
+          Some(Propose ans)
       | F(d1,d2) -> cut_series seq alternative (d1,d2)
 
     let search4failureNact seq alternative =
       match search4failure false seq with
       | A(a) -> if !Flags.debug>1 then Dump.msg None (Some("Found previous failure for "^Seq.toString seq)) None;
-	  Propose a
+	Propose (fst a)
       | _    -> if !Flags.debug>1 then Dump.msg None (Some("Found no previous failure for "^Seq.toString seq)) None;
 	alternative()
 
@@ -165,5 +176,4 @@ module Memo
 	
     let clear () = tableS := MP.empty; tableF := MP.empty; MP.clear()
       
-    let size () = (MP.cardinal !tableS) + (MP.cardinal !tableF)
   end

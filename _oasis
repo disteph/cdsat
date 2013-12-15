@@ -85,7 +85,7 @@ Document "DPLL_WL"
   Title:      Psyche's DPLL_WL API
   InstallDir: API/gplugins/DPLL_WL
   XOCamlBuildPath: src/gplugins/DPLL_WL
-  XOCamlbuildModules: MyPlugin,DataStructures
+  XOCamlbuildModules: MyPlugin,DataStructures,RestartStrategies
 
 Document "Common"
   Type: ocamlbuild
