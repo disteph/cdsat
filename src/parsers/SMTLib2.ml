@@ -102,7 +102,9 @@ let glance input =
   let lexbuf = Lexing.from_string input in
   let h = 
     try Smtlib2_parse.main Smtlib2_lex.token lexbuf 
-    with Parsing.Parse_error -> raise (ParsingError "Alt-Ergo's parser could not parse input (raised exception)")
+    with
+    | Parsing.Parse_error -> raise (ParsingError "Alt-Ergo's parser could not parse input (raised exception)")
+    | Smtlib2_lex.LexingError msg -> raise (ParsingError ("Alt-Ergo's parser could not lex input: \""^msg^"\""))
   in
     match h with
       | None    -> raise (ParsingError "Alt-Ergo's parser could not parse input (returned None)")

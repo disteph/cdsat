@@ -72,16 +72,16 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
     let tablecheck() =
       let c =ref 0 in
-	H.iter (fun lit set ->
-		  CSet.iter (fun clause newlit->
-			       incr c;
-			       if not (H.mem watched newlit) then failwith("fad1");
-			       let l' = H.find watched newlit in
-				 if not(CSet.mem clause l') then failwith("fad2");
-				 let x=CSet.find clause l' in
-				   if not(x=lit) then failwith("fad3"))
-		    set
-	       ) watched
+      H.iter (fun lit set ->
+	CSet.iter (fun clause newlit->
+	  incr c;
+	  if not (H.mem watched newlit) then failwith("fad1");
+	  let l' = H.find watched newlit in
+	  if not(CSet.mem clause l') then failwith("fad2");
+	  let x=CSet.find clause l' in
+	  if not(x=lit) then failwith("fad3"))
+	  set
+      ) watched
 
     (* Boolean to record whether we have initialised the table of
        watched literals *)
@@ -375,7 +375,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
 	| Local ans                    -> report(); stack := []; is_init:=true; address:=No;
-	    H.clear watched; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();Dump.Plugin.clear();
+	    H.clear watched; restart_strategy#reset() ; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
 

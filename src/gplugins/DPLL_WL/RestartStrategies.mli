@@ -7,6 +7,7 @@ sig
   object
     method virtual increment : unit -> unit
     method virtual next : int
+    method virtual reset : unit -> unit
     method is_enabled : bool 
   end
   
@@ -15,6 +16,7 @@ sig
   object
     method increment : unit -> unit
     method next : int
+    method reset : unit -> unit
     method is_enabled : bool 
   end
   
@@ -23,6 +25,7 @@ sig
   object
     method increment : unit -> unit
     method next : int
+    method reset : unit -> unit
     method is_enabled : bool 
   end
   
@@ -31,6 +34,7 @@ sig
   object
     method increment : unit -> unit
     method next : int
+    method reset : unit -> unit
     method is_enabled : bool 
   end
   
@@ -39,6 +43,7 @@ sig
   object
     method increment : unit -> unit
     method next : int
+    method reset : unit -> unit
     method is_enabled : bool 
   end
   
@@ -47,6 +52,7 @@ sig
   object
     method increment : unit -> unit
     method next : int
+    method reset : unit -> unit
     method is_enabled : bool 
   end
   

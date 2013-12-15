@@ -76,13 +76,15 @@ let parse ts i l =
   in
 
   (* parse a clause from list of literal descriptions *)
-  let generate_clause l =
-    i.sigsymb "and" ts.prop (List.map (fun t _ -> generate_atom t) l)
+  let generate_clause = function
+    | [] -> i.sigsymb "true" ts.prop []
+    | l  -> i.sigsymb "and" ts.prop (List.map (fun t _ -> generate_atom t) l)
   in
 
   (* parse a cnf from list of clause descriptions *)
-  let generate_cnf l =
-    i.sigsymb "or" ts.prop (List.map (fun t _ -> generate_clause t) l)
+  let generate_cnf = function
+    | [] -> i.sigsymb "false" ts.prop []
+    | l  -> i.sigsymb "or" ts.prop (List.map (fun t _ -> generate_clause t) l)
   in
 
     (Some(generate_cnf l),None)

@@ -25,7 +25,7 @@ module PropStructure(F:Kernel.Interfaces.PrintableFormulaType) = struct
 
   let symb_i (symb: [> PropSig.symbol]) (formulalist:F.t list) = 
     match symb, formulalist with
-      | `True,[]      -> F.trueP
+      | `True,[]      -> F.trueN
       | `False,[]     -> F.falseN
       | `Neg,[a]      -> F.negation a
       | `And,[a;b]    -> F.andP(a,b)

@@ -5,6 +5,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
   object 
     method virtual next : int
     method virtual increment : unit -> unit
+    method virtual reset : unit -> unit
     method is_enabled = enabled
   end
 
@@ -14,6 +15,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
       
     method next = failwith "no restarts"
     method increment () = failwith "no restarts"
+    method reset () = ()
   end
 
   class constant (threshold) =
@@ -22,6 +24,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
     
     method next = threshold
     method increment () = ()
+    method reset () = ()
   end
 
   class arithmetic (start, step)  = 
@@ -32,6 +35,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
 
     method next = _next
     method increment () = _next <- _next + step
+    method reset () = _next <- start
   end
 
   class geometric (start, first_step, multiplier)  = 
@@ -45,6 +49,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
     method increment () = 
       _next <- _next + _step;
       _step <- _step * multiplier
+    method reset () = _next <- start; _step <- first_step
   end
 
   class exponential (start, multiplier)  = 
@@ -55,6 +60,7 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
 
     method next = _next
     method increment () = _next <- _next * multiplier
+    method reset () = _next <- start
   end
 
   class luby (base)  = 
@@ -79,6 +85,13 @@ module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
       self#update_steps ();
       _next <- base * (List.hd steps);
       steps <- List.tl steps;
+
+    method reset () = 
+      pow <- 1;
+      steps <- [1];
+      luby <- [1];
+      _next <- base
+
   end
 
   exception NotFound of string

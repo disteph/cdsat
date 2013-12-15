@@ -116,7 +116,7 @@ let parseNrun input =
 	with Parsers.ParsingError s | Theories.TypingError s ->
           if !Flags.debug>0 
           then Dump.msg (Some ("Parser "^MyParser.name^" could not parse input, because \n"^s)) None None;
-	  trying (i+1)
+          trying (i+1)
       end
     | _ -> print_endline "No parser seems to work for this input."; function _ -> None
   in

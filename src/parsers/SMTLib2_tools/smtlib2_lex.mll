@@ -28,6 +28,8 @@ let newline lexbuf =
       { pos with pos_lnum = pos.pos_lnum + 1; pos_bol = pos.pos_cnum; 
         pos_cnum=0 }
 
+exception LexingError of string
+
 }
 
 rule token = parse
@@ -86,6 +88,6 @@ rule token = parse
 | eof 
     { EOF }
 | _ 
-    {failwith(
+    {raise (LexingError(
       (Lexing.lexeme lexbuf) ^
-	": lexing error on line "^(string_of_int !Smtlib2_util.line))}{}
+	": lexing error on line "^(string_of_int !Smtlib2_util.line)))}{}
