@@ -42,14 +42,17 @@ TIMEOUT = 20 # Timeout in seconds after which Psyche is killed
 
 BASELINE_COMMAND = binary + " -gplugin dpll_wl"
 BENCHMARKED_VARIANTS = [
-	("restarts ", BASELINE_COMMAND + " -restarts constant   -rsettings 7 0"),
-	("restarts+", BASELINE_COMMAND + " -restarts arithmetic -rsettings 7 2")
+	# ("restarts const", BASELINE_COMMAND + " -restarts constant   -rsettings 7 0"),
+	("r arith", BASELINE_COMMAND + " -restarts arithmetic -rsettings 7 2"),
+	("r geom", BASELINE_COMMAND + " -restarts geometric -rsettings 7 2"),
+	("r expo", BASELINE_COMMAND + " -restarts exponential -rsettings 7 2"),
+	("r luby", BASELINE_COMMAND + " -restarts luby")
 ]
 
 test_files = []
 
 def is_cnf(file_path):
-	return file_path.endswith(".cnf")
+	return file_path.endswith(".cnf")|file_path.endswith(".smt2")
 
 for path in sys.argv[2:]:	
 	if os.path.isfile(path):
@@ -85,7 +88,7 @@ def format_timeout(duration, fastest):
 def ratio(baseline, variant):
 	SIGNIFICANCE_THRESHOLD = 0.2
 	
-	ratio = baseline / variant if baseline != 0 else float("nan")
+	ratio = baseline / variant if variant != 0 else float("nan")
 	significant = (baseline > SIGNIFICANCE_THRESHOLD or variant > SIGNIFICANCE_THRESHOLD) and not math.isnan(ratio) and abs(ratio - 1) > SIGNIFICANCE_THRESHOLD
 
 	return ratio if significant else False

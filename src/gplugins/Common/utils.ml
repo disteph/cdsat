@@ -21,7 +21,7 @@ module FEext(FE:FrontEndType)
   = struct
     open FE
     (* A function to systematically accept answers *)
-    let accept _ = FE.Accept
+    let accept _ = ()
     let fNone () = None
     let isSuccess = function
       | Local a -> (match reveal a with Success _ -> true | _ -> false)
@@ -128,8 +128,8 @@ module Memo
     let search4failure b s = find_sup b (Seq.simplify s) !tableF
 
     let memAccept = function
-      | Local a -> (tomem a;Accept)
-      | _ ->Accept
+      | Local a -> tomem a
+      | _ ->()
 
     let cut_series seq alternative (a,f) =
       if ASet.is_empty a then
@@ -140,11 +140,11 @@ module Memo
 	else let (toCut,f')=FSet.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
               if !Flags.debug>1 then Dump.msg None (Some("Found approx. in pos form of\n"^Seq.toString seq^"\n"^Form.toString toCut)) None;
-	      Some(Cut(7,toCut,(fun _->Accept),(fun _->Accept),(fun _-> None))))
+	      Some(Cut(7,toCut,(fun _->()),(fun _->()),(fun _-> None))))
       else let (toCut,a')=ASet.next a in
 	   (Dump.Plugin.incr_count 7;
             if !Flags.debug>1 then Dump.msg None (Some("Found approx. in atoms of\n"^Seq.toString seq^"\n"^Atom.toString toCut)) None;
-	    Some(Cut(7,Form.lit toCut,(fun _->Accept),(fun _->Accept),(fun _->None))))
+	    Some(Cut(7,Form.lit toCut,(fun _->()),(fun _->()),(fun _->None))))
 
     let get_usage_stats4success ans =
       snd (MP.find (Seq.simplify (sequent ans)) !tableS)

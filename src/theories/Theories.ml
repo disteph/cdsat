@@ -27,8 +27,8 @@ end
 
 (* type of a model structure for a theory signature 
 (to be used for parsing):
-symb_i : an interpretation for signature symbols,
-var_i  : an interpretation for declared symbols
+sigsymb_i : an interpretation for signature symbols,
+decsymb_i  : an interpretation for declared symbols
 *)
 
 type ('sort,'symbol,'t) structureType = 

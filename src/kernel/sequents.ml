@@ -141,14 +141,10 @@ module FrontEnd
     | Propose  of t
     | Restore  of alt_action
     and sideaction = bool
-    and reception = 
-    | Accept
-    | Refuse
-    | Action of focusaction
-    and receive = (t,bool*bool) local -> reception
+    and receive = (t,bool*bool) local -> unit
     and alt_action = unit->(focusaction option)
 
-    type 'a notified = bool*'a*((t,bool*bool) local -> reception)*alt_action
+    type 'a notified = bool*'a*receive*alt_action
 
     (* Type of local answers, for output of search
        AskFocus: new focus must be chosen to continue search

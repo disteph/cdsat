@@ -272,11 +272,7 @@ with two extra functions for prettyprinting and for negation *)
     | Propose  of t
     | Restore  of alt_action
   and sideaction = bool
-  and reception = 
-    | Accept
-    | Refuse
-    | Action of focusaction
-  and receive = (t,bool*bool) local -> reception
+  and receive = (t,bool*bool) local -> unit
   and alt_action = unit->(focusaction option)
 
   (* 'a notified = the input that plugin must provide
@@ -295,7 +291,7 @@ with two extra functions for prettyprinting and for negation *)
      l: next action to do for this newly created node is l (optional)
   *)
 
-  type 'a notified = bool*'a*((t,bool*bool) local->reception)*alt_action
+  type 'a notified = bool*'a*receive*alt_action
 
 
   (* Output of a call to the kernel:

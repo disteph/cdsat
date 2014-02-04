@@ -125,7 +125,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  )
 	  cset;
 	if decide_cut then 
-	  (print_endline(string_of_int(UASet.cardinal !alllits)^" atoms and negations present in non-unit clauses");
+	  (if !Flags.debug>0 then Dump.msg (Some(string_of_int(UASet.cardinal !alllits)^" atoms and negations present in non-unit clauses")) None None;
 	   let onoatms = UASet.union atms (UASet.negations atms) in
 	     UASet.diff !alllits onoatms)
 	else UASet.empty
@@ -209,7 +209,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		       let now = count.(0) in
 		       let myaccept a = 
                          if (isSuccess a&& count.(0)==now)
-                         then (address:=No;Accept)
+                         then (address:=No)
                          else failwith "Expected Success"
 		       in
 			 stack:=[];
@@ -396,7 +396,8 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
         restart_strategy#increment ();
         Dump.Kernel.toPlugin ();
         Dump.Kernel.reset_branches ();
-        Dump.msg (Some (Printf.sprintf "Restarting (next restart: %d)" restart_strategy#next)) None None;
+        (* if !Flags.debug>0 then *)
+          print_endline (Printf.sprintf "Restarting (next restart: %d)" restart_strategy#next);
         solve_restart input
 
     (* solve_restart is just an alias of solve. *)

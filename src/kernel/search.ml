@@ -255,9 +255,7 @@ module ProofSearch (MyTheory: DecProc)
 
 	      let rec action_analysis =
                 let intercept inter_fun v cont =
-		  let newcont loc_ans = match inter_fun (prune loc_ans) with
-		    | Action(f) -> Dump.Kernel.toPlugin();action_analysis f
-		    | _         -> cont loc_ans
+		  let newcont loc_ans = inter_fun (prune loc_ans); cont loc_ans
 		  in v newcont
 		in function instruction 
               ->
