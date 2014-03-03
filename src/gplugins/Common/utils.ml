@@ -41,14 +41,12 @@ module FEext(FE:FrontEndType)
    structures, module Memo provides 4 memoisation handling
    functions, and one function to clear the memoisation table.
 
-   The user can ask the search to store a result by a reception
-   Mem(f,...)    with f:tomem
-   The user can ask the user to search for a previously
-   obtained result by an action
-   Search(g,...) with g:tosearch
-   If the user wants to use them, he must provide more
-   structure than just F, FSet, ASet:
-   he must provide small extensions of FSet and ASet *)
+   A plugin can store the result of a search with f:tomem
+   It can search for a previously obtained result with g:tosearch
+
+   For the plugin to use these functions, it must construct a
+   memoisation table by providing more structure than just F, FSet,
+   ASet, i.e. providing small extensions of FSet and ASet *)
 
 module Memo
   (Atom:AtomType)

@@ -29,4 +29,5 @@
 <src/gplugins/DPLL_Pat/*.cmx>:        for-pack(DPLL_Pat)
 <src/gplugins/DPLL_WL/*.cmx>:         for-pack(DPLL_WL)
 <src/gplugins/Naive/*.cmx>:           for-pack(Naive)
+<src/gplugins/RestartsFunctor/*.cmx>: for-pack(RestartsFunctor)
 <src/*.{byte,native}>:                use_nums, use_str, use_unix

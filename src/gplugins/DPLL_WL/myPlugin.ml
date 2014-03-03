@@ -34,7 +34,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
     let initial_data _ = (0,UASet.empty)
     let address     = ref No
     
-    module Restarts = RestartStrategies.RestartStrategies(UASet)
+    module Restarts = Common.RestartStrategies.RestartStrategies(UASet)
     let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
         
     (* We record a stack of clauses that will definitely do a Unit Propagate *)
@@ -387,7 +387,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
     (* solve_restart handles restarts, launching solve_rec once, 
        then re-launching it every time a Restart exception is raised. *)
-    let rec solve_restart input =
+    let rec solve input =
       try 
         solve_rec input
       with Restarts.Restart lits -> 
@@ -398,11 +398,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
         Dump.Kernel.reset_branches ();
         (* if !Flags.debug>0 then *)
           print_endline (Printf.sprintf "Restarting (next restart: %d)" restart_strategy#next);
-        solve_restart input
-
-    (* solve_restart is just an alias of solve. *)
-    let solve input = 
-      solve_restart input
+        solve input
 
   end
 
