@@ -37,7 +37,7 @@ rule token = parse
     { token lexbuf }
 | ';'  (_ # '\n')* 
      { token lexbuf }
-| ['\n']+ as str 
+| ['\r' '\n']+ as str 
      { newline lexbuf; 
        Smtlib2_util.line := (!Smtlib2_util.line + (String.length str));
        token lexbuf }
