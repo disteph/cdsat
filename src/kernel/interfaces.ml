@@ -26,6 +26,7 @@ module type AtomType = sig
   val id: t -> int
   val hash: t -> int
   val clear: unit->unit
+  (* val subst: t -> term list -> t *)
 end
 
 type ('a,'b) form =
@@ -38,6 +39,8 @@ type ('a,'b) form =
   | OrP of 'a * 'a
   | AndN of 'a * 'a
   | OrN of 'a * 'a
+  (* | ForAll of 'a *)
+  (* | Exists of 'a *)
 
 (* Interface for an implementation of formulae *)
 

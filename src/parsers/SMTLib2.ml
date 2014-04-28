@@ -26,6 +26,17 @@ let getsymbSymbol = function
   | Symbol(_,symb)      -> symb 
   | SymbolWithOr(_,symb)-> symb
 
+let getsort = function
+  | SortIdentifier(_,IdSymbol(_,symb)) -> getsymbSymbol symb
+  | _ -> failwith("Could not parse sort")
+
+let getsortedvar = function
+  | SortedVarSymSort(_,symb,sort) -> (getsymbSymbol symb,getsort sort)
+
+type 'a getsymbType =
+| AppliedSymbol of string*(term list)*('a environment)
+| Quantif of bool*((string*string) list)*term
+
 let rec getsymb env = function
   | TermLetTerm(_,(_,l),t) -> 
       let newenv = 
@@ -36,7 +47,9 @@ let rec getsymb env = function
 	getsymb newenv t
   | TermQualIdentifier(_,symb)    -> getsymbQualId env [] symb
   | TermQualIdTerm(_,symb,(_,tl)) -> getsymbQualId env tl symb
-  | TermSpecConst(_,a)            -> (getconst a,[],env)
+  | TermSpecConst(_,a)            -> AppliedSymbol(getconst a,[],env)
+  | TermForAllTerm(_,(_, l),t)    -> Quantif(true,List.map getsortedvar l,t)
+  | TermExistsTerm(_,(_, l),t)    -> Quantif(false,List.map getsortedvar l,t)
   | _                             -> raise (ParsingError "Cannot understand term");
       
 and getsymbQualId env tl = function
@@ -49,15 +62,12 @@ and getsymbIdSymbol env tl = function
       begin
 	let s = getsymbSymbol symb in
 	match search s env,tl with
-	  | None,_       -> (s,tl,env)
+	  | None,_       -> AppliedSymbol(s,tl,env)
 	  | Some(t,e),[] -> getsymb e t
 	  | _,_          -> raise (ParsingError "Higher-order definition")
       end
   | IdUnderscoreSymNum(_,symb,_)-> raise (ParsingError "Not sure")
 
-let getsort = function
-  | SortIdentifier(_,IdSymbol(_,symb)) -> getsymbSymbol symb
-  | _ -> failwith("Could not parse sort")
 
 let getStatus = function
   | AttributeValSymbol(_,s) -> 
@@ -115,6 +125,11 @@ let guessThDecProc(theory,_,_,_,_) =
     | None   -> ""
     | Some a -> a
 
+let rec list_index a accu = function
+  | [] -> None
+  | (b,so)::l when a=b -> Some (accu,so)
+  | _::l -> list_index a (accu+1) l
+
 let parse ts i (theory,satprov,status,declared,formulalist) = 
 
   (* i's functions may raise Theories.TypingError *)
@@ -123,15 +138,20 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
   
   (* The following may raise Theories.TypingError *)
 
-  let rec transformTermBase env expsort s l =
-    let l' = List.map (transformTerm  env) l in
+  let rec transformTermBase env boundvarlist expsort s l =
+    let l' = List.map (transformTerm env boundvarlist) l in
     if SM.mem s declared
-    then i.decsymb s expsort l' (SM.find s declared)
-    else i.sigsymb s expsort l'
-        
-  and transformTerm env t expsort =
-    let (s,l,newenv) = getsymb env t in
-      transformTermBase newenv expsort s l
+    then i.decsymb s expsort l' (SM.find s declared) 
+    else 
+      match list_index s 0 boundvarlist with
+      | None -> i.sigsymb s expsort l'
+      | Some (db,so) -> failwith("cannot parse bound variables")(* i.boundsymb db so *)
+      
+  and transformTerm env boundvarlist t expsort =
+    match getsymb env t with
+    | AppliedSymbol (s,l,newenv) -> transformTermBase newenv boundvarlist expsort s l
+    | Quantif(b,l,t') -> transformTerm env (List.append l boundvarlist) t' expsort
+
   in
 
     (match theory with
@@ -141,7 +161,7 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
     match formulalist with
       | []          -> (None,status)
       | _ -> 
-	  let formula = transformTermBase EmptyEnv ts.prop "and" formulalist in
+	  let formula = transformTermBase EmptyEnv [] ts.prop "and" formulalist in
 	  let fformula =
 	    if satprov then formula
 	    else 
