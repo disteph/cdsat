@@ -89,7 +89,7 @@ module ProofSearch (MyTheory: DecProc)
       in
       v1 newcont1
 
-     (* Unary version of ou and and, for homogeneous style *)
+    (* Unary version of ou and et, for homogeneous style *)
 
     let rec straight v success seq cont =
       let newcont = function
@@ -106,7 +106,8 @@ module ProofSearch (MyTheory: DecProc)
 	update *)
 
     let rec ext = function
-      | [] -> (ASet.empty,FSet.empty::FSet.empty::[])
+      | []  -> failwith("Trying to use ext on empty list")
+      | [p] -> Seq.interesting p
       | p::l ->
 	let (a,b) = Seq.interesting p in
 	let (a',b') = ext l in
@@ -116,8 +117,8 @@ module ProofSearch (MyTheory: DecProc)
         match (seq,d) with
 	| (Seq.EntF(_, g, _, _, polar),(atomN',formP'::formPSaved'::[])) ->
 	  Seq.EntF(atomN', g, formP', formPSaved', polar)
-	| (Seq.EntUF(_, delta, _, _, polar),(atomN',formP'::formPSaved'::[])) -> 
-	  Seq.EntUF(atomN', delta, formP', formPSaved', polar)
+	| (Seq.EntUF(_, delta, _, _, polar),(atomN',formP'::formPSaved'::delta'::[])) -> 
+	  Seq.EntUF(atomN', FSet.inter delta delta', formP', formPSaved', polar)
 	| (_,(_,l)) -> failwith("relevant - Wrong number of arguments: "^(string_of_int(List.length l)))
       else seq
         
@@ -128,6 +129,31 @@ module ProofSearch (MyTheory: DecProc)
 
     let std2 seq = let aux seq1 seq2 = relevant(seq,ext [seq1;seq2]) in success2 aux
     let std1 seq = let aux seqrec    = relevant(seq,ext [seqrec])    in success1 aux
+
+    let add2delta form = function
+      | (atomN',formP'::formPSaved'::delta'::[]) -> (atomN',formP'::formPSaved'::(FSet.add form delta')::[])
+      | _ -> failwith("add2delta applied to structure with no delta")
+
+    let stdU2 form seq = let aux seq1 seq2 = relevant(seq,add2delta form (ext [seq1;seq2])) in success2 aux
+    let stdU1 form seq = let aux seqrec    = relevant(seq,add2delta form (ext [seqrec]))    in success1 aux
+
+    let stdF1 seq = fun (seqrec,pt) -> 
+      match ext [seqrec] with
+      | (_,_::_::gdelta::[]) when FSet.is_empty gdelta
+        -> Success(seqrec,pt)
+      | (ga,gfP::gfPS::_)
+          -> let newseq = relevant(seq,(ga,gfP::gfPS::[])) in
+             Success(newseq,Proof.one newseq pt)
+      | _ -> failwith("Not enough arguments in result of ext")
+
+    let stdF2 seq = fun (seq1,pt1) (seq2,pt2) -> 
+      match ext [seq1], ext [seq2] with
+      | (_,_::_::gdelta::[]),_ when FSet.is_empty gdelta
+          -> Success(seq1,pt1)
+      | _,(_,_::_::gdelta::[]) when FSet.is_empty gdelta
+          -> Success(seq2,pt2)
+      | _ -> let newseq = relevant(seq,ext [seq1;seq2]) in
+             Success(newseq,Proof.two newseq pt1 pt2)
 
     let prune = function
       | Local a       -> Local a
@@ -154,8 +180,9 @@ module ProofSearch (MyTheory: DecProc)
 	| _ when ((polarity polar g) <> Pos) ->
 	  straight
 	    (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
-	    (std1 seq) seq cont
-
+            (stdF1 seq)
+            seq cont
+            
 	| TrueP -> let x = success0(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[])))
 	           in cont (Local(throw x))
 
@@ -164,7 +191,7 @@ module ProofSearch (MyTheory: DecProc)
 	| AndP(a1, a2) ->
 	  let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar)) data in
 	  let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar)) data in
-	  et u1 u2 (std2 seq) seq cont
+	  et u1 u2 (stdF2 seq) seq cont
 	    
 	| OrP(a1, a2) -> 
 	  let side_pick b = 
@@ -172,7 +199,7 @@ module ProofSearch (MyTheory: DecProc)
 	    let (a1',a2') = if b then (a1,a2) else (a2,a1) in
 	    let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar)) data in
 	    let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar)) data in
-	    ou u1 u2 (std1 seq) (std1 seq) seq cont
+	    ou u1 u2 (stdF1 seq) (stdF1 seq) seq cont
 	  in
           Dump.Kernel.toPlugin();
 	  Fake(AskSide(seq,side_pick,data))
@@ -199,13 +226,11 @@ module ProofSearch (MyTheory: DecProc)
 	           else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar)) data in
 		        straight u (success1(fun pt->relevant(seq,
                                                               match ext [pt] with
-		                                              | (ga,gfP::l) -> (ga,
-				                                                (if FSet.is_in toDecompose gfP
-				                                                 then FSet.remove toDecompose gfP
-				                                                 else gfP)::l)
-		                                              | _           -> failwith("Should not happen")))) seq cont
+		                                              | (ga,gfP::gfPS::gdelta::[]) when FSet.is_in toDecompose gfP
+				                                  -> (ga,(FSet.remove toDecompose gfP)::gfPS::(FSet.add toDecompose gdelta)::[])
+				                              | (ga,l) -> (ga,l)))) seq cont
 
-	     | TrueN -> let x = success0(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[])))
+	     | TrueN -> let x = success0(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::(FSet.add toDecompose FSet.empty)::[])))
 		        in cont (Local(throw x))
 
 	     | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
@@ -218,8 +243,10 @@ module ProofSearch (MyTheory: DecProc)
 		             straight u (std1 seq) seq cont
 		        else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar)) data in
 		             straight u (success1(fun pt->relevant(seq,
-							           let (ga,l) = ext [pt] in 
-							           ((if ASet.is_in t' ga then ASet.remove t' ga else ga),l)))) seq cont
+                                                              match ext [pt] with
+		                                              | (ga,gfP::gfPS::gdelta::[]) when ASet.is_in t' ga
+				                                  -> (ASet.remove t' ga, gfP::gfPS::(FSet.add toDecompose gdelta)::[])
+				                              | (ga,l) -> (ga,l)))) seq cont
 
 	     | Lit t when ((polarity polar toDecompose) = Und)
                  ->  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
@@ -234,12 +261,12 @@ module ProofSearch (MyTheory: DecProc)
 	     | AndN (a1, a2) -> 
 	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in
 	       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a2 newdelta, formP, formPSaved, polar)) data in
-	       et u1 u2 (std2 seq) seq cont
+	       et u1 u2 (stdU2 toDecompose seq) seq cont
 		 
 	     | OrN (a1, a2) -> 
 	       straight 
 		 (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar)) data)
-		 (std1 seq) seq cont
+		 (stdU1 toDecompose seq) seq cont
 
 	     | _ -> failwith("All cases should have been covered!")
 	     end
@@ -270,8 +297,8 @@ module ProofSearch (MyTheory: DecProc)
 		      ou (intercept inter_fun u1) u2
 			(success1(fun pt -> relevant(seq,
                                             match ext [pt] with
-			                    | (ga,gfP::l) -> (ga,(FSet.add toFocus gfP)::l)
-			                    | _           -> failwith("Should not happen"))))
+			                    | (ga,gfP::gfPS::[]) -> (ga,(FSet.add toFocus gfP)::gfPS::FSet.empty::[])
+			                    | (ga,l)             -> (ga,l))))
 			successId seq cont
 			
 		| Cut(3,toCut, inter_fun1, inter_fun2,l) (*cut_3*)
@@ -300,11 +327,11 @@ module ProofSearch (MyTheory: DecProc)
                         Dump.Kernel.fromTheory();
 			let x = match oracle with
 			  | None   -> Fail seq
-			  | Some a -> success0(relevant(seq,(a,FSet.empty::FSet.empty::[])))
+			  | Some a -> success0(relevant(seq,(a,FSet.empty::FSet.empty::FSet.empty::[])))
 			in cont (Local(throw x))
 		      in
 		      let u2 = lk_solvef formPChoose true formP formPSaved l data in
-		      ou u1 u2 successId (std1 seq) seq cont
+		      ou u1 u2 successId successId seq cont
 
 		| Polarise(l, inter_fun) when (polarity polar (Form.lit l) = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,

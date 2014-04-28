@@ -45,7 +45,7 @@ module FrontEnd
 
       let interesting = function
 	| EntF(atomN, g, formP, formPSaved, polar)      -> (atomN, formP::formPSaved::[])
-	| EntUF(atomN, delta, formP, formPSaved, polar) -> (atomN, formP::formPSaved::[])
+	| EntUF(atomN, delta, formP, formPSaved, polar) -> (atomN, formP::formPSaved::delta::[])
 
       let simplify s = match interesting s with
         | (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
