@@ -1,10 +1,13 @@
 OASISFormat: 0.3
 Name:        Psyche
 Synopsis:    Proof-Search factorY for Collaborative HEuristics
-Authors: Alexis Bernadet, Ecole Polytechnique
-         Mahfuza Farooque, CNRS
-         Stephane Graham-Lengrand, CNRS
+Authors: Stephane Graham-Lengrand, CNRS
          Assia Mahboubi, INRIA
+         Alexis Bernadet, Ecole Polytechnique
+         Mahfuza Farooque, CNRS
+         Zelda Mariet, Ecole Polytechnique
+         Clément Pit-Claudel, Ecole Polytechnique
+         Damien Rouhling, ENS Lyon
          Matthieu Vegreville, Ecole Polytechnique
 License:     CeCILL-C
 LicenseFile: LICENCE.txt

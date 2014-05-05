@@ -9,6 +9,9 @@ Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA
 
 Alexis Bernadet, Ecole Polytechnique
 Mahfuza Farooque, CNRS
+Zelda Mariet, Ecole Polytechnique
+Clément Pit-Claudel, Ecole Polytechnique
+Damien Rouhling, ENS Lyon
 Matthieu Vegreville, Ecole Polytechnique
 
 Some plugins use some (unmodified) code
