@@ -32,8 +32,11 @@ decsymb_i  : an interpretation for declared symbols
 *)
 
 type ('sort,'symbol,'t) structureType = 
-    { sigsymb_i: 'symbol -> 't list -> 't;
-      decsymb_i: 'sort -> string  -> 't list -> 't}
+    { sigsymb_i   : 'symbol -> 't list -> 't;
+      decsymb_i   : 'sort -> string  -> 't list -> 't;
+      boundsymb_i : int -> 'sort -> 't;
+      quantif_i   : bool -> 'sort -> 't -> 't                 
+    }
 
 (* Type of interpretation functions for applied symbols, pertaining to
 the signature (sigsymb) or declared in the input problem (decsymb).
@@ -47,7 +50,10 @@ information is to be found in the signature). *)
 
 type ('sort,'t) interpretType = 
     { sigsymb : string -> 'sort -> ('sort->'t) list -> 't ;
-      decsymb : string -> 'sort -> ('sort->'t) list -> (string * string list) -> 't}
+      decsymb : string -> 'sort -> ('sort->'t) list -> (string * (string list)) -> 't;
+      boundsymb : int -> string -> 'sort -> 't;
+      quantif : bool -> string list -> 't -> 't
+    }
 
 (* Type of a Theory with Decision Procedure *)
 

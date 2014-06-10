@@ -40,12 +40,14 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 	    | s,l -> Prop (PS.symb_i s (List.map toform l))
 	  );
 	decsymb_i =
-          function
+          (function
 	  | `Prop -> fun (var:string) l -> 
 	    Prop (lit (true,var,List.map toterm l))
 	  | `Term -> fun (var:string) l -> 
 	    Ter (Term.build (Term.C (var,List.map toterm l)))
-	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: variable "^var^" not of expected type `Prop or `Term"))
+	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: variable "^var^" not of expected type `Prop or `Term")));
+        boundsymb_i = (fun db so -> raise (ModelError ("ModelError: cannot treat bound variables")));
+        quantif_i = (fun db so sf -> raise (ModelError ("ModelError: cannot treat quantifiers")))
       }
 
     let	examples = []

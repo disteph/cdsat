@@ -98,5 +98,19 @@ let interpret
       (fun s expsort l (decsort,decarg)
       -> let arit _ = (ts.sortParse decsort,List.map ts.sortParse decarg) in
          let multiary aux sym l = singleton (aux sym l) in
-         symb arit multiary (st.decsymb_i expsort) s expsort l)
+         symb arit multiary (st.decsymb_i expsort) s expsort l);
+
+    boundsymb =
+      (fun db so expected -> 
+        if ts.sortParse so = expected then st.boundsymb_i db expected
+        else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^so^" but expecting another sort")));
+    
+    quantif =
+      (fun b l sf ->
+        let rec aux sf = function
+          | []     -> sf          
+          | so::l' -> st.quantif_i b (ts.sortParse so) (aux sf l')
+        in
+        aux sf l)
+          
   }

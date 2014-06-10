@@ -82,7 +82,7 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 	  | s,l                  -> Prop(PS.symb_i s (List.map toform l)));
 
       decsymb_i =
-	let rec aux so var l = 
+	(let rec aux so var l = 
 	  if l <> [] then
 	    raise (ModelError ("ModelError: variable "^var^" shouldn't have any argument"))
 	  else match so with
@@ -92,7 +92,11 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
 	    | Rat a -> Prop(build_lit `Gt a)
 	    | _     -> raise (ModelError
 				("ModelError: should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
-	in aux
+	in aux);
+
+        boundsymb_i = (fun db so -> raise (ModelError ("ModelError: cannot treat bound variables")));
+        quantif_i = (fun db so sf -> raise (ModelError ("ModelError: cannot treat quantifiers")))
+
     }
 
   let examples = []

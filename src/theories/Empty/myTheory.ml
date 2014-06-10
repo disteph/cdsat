@@ -42,12 +42,16 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
 	     let module TT = ThDecProc_tools.PropStructure(F) in
 	       TT.symb_i symb);
 	decsymb_i = 
-	  function
+	  (function
 	  | `Prop -> fun (var:string) l ->
             if l <> [] 
             then raise (ModelError ("ModelError: Variable"^var^"shouldn't have any argument"))  
 	    else lit(true,var,[])
-	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: Variable "^var^" not of expected type `Prop"))
+	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: Variable "^var^" not of expected type `Prop")));
+
+        boundsymb_i = (fun db so -> raise (ModelError ("ModelError: cannot treat bound variables")));
+        quantif_i = (fun db so sf -> raise (ModelError ("ModelError: cannot treat quantifiers")))
+
       }
 
     let toform a = a

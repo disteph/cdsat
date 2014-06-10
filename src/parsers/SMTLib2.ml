@@ -139,18 +139,20 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
   (* The following may raise Theories.TypingError *)
 
   let rec transformTermBase env boundvarlist expsort s l =
-    let l' = List.map (transformTerm env boundvarlist) l in
-    if SM.mem s declared
-    then i.decsymb s expsort l' (SM.find s declared) 
-    else 
-      match list_index s 0 boundvarlist with
-      | None -> i.sigsymb s expsort l'
-      | Some (db,so) -> failwith("cannot parse bound variables")(* i.boundsymb db so *)
+    match list_index s 0 boundvarlist,l with
+    | Some(db,so),[]  -> i.boundsymb db so expsort
+    | Some(_,_) , _   -> raise (ParsingError "Higher-order quantification")
+    | None,_          ->
+      let l' = List.map (transformTerm env boundvarlist) l in
+      if SM.mem s declared
+      then i.decsymb s expsort l' (SM.find s declared) 
+      else i.sigsymb s expsort l'
       
   and transformTerm env boundvarlist t expsort =
     match getsymb env t with
     | AppliedSymbol (s,l,newenv) -> transformTermBase newenv boundvarlist expsort s l
-    | Quantif(b,l,t') -> transformTerm env (List.append l boundvarlist) t' expsort
+    | Quantif(b,l,t') when expsort=ts.prop -> i.quantif b (List.map snd l) (transformTerm env (List.append l boundvarlist) t' ts.prop)
+    | Quantif(b,l,t') -> raise (ParsingError "Parsing a quantifier while inhabiting another sort than prop")
 
   in
 
