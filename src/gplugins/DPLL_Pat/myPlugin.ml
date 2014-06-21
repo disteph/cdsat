@@ -97,7 +97,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       (* If there is no more positive formulae to place the focus on,
 	 we restore the formulae on which we already placed focus *)
 
-      | Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
+      | Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
 	  -> solve (machine(Restore fNone))
 
       (* If Memoisation is off, we run focus_pick to determine which
@@ -105,7 +105,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 formulae on which focus is allowed, and the address of the
 	 current focus point *)
 
-      | Fake(AskFocus(seq,l,_,_,machine,olda)) when not !Flags.memo
+      | Fake(AskFocus(seq,_,l,_,_,machine,olda)) when not !Flags.memo
 	  -> solve (machine(focus_pick seq l olda ()))
 
       (* If Memoisation is on, we
@@ -118,7 +118,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 allowed, and the address of the current focus point
       *)
 
-      | Fake(AskFocus(seq,l,_,_,machine,olda))
+      | Fake(AskFocus(seq,_,l,_,_,machine,olda))
 	  -> solve(machine(Me.search4failureNact seq (focus_pick seq l olda)))
 
       (* When we are notified of new focus point: *)
@@ -131,7 +131,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 - no further instruction is given to kernel
       *)
 
-      | Fake(Notify(_,_,machine,olda))  when not !Flags.memo
+      | Fake(Notify(_,_,_,machine,olda))  when not !Flags.memo
           ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
             then print_endline(print_state olda);
             count.(4)<-count.(4)+1;
@@ -150,7 +150,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 instruction is given to kernel
       *)
 
-      | Fake(Notify(seq,_,machine,olda))     
+      | Fake(Notify(seq,_,_,machine,olda))     
 	-> (* (match !address with *)
 	    (* 	| Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	    (* 	| Yes(exp) -> failwith("Yes not expected") *)
@@ -159,12 +159,12 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
 	then print_endline(print_state olda);
 	  count.(4)<-count.(4)+1;
-	  solve(machine(true,count.(4),Me.memAccept,Me.search4successNact seq fNone))
+	  solve(machine(true,count.(4),Me.tomem,Me.search4successNact seq fNone))
 
 
       (* When we are asked a side, we always go for the left first *)
 
-      | Fake(AskSide(seq,machine,_)) -> solve (machine true)
+      | Fake(AskSide(seq,_,machine,_)) -> solve (machine true)
 
       (* When kernel has explored all branches and proposes to go
 	 backwards to close remaining branches, we give it the green

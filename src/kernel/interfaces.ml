@@ -18,6 +18,8 @@ end
 
 module type AtomType = sig
   type t
+  type constraints
+  val topconstraint:constraints
   val equal : t -> t -> bool
   val compare : t -> t -> int
   val negation: t -> t
@@ -26,7 +28,6 @@ module type AtomType = sig
   val id: t -> int
   val hash: t -> int
   val clear: unit->unit
-  (* val subst: t -> term list -> t *)
 end
 
 type ('a,'b) form =
@@ -96,13 +97,15 @@ module type DecProc = sig
 
   module Consistency(ASet: CollectImplem with type e = Atom.t)
     :sig
-      val consistency: ASet.t -> ASet.t option
-      val goal_consistency: ASet.t -> Atom.t -> ASet.t option
+      val consistency: ASet.t -> Atom.constraints -> (ASet.t*Atom.constraints) option
+      val goal_consistency: ASet.t -> Atom.t -> Atom.constraints -> (ASet.t*Atom.constraints) option
     end
 
 end
 
 type polarity = Pos | Neg | Und
+
+type ('a,'b) stream = Fail of 'a | Success of ('a*'b)*(unit->('a,'b) stream)
 
 (* This is the module type that specifies the FrontEnd to which a plugin
    has access *)
@@ -113,6 +116,7 @@ module type FrontEndType = sig
 formulae, and collections of atoms *)
 
   type litType
+  type constraints
   type formulaType
   type fsetType
   type asetType
@@ -192,7 +196,7 @@ with two extra functions for prettyprinting and for negation *)
        embedded into that type by Fake
   *)
 
-  type final = Success of Seq.t*Proof.t | Fail of Seq.t
+  type final = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
   val reveal   : t->final
   val sequent  : t->Seq.t
   val toString : t->string
@@ -275,7 +279,7 @@ with two extra functions for prettyprinting and for negation *)
     | Propose  of t
     | Restore  of alt_action
   and sideaction = bool
-  and receive = (t,bool*bool) local -> unit
+  and receive = t -> unit
   and alt_action = unit->(focusaction option)
 
   (* 'a notified = the input that plugin must provide
@@ -355,9 +359,9 @@ with two extra functions for prettyprinting and for negation *)
 
   type 'a output = (t,'a fakeoutput) local
   and  'a fakeoutput = 
-    | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
-    | AskFocus of Seq.t*fsetType*bool*bool*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
+    | Notify   of Seq.t*constraints*bool*  ('a notified -> 'a output)*'a
+    | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
+    | AskSide  of Seq.t*constraints*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
 
 

@@ -89,6 +89,8 @@ end
 module Atom = struct
 
   type psymb = string
+  type constraints = unit
+  let topconstraint = ()
 
   module Predicates = struct
     type t = {reveal : psymb; id : int}

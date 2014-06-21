@@ -23,12 +23,10 @@ module FEext(FE:FrontEndType)
     (* A function to systematically accept answers *)
     let accept _ = ()
     let fNone () = None
-    let isSuccess = function
-      | Local a -> (match reveal a with Success _ -> true | _ -> false)
-      | _ -> false
-    let isFailure = function
-      | Local a -> (match reveal a with Fail _ -> true | _ -> false)
-      | _ -> false
+    let isSuccess a =
+      match reveal a with Success _ -> true | _ -> false
+    let isFailure a =
+      match reveal a with Fail _ -> true | _ -> false
     let model seq = let (a,_)=Seq.simplify seq in a
 
   end
@@ -102,8 +100,8 @@ module Memo
 
     let tomem ans = 
       let (table,algo,b) = match reveal ans with
-	| Success(s,_)-> (tableS,find_sub false,true)
-	| Fail(s)    -> (tableF,find_sup false,false)
+	| Success(s,_,_)-> (tableS,find_sub false,true)
+	| Fail(s)       -> (tableF,find_sup false,false)
       in
       let s = sequent ans in
       let k = Seq.simplify s in
@@ -124,10 +122,6 @@ module Memo
 
     let search4success b s = find_sub b (Seq.simplify s) !tableS
     let search4failure b s = find_sup b (Seq.simplify s) !tableF
-
-    let memAccept = function
-      | Local a -> tomem a
-      | _ ->()
 
     let cut_series seq alternative (a,f) =
       if ASet.is_empty a then

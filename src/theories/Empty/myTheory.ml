@@ -9,18 +9,18 @@ let sugPlugin = None
 module Consistency(ASet: CollectImplem with type e = Atom.t)
   = struct    
     
-    let goal_consistency atomN t = 
-      if ASet.is_in t atomN then Some (ASet.add t ASet.empty)
+    let goal_consistency atomN t sigma = 
+      if ASet.is_in t atomN then Some (ASet.add t ASet.empty,sigma)
       else None
 
-    let rec consistency atomN =
+    let rec consistency atomN sigma =
       ASet.fold 
 	(function l -> function
 	   | Some a -> Some a
 	   | None   -> 
-	       (match goal_consistency atomN (Atom.negation l) with
+	       (match goal_consistency atomN (Atom.negation l) sigma with
 		  | None -> None
-		  | Some set -> Some (ASet.add l set)
+		  | Some(set,sigma') -> Some (ASet.add l set,sigma')
 	       )
 	)
 	atomN

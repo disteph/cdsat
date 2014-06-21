@@ -14,6 +14,7 @@ module FrontEnd
   = struct
 
     type litType     = Atom.t
+    type constraints = Atom.constraints
     type formulaType = F.t
     type fsetType    = FSet.t
     type asetType    = ASet.t
@@ -35,6 +36,8 @@ module FrontEnd
       | OrN(f1,f2)  -> Neg
       | AndP(f1,f2) -> Pos
       | OrP(f1,f2)  -> Pos
+      | ForAll f    -> Neg
+      | Exists f    -> Pos
 
 
     module Seq = struct
@@ -113,17 +116,39 @@ module FrontEnd
     end
 
     (* Type of final answers, known in interface FrontEndType. *)
-    type final = Success of Seq.t*Proof.t | Fail of Seq.t
+    type final = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
+
 
     (* Type of final answers, NOT known in interface FrontEndType. *)		       
     type t = final
     let reveal ans = ans
-    let sequent = function 
-      | Success(s,_) -> s
-      | Fail s       -> s
+    let sequent = function
+      | Success(s,_,_) -> s
+      | Fail s -> s
+
+    (* Displays answer *)
+    let toString = function
+      | Success(_,p,_) -> "$$"^(Proof.toString p)^"$$";
+      | Fail s         -> "\\textsf {FAIL} \\\\$$"^(Seq.toString s)^"$$"
+
 
     (* Generator of local answer types, either definitive answer or a fake answer *)
     type ('a,'b) local = Local of 'a | Fake  of 'b
+
+
+    (* Type of local answers, for internal use during search
+       In case of Fake,
+       first bool: true= faking success, false= faking failure
+       second bool: true= look for next branch, false= look for previous branch
+       third argument = computation at resume point; 
+       (it suffices to apply it to a continuation to trigger it) 
+    *)
+
+    type 'a intern =
+    | ISuccess of (Seq.t*Proof.t , bool)local *constraints*('a computations)
+    | IFail    of (Seq.t,bool) local * 'a computations
+    and 'a computations = (constraints -> ('a intern -> 'a) -> 'a)
+
 
     (* Type of actions that user can perform to put more coins in the machine
        focusaction: when user is asked for focus
@@ -141,7 +166,7 @@ module FrontEnd
     | Propose  of t
     | Restore  of alt_action
     and sideaction = bool
-    and receive = (t,bool*bool) local -> unit
+    and receive = t -> unit
     and alt_action = unit->(focusaction option)
 
     type 'a notified = bool*'a*receive*alt_action
@@ -156,25 +181,9 @@ module FrontEnd
     *)
     type 'a output = (t,'a fakeoutput) local
     and 'a fakeoutput = 
-    | Notify   of Seq.t*bool*  ('a notified -> 'a output)*'a
-    | AskFocus of Seq.t*fsetType*bool*bool*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*       (sideaction  -> 'a output)*'a
+    | Notify   of Seq.t*constraints*bool*  ('a notified -> 'a output)*'a
+    | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
+    | AskSide  of Seq.t*constraints*       (sideaction  -> 'a output)*'a
     | Stop     of bool*bool*   (unit        -> 'a output)
-
-
-    (* Type of local answers, for internal use during search
-       In case of Fake,
-       first bool: true= faking success, false= faking failure
-       second bool: true= look for next branch, false= look for previous branch
-       third argument = computation at resume point; 
-       (it suffices to apply it to a continuation to trigger it) 
-    *)
-    type 'a intern = (t,bool*bool*('a computations)) local
-    and 'a computations = Comp of (('a intern -> 'a output)-> 'a output)
-
-    (* Displays answer *)
-    let toString a = match a with
-      | Success(s,p) -> "$$"^(Proof.toString p)^"$$";
-      | Fail(s) -> "\\textsf {FAIL} \\\\$$"^(Seq.toString s)^"$$"
 
   end

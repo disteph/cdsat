@@ -6,8 +6,8 @@ module FEext(FE:FrontEndType): sig
   open FE
   val accept  :receive
   val fNone   :alt_action
-  val isSuccess:(t,'a) local->bool
-  val isFailure:(t,'a) local->bool
+  val isSuccess:t->bool
+  val isFailure:t->bool
   val model   :Seq.t->asetType
 end
 
@@ -21,7 +21,6 @@ module Memo
     open FE
     val tomem          : t -> unit
 
-    val memAccept          : receive
     val get_usage_stats4success : t->int 
     val reset_stats4success : t->unit
     val search4successNact : Seq.t->alt_action->alt_action

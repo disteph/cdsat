@@ -280,7 +280,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	   instruction is given to kernel
 	*)
 
-	| Fake(Notify(seq,inloop,machine,(olda,tset)))
+	| Fake(Notify(seq,_,inloop,machine,(olda,tset)))
 	  ->(* (match !address with *)
 	    (*    | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	    (*    | Yes(exp) -> failwith("Yes not expected") *)
@@ -322,7 +322,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
 	      solve_rec (machine (true,
 			          (count.(0),tset'),
-			          Me.memAccept,
+			          Me.tomem,
 			          match action with  
 			          | Some action as saction -> (fun()->saction)
 			          | None        -> findaction atms alternative_restart
@@ -335,10 +335,10 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	(* If there is no more positive formulae to place the focus on,
 	   we restore the formulae on which we already placed focus *)
 
-	| Fake(AskFocus(_,l,true,_,machine,_)) when UFSet.is_empty l
+	| Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
 	    -> solve_rec(machine(Restore fNone))
 
-	| Fake(AskFocus(seq,l,false,_,machine,_)) when UFSet.is_empty l
+	| Fake(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l
 	    -> solve_rec(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))
 
 	(* We
@@ -353,7 +353,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	   allowed, and the address of the current focus point
 	*)
 
-	| Fake(AskFocus(seq,l,_,_,machine,(olda,tset)))
+	| Fake(AskFocus(seq,_,l,_,_,machine,(olda,tset)))
 	  -> let atms = model seq in
              let alternative()= match findaction atms fNone () with
                | Some action -> action
@@ -364,7 +364,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
 	(* When we are asked a side, we always go for the left first *)
 
-	| Fake(AskSide(seq,machine,_)) -> solve_rec (machine true)
+	| Fake(AskSide(seq,_,machine,_)) -> solve_rec (machine true)
 
 	(* When kernel has explored all branches and proposes to go
 	   backwards to close remaining branches, we give it the green

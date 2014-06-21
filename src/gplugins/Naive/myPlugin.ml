@@ -97,13 +97,13 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       type data = unit
       let initial_data _ =()
       let rec solve = function
-	| Local ans                              -> ans
-	| Fake(Notify  (_,_,machine,_))          -> solve (machine (true,(),accept,fNone))
-	| Fake(AskFocus(_,[],true,_,machine,_))  -> solve (machine (Restore fNone))
-	| Fake(AskFocus(_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
-	| Fake(AskFocus(_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
-	| Fake(AskSide (_,machine,_))            -> solve (machine true)
-	| Fake(Stop(b1,b2, machine))             -> solve (machine ())
+	| Local ans                                -> ans
+	| Fake(Notify(_,_,_,machine,_))            -> solve (machine (true,(),accept,fNone))
+	| Fake(AskFocus(_,_,[],true,_,machine,_))  -> solve (machine (Restore fNone))
+	| Fake(AskFocus(_,_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
+	| Fake(AskFocus(_,_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
+	| Fake(AskSide (_,_,machine,_))            -> solve (machine true)
+	| Fake(Stop(b1,b2, machine))               -> solve (machine ())
 	    
     end
 

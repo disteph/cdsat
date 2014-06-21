@@ -21,8 +21,8 @@ and type d = X.input) : ThDecProc = struct
 
   module Consistency(ASet : CollectImplem with type e = Atom.t) = struct
       
-    let goal_consistency atomN t =
-      if ASet.is_in t atomN then Some (ASet.add t ASet.empty)
+    let goal_consistency atomN t sigma =
+      if ASet.is_in t atomN then Some (ASet.add t ASet.empty,sigma)
       else
         begin
           if !Flags.debug>0 then Dump.msg (Some("Procedure called on goal "^Atom.toString t^" under hypotheses\n"^ASet.toString atomN)) None None;
@@ -40,7 +40,7 @@ and type d = X.input) : ThDecProc = struct
 	      | (Some l) -> (*Alg.print_inputlist l; print_newline();*)
 	        let li = (List.map X.itoA l) in
 	        Some(List.fold_left (fun e a -> 
-	          ASet.add a e) ASet.empty li)
+	          ASet.add a e) ASet.empty li,sigma)
 	    else begin
 	      let r = ref true and ans = ref [] and li = ref (ASet.fold (fun i l ->
 	        let (b',p',s') = X.predicate i in
@@ -56,14 +56,14 @@ and type d = X.input) : ThDecProc = struct
 	      if !r then None else
 	        let lis = (List.map X.itoA !ans) in
 	        Some(List.fold_left (fun e a ->
-	          ASet.add a e) ASet.empty ((List.hd !li)::lis))
+	          ASet.add a e) ASet.empty ((List.hd !li)::lis),sigma)
 	    end
           in
-          if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT with hypotheses" | Some x -> "INCONSISTENT with hypotheses: "^ASet.toString x))) None None; 
+          if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT with hypotheses" | Some(x,_) -> "INCONSISTENT with hypotheses: "^ASet.toString x))) None None; 
           result
         end
 
-    let consistency atomN = 
+    let consistency atomN sigma = 
       if !Flags.debug>0 then Dump.msg (Some("Procedure called on\n"^ASet.toString atomN)) None None;
       let l = ASet.fold (fun t l -> t::l) atomN [] in
       let l' = (List.fold_right (fun e li ->
@@ -78,7 +78,7 @@ and type d = X.input) : ThDecProc = struct
 	    | (Some l) -> (*Alg.print_inputlist l; print_newline();*)
 	      let li = (List.map X.itoA l) in
 	      Some(List.fold_left (fun e a -> 
-	        ASet.add a e) ASet.empty li)
+	        ASet.add a e) ASet.empty li,sigma)
           end
         else begin
 	  let r = ref None in
@@ -88,7 +88,7 @@ and type d = X.input) : ThDecProc = struct
 	    | (Some l) -> (*Alg.print_inputlist l; print_newline();*)
 	      let li = (List.map X.itoA l) in
 	      r := Some(List.fold_left (fun e a -> 
-	        ASet.add a e) ASet.empty li)
+	        ASet.add a e) ASet.empty li,sigma)
 	  end;
  	  if !r <> None then !r else begin
 	    let b = ref true and li = ref l and ans = ref ASet.empty in
@@ -96,18 +96,18 @@ and type d = X.input) : ThDecProc = struct
 	      let (_,p,_) = X.predicate (List.hd !li) in
 	      if p <> "=" then
                 begin
-	          match (goal_consistency atomN (Atom.negation (List.hd !li))) with
+	          match (goal_consistency atomN (Atom.negation (List.hd !li)) sigma) with
 	          | None -> ()
-	          | Some s -> b:=false ; ans:=ASet.add (List.hd !li) s
+	          | Some(s,_) -> b:=false ; ans:=ASet.add (List.hd !li) s
                 end;
               li := List.tl !li;
 	    done;
 	    if !b then None else
-	      Some(ASet.add (List.hd !li) !ans)
+	      Some((ASet.add (List.hd !li) !ans),sigma)
 	  end 
         end
       in
-      if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT" | Some x -> "INCONSISTENT: "^ASet.toString x))) None None; 
+      if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT" | Some(x,_) -> "INCONSISTENT: "^ASet.toString x))) None None; 
       result
   end
 
