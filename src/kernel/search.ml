@@ -13,7 +13,7 @@ module ProofSearch (MyTheory: DecProc)
     module DecProc = MyTheory.Consistency(ASet)
 
      (* Loads the FrontEnd *)
-    module FE = FrontEnd(MyTheory.Atom)(F)(FSet)(ASet)
+    module FE = FrontEnd(MyTheory.Atom)(MyTheory.Constraint)(F)(FSet)(ASet)
     open FE
     
 
@@ -227,14 +227,21 @@ module ProofSearch (MyTheory: DecProc)
           Dump.Kernel.toPlugin();
 	  Fake(AskSide(seq,sigma,side_pick,data))
 
+	| ForAll a ->
+	  let u = lk_solve inloop (Seq.EntF (atomN, a, formP, formPSaved, polar)) data in
+	  straight u (stdF1 seq) (fun sigma->sigma) (fun sigma->sigma) seq sigma cont
+
 	| Lit t -> 
-          Dump.Kernel.toTheory();
-          let oracle = DecProc.goal_consistency atomN t sigma in
-          Dump.Kernel.fromTheory();
-          let x = match oracle with
-	  | None   -> IFail(Local seq,lk_solve inloop seq data)
-	  | Some(a,sigma') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',lk_solve inloop seq data)
-	  in cont (throw x)
+          let rec pythie f sigma cont =
+            Dump.Kernel.toTheory();
+            let oracle = f sigma in
+            Dump.Kernel.fromTheory();
+            cont(throw(
+              match oracle with
+	      | NoMore            -> IFail(Local seq,lk_solve inloop seq data)
+	      | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',pythie f')
+            ))
+	    in pythie (DecProc.goal_consistency atomN t) sigma cont
 
 	| _ -> failwith("All cases should have been covered!")
 	end
@@ -293,6 +300,10 @@ module ProofSearch (MyTheory: DecProc)
 		 (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar)) data)
 		 (stdU1 toDecompose seq) (fun a->a)(fun a->a) seq sigma cont
 
+	     | Exists a ->
+	       let u = lk_solve inloop (Seq.EntF (atomN, a, formP, formPSaved, polar)) data in
+	       straight u (stdF1 seq) MyTheory.Constraint.lift MyTheory.Constraint.proj seq sigma cont
+                 
 	     | _ -> failwith("All cases should have been covered!")
 	     end
 
@@ -346,17 +357,18 @@ module ProofSearch (MyTheory: DecProc)
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)
 
 		| ConsistencyCheck(inter_fun,l) when not conschecked (*Checking consistency*)
-		    ->let u1 sigma cont =
+		    ->let rec pythie f sigma cont =
                         Dump.Kernel.toTheory();
-                        let oracle = DecProc.consistency atomN sigma in
+                        let oracle = f sigma in
                         Dump.Kernel.fromTheory();
-			let x = match oracle with
-	                  | None   -> IFail(Local seq,lk_solvef formPChoose conschecked formP formPSaved action0 data)
-	                  | Some(a,sigma') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',lk_solvef formPChoose conschecked formP formPSaved action0 data)
-			in cont (throw x)
-		      in
-		      let u2 = lk_solvef formPChoose true formP formPSaved l data in
-		      ou u1 u2 (fun a->a) (fun a->a) seq sigma cont
+                        cont(throw(
+                          match oracle with
+	                  | NoMore            -> IFail(Local seq,lk_solve inloop seq data)
+	                  | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',pythie f')
+                        ))
+                      in
+                      let u2 = lk_solvef formPChoose true formP formPSaved l data in
+                      ou (pythie (DecProc.consistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont
 
 		| Polarise(l, inter_fun) when (polarity polar (Form.lit l) = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
@@ -432,7 +444,7 @@ module ProofSearch (MyTheory: DecProc)
           in if !Flags.debug>0 then Dump.msg (Some strg) None None;
           Fake(Stop(false,b2,fun _ -> wrap f))
       in
-      f MyTheory.Atom.topconstraint inter
+      f MyTheory.Constraint.topconstraint inter
 
      (* Wraps the above function by providing initial inloop and
 	initial sequent *)

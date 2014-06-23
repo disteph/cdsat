@@ -18,8 +18,6 @@ end
 
 module type AtomType = sig
   type t
-  type constraints
-  val topconstraint:constraints
   val equal : t -> t -> bool
   val compare : t -> t -> int
   val negation: t -> t
@@ -28,6 +26,14 @@ module type AtomType = sig
   val id: t -> int
   val hash: t -> int
   val clear: unit->unit
+end
+
+module type ConstraintType = sig
+  type t
+  val topconstraint:t
+  val proj : t -> t
+  val lift : t -> t
+  val compare : t -> t -> int
 end
 
 type ('a,'b) form =
@@ -91,21 +97,25 @@ module type DataStruct = sig
   val datastruct: (a,aset,f,fset) datastruct
 end
 
+type ('a,'b) gstream = NoMore | Guard of 'a*'b*('a,'b) stream
+and ('a,'b) stream = 'b->('a,'b) gstream
+
 module type DecProc = sig
 
   module Atom: AtomType
 
+  module Constraint: ConstraintType
+
   module Consistency(ASet: CollectImplem with type e = Atom.t)
     :sig
-      val consistency: ASet.t -> Atom.constraints -> (ASet.t*Atom.constraints) option
-      val goal_consistency: ASet.t -> Atom.t -> Atom.constraints -> (ASet.t*Atom.constraints) option
+      val consistency: ASet.t -> (ASet.t,Constraint.t) stream
+      val goal_consistency: ASet.t -> Atom.t -> (ASet.t,Constraint.t) stream
     end
 
 end
 
 type polarity = Pos | Neg | Und
 
-type ('a,'b) stream = Fail of 'a | Success of ('a*'b)*(unit->('a,'b) stream)
 
 (* This is the module type that specifies the FrontEnd to which a plugin
    has access *)

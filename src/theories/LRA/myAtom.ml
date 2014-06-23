@@ -5,8 +5,6 @@ module Atom =
   struct
 
   type t = EqAst.equation
-  type constraints = unit
-  let topconstraint = ()
 
   let reveal at = (at.eq_coeffs,at.eq_sign,at.eq_bound)
 

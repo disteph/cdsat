@@ -80,6 +80,8 @@ module Generate(Atom:AtomType) = struct
 	     | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
 	     | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
 	     | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
+	     | ForAll x, ForAll y         -> x==y
+	     | Exists x, Exists y         -> x==y
 	     | a, b                       -> a=b
 	 let hash t1 =
 	   match t1.reveal with
@@ -92,6 +94,8 @@ module Generate(Atom:AtomType) = struct
 	     | OrP (x1,x2)  -> 7*x1.id+19*x2.id
 	     | AndN (x1,x2) -> 11*x1.id+23*x2.id
 	     | OrN (x1,x2)  -> 13*x1.id+29*x2.id
+             | ForAll x     -> 31*x.id
+             | Exists x     -> 37*x.id
        end: Hashtbl.HashedType with type t=tt)
 
     include MySmartFormulaImplemPrimitive

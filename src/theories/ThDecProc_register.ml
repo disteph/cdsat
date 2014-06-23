@@ -1,10 +1,12 @@
 (* This is the register of all theories' decprocs in Psyche *)
 
+open ThDecProc_tools
+
 let bank:(module Theories.ThDecProc)array = 
   [|
-    (module Empty.MyTheory);
-    (module LRA.MyTheory);
-    (module CC.MyTheory)
+    (module GDecProc2DecProc(Empty.MyTheory));
+    (module GDecProc2DecProc(LRA.MyTheory));
+    (module GDecProc2DecProc(CC.MyTheory))
   |]
 
 exception NotFound of string

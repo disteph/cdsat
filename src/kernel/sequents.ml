@@ -8,13 +8,14 @@ open Map
 
 module FrontEnd
   (Atom: AtomType)
+  (Constraint: ConstraintType)
   (F   : FormulaImplem with type lit = Atom.t) 
   (FSet: CollectImplem with type e = F.t) 
   (ASet: CollectImplem with type e = F.lit) 
   = struct
 
     type litType     = Atom.t
-    type constraints = Atom.constraints
+    type constraints = Constraint.t
     type formulaType = F.t
     type fsetType    = FSet.t
     type asetType    = ASet.t

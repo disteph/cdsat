@@ -4,24 +4,25 @@ open Formulae
 
 module Sig    = ThSig_register.PropSig
 module Atom   = MyAtom.Atom
+
 let sugPlugin = None
 
 module Consistency(ASet: CollectImplem with type e = Atom.t)
   = struct    
     
-    let goal_consistency atomN t sigma = 
-      if ASet.is_in t atomN then Some (ASet.add t ASet.empty,sigma)
+    let goal_consistency atomN t = 
+      if ASet.is_in t atomN then Some (ASet.add t ASet.empty)
       else None
-
-    let rec consistency atomN sigma =
+        
+    let rec consistency atomN =
       ASet.fold 
 	(function l -> function
-	   | Some a -> Some a
-	   | None   -> 
-	       (match goal_consistency atomN (Atom.negation l) sigma with
-		  | None -> None
-		  | Some(set,sigma') -> Some (ASet.add l set,sigma')
-	       )
+	| Some a -> Some a
+	| None   -> 
+	  (match goal_consistency atomN (Atom.negation l) with
+	  | None     -> None
+	  | Some set -> Some (ASet.add l set)
+	  )
 	)
 	atomN
 	None
