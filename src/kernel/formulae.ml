@@ -18,11 +18,15 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
 	| FalseP -> fprintf fmt "%s" "\\falseP"
 	| FalseN -> fprintf fmt "%s" "\\falseN"
 	| AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andN" f2
-	| OrN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\orN" f2
+	| OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orN" f2
 	| AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
-	| OrP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\orP" f2
+	| OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orP" f2
+	| ForAll f     -> print_unary_op_in_fmt fmt "\\forall" f
+	| Exists f     -> print_unary_op_in_fmt fmt "\\exists" f
     and print_bin_op_in_fmt fmt f1 op f2 =
       fprintf fmt "(%a %s %a)" print_in_fmt f1 op print_in_fmt f2
+    and print_unary_op_in_fmt fmt op f =
+      fprintf fmt "(%s %a)" op print_in_fmt f
 
     let toString f =
       let buf = Buffer.create 255 in
@@ -40,7 +44,10 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
 	| AndN(f1, f2) -> OrP(negation f1, negation f2)
 	| OrN(f1, f2) -> AndP(negation f1, negation f2)
 	| AndP(f1, f2) -> OrN(negation f1, negation f2)
-	| OrP(f1, f2) -> AndN(negation f1, negation f2) in
+	| OrP(f1, f2) -> AndN(negation f1, negation f2) 
+	| ForAll f -> Exists(negation f) 
+	| Exists f -> ForAll(negation f) 
+      in
 	F.build f1
 
     let lit a         = F.build(Lit a)
@@ -52,4 +59,6 @@ module PrintableFormula (Atom: AtomType)(F: FormulaImplem with type lit = Atom.t
     let andP (f1, f2) = F.build(AndP(f1, f2))
     let orN (f1, f2)  = F.build(OrN(f1, f2))
     let orP (f1, f2)  = F.build(OrP(f1, f2))
+    let forall f      = F.build(ForAll f)
+    let exists f      = F.build(Exists f)
   end

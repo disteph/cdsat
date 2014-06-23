@@ -34,6 +34,11 @@ module type ConstraintType = sig
   val proj : t -> t
   val lift : t -> t
   val compare : t -> t -> int
+
+  type arities
+  val init     : arities
+  val addEigen : arities -> arities
+  val addMeta  : arities -> arities
 end
 
 type ('a,'b) form =
@@ -126,10 +131,11 @@ module type FrontEndType = sig
 formulae, and collections of atoms *)
 
   type litType
-  type constraints
   type formulaType
   type fsetType
   type asetType
+  type constraints
+  type arities
 
 (* The kernel knows of an implementation extending that of formulae
 with two extra functions for prettyprinting and for negation *)
@@ -170,8 +176,8 @@ with two extra functions for prettyprinting and for negation *)
 
   module Seq : sig
     type t =
-      | EntF  of asetType * formulaType * fsetType * fsetType * polmap
-      | EntUF of asetType * fsetType * fsetType * fsetType * polmap
+      | EntF  of asetType * formulaType * fsetType * fsetType * polmap * arities
+      | EntUF of asetType * fsetType * fsetType * fsetType * polmap * arities
     val simplify : t -> asetType*fsetType
     val toString : t -> string
   end
@@ -190,11 +196,7 @@ with two extra functions for prettyprinting and for negation *)
   module Proof : ProofType with type seq=Seq.t
   module NoProof : ProofType with type seq=Seq.t
 
-  (* The abstract type of answers, t, that a plugin is trying to
-  produce *) 
-  type t
-
-  (* final is the plugin-readable version of type t:
+  (* t is the plugin-readable type of answers:
      a final answer is either
      - a success of proof-search, with a proof-tree
      - a failure of proof-search (carrying the sequent for which no proof was found)
@@ -206,8 +208,7 @@ with two extra functions for prettyprinting and for negation *)
        embedded into that type by Fake
   *)
 
-  type final = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
-  val reveal   : t->final
+  type t = private Success of Seq.t*Proof.t*constraints | Fail of Seq.t
   val sequent  : t->Seq.t
   val toString : t->string
 

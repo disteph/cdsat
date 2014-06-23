@@ -23,10 +23,8 @@ module FEext(FE:FrontEndType)
     (* A function to systematically accept answers *)
     let accept _ = ()
     let fNone () = None
-    let isSuccess a =
-      match reveal a with Success _ -> true | _ -> false
-    let isFailure a =
-      match reveal a with Fail _ -> true | _ -> false
+    let isSuccess = function Success _ -> true | _ -> false
+    let isFailure = function Fail _ -> true | _ -> false
     let model seq = let (a,_)=Seq.simplify seq in a
 
   end
@@ -99,7 +97,7 @@ module Memo
     let size () = (MP.cardinal !tableS) + (MP.cardinal !tableF)
 
     let tomem ans = 
-      let (table,algo,b) = match reveal ans with
+      let (table,algo,b) = match ans with
 	| Success(s,_,_)-> (tableS,find_sub false,true)
 	| Fail(s)       -> (tableF,find_sup false,false)
       in

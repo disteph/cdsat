@@ -2,7 +2,8 @@ open Formulae
 open Interfaces
 open Sequents
 
-module ProofSearch (MyTheory: DecProc)
+module ProofSearch 
+  (MyTheory: DecProc)
   (F: FormulaImplem    with type lit = MyTheory.Atom.t)
   (FSet: CollectImplem with type e = F.t)
   (ASet: CollectImplem with type e = MyTheory.Atom.t)
@@ -132,10 +133,10 @@ module ProofSearch (MyTheory: DecProc)
 
     let relevant (seq,d) = if !Flags.weakenings then
         match (seq,d) with
-	| (Seq.EntF(_, g, _, _, polar),(atomN',formP'::formPSaved'::[])) ->
-	  Seq.EntF(atomN', g, formP', formPSaved', polar)
-	| (Seq.EntUF(_, delta, _, _, polar),(atomN',formP'::formPSaved'::delta'::[])) -> 
-	  Seq.EntUF(atomN', FSet.inter delta delta', formP', formPSaved', polar)
+	| (Seq.EntF(_, g, _, _, polar,ar),(atomN',formP'::formPSaved'::[])) ->
+	  Seq.EntF(atomN', g, formP', formPSaved', polar,ar)
+	| (Seq.EntUF(_, delta, _, _, polar,ar),(atomN',formP'::formPSaved'::delta'::[])) -> 
+	  Seq.EntUF(atomN', FSet.inter delta delta', formP', formPSaved', polar,ar)
 	| (_,(_,l)) -> failwith("relevant - Wrong number of arguments: "^(string_of_int(List.length l)))
       else seq
         
@@ -192,11 +193,11 @@ module ProofSearch (MyTheory: DecProc)
       Dump.Kernel.print_time();
       if !Flags.debug>0 then Dump.msg None (Some("attack "^Seq.toString seq)) None;
       match seq with
-      | Seq.EntF(atomN, g, formP, formPSaved, polar)
+      | Seq.EntF(atomN, g, formP, formPSaved, polar,ar)
         -> begin match F.reveal g with
 	| _ when ((polarity polar g) <> Pos) ->
 	  straight
-	    (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar)) data)
+	    (lk_solve inloop (Seq.EntUF (atomN, FSet.add g FSet.empty, formP, formPSaved, polar,ar)) data)
             (stdF1 seq)
             (fun a->a)
             (fun a->a)
@@ -212,25 +213,25 @@ module ProofSearch (MyTheory: DecProc)
 	| FalseP -> cont (throw(IFail(Local seq,lk_solve inloop seq data)))
 	  
 	| AndP(a1, a2) ->
-	  let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar)) data in
-	  let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar)) data in
+	  let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar,ar)) data in
+	  let u2 = lk_solve inloop (Seq.EntF (atomN, a2, formP, formPSaved, polar,ar)) data in
 	  et u1 u2 (stdF2 seq) seq sigma cont
 	    
 	| OrP(a1, a2) -> 
 	  let side_pick b = 
             Dump.Kernel.fromPlugin();
 	    let (a1',a2') = if b then (a1,a2) else (a2,a1) in
-	    let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar)) data in
-	    let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar)) data in
+	    let u1 = lk_solve inloop (Seq.EntF (atomN, a1', formP, formPSaved, polar,ar)) data in
+	    let u2 = lk_solve inloop (Seq.EntF (atomN, a2', formP, formPSaved, polar,ar)) data in
 	    ou u1 u2 (stdF1 seq) (stdF1 seq) seq sigma cont
 	  in
           Dump.Kernel.toPlugin();
 	  Fake(AskSide(seq,sigma,side_pick,data))
 
-	| ForAll a ->
-	  let u = lk_solve inloop (Seq.EntF (atomN, a, formP, formPSaved, polar)) data in
-	  straight u (stdF1 seq) (fun sigma->sigma) (fun sigma->sigma) seq sigma cont
-
+	| Exists a ->
+	  let u = lk_solve inloop (Seq.EntF (atomN, a, formP, formPSaved, polar, MyTheory.Constraint.addMeta ar)) data in
+	  straight u (stdF1 seq) MyTheory.Constraint.lift MyTheory.Constraint.proj seq sigma cont
+            
 	| Lit t -> 
           let rec pythie f sigma cont =
             Dump.Kernel.toTheory();
@@ -246,14 +247,14 @@ module ProofSearch (MyTheory: DecProc)
 	| _ -> failwith("All cases should have been covered!")
 	end
 	
-      | Seq.EntUF(atomN, delta, formP, formPSaved, polar) when not (FSet.is_empty delta)
+      | Seq.EntUF(atomN, delta, formP, formPSaved, polar,ar) when not (FSet.is_empty delta)
 	  -> let (toDecompose,newdelta) = FSet.next delta in
 	     begin match F.reveal toDecompose with
 	     | _ when (polarity polar toDecompose) = Pos 
                  ->if (FSet.is_in toDecompose formP)||(FSet.is_in toDecompose formPSaved)
-	           then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar)) data in
+	           then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar,ar)) data in
 		        straight u (std1 seq) (fun a->a) (fun a->a) seq sigma cont
-	           else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar)) data in
+	           else let u = lk_solve false (Seq.EntUF (atomN, newdelta, FSet.add toDecompose formP, formPSaved, polar,ar)) data in
 		        straight u (success1(fun pt->relevant(seq,
                                                               match ext [pt] with
 		                                              | (ga,gfP::gfPS::gdelta::[]) when FSet.is_in toDecompose gfP
@@ -265,15 +266,15 @@ module ProofSearch (MyTheory: DecProc)
                                          lk_solve inloop seq data)
 		        in cont (throw x)
 
-	     | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
+	     | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
 		         straight u (std1 seq) (fun a->a) (fun a->a) seq sigma cont
 
 	     | Lit t when (polarity polar toDecompose) = Neg 
                      -> let t' = (MyTheory.Atom.negation t) in
 		        if ASet.is_in t' atomN
-		        then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar)) data in
+		        then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
 		             straight u (std1 seq)  (fun a->a) (fun a->a) seq sigma cont
-		        else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar)) data in
+		        else let u = lk_solve false (Seq.EntUF (ASet.add t' atomN,newdelta, formP, formPSaved, polar,ar)) data in
 		             straight u (success1(fun pt->relevant(seq,
                                                               match ext [pt] with
 		                                              | (ga,gfP::gfPS::gdelta::[]) when ASet.is_in t' ga
@@ -287,27 +288,28 @@ module ProofSearch (MyTheory: DecProc)
                    in
                    (* Pol.iter (fun l pol->print_endline(MyTheory.Atom.toString l^"->"^(match pol with Pos -> "Pos"| Neg->"Neg"|Und->"Und")))newpolar; *)
                    straight 
-		     (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, newpolar)) data)
+		     (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, newpolar,ar)) data)
 		     (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                  
 	     | AndN (a1, a2) -> 
-	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar)) data in
-	       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a2 newdelta, formP, formPSaved, polar)) data in
+	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 newdelta, formP, formPSaved, polar,ar)) data in
+	       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add a2 newdelta, formP, formPSaved, polar,ar)) data in
 	       et u1 u2 (stdU2 toDecompose seq) seq sigma cont
 		 
 	     | OrN (a1, a2) -> 
 	       straight 
-		 (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar)) data)
+		 (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar,ar)) data)
 		 (stdU1 toDecompose seq) (fun a->a)(fun a->a) seq sigma cont
 
-	     | Exists a ->
-	       let u = lk_solve inloop (Seq.EntF (atomN, a, formP, formPSaved, polar)) data in
-	       straight u (stdF1 seq) MyTheory.Constraint.lift MyTheory.Constraint.proj seq sigma cont
-                 
+	     | ForAll a ->
+	       let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add a newdelta, formP, formPSaved, polar,MyTheory.Constraint.addEigen ar)) data in
+	       straight u (stdF1 seq) (fun sigma->sigma) (fun sigma->sigma) seq sigma cont
+
 	     | _ -> failwith("All cases should have been covered!")
+
 	     end
 
-      | Seq.EntUF(atomN, _, formP', formPSaved', polar) 
+      | Seq.EntUF(atomN, _, formP', formPSaved', polar,ar) 
 	-> if !Flags.debug>0 then Dump.msg None (Some("attack "^Seq.toString seq)) None;
 
 	  let rec lk_solvef formPChoose conschecked formP formPSaved action0 data sigma cont = 
@@ -328,7 +330,7 @@ module ProofSearch (MyTheory: DecProc)
                   ->Dump.Kernel.incr_count 4;(* real focus *)
 		    if not (FSet.is_in toFocus formPChoose) then failwith("Not allowed to focus on this, you are cheating, you naughty!!!")
 		    else
-		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar)) data in
+		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar,ar)) data in
 		      let u2 = lk_solvef (FSet.remove toFocus formPChoose) conschecked formP formPSaved l data in
 		      ou (intercept inter_fun u1) u2
 			(success1(fun pt -> relevant(seq,
@@ -341,8 +343,8 @@ module ProofSearch (MyTheory: DecProc)
 		  ->if !Flags.cuts = false then failwith("Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
                     if !Flags.debug>0 then Dump.msg None (Some ("Cut3 on "^Form.toString toCut)) (Some 5);
-                    let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar)) data in
-                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+                    let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) data in
+                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) data in
                     let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
                     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
                       
@@ -350,8 +352,8 @@ module ProofSearch (MyTheory: DecProc)
 		  ->if !Flags.cuts = false then failwith("Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
                     if !Flags.debug>0 then Dump.msg None (Some ("Cut7 on "^Form.toString toCut)) (Some 5);
-                    let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar)) data in
-                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar)) data in
+                    let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) data in
+                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (Form.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) data in
                     let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
                     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont 
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)
@@ -372,13 +374,15 @@ module ProofSearch (MyTheory: DecProc)
 
 		| Polarise(l, inter_fun) when (polarity polar (Form.lit l) = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							 Pol.add l Pos ( Pol.add (MyTheory.Atom.negation l) Neg polar))) data in
+							 Pol.add l Pos ( Pol.add (MyTheory.Atom.negation l) Neg polar),
+                                                         ar)) data in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
 		| DePolarise(l, inter_fun) when not (polarity polar (Form.lit l) = Und) 
                     ->if !Flags.depol = false then failwith("Depolarisation is not allowed");
 		      let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							 Pol.remove l ( Pol.remove (MyTheory.Atom.negation l) polar))) data in
+							 Pol.remove l (Pol.remove (MyTheory.Atom.negation l) polar),
+                                                         ar)) data in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
 		| Propose(Fail s) when (Seq.subseq seq s)
@@ -453,6 +457,8 @@ module ProofSearch (MyTheory: DecProc)
 
    end: sig
      module FE : (FrontEndType  with type litType     = MyTheory.Atom.t
+				and  type constraints = MyTheory.Constraint.t
+				and  type arities     = MyTheory.Constraint.arities
 				and  type formulaType = F.t
 				and  type fsetType    = FSet.t
 				and  type asetType    = ASet.t)

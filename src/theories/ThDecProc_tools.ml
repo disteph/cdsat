@@ -75,6 +75,11 @@ module EmptyConstraint = struct
   let proj a = a
   let lift a = a
   let compare a b = 0
+
+  type arities = unit
+  let init = ()
+  let addEigen a = a
+  let addMeta a = a
 end
 
 module GDecProc2DecProc (MyDecProc:GThDecProc) = struct

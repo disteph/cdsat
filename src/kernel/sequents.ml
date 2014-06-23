@@ -15,10 +15,12 @@ module FrontEnd
   = struct
 
     type litType     = Atom.t
-    type constraints = Constraint.t
     type formulaType = F.t
     type fsetType    = FSet.t
     type asetType    = ASet.t
+
+    type constraints = Constraint.t
+    type arities     = Constraint.arities
 
     module Form = PrintableFormula(Atom)(F)
 
@@ -44,12 +46,12 @@ module FrontEnd
     module Seq = struct
       (* Type of sequents *)
       type t = 
-      |	EntF  of asetType*formulaType*fsetType*fsetType*polmap
-      | EntUF of asetType*fsetType*fsetType*fsetType*polmap
+      |	EntF  of asetType*formulaType*fsetType*fsetType*polmap*arities
+      | EntUF of asetType*fsetType*fsetType*fsetType*polmap*arities
 
       let interesting = function
-	| EntF(atomN, g, formP, formPSaved, polar)      -> (atomN, formP::formPSaved::[])
-	| EntUF(atomN, delta, formP, formPSaved, polar) -> (atomN, formP::formPSaved::delta::[])
+	| EntF(atomN, g, formP, formPSaved, polar,ar)      -> (atomN, formP::formPSaved::[])
+	| EntUF(atomN, delta, formP, formPSaved, polar,ar) -> (atomN, formP::formPSaved::delta::[])
 
       let simplify s = match interesting s with
         | (a,formP::formPSaved::l) -> (a,FSet.union formP formPSaved)
@@ -57,24 +59,24 @@ module FrontEnd
 
       let subseq s1 s2 =
         match s1,s2 with
-        | EntUF(atomN1, delta1, formP1, formPSaved1, _),EntUF(atomN2, delta2, formP2, formPSaved2,_)
+        | EntUF(atomN1, delta1, formP1, formPSaved1,_,_),EntUF(atomN2, delta2, formP2, formPSaved2,_,_)
           -> (ASet.subset atomN1 atomN2)&&(FSet.subset delta1 delta2)&&(FSet.subset (FSet.union formP1 formPSaved1) (FSet.union formP2 formPSaved2))
         | _,_ -> failwith("Incomparable sequents")
 	  
       (* Displays sequent *)
       let toString_aux = function
-	| EntF(atomsN, focused, formuP, formuPSaved,_)
+	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
 	  -> " \\DerOSPos {"^(ASet.toString atomsN)^
 	  "} {"^(Form.toString focused)^"}"^
 	  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
-	| EntUF(atomsN, unfocused, formuP, formuPSaved,_)
+	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)
 	  -> " \\DerOSNeg {"^(ASet.toString atomsN)^
 	  "} {"^(FSet.toString unfocused)^"}"^
 	  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
 
       let toString seq = if !Flags.printrhs = true then toString_aux seq else match seq with
-        | EntUF(atms,_,_,_,_) -> ASet.toString atms
-        | EntF(atms,_,_,_,_)  -> ASet.toString atms
+        | EntUF(atms,_,_,_,_,_) -> ASet.toString atms
+        | EntF(atms,_,_,_,_,_)  -> ASet.toString atms
 
     end
 
@@ -116,13 +118,10 @@ module FrontEnd
       let toString () = ""
     end
 
-    (* Type of final answers, known in interface FrontEndType. *)
-    type final = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
+    (* Type of final answers, private in interface FrontEndType. *)
 
+    type t = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
 
-    (* Type of final answers, NOT known in interface FrontEndType. *)		       
-    type t = final
-    let reveal ans = ans
     let sequent = function
       | Success(s,_,_) -> s
       | Fail s -> s

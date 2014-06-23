@@ -69,13 +69,13 @@ module Run(MyThPlug:ThPlug)= struct
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
       | Some b,c    ->
 	let orig_seq = 
-	  FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap)
+	  FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap,MyThPlug.MyThDecProc.Constraint.init)
 	in
 	let d =
 	  if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
 	  Strat.solve(Src.machine orig_seq (Strat.initial_data orig_seq))
 	in 
-	print_endline(match c,FE.reveal d with
+	print_endline(match c,d with
 	|None ,_                 -> "Nothing expected"
 	|Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
 	|Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
