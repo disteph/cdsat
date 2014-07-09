@@ -126,11 +126,11 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
             display_fset formPSaved
         in
             match seq with
-            | Seq.EntF(atomN, g, formP, formPSaved, polar) -> 
+            | Seq.EntF(atomN, g, formP, formPSaved, polar, ar) -> 
                 display_gen atomN formP formPSaved;
                 print_string "Goal:\t";
                 print_endline ("[ " ^ (Form.toString g) ^ "]")
-            | Seq.EntUF(atomN, delta, formP, formPSaved, polar) ->
+            | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
                 display_gen atomN formP formPSaved;
                 print_endline "delta:";
                 display_fset delta
@@ -222,20 +222,20 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
     let rec solve = function
 	    | Local ans -> ans
-	    | Fake(Notify  (seq,_,execute,_)) -> 
+	    | Fake(Notify  (seq,_,_,execute,_)) -> 
             display_seq seq;
             print_hrule ();
             print_endline "Status: Notify";
             print_string "Hit enter to continue > ";
             wait ();
             solve (execute (true,(),accept,fNone))
-	    | Fake(AskFocus(seq,pforms,more,checked,execute,label)) -> 
+	    | Fake(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
             display_seq seq;
             print_hrule ();
             print_endline "Status: AskFocus";
             let ans = ask_focus seq pforms more checked in
                 solve (execute ans)
-	    | Fake(AskSide (seq, execute,_)) -> 
+	    | Fake(AskSide (seq, _, execute,_)) -> 
             display_seq seq;
             print_hrule ();
             print_endline "Status: AskSide";
