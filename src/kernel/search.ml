@@ -438,12 +438,12 @@ module ProofSearch
         | ISuccess(Local(seq,pt),sigma,f) -> fin "Total Success"; Local(Success(seq,pt,sigma))
         | IFail(Local seq,f)              -> fin "Total Failure"; Local(Fail seq)
         | ISuccess(Fake b2,sigma,f) -> 
-          dir:= not b2 ;
+          dir:= not !dir ;
           let strg = "No more Success branch on the "^(if b2 then "right" else "left")
           in if !Flags.debug>0 then Dump.msg (Some strg) None None;
           Fake(Stop(true,b2,fun _ -> wrap f))
         | IFail(Fake b2,f)          -> 
-          dir:= not b2 ;
+          dir:= not !dir ;
           let strg = "No more Failure branch on the "^(if b2 then "right" else "left")
           in if !Flags.debug>0 then Dump.msg (Some strg) None None;
           Fake(Stop(false,b2,fun _ -> wrap f))
