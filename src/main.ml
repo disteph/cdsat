@@ -40,7 +40,7 @@ let options =
 			      mygplugin:=
 				Some(try GPlugins_register.getbyname s
 				     with GPlugins_register.NotFound msg
-					 -> failwith msg)),"selects generic plugin (among naive, dpll_pat, dpll_wl)")::
+					 -> failwith msg)),"selects generic plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
     ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
     ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::
