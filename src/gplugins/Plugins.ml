@@ -3,6 +3,8 @@ open Kernel
 open Formulae
 open Interfaces
 
+exception PluginAbort of string
+
 module type Type = sig
 
   (* A plugin should provide an implementation of formulae, an

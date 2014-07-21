@@ -71,18 +71,20 @@ module Run(MyThPlug:ThPlug)= struct
 	let orig_seq = 
 	  FE.Seq.EntUF(UASet.empty,UFSet.add (b()) UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap,MyThPlug.MyThDecProc.Constraint.init)
 	in
-	let d =
-	  if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
-	  Strat.solve(Src.machine orig_seq (Strat.initial_data orig_seq))
-	in 
-	print_endline(match c,d with
-	|None ,_                 -> "Nothing expected"
-	|Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
-	|Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
-	|Some false,FE.Success _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
-	|Some false,FE.Fail _    -> "Expected Failure (SAT/unprovable), got it"
-	);
-	Some d
+	try 
+	  let d =
+	    if !Flags.debug>0 then print_endline("I am now starting: "^if !Flags.printrhs then FE.Form.toString (b()) else "");
+	    Strat.solve(Src.machine orig_seq (Strat.initial_data orig_seq))
+	  in 
+	  print_endline(match c,d with
+	  |None ,_                 -> "Nothing expected"
+	  |Some true, FE.Success _ -> "Expected Success (UNSAT/provable), got it"
+	  |Some true, FE.Fail _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
+	  |Some false,FE.Success _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
+	  |Some false,FE.Fail _    -> "Expected Failure (SAT/unprovable), got it"
+	  );
+	  Some d
+        with Plugins.PluginAbort s -> if !Flags.debug>0 then print_endline s ; None
     in 
     match result with
     | None -> None

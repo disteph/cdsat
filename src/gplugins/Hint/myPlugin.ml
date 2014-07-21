@@ -114,7 +114,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
           let vforms = Array.of_list lforms in
             display_farray vforms
 
-      let print_hrule () = print_endline (String.make 79 '=')
+      let print_hrule c = print_endline (String.make 79 c)
 
       let display_seq seq =
         let display_gen atomN formP formPSaved =
@@ -135,12 +135,16 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
                 print_endline "delta:";
                 display_fset delta
 
+      let parse_abort = function 
+        | "abort" | "Abort" -> raise (Plugins.PluginAbort "I abort")
+        | _ -> ()
+
       let rec ask_side () = 
             print_string "Choose a side (left or right) > "; 
             match read_line () with
                 | "left" | "Left" -> true
                 | "right" | "Right" -> false
-                | _ -> ask_side ()
+                | s -> parse_abort s; ask_side ()
                 
       let re_space = Str.regexp " +"
 
@@ -213,7 +217,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
                     failwith "Not yet implemented "
                 | "depolarize" | "Depolarize" | "DePolarize" -> 
                     failwith "Not yet implemented "
-                | _ -> unknown_command ()
+                | s -> parse_abort s; unknown_command ()
           in
             print_string "Enter a focus action > ";
             match Str.split re_space (read_line ()) with
@@ -221,28 +225,33 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
               | cmd::args -> interp_cmd cmd args
 
     let rec solve = function
-	    | Local ans -> ans
-	    | Fake(Notify  (seq,_,_,execute,_)) -> 
-            display_seq seq;
-            print_hrule ();
-            print_endline "Status: Notify";
-            print_string "Hit enter to continue > ";
-            wait ();
-            solve (execute (true,(),accept,fNone))
-	    | Fake(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
-            display_seq seq;
-            print_hrule ();
-            print_endline "Status: AskFocus";
-            let ans = ask_focus seq pforms more checked in
-                solve (execute ans)
-	    | Fake(AskSide (seq, _, execute,_)) -> 
-            display_seq seq;
-            print_hrule ();
-            print_endline "Status: AskSide";
-            let side = ask_side () in
-                solve (execute side)
-	    | Fake(Stop(b1,b2, execute)) ->
-            solve (execute ())
+      | Local ans -> ans
+      | Fake(Notify  (seq,_,_,execute,_)) -> 
+        print_hrule '=';
+        display_seq seq;
+        print_hrule '-';
+        print_endline "Status: Notify";
+        print_string "Hit enter to continue > ";
+        wait ();
+        solve (execute (true,(),accept,fNone))
+      | Fake(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
+        print_hrule '=';
+        display_seq seq;
+        print_hrule '-';
+        print_endline "Status: AskFocus";
+        let ans = ask_focus seq pforms more checked in
+        solve (execute ans)
+      | Fake(AskSide (seq, _, execute,_)) -> 
+        print_hrule '=';
+        display_seq seq;
+        print_hrule '-';
+        print_endline "Status: AskSide";
+        let side = ask_side () in
+        solve (execute side)
+      | Fake(Stop(b1,b2, execute)) ->
+        print_hrule '=';
+        print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
+        solve (execute ())
 	    
     end
 

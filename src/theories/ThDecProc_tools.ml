@@ -75,6 +75,7 @@ module EmptyConstraint = struct
   let proj a = a
   let lift a = a
   let compare a b = 0
+  let meet a b = Some ()
 
   type arities = unit
   let init = ()

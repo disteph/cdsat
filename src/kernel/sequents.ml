@@ -145,9 +145,10 @@ module FrontEnd
     *)
 
     type 'a intern =
-    | ISuccess of (Seq.t*Proof.t , bool)local *constraints*('a computations)
+    | ISuccess of 
+        (Seq.t*Proof.t , bool) local * constraints * 'a computations
     | IFail    of (Seq.t,bool) local * 'a computations
-    and 'a computations = (constraints -> ('a intern -> 'a) -> 'a)
+    and 'a computations = bool -> constraints -> ('a intern -> 'a) -> 'a
 
 
     (* Type of actions that user can perform to put more coins in the machine

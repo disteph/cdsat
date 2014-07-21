@@ -33,6 +33,7 @@ module type ConstraintType = sig
   val topconstraint:t
   val proj : t -> t
   val lift : t -> t
+  val meet : t -> t -> t option
   val compare : t -> t -> int
 
   type arities

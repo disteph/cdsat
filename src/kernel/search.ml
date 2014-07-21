@@ -39,7 +39,7 @@ module ProofSearch
               (Some (string_of_int (Dump.Kernel.read_count index)^" "^word^": "
                      ^(match ans with
                        | ISuccess(Local(s,_),_,_)->Seq.toString s
-                       | IFail(Local s,_)        ->Seq.toString s
+                       | IFail(Local s,_)          ->Seq.toString s
                        | _ -> "")))
               (Some index));
       ans
@@ -53,12 +53,11 @@ module ProofSearch
     let rec straight v bfun chew sfun seq sigma cont = 
       let newcont = function
 	| ISuccess(ans,sigma',alt) -> 
-          cont(ISuccess((lift2local bfun) ans, sfun sigma', straight alt bfun chew sfun seq))
-	| IFail(ans,f)  -> 
-          cont(IFail((lift2local (fun _->seq)) ans,straight f bfun chew sfun seq))
+          cont(ISuccess((lift2local bfun) ans, sfun sigma', fun b -> straight (alt b) bfun chew sfun seq))
+        | IFail(ans,f)             -> 
+          cont(IFail((lift2local (fun _ -> seq)) ans, fun b -> straight (f b) bfun chew sfun seq))
       in
       v (chew sigma) newcont
-
 
 
      (* Combines two computations in OR style (with backtrack
@@ -67,27 +66,33 @@ module ProofSearch
     let rec ou v1 v2 bfun1 bfun2 seq sigma cont = Dump.Kernel.incr_branches();
       let newcont1 u1 = Dump.Kernel.decr_branches(); match u1 with
 	| ISuccess(ans1,sigma1,alt1) ->
-          cont(ISuccess((lift2local bfun1) ans1, sigma1, ou alt1 v2 bfun1 bfun2 seq))
+          cont(ISuccess((lift2local bfun1) ans1, sigma1, fun b -> ou (alt1 b) v2 bfun1 bfun2 seq))
 
-	| IFail(Fake false,f1)       ->
-          cont(IFail(Fake false,ou f1 v2 bfun1 bfun2 seq))
+	| IFail(Fake false as ans1,f1)      ->
+          cont(IFail(ans1,fun b -> ou (f1 b) v2 bfun1 bfun2 seq))
 
-	| IFail(ans1,f1)                ->
-	  let rec newcont2 cont = function
-	    | ISuccess(ans2,sigma2,alt2)-> 
-              cont(ISuccess((lift2local bfun2) ans2, sigma2, fun sigma cc -> alt2 sigma (newcont2 cc)))
-	    | IFail(ans2,f2) ->
-              let newalt sigma cc = f2 sigma (newcont2 cc) in
-              (match ans1,ans2 with
-              | Fake _, Fake false  -> ou f1 f2 bfun1 bfun2 seq sigma cont
-              | Local _, Fake false -> cont(IFail(Fake false,newalt))
-              | Local _, Local _    -> cont(IFail(Local seq,newalt))
-              | _, _                -> cont(IFail(Fake true,newalt))
-              )
-	  in
-	  v2 sigma (newcont2 cont)
+	| IFail(ans1,f1)             ->
+	  v2 sigma (ouR (ans1,f1) bfun1 bfun2 seq sigma cont)
       in
       v1 sigma newcont1
+
+    and ouR (ans1,f1) bfun1 bfun2 seq sigma cont u2 = 
+      let nextcont2 b = ouR (if b then (ans1,f1) else (Fake true,fun _ -> f1 false)) bfun1 bfun2 seq in
+      match u2 with
+      | ISuccess(ans2,sigma2,alt2)-> 
+        cont(ISuccess((lift2local bfun2) ans2, sigma2, fun b' sigma' cc -> alt2 b' sigma' (nextcont2 b' sigma' cc)))
+      | IFail(Local _ as ans2,f2) ->
+        let newu2 b = if b then fun sigma' cc -> cc(IFail(ans2,f2)) else f2 false in
+        cont(IFail(lift2local (fun _ -> seq) ans1,
+                   match ans1 with
+                   | Fake _   -> fun b' -> ou (f1 b') (newu2 b') bfun1 bfun2 seq
+                   | Local _  -> fun b' sigma' cc -> newu2 b' sigma' (nextcont2 b' sigma' cc)
+        ))
+      | IFail(Fake b as ans2,f2) ->
+        (match ans1 with
+        | Fake _ when not b -> ou (f1 true) (f2 true) bfun1 bfun2 seq sigma cont
+        | _                 -> cont(IFail(ans2,fun b' sigma' cc -> f2 b' sigma' (nextcont2 b' sigma' cc)))
+        )
 
      (* Combines two computations in AND style (with backtrack
 	management): success = success for both computations *)
@@ -95,25 +100,35 @@ module ProofSearch
     let rec et v1 v2 bfun seq sigma cont = Dump.Kernel.incr_branches();
       let newcont1 u1 = Dump.Kernel.decr_branches(); match u1 with
 	| IFail(ans1,f1)   ->
-          cont(IFail((lift2local (fun _ -> seq)) ans1, et f1 v2 bfun seq))
+          cont(IFail((lift2local (fun _ -> seq)) ans1, fun b -> et (f1 b) v2 bfun seq))
 
-	| ISuccess(Fake false,sigma1,alt1) ->
-          cont(ISuccess(Fake false,sigma1,et alt1 v2 bfun seq))
+	| ISuccess(Fake false as ans1,sigma1,alt1) ->
+          cont(ISuccess(ans1,sigma1,fun b -> et (alt1 b) v2 bfun seq))
 
-	| ISuccess(ans1,sigma1,alt1)        ->
-	  let rec newcont2 cont = function
-	    | IFail(Fake false,f2) -> cont(IFail(Fake false,fun sigma cc -> f2 sigma (newcont2 cc)))
-	    | IFail(_,f2)          -> et f2 alt1 (fun a2 a1 -> bfun a1 a2) seq sigma cont
+	| ISuccess(ans1,sigma1,alt1)       ->
+	  let rec newcont2 (ans1,sigma1,alt1) cont u2 =
+            let newf2 f2 b sigma cc = 
+              if b then 
+                match MyTheory.Constraint.meet sigma sigma1 with
+                | None    -> et (alt1 true) (f2 false) bfun seq sigma cc 
+                | Some sigma1' -> f2 true sigma1' (newcont2 (ans1,sigma1',alt1) cc)
+              else
+                f2 false sigma (newcont2 (Fake true,sigma,fun _ -> alt1 false) cc)
+            in
+            match u2 with
+	    | IFail(Fake false as ans2,f2)
+            | IFail(ans2,f2) when MyTheory.Constraint.compare sigma sigma1 = 0
+                             -> cont(IFail(ans2,newf2 f2))
+            | IFail(ans2,f2) -> et (f2 false) (alt1 true) (fun a2 a1 -> bfun a1 a2) seq sigma (ouR (ans2,newf2 f2) (fun a->a)(fun a->a) seq sigma cont)
 	    | ISuccess(ans2,sigma2,alt2) -> 
-              let newalt sigma cc = alt2 sigma (newcont2 cc) in
               (match ans1,ans2 with
-              | Fake  _, Fake false -> et alt1 alt2 bfun seq sigma2 cont
-              | Local _, Fake false -> cont(ISuccess(Fake false,sigma2,newalt))
-              | Local a1, Local a2  -> cont(ISuccess(Local (bfun a1 a2),sigma2,newalt))
-              | _, _                -> cont(ISuccess(Fake true,sigma2,newalt))
+              | Fake _, Fake false -> et (alt1 true) (alt2 true) bfun seq sigma2 cont
+              | Fake _, Local a2   -> cont(ISuccess(Fake true,sigma2,fun b -> et (alt1 b) (alt2 b) bfun seq))
+              | Local a1, Local a2 -> cont(ISuccess(Local (bfun a1 a2),sigma2,newf2 alt2))
+              | _, _               -> cont(ISuccess(ans2,sigma2,newf2 alt2))
               )
           in
-          v2 sigma1 (newcont2 cont)
+          v2 sigma1 (newcont2 (ans1,sigma1,alt1) cont)
       in
       v1 sigma newcont1
 
@@ -172,6 +187,13 @@ module ProofSearch
       | _ -> let newseq = relevant(seq,ext [seq1;seq2]) in
              (newseq,Proof.two newseq pt1 pt2)
 
+    let rec fail seq f = IFail(Local seq,failfunb seq f)
+    and failfunb seq f b = if b then failfun seq f else f
+    and failfun seq f _ cc = cc (fail seq f)
+
+    let rec totalfailfun seq sigma cc = failfun seq (totalfailfun seq) sigma cc
+    let totalfail seq = fail seq (totalfailfun seq)
+
     let prune = function
       | ISuccess(Local(seq,pt),sigma,alt) -> Some(Success(seq,pt,sigma))
       | IFail(Local seq,f) -> Some(Fail seq)
@@ -207,10 +229,10 @@ module ProofSearch
             
 	| TrueP -> let x = ISuccess(success0 (relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[]))),
                                     sigma,
-                                    lk_solve inloop seq data)
+                                    failfunb seq (lk_solve inloop seq data))
 	           in  cont (throw x)
 
-	| FalseP -> cont (throw(IFail(Local seq,lk_solve inloop seq data)))
+	| FalseP -> cont (throw(totalfail seq))
 	  
 	| AndP(a1, a2) ->
 	  let u1 = lk_solve inloop (Seq.EntF (atomN, a1, formP, formPSaved, polar,ar)) data in
@@ -239,8 +261,9 @@ module ProofSearch
             Dump.Kernel.fromTheory();
             cont(throw(
               match oracle with
-	      | NoMore            -> IFail(Local seq,lk_solve inloop seq data)
-	      | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',pythie f')
+	      | NoMore             -> fail seq (pythie f)
+	      | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',
+                                               fun b -> if b then pythie f' else pythie f)
             ))
 	    in pythie (DecProc.goal_consistency atomN t) sigma cont
 
@@ -263,7 +286,7 @@ module ProofSearch
 
 	     | TrueN -> let x = ISuccess(success0(relevant(seq,(ASet.empty,FSet.empty::FSet.empty::(FSet.add toDecompose FSet.empty)::[]))),
                                          sigma,                                         
-                                         lk_solve inloop seq data)
+                                         failfunb seq (lk_solve inloop seq data))
 		        in cont (throw x)
 
 	     | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
@@ -315,7 +338,7 @@ module ProofSearch
 	  let rec lk_solvef formPChoose conschecked formP formPSaved action0 data sigma cont = 
 
 	    if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) && conschecked) 
-	    then cont (throw(IFail(Local seq,lk_solvef formPChoose conschecked formP formPSaved action0 data)))
+	    then cont (throw(totalfail seq))
 	    else
 
 	      let rec action_analysis =
@@ -365,8 +388,9 @@ module ProofSearch
                         Dump.Kernel.fromTheory();
                         cont(throw(
                           match oracle with
-	                  | NoMore            -> IFail(Local seq,lk_solve inloop seq data)
-	                  | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',pythie f')
+	                  | NoMore             -> fail seq (pythie f)
+	                  | Guard(a,sigma',f') -> ISuccess(success0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',
+                                                           fun b -> if b then pythie f' else pythie f)
                         ))
                       in
                       let u2 = lk_solvef formPChoose true formP formPSaved l data in
@@ -386,16 +410,16 @@ module ProofSearch
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
 		| Propose(Fail s) when (Seq.subseq seq s)
-                    ->cont (throw (IFail(Local s,lk_solvef formPChoose conschecked formP formPSaved action0 data)))
+                    ->cont (throw (fail s (lk_solvef formPChoose conschecked formP formPSaved action0 data)))
                   
 		| Propose(Success(s,pt,sigma')) when (Seq.subseq s seq)
-                    ->cont (throw (ISuccess(Local(s,pt),sigma',lk_solvef formPChoose conschecked formP formPSaved action0 data)))
+                    ->cont (throw (ISuccess(Local(s,pt),sigma',fun _ -> lk_solvef formPChoose conschecked formP formPSaved action0 data)))
                   
 		| Get(b1,b2,l) when b1
-                  -> cont (ISuccess(Fake(!dir=b2),sigma,lk_solvef formPChoose conschecked formP formPSaved l data))
+                  -> cont (ISuccess(Fake((* !dir= *)b2),sigma,fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
 
 		| Get(b1,b2,l)
-                  -> cont (IFail(Fake(!dir=b2),lk_solvef formPChoose conschecked formP formPSaved l data))
+                  -> cont (IFail(Fake((* !dir= *)b2),fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
                   
 		| Restore l when not (FSet.is_empty formPSaved) 
                     ->if !Flags.fair && not (FSet.is_empty formPChoose)
@@ -416,7 +440,7 @@ module ProofSearch
 	  in
 	  let notify_analysis(accept_defeat,newdata,inter_fun,action1) =
             Dump.Kernel.fromPlugin();
-	    if (inloop&&accept_defeat) then (Dump.Kernel.incr_count 7; cont (throw(IFail(Local seq,lk_solve inloop seq data))))
+	    if (inloop&&accept_defeat) then (Dump.Kernel.incr_count 7; cont (throw(fail seq (lk_solve inloop seq data))))
 	    else lk_solvef formP' false formP' formPSaved' action1 newdata sigma (newcont inter_fun)
 	  in
 	  Dump.Kernel.incr_count 8;
@@ -435,18 +459,18 @@ module ProofSearch
 	dir := true
       in
       let inter = function
-        | ISuccess(Local(seq,pt),sigma,f) -> fin "Total Success"; Local(Success(seq,pt,sigma))
-        | IFail(Local seq,f)              -> fin "Total Failure"; Local(Fail seq)
+        | ISuccess(Local(seq,pt),sigma,_) -> fin "Total Success"; Local(Success(seq,pt,sigma))
+        | IFail(Local seq,_)              -> fin "Total Failure"; Local(Fail seq)
         | ISuccess(Fake b2,sigma,f) -> 
           dir:= not !dir ;
           let strg = "No more Success branch on the "^(if b2 then "right" else "left")
           in if !Flags.debug>0 then Dump.msg (Some strg) None None;
-          Fake(Stop(true,b2,fun _ -> wrap f))
+          Fake(Stop(true,b2,fun _ -> wrap (f true)))
         | IFail(Fake b2,f)          -> 
           dir:= not !dir ;
           let strg = "No more Failure branch on the "^(if b2 then "right" else "left")
           in if !Flags.debug>0 then Dump.msg (Some strg) None None;
-          Fake(Stop(false,b2,fun _ -> wrap f))
+          Fake(Stop(false,b2,fun _ -> wrap (f true)))
       in
       f MyTheory.Constraint.topconstraint inter
 
