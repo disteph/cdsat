@@ -3,6 +3,11 @@
 
 open Sums
 
+type ('keys,'values,'infos) info_build_type = 
+  {empty_info  : 'infos;
+   leaf_info   : 'keys -> 'values -> 'infos;
+   branch_info : 'infos -> 'infos -> 'infos}
+
 (** The two interfaces Dest and Intern descibe the material that must be
   provided to construct a Patricia tree structure.
 
@@ -29,7 +34,7 @@ module type Dest = sig
 
   (** Provides info for empty tree, singleton tree, and disjoint union
     of two tree *)
-  val info_build : infos * (keys -> values -> infos) * (infos -> infos -> infos)
+  val info_build : (keys,values,infos) info_build_type
 
   (** Do you want the patricia trees hconsed? *)
   val treeHCons : bool
@@ -205,17 +210,27 @@ module PATSet
     val elect : (D.keys -> D.keys -> D.keys) -> t -> D.keys
   end
 
-val empty_info_build : unit * ('a -> 'b -> unit) * ('c -> 'd -> unit)
-type 'a mmc_infos = 'a option * 'a option * int
-val mmc_info_build :
-  ('a -> 'b) ->
-  ('c option * 'd option * int) * ('e -> 'f -> 'e option * 'e option * int) *
-  ('a option * 'a option * int ->
-   'a option * 'a option * int -> 'a option * 'a option * int)
-type 'a m_infos = 'a option
-val splmin : ('a -> 'a -> int) -> 'a option -> 'a option -> 'a option
-type 'a mm_infos = ('a * 'a option) option
-val dblmin :
-  ('a -> 'a -> int) ->
-  ('a * 'a option) option ->
-  ('a * 'a option) option -> ('a * 'a option) option
+(* Gives the standard inhabitant info_build when info type is unit *)
+
+val empty_info_build : ('keys,'values,unit) info_build_type
+
+(* Info type to record maximum key
+   Standard inhabitant info_build when given a comparison function
+*)
+
+type 'keys m_infos = 'keys option
+val m_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys m_infos) info_build_type
+
+(* Info type to record minimum key, maximum key, and cardinal of table
+   Standard inhabitant info_build when given 
+*)
+
+type 'keys mmc_infos = 'keys option * 'keys option * int
+val mmc_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys mmc_infos) info_build_type
+
+(* Info type to record maximum 2 keys
+   Standard inhabitant info_build when given a comparison function
+*)
+
+type 'keys mm_infos = ('keys * 'keys option) option
+val mm_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys mm_infos) info_build_type

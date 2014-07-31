@@ -75,7 +75,7 @@ module DTSet = struct
   type values = unit
   let vcompare () () = 0
   type infos = unit
-  let info_build = ((),(fun f v -> ()),fun x y -> ())
+  let info_build = empty_info_build
   let treeHCons = true
 end
 
@@ -116,7 +116,7 @@ module DVtoTSet = struct
   type values = TSet.t
   let vcompare = TSet.compare
   type infos = unit
-  let info_build = ((),(fun f v -> ()),fun x y -> ())
+  let info_build = empty_info_build
   let treeHCons = true
 end
 
@@ -143,7 +143,7 @@ module DVtoV = struct
   type values = t
   let vcompare = compare
   type infos = unit
-  let info_build = ((),(fun f v -> ()),fun x y -> ())
+  let info_build = empty_info_build
   let treeHCons = true
 end
 

@@ -28,7 +28,7 @@ module MyPat(UT:sig
       type values      = unit
       let vcompare _ _ = 0
       type infos       = keys m_infos
-      let info_build   = (None,(fun x _ -> Some x),splmin kcompare)
+      let info_build   = m_info_build kcompare
       let treeHCons    = !Flags.memo
     end
 

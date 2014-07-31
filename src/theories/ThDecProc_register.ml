@@ -6,7 +6,8 @@ let bank:(module Theories.ThDecProc)array =
   [|
     (module GDecProc2DecProc(Empty.MyTheory));
     (module GDecProc2DecProc(LRA.MyTheory));
-    (module GDecProc2DecProc(CC.MyTheory))
+    (module GDecProc2DecProc(CC.MyTheory));
+    (module FirstOrder.MyTheory);
   |]
 
 exception NotFound of string

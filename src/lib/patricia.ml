@@ -1,4 +1,11 @@
+(* let (a,b,c)=info_build in  *)
+
 open Sums
+
+type ('keys,'values,'infos) info_build_type = 
+  {empty_info  : 'infos;
+   leaf_info   : 'keys -> 'values -> 'infos;
+   branch_info : 'infos -> 'infos -> 'infos}
 
 module type Dest = sig
   type keys
@@ -6,7 +13,7 @@ module type Dest = sig
   type values
   val vcompare : values -> values -> int
   type infos
-  val info_build : infos * (keys -> values -> infos) * (infos -> infos -> infos)
+  val info_build : (keys,values,infos) info_build_type
   val treeHCons : bool
 end
 
@@ -67,10 +74,10 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     let id f     = f.id
     let info f   = f.info
 
-    let info_gen = let (a,b,c)=info_build in function
-      | Empty            -> a
-      | Leaf(k,x)        -> b k x
-      | Branch(_,_,t0,t1)-> c t0.info t1.info  
+    let info_gen = function
+      | Empty            -> info_build.empty_info
+      | Leaf(k,x)        -> info_build.leaf_info k x
+      | Branch(_,_,t0,t1)-> info_build.branch_info t0.info t1.info  
 
     module H = Hashtbl.Make(PATPrimitive)
     let table = H.create 5003 
@@ -501,39 +508,52 @@ end
 
 
 
-let empty_info_build = ((),(fun _ _ ->()),(fun _ _-> ()))
+let empty_info_build = {
+  empty_info  = ();
+  leaf_info   = (fun _ _ ->());
+  branch_info = (fun _ _-> ())
+}
 
-type 'a mmc_infos = ('a option)*('a option)*int
-let mmc_info_build tag = (
-  (None,None,0),
-  (fun x _ ->(Some x,Some x,1)),
-  (fun (x1,y1,z1) (x2,y2,z2)
+type 'a m_infos = 'a option
+let m_info_build kcompare = {
+  empty_info  = None;
+  leaf_info   = (fun x _ -> Some x);
+  branch_info = (fun x1 x2 -> match x1,x2 with
+  | None,_ -> failwith "Bad1"
+  | _,None -> failwith "Bad2"
+  | Some(v1),Some(v2)-> if kcompare v1 v2<0 then x1 else x2
+  )
+}
+
+type 'keys mmc_infos = ('keys option)*('keys option)*int
+let mmc_info_build kcompare = {
+  empty_info  = (None,None,0);
+  leaf_info   = (fun x _ ->(Some x,Some x,1));
+  branch_info = (fun (x1,y1,z1) (x2,y2,z2)
      -> ((match x1,x2 with
 	      None,_ -> x2
 	    | _,None -> x1
-	    | Some(v1),Some(v2)-> if(tag v1<tag v2)then x1 else x2),
+	    | Some(v1),Some(v2)-> if kcompare v1 v2 < 0 then x1 else x2),
 	 (match y1,y2 with
 	      None,_ -> y2
 	    | _,None -> y1
-	    | Some(v1),Some(v2)-> if(tag v1>tag v2)then y1 else y2),
+	    | Some(v1),Some(v2)-> if kcompare v1 v2 > 0 then y1 else y2),
 	 z1+z2))
-)
-
-type 'a m_infos = 'a option
-let splmin compare x1 x2 = match x1,x2 with
-  | None,_ -> failwith("Bad1")
-  | _,None -> failwith("Bad2")
-  | Some(v1),Some(v2)-> if compare v1 v2<0 then x1 else x2
+}
 
 type 'a mm_infos = ('a*('a option)) option
-let dblmin compare x1 x2 = match x1,x2 with
-  | None,_ -> failwith("Bad1")
-  | _,None -> failwith("Bad2")
+let mm_info_build kcompare = {
+  empty_info  = None;
+  leaf_info   = (fun x _ -> Some (x,None));
+  branch_info = (fun x1 x2 -> match x1,x2 with
+  | None,_ -> failwith "Bad1"
+  | _,None -> failwith "Bad2"
   | Some(v1,g1),Some(v2,g2) ->
-      let (first,loose,nknow) =
-	if compare v1 v2<0
-	then (v1,v2,g1) else (v2,v1,g2)
-      in let second = match nknow with
-	| Some h when compare h loose<0 -> h
-	| _      -> loose
-      in Some(first,Some second)
+    let (first,loose,nknow) =
+      if compare v1 v2<0
+      then (v1,v2,g1) else (v2,v1,g2)
+    in let second = match nknow with
+    | Some h when compare h loose<0 -> h
+    | _      -> loose
+       in Some(first,Some second))
+}
