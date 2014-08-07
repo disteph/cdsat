@@ -1,36 +1,42 @@
-(*
-  This file contains the kernel's API to be used by a plugin
-*)
+(* This file contains the kernel's API to be used by a plugin *)
+open Format
 
+open Interfaces_I
 open Formulae
-open Interfaces
+open Interfaces_II
 open Map
 
 module FrontEnd
-  (Atom: AtomType)
+  (IAtom     : IAtomType)
   (Constraint: ConstraintType)
-  (F   : FormulaImplem with type lit = Atom.t) 
-  (FSet: CollectImplem with type e = F.t) 
-  (ASet: CollectImplem with type e = F.lit) 
+  (F   : FormExtraInfo with type lit = IAtom.Atom.t)
+  (FSet: CollectImplem with type e = (F.t,IAtom.Atom.t) GForm.t*IAtom.DSubst.t)
+  (ASet: CollectImplem with type e = IAtom.t) 
   = struct
 
-    type litType     = Atom.t
-    type formulaType = F.t
+    module Form = Formula(IAtom.Atom)(F)
+
+    type ilit        = IAtom.t
     type fsetType    = FSet.t
     type asetType    = ASet.t
 
+    type arities     = IAtom.DSubst.Arity.t
+    type dsubsts     = IAtom.DSubst.t
     type constraints = Constraint.t
-    type arities     = Constraint.arities
 
-    module Form = PrintableFormula(Atom)(F)
+    module IForm = struct
+      type t = Form.t*dsubsts
+      let print_in_fmt    = Form.iprint_in_fmt IAtom.DSubst.print_in_fmt
+      let negation (f,tl) = (Form.negation f,tl)
+    end
 
-    module Pol  = Map.Make(Atom)
+    module Pol  = Map.Make(IAtom.Atom)
     type polmap = polarity Pol.t
     let emptypolmap = Pol.empty
 
     (* Computes polarity of formula *)
-    let polarity polar f = match F.reveal f with
-      | Lit t  -> (try Pol.find t polar with _ -> Und)
+    let polarity polar f = 
+      match GForm.reveal f with
       | TrueP  -> Pos
       | TrueN  -> Neg
       | FalseP -> Pos
@@ -41,12 +47,13 @@ module FrontEnd
       | OrP(f1,f2)  -> Pos
       | ForAll f    -> Neg
       | Exists f    -> Pos
+      | Lit t  -> (try Pol.find t polar with _ -> Und)
 
 
     module Seq = struct
       (* Type of sequents *)
       type t = 
-      |	EntF  of asetType*formulaType*fsetType*fsetType*polmap*arities
+      |	EntF  of asetType*IForm.t*fsetType*fsetType*polmap*arities
       | EntUF of asetType*fsetType*fsetType*fsetType*polmap*arities
 
       let interesting = function
@@ -64,19 +71,26 @@ module FrontEnd
         | _,_ -> failwith("Incomparable sequents")
 	  
       (* Displays sequent *)
-      let toString_aux = function
-	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
-	  -> " \\DerOSPos {"^(ASet.toString atomsN)^
-	  "} {"^(Form.toString focused)^"}"^
-	  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
-	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)
-	  -> " \\DerOSNeg {"^(ASet.toString atomsN)^
-	  "} {"^(FSet.toString unfocused)^"}"^
-	  "{"^(FSet.toString formuP)^" \\cdot "^(FSet.toString formuPSaved)^"}"
 
-      let toString seq = if !Flags.printrhs = true then toString_aux seq else match seq with
-        | EntUF(atms,_,_,_,_,_) -> ASet.toString atms
-        | EntF(atms,_,_,_,_,_)  -> ASet.toString atms
+      let print_in_fmt_aux fmt = function
+	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
+	  -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
+          ASet.print_in_fmt atomsN
+          IForm.print_in_fmt focused
+          FSet.print_in_fmt formuP
+          FSet.print_in_fmt formuPSaved
+	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)
+          -> fprintf fmt " \\DerOSNeg {%a} {%a} {%a \\cdot %a}"
+          ASet.print_in_fmt atomsN
+          FSet.print_in_fmt unfocused
+          FSet.print_in_fmt formuP
+          FSet.print_in_fmt formuPSaved
+
+      let print_in_fmt fmt seq =
+        if !Flags.printrhs = true then print_in_fmt_aux fmt seq
+        else match seq with
+        | EntUF(atms,_,_,_,_,_) -> ASet.print_in_fmt fmt atms
+        | EntF(atms,_,_,_,_,_)  -> ASet.print_in_fmt fmt atms
 
     end
 
@@ -97,16 +111,11 @@ module FrontEnd
       let one seq pt = build(OnePre(seq,pt))
       let two seq pt1 pt2 = build(TwoPre(seq,pt1,pt2))
 
-      (* let conclusion p = match reveal p with *)
-      (*   | Axiom(s) -> s *)
-      (*   | OnePre(s,b) -> s *)
-      (*   | TwoPre(s,b,c) -> s *)
-
       (* Displays prooftree *)
-      let rec toString pt = match reveal pt with
-	| OnePre (a,b) -> "\\infer {"^(Seq.toString a)^"}{"^toString(b)^"}";
-	| TwoPre (a,b,c) -> "\\infer {"^(Seq.toString a)^"}{"^toString(b)^" \\quad "^toString(c)^"}";
-	| Axiom (a) -> "\\infer {"^(Seq.toString a)^"}{}"         
+      let rec print_in_fmt fmt pt = match reveal pt with
+	| Axiom (a) -> fprintf fmt "\\infer{%a}{}" Seq.print_in_fmt a
+	| OnePre (a,b) -> fprintf fmt "\\infer{%a}{%a}" Seq.print_in_fmt a print_in_fmt b
+	| TwoPre (a,b,c) -> fprintf fmt "\\infer{%a}{%a \\quad %a}" Seq.print_in_fmt a print_in_fmt b print_in_fmt c
     end
 
     module NoProof:(ProofType with type seq = Seq.t) = struct
@@ -115,7 +124,7 @@ module FrontEnd
       let zero seq = ()
       let one seq pt = ()
       let two seq pt1 pt2 = ()
-      let toString () = ""
+      let print_in_fmt fmt pt = ()
     end
 
     (* Type of final answers, private in interface FrontEndType. *)
@@ -127,10 +136,9 @@ module FrontEnd
       | Fail s -> s
 
     (* Displays answer *)
-    let toString = function
-      | Success(_,p,_) -> "$$"^(Proof.toString p)^"$$";
-      | Fail s         -> "\\textsf {FAIL} \\\\$$"^(Seq.toString s)^"$$"
-
+    let print_in_fmt fmt = function
+      | Success(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.print_in_fmt p;
+      | Fail s         -> fprintf fmt "\\textsf {FAIL} \\[%a\\]" Seq.print_in_fmt s
 
     (* Generator of local answer types, either definitive answer or a fake answer *)
     type ('a,'b) local = Local of 'a | Fake  of 'b
@@ -158,11 +166,11 @@ module FrontEnd
     *)
 
     type focusaction = 
-    | Focus    of formulaType*receive*alt_action
-    | Cut      of int*formulaType*receive*receive*alt_action
+    | Focus    of IForm.t*receive*alt_action
+    | Cut      of int*IForm.t*receive*receive*alt_action
     | ConsistencyCheck of receive*alt_action
-    | Polarise   of litType*receive
-    | DePolarise of litType*receive
+    | Polarise   of Form.lit*receive
+    | DePolarise of Form.lit*receive
     | Get      of bool*bool*alt_action
     | Propose  of t
     | Restore  of alt_action

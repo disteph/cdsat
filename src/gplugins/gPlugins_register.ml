@@ -14,7 +14,7 @@ let getbyname = function
   | "naive"    -> bank.(0)
   | "dpll_pat" -> bank.(1)
   | "dpll_wl"  -> bank.(2)
-  | "restarts" -> let module MyBasePlugin = (val bank.(2)) in
-                  (module RestartsFunctor.MyPlugin.GenPluginWRestart(MyBasePlugin))
+  (* | "restarts" -> let module MyBasePlugin = (val bank.(2)) in *)
+  (*                 (module RestartsFunctor.MyPlugin.GenPluginWRestart(MyBasePlugin)) *)
   | "hint"     -> bank.(3)
   | s -> raise (NotFound ("Generic plugin "^s^" does not exist; see -help"))

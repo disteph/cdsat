@@ -2,11 +2,11 @@
 (* Model primitives *)
 (********************)
 
-open Kernel.Interfaces
+open Kernel.Interfaces_I
 open Theories
 open ThSig_register
 
-module PropStructure(F:Kernel.Interfaces.PrintableFormulaType) = struct
+module PropStructure(F:Kernel.Formulae.FormulaType) = struct
 
   type 'a ite = 
     | Leaf of 'a
@@ -40,6 +40,67 @@ module PropStructure(F:Kernel.Interfaces.PrintableFormulaType) = struct
 
 end
 
+
+(* Basic module for arities *)
+
+module StandardArity : ArityType = struct
+  type eigen = int
+  type meta  = int
+  type t   = int*int*(int list)
+  let init = (0,0,[])
+  let newEigen (n,m,l) = (n+1),(n+1,m,l)
+  let newMeta  (n,m,l) = n,(n,m+1,n::l)
+end
+
+(* Basic module for delayed substitutions *)
+
+(* module StandardDSubst(A:ArityType) = struct *)
+(*   type terms = Eigen of A.eigen | Meta of A.meta *)
+
+(*   type t = terms list  *)
+
+(*   let init = [] *)
+(*   let equal a b = (a=b) *)
+(*   let compare = Pervasives.compare *)
+(*   let print_in_fmt = failwith "NotImplemented" *)
+(*   let id = failwith "NotImplemented" *)
+(*   let clear = failwith "NotImplemented" *)
+
+(*   module Arity = A *)
+(*   let bind2eigen e l = (Eigen e)::l *)
+(*   let bind2meta e l  = (Meta e)::l *)
+(* end *)
+
+module DummyDSubst = struct
+  type terms = unit
+  type t = unit
+
+  let init = ()
+  let equal a b = true
+  let compare = Pervasives.compare
+  let print_in_fmt fmt () = ()
+  let id () = 0
+  let clear () = ()
+
+  module Arity = StandardArity
+  let bind2eigen _ _ = ()
+  let bind2meta _ _  = ()
+end
+
+(* Basic module for constraints, for ground theories *)
+
+module EmptyConstraint : ConstraintType = struct
+  type t = unit
+  let topconstraint = ()
+  let proj a = a
+  let lift a = a
+  let compare a b = 0
+  let meet a b = Some ()
+end
+
+(* Module type for ground theories; i.e. theories not supporting
+meta-variables *)
+
 module type GThDecProc = sig
 
   (* Theory signature *)
@@ -56,11 +117,13 @@ module type GThDecProc = sig
     end
 
   (* Suggested plugin to be used for proof-search *)
-  val sugPlugin:(module Plugins.Type with type literals = Atom.t)option
+  val sugPlugin:(module Plugins.Type with type literals  = Atom.t
+                                     and  type iliterals = Atom.t
+                                     and  type delsubsts = DummyDSubst.t) option
 
   (* A model structure to be used for parsing, depending on an
   implementation of formulae, with a list of illustrative examples *)
-  module Structure(F:Kernel.Interfaces.PrintableFormulaType with type lit=Atom.t) :
+  module Structure(F:Kernel.Formulae.FormulaType with type lit=Atom.t) :
   sig
     type t
     val st      : (Sig.sort,Sig.symbol,t) structureType
@@ -69,29 +132,25 @@ module type GThDecProc = sig
   end
 end
 
-module EmptyConstraint = struct
-  type t = unit
-  let topconstraint = ()
-  let proj a = a
-  let lift a = a
-  let compare a b = 0
-  let meet a b = Some ()
-
-  type arities = unit
-  let init = ()
-  let addEigen a = a
-  let addMeta a = a
-end
+(* Functor turning a ground theory into a proper theory.
+Cannot treat sequents with meta-variables, obviously *)
 
 module GDecProc2DecProc (MyDecProc:GThDecProc) = struct
-    module Sig  = MyDecProc.Sig
-    module Atom = MyDecProc.Atom
+
+    module Sig        = MyDecProc.Sig
+    module IAtom      = struct
+      module Atom       = MyDecProc.Atom
+      module DSubst     = DummyDSubst
+      include Atom
+      let reveal a = (a,())
+      let build (a,_) = a
+    end
+    module Constraint = EmptyConstraint
 
     let sugPlugin = MyDecProc.sugPlugin
 
-    module Constraint = EmptyConstraint
+    module Consistency(ASet: CollectImplem with type e = IAtom.t) = struct
 
-    module Consistency(ASet: CollectImplem with type e = Atom.t) = struct
       module Cons = MyDecProc.Consistency(ASet)
 
       let consistency a sigma = match Cons.consistency a with
@@ -104,6 +163,6 @@ module GDecProc2DecProc (MyDecProc:GThDecProc) = struct
 
     end
 
-    module Structure(F:Kernel.Interfaces.PrintableFormulaType with type lit=Atom.t)
+    module Structure(F:Kernel.Formulae.FormulaType with type lit=IAtom.Atom.t)
       = MyDecProc.Structure(F)
 end

@@ -8,7 +8,9 @@
 (*******************************************************************)
 
 
-open Kernel.Interfaces
+open Kernel.Interfaces_I
+open Kernel.Formulae
+open Kernel.Interfaces_II
 
 open Lib
 open Sums
@@ -45,10 +47,10 @@ module FEext(FE:FrontEndType)
    ASet, i.e. providing small extensions of FSet and ASet *)
 
 module Memo
-  (Atom:AtomType)
-  (FE:FrontEndType with type litType=Atom.t)
-  (FSet: CollectImplemExt with type e = FE.formulaType and type t=FE.fsetType)
-  (ASet: CollectImplemExt with type e = FE.litType     and type t=FE.asetType)
+  (IAtom:IAtomType)
+  (FE:FrontEndType with type dsubsts = IAtom.DSubst.t and type Form.lit = IAtom.Atom.t)
+  (FSet: CollectImplemExt with type e = (FE.Form.datatype,FE.Form.lit) GForm.t * IAtom.DSubst.t and type t=FE.fsetType)
+  (ASet: CollectImplemExt with type e = IAtom.t and type t=FE.asetType)
   = struct
     open FE
 
@@ -84,8 +86,10 @@ module Memo
 
     let find_sub alm (k1,k2) =
       let filter =function
-	| F(f)->alm
-	| A(a)->alm && (not (ASet.is_in (Atom.negation a) k1)) && not (FSet.is_in (Form.lit a) k2)
+	| F f  -> alm
+	| A ia -> alm &&
+          let (a,tl) = IAtom.reveal ia in
+          (not (ASet.is_in (IAtom.build (IAtom.Atom.negation a,tl)) k1)) && not (FSet.is_in (Form.lit a,tl) k2)
       in
 	MP.find_su byes bsingleton bempty bunion (sub alm) true filter (fun _-> true) (k1,k2)
 
@@ -105,18 +109,15 @@ module Memo
       let k = Seq.simplify s in
       match algo k !table with
       | F _ -> Dump.Plugin.incr_count 4;
-	if !Flags.debug>1
-        then (Dump.msg None
-                (Some(string_of_int (Dump.Plugin.read_count 4)^"/"^string_of_int (Dump.Plugin.read_count 5)^" Recording "^(if b then "success" else "failure")^" for"))
-                (Some 4);
-              Dump.msg None (Some(Seq.toString s)) (Some 4));
+	Dump.msg None
+          (Some(fun p->p "%i/%i Recording %s for\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
+          (Some 4);
 	table := MP.add k (fun _ -> (ans, 1)) !table;
       | A a -> Dump.Plugin.incr_count 5;
-	if !Flags.debug>1
-        then (Dump.msg None
-                (Some(string_of_int (Dump.Plugin.read_count 4)^"/"^string_of_int (Dump.Plugin.read_count 5)^" Already know better "^(if b then "success" else "failure")^" than"))
-                (Some 5);
-              Dump.msg None (Some(Seq.toString s)) (Some 5))
+	Dump.msg None
+          (Some(fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
+          (Some 5);
+        Dump.msg None (Some(fun p->p "%a" )) (Some 5)
 
     let search4success b s = find_sub b (Seq.simplify s) !tableS
     let search4failure b s = find_sup b (Seq.simplify s) !tableF
@@ -124,17 +125,19 @@ module Memo
     let cut_series seq alternative (a,f) =
       if ASet.is_empty a then
 	if FSet.is_empty f then
-          (if !Flags.debug>1 then Dump.msg None (Some("Found no previous success for "^Seq.toString seq)) None;
+          (Dump.msg None (Some(fun p->p "Found no previous success for %a" Seq.print_in_fmt seq)) None;
            Dump.Plugin.incr_count 9;
 	   alternative())
-	else let (toCut,f')=FSet.next f in
+	else let (toCut,_)=FSet.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
-              if !Flags.debug>1 then Dump.msg None (Some("Found approx. in pos form of\n"^Seq.toString seq^"\n"^Form.toString toCut)) None;
+              let (toCutf,_)= toCut in
+              Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq Form.print_in_fmt toCutf)) None;
 	      Some(Cut(7,toCut,(fun _->()),(fun _->()),(fun _-> None))))
-      else let (toCut,a')=ASet.next a in
-	   (Dump.Plugin.incr_count 7;
-            if !Flags.debug>1 then Dump.msg None (Some("Found approx. in atoms of\n"^Seq.toString seq^"\n"^Atom.toString toCut)) None;
-	    Some(Cut(7,Form.lit toCut,(fun _->()),(fun _->()),(fun _->None))))
+      else let (toCut,_)=ASet.next a in
+	   Dump.Plugin.incr_count 7;
+           Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq IAtom.print_in_fmt toCut)) None;
+	   let (toCut,tl)= IAtom.reveal toCut in
+           Some(Cut(7,(Form.lit toCut,tl),(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4success ans =
       snd (MP.find (Seq.simplify (sequent ans)) !tableS)
@@ -146,7 +149,7 @@ module Memo
       match search4success !Flags.almo seq with
       | A(a) 
         -> Dump.Plugin.incr_count 8;
-          if !Flags.debug>1 then Dump.msg None (Some("Found previous success for "^Seq.toString seq)) None;
+          Dump.msg None (Some(fun p->p "Found previous success for %a" Seq.print_in_fmt seq)) None;
           let ans, count = a in
           tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
           Some(Propose ans)
@@ -154,9 +157,9 @@ module Memo
 
     let search4failureNact seq alternative =
       match search4failure false seq with
-      | A(a) -> if !Flags.debug>1 then Dump.msg None (Some("Found previous failure for "^Seq.toString seq)) None;
+      | A(a) -> Dump.msg None (Some(fun p->p "Found previous failure for %a" Seq.print_in_fmt seq)) None;
 	Propose (fst a)
-      | _    -> if !Flags.debug>1 then Dump.msg None (Some("Found no previous failure for "^Seq.toString seq)) None;
+      | _    -> Dump.msg None (Some(fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq)) None;
 	alternative()
 
     let report() = 

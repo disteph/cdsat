@@ -139,14 +139,6 @@ module Atom = struct
       if tl<>[] then fprintf fmt "\\non {%s}(%a)" (Predicates.reveal s) Term.printtl_in_fmt tl
       else fprintf fmt "\\non {%s}" (Predicates.reveal s)
 
-  let toString t =
-    let buf = Buffer.create 255 in
-    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
-    (* let (b,p,tl)=t.reveal in *)
-    (* (if b then "+" else "-")^"("^Predicates.reveal p^string_of_int (Predicates.id p)^")"^(string_of_int t.id) *)
-    Buffer.contents buf
-    (* ^"-"^(string_of_int t.id) *)
-
   let table = H.create 5003
 
   let attomid = ref 0

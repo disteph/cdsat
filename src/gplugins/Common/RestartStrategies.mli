@@ -1,4 +1,4 @@
-module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem):
+module RestartStrategies (UASet: Kernel.Interfaces_I.CollectImplem):
 sig
   exception Restart of UASet.t
 

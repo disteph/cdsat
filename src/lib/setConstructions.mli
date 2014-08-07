@@ -7,9 +7,11 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S : FromHConsed) 
-  :Intern with type keys      = S.t
-	  and  type common    = int
-	  and  type branching = int
+  :sig include Intern with type keys      = S.t
+	              and  type common    = int
+	              and  type branching = int
+       val pequals:common->common->bool
+  end
   
 module type FromCollect = sig
   type keys

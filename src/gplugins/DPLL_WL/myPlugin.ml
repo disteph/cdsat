@@ -1,15 +1,22 @@
 open Lib
 open Kernel
 
-open Interfaces
+open Interfaces_I
 open Formulae
+open Interfaces_II
 open Patricia
 open Sums
 
-module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = struct
+module GenPlugin(IAtom: IAtomType)
+  :(Plugins.Type with type iliterals = IAtom.t
+                 and  type literals  = IAtom.Atom.t
+                 and  type delsubsts = IAtom.DSubst.t) = struct
     
-  type literals = Atom.t
-  module DataStruct = DataStructures.Generate(Atom)
+  type iliterals = IAtom.t
+  type literals  = IAtom.Atom.t
+  type delsubsts = IAtom.DSubst.t
+
+  module DataStruct = DataStructures.Generate(IAtom)
   module UASet = DataStruct.ASet
   module UF    = DataStruct.F
   module UFSet = DataStruct.FSet
@@ -22,13 +29,15 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
   *)
   let decide_cut = true
     
-  module Strategy(FE:FrontEndType with type litType     = literals
-				  and  type formulaType = UF.t
+  module Strategy(FE:FrontEndType with type Form.lit    = literals
+				  and  type Form.datatype = UF.t
 				  and  type fsetType    = UFSet.t
-				  and  type asetType    = UASet.t) = struct
+				  and  type asetType    = UASet.t
+				  and  type ilit        = iliterals
+				  and  type dsubsts     = delsubsts) = struct
     include FE
     include Common.Utils.FEext(FE)
-    module Me = Common.Utils.Memo(Atom)(FE)(UFSet)(UASet)
+    module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
     type data       = int*UASet.t
     let initial_data _ = (0,UASet.empty)
@@ -53,13 +62,26 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       print_endline ""
 
 
-    (* The following structures implement the table of watched literals *)
+    (* We now implement the datastructures for the 2-watched literals
+    technique.
+
+       Each clause watches 2 of its literals.
+       It is convenient, given a literal, to get all the clauses that
+       are watching it and, for each of those clauses, to get the
+       other literal that the clause watches.
+
+       This is implemented as follows: 
+
+       In a hashtable, we map every literal to a (persistent) map,
+       whose keys are clauses and whose values are literals *)
+
+    (* The following structure implements the above persistent map *)
 
     module CSetWatched = struct
-      type keys        = UFSet.UT.keys
-      let kcompare     = UF.compare
-      type values      = literals
-      let vcompare     = Atom.compare
+      type keys        = IForm.t
+      let kcompare     = UFSet.UT.compare
+      type values      = iliterals
+      let vcompare     = IAtom.compare
       type infos       = unit
       let info_build   = empty_info_build
       let treeHCons    = true
@@ -67,8 +89,13 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
     module CSet = PATMap(CSetWatched)(UFSet.UT)
 
-    module H = Hashtbl.Make(Atom)
+    (* We now create the hashtable of watched literals *)
+
+    module H = Hashtbl.Make(PHCons_ext(IAtom))
     let watched = H.create 5003
+
+    (* Here we can check that the table is well-formed. This function
+    is not actually used. Just there for debugging *)
 
     let tablecheck() =
       let c =ref 0 in
@@ -83,9 +110,14 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  set
       ) watched
 
-    (* Boolean to record whether we have initialised the table of
-       watched literals *)
+    (* Boolean to record whether we need to initialise the table of
+       watched literals. At first, is true. *)
+
     let is_init = ref true
+
+    (* Assume setatms is a subset of set (sets of literals).
+       Pick n literals out of set (or as many as you can),
+       with priority given to those literals in setatms. *)
 
     let rec pickaux set setatms n =
       if n=0 then []
@@ -96,19 +128,34 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  else let (lit,set') = UASet.next set in 
 	    lit::(pickaux set' UASet.empty (n-1))
 	else let (lit,setatms') = UASet.next setatms in
-	  if not(UASet.is_in lit set) then failwith("Found");
+	  if not(UASet.is_in lit set) then failwith("pickaux: 2nd arg not subset of 1st arg");
 	  lit::(pickaux (UASet.remove lit set) setatms' (n-1))
+
+    (* Pick n literals (or as many as you can) out of formula (which
+    represents a clause), if possible not in atms *)
 
     let picklit formula atms n = 
       let l = UF.aset formula in
       pickaux l (UASet.diff l atms) n
+
+    (* Adds formula as one of the clauses watching lit, the other
+    literal watched by formula being lit2 *)
 
     let addlit lit formula lit2 = 
       if not (H.mem watched lit) then H.add watched lit CSet.empty;
       let l' = H.find watched lit in
 	H.replace watched lit (CSet.add formula (fun _ -> lit2) l')
 
-    (* Function to initialise  the table of watched literals *)
+    (* Function to initialise the table of watched literals:
+
+       Go through every clause in cset, and for each clause, try to
+       pick 2 of its literals to watch (if possible not in atms);
+       if successful, add the 2 corresponding entries in the hashtable.
+
+       Whilst doing that, collect in alllits all of the literals you
+       see. Finally, if the decide_cut flag is on, output all of
+       those which do not appear in atms and whose negations do not
+       appear either.  *)
 
     let initialise atms cset = 
       let alllits = ref UASet.empty in
@@ -125,7 +172,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	  )
 	  cset;
 	if decide_cut then 
-	  (if !Flags.debug>0 then Dump.msg (Some(string_of_int(UASet.cardinal !alllits)^" atoms and negations present in non-unit clauses")) None None;
+	  (Dump.msg (Some(fun p->p "%i atoms and negations present in non-unit clauses" (UASet.cardinal !alllits))) None None;
 	   let onoatms = UASet.union atms (UASet.negations atms) in
 	     UASet.diff !alllits onoatms)
 	else UASet.empty
@@ -146,7 +193,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 			  (* Clause j is allowing backtrack;
 			     we stop investigating the table of watched literals and return j *)
 	    (Some j,t)
-	  | Almost n when not (UASet.is_in (Atom.negation n) atms) ->
+	  | Almost n when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms) ->
 			  (* Clause j is allowing Unit Propagation;
 			     we stack it, and leave the table of watched literals unchanged *)
 	    stack:= (j,n,false)::!stack;
@@ -193,7 +240,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       | Some lit ->
 	  let tset' = 
 	    if decide_cut then 
-	      (let nolit = Atom.negation lit in
+	      (let nolit = DataStruct.MyIAtomNeg.negation lit in
 	       let tsettmp = if UASet.is_in nolit tset then UASet.remove nolit tset else tset in
 		 if UASet.is_in lit tsettmp then UASet.remove lit tsettmp else tsettmp)
 	    else tset
@@ -203,18 +250,18 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	      let (answer,l') = treat atms lit l in
 		(H.replace watched lit l'; 
 		 match answer with
-		   | Some a -> if !Flags.debug>1 then print_endline("Yes "^Form.toString a);
-		       address:=Yes(olda);
-		       count.(1)<-count.(1)+1;
-		       let now = count.(0) in
-		       let myaccept a = 
-                         if (isSuccess a&& count.(0)==now)
-                         then (address:=No)
-                         else failwith "Expected Success"
-		       in
-			 stack:=[];
-			 (Some(Focus(a,myaccept,fun ()->failwith("Expected success"))),tset')
-		   | None -> (None,tset')
+		 | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt a)) None;
+		   address:=Yes(olda);
+		   count.(1)<-count.(1)+1;
+		   let now = count.(0) in
+		   let myaccept a = 
+                     if (isSuccess a&& count.(0)==now)
+                     then (address:=No)
+                     else failwith "Expected Success"
+		   in
+		   stack:=[];
+		   (Some(Focus(a,myaccept,fun ()->failwith("Expected success"))),tset')
+		 | None -> (None,tset')
 		)
 	    else (None,tset')
       | _ -> (None,tset)
@@ -235,8 +282,9 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       if decide_cut && not (UASet.is_empty tset) then
 	(let lit = pick_lit_from tset in
          if UASet.is_in lit atms then failwith("Chosen lit in atms");
-         if UASet.is_in (Atom.negation lit) atms then failwith("Chosen nlit in atms");
-         Some(Cut(7,UF.build (Lit lit),accept,accept,fNone)))
+         if UASet.is_in (DataStruct.MyIAtomNeg.negation lit) atms then failwith("Chosen nlit in atms");
+         let (a,tl) = IAtom.reveal lit in
+         Some(Cut(7,(Form.lit a,tl),accept,accept,fNone)))
       else
         None
 	  
@@ -244,15 +292,15 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       if not(!stack=[]) then failwith("pas []");
       count.(3)<-count.(3)+1;
       match UFSet.rchoose h l with
-	| A a       -> if !Flags.debug>1 then print_endline("Random focus on "^Form.toString a); a
+	| A a       -> Dump.msg None (Some(fun p->p "Random focus on %a" IForm.print_in_fmt a)) None; a
 	| _         -> let a = UFSet.choose l in
-	    if !Flags.debug>1 then print_endline("Random problematic focus on "^Form.toString a); a
+	               Dump.msg None (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None; a
 
 
     let rec findaction atms alternative =
       match !stack with
 	| []       -> alternative
-	| (f,n,_)::h when not (UASet.is_in (Atom.negation n) atms)->
+	| (f,n,_)::h when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms)->
 	    (count.(2)<-count.(2)+1;
 	     stack:=h;
 	     fun()->Some(Focus(f,accept,fNone)))
@@ -375,7 +423,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
 	| Local ans                    -> report(); stack := []; is_init:=true; address:=No;
-	    H.clear watched; restart_strategy#reset() ; Me.clear(); UF.clear(); UASet.clear(); UFSet.clear();Atom.clear();Dump.Plugin.clear();
+	    H.clear watched; restart_strategy#reset() ; Me.clear(); UASet.clear(); UFSet.clear();IAtom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
 

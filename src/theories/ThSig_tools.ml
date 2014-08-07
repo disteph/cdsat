@@ -89,7 +89,7 @@ let interpret
             (try symb ts.arity ts.multiary st.sigsymb_i sym expsort l
 	     with TypingError msg -> 
                if !Flags.debug>0
-               then Dump.msg (Some ("\nWarning: could not understand string "^s^" as a specific (well-typed) signature symbol (now trying other ones) because:\n"^msg^"\n")) None None;
+               then Dump.msg (Some (fun p->p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg)) None None;
 	       aux k)
           | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
         in aux (ts.symbParse s));

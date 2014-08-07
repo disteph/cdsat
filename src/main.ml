@@ -94,4 +94,4 @@ in
   match !fname with
     | [] when !texamples-> trexamples ()
     | []                -> trstdin    ()
-    | l                 -> treat (collect_sort(List.rev l))
+    | l                 -> treat (collect_sort l)

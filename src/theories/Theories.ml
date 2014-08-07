@@ -63,14 +63,16 @@ module type ThDecProc = sig
   module Sig : SigType
 
   (* Implem of atoms and consistency checks, as required by kernel *)
-  include Kernel.Interfaces.DecProc
+  include Kernel.Interfaces_I.DecProc
 
   (* Suggested plugin to be used for proof-search *)
-  val sugPlugin:(module Plugins.Type with type literals = Atom.t)option
+  val sugPlugin:(module Plugins.Type with type iliterals = IAtom.t
+                                     and  type literals  = IAtom.Atom.t
+                                     and  type delsubsts = IAtom.DSubst.t) option
 
   (* A model structure to be used for parsing, depending on an
   implementation of formulae, with a list of illustrative examples *)
-  module Structure(F:Kernel.Interfaces.PrintableFormulaType with type lit=Atom.t) :
+  module Structure(F:Kernel.Formulae.FormulaType with type lit=IAtom.Atom.t) :
   sig
     type t
     val st      : (Sig.sort,Sig.symbol,t) structureType

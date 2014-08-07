@@ -123,9 +123,10 @@ module PATMap
     val make :
       ('a -> D.values option -> D.values) -> (I.keys * 'a) list -> t
     val elements : t -> (D.keys * D.values) list
-    val toString :
-      ((I.common -> string) * (I.branching -> string)) option ->
-      (D.keys * D.values -> string) -> t -> string
+    val print_in_fmt: 
+      ((Format.formatter -> I.common -> unit) * (Format.formatter -> I.branching -> unit)) option
+      -> (Format.formatter -> (D.keys * D.values) -> unit)
+      -> Format.formatter -> t -> unit
     val find_su :
       (I.keys -> D.values -> 'a) ->
       (I.keys -> D.values -> I.branching -> 'b) ->
@@ -166,12 +167,6 @@ module PATSet
     val find : I.keys -> t -> unit
     val cardinal : t -> int
     val empty : t
-      (*
-	val leaf : D.keys * unit -> t
-	val branch : I.common * I.branching * t * t -> t
-        val join : I.common * t * I.common * t -> t
-        val remove_aux : (I.keys -> unit -> t) -> I.keys -> t -> t
-      *)
     val remove : I.keys -> t -> t
     val singleton : D.keys -> t
     val add : I.keys -> t -> t
@@ -199,9 +194,10 @@ module PATSet
       bool ->
       (I.branching -> bool) ->
       ('b -> bool) -> I.common -> t -> ('a, 'b) sum
-    val toString :
-      ((I.common -> string) * (I.branching -> string)) option ->
-      (D.keys -> string) -> t -> string
+    val print_in_fmt: 
+      ((Format.formatter -> I.common -> unit) * (Format.formatter -> I.branching -> unit)) option
+      -> (Format.formatter -> D.keys -> unit)
+      -> Format.formatter -> t -> unit
     val make : I.keys list -> t
     val for_all : (D.keys -> bool) -> t -> bool
     val exists : (D.keys -> bool) -> t -> bool

@@ -1,104 +1,59 @@
 (* ******************************************* *)
 (* Implementation of sets of atoms for DPLL,
-   Implementation of formulae for DPLL,
+   Implementation of formulae info for DPLL,
    Implementation of sets of formulae for DPLL *)
 (* ******************************************* *)
+
+open Format
 
 open Lib
 open Kernel
 
+open Interfaces_I
 open Formulae
-open Interfaces
 open Sums
 open SetConstructions
 open Common.SetInterface
 
 
-module Generate(Atom:AtomType) = struct
+module Generate(IAtom:IAtomType) = struct
+
+  module MyIAtomNeg = IAtomNeg(IAtom)
 
   (* **************************************** *)
   (* Implementation of sets of atoms for DPLL *)
 
-
   module ASet = struct
-    include Common.Patricia_ext.MyPatriciaCollectImplem(Atom)
-    let negations s = fold (fun k accu -> add (Atom.negation k) accu) s empty
+
+    module UT  = struct
+      include TypesFromHConsed(IAtom)
+      let compare  = IAtom.compare
+      let print_in_fmt = IAtom.print_in_fmt
+      let tString  = None
+    end
+
+    include Common.Patricia_ext.MyPat(UT)
+
+    let negations s = fold (fun k accu -> add (MyIAtomNeg.negation k) accu) s empty
   end
 
 
-  (* *********************************** *)
-  (* Implementation of formulae for DPLL *)
+  (* **************************************** *)
+  (* Implementation of formulae info for DPLL *)
 
   module F = struct
 
-    type lit = Atom.t
+    type lit = IAtom.Atom.t
+    type t   = IAtom.DSubst.t -> ASet.t
 
-    type tt = {reveal: (tt,Atom.t) form; id:int; aset: ASet.t; fset:bool}
+    let aset (f,tl) = GForm.data f tl
 
-    let id f   = f.id
-    let aset f = f.aset
-    let fset f = f.fset
-
-    (* HashedType for formulae *)
-
-    module MySmartFormulaImplemPrimitive = 
-      (struct
-	 type t = tt
-	 let equal t1 t2 =
-	   match t1.reveal,t2.reveal with
-	     | Lit l1, Lit l2             -> l1==l2
-	     | AndP (x1,x2), AndP (y1,y2) -> x1==y1 && x2==y2
-	     | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
-	     | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
-	     | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
-	     | ForAll x, ForAll y         -> x==y
-	     | Exists x, Exists y         -> x==y
-	     | a, b                       -> a=b
-	 let hash t1 =
-	   match t1.reveal with
-	     | Lit l        -> Atom.hash l
-	     | TrueP        -> 1
-	     | TrueN        -> 2
-	     | FalseP       -> 3
-	     | FalseN       -> 4
-	     | AndP (x1,x2) -> 5*x1.id+17*x2.id
-	     | OrP (x1,x2)  -> 7*x1.id+19*x2.id
-	     | AndN (x1,x2) -> 11*x1.id+23*x2.id
-	     | OrN (x1,x2)  -> 13*x1.id+29*x2.id
-             | ForAll x     -> 31*x.id
-             | Exists x     -> 37*x.id
-       end: Hashtbl.HashedType with type t=tt)
-
-    include MySmartFormulaImplemPrimitive
-
-    module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
-
-    let aset_build = function
-      | Lit l        -> ASet.add l ASet.empty
-      | AndP (x1,x2) -> ASet.union x1.aset x2.aset
+    let fdata_build f tl = match f with
+      | Lit l        -> ASet.add (IAtom.build(l,tl)) ASet.empty
+      | AndP (x1,x2) -> ASet.union (aset(x1,tl)) (aset(x2,tl))
       | _            -> ASet.empty
 
-    let fset_build = function
-      | Lit l        -> false
-      | AndP (x1,x2) -> x1.fset||x2.fset
-      | _            -> true
-
-    (* Constructing a formula with HConsing techniques *)
-
-    let table = H.create 5003
-    let unique =ref 0
-
-    let build a =
-      let f = {reveal =  a; id = !unique; aset = aset_build a; fset = fset_build a} in
-      try H.find table f
-      with Not_found -> incr unique; H.add table f f; f
-    let reveal f = f.reveal
-      
-    let compare t1 t2 = Pervasives.compare t1.id t2.id
-    let clear() = unique := 0; H.clear table
   end
-
-
 
 
   (* ******************************************* *)
@@ -106,19 +61,35 @@ module Generate(Atom:AtomType) = struct
 
   module FSet = struct
 
-    module UF   = PrintableFormula(Atom)(F)
-    module UT0  = TypesFromCollect(struct include ASet type keys=F.t let tag = F.aset end)
-    module UT3  = TypesFromHConsed(struct type t = F.t let id = F.id end)
+    module UT0  = TypesFromCollect(struct 
+      type t = ASet.t
+      type e = IAtom.t
+      let is_in = ASet.is_in
+      let inter = ASet.inter
+      let compare = ASet.compare
+      let compareE   = ASet.compareE
+      let first_diff = ASet.first_diff 
+      type keys = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let tag   = F.aset
+    end)
+    module UT1  = TypesFromHConsed(struct 
+      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let id (f,_) = GForm.id f 
+    end)
+    module UT2  = TypesFromHConsed(struct 
+      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let id (_,tl) = IAtom.DSubst.id tl 
+    end)
 
     module UT   = struct
-      include LexProduct(UT0)(UT3)
-      let compare = F.compare
-      let toString = UF.toString
-      let cstring (a,b) = string_of_int (ASet.id a)
-      let bstring = function
-	| A(at)-> Atom.toString at
-	| _ -> "Bits"
-      let tString = None (*Some(cstring,bstring)*)
+      include LexProduct(UT0)(LexProduct(UT1)(UT2))
+      let compare      = GForm.icompare IAtom.DSubst.compare
+      let print_in_fmt = GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt
+      let cstring fmt ((a,_):common) = fprintf fmt "%a" ASet.print_in_fmt a
+      let bstring fmt (g:branching) = match g with
+	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
+	| _    -> fprintf fmt "Bits"
+      let tString = None (* Some(cstring,bstring) *)
     end
 
     include Common.Patricia_ext.MyPat(UT)
@@ -133,17 +104,17 @@ module Generate(Atom:AtomType) = struct
       | None, Some bb-> Some bb
       | _            -> failwith("Shouldn't be a union here")
 
-    let filter atms =function
-      | A a-> not (ASet.is_in (Atom.negation a) atms)
+    let filter atms = function
+      | A a-> not (ASet.is_in (MyIAtomNeg.negation a) atms)
       | _  -> true
 
     let schoose atms l =
-      find_su byes bsingleton bempty bunion sous true (filter atms) (function None -> true | _ -> false) (atms,-1) l
+      find_su byes bsingleton bempty bunion sous true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
 
     let yes _ _ _ = Yes() 
 
     let rchoose atms l =
-      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,-1) l
+      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
 
   end
 

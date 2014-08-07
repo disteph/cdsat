@@ -4,26 +4,37 @@
    Implementation of sets of formulae for DPLL *)
 (* ******************************************* *)
 
+open Format
+
 open Lib
 open Kernel
 
-open Interfaces
+open Interfaces_I
 open Formulae
 open Sums
 open SetConstructions
 open Common.SetInterface
 
 
-module Generate(Atom:AtomType) = struct
+module Generate(IAtom:IAtomType) = struct
+
+  module MyIAtomNeg = IAtomNeg(IAtom)
 
   (* **************************************** *)
   (* Implementation of sets of atoms for DPLL *)
 
   module ASet = struct
 
-    module AtSet = Common.Patricia_ext.MyPatriciaCollectImplem(Atom)
+    module UT  = struct
+      include TypesFromHConsed(IAtom)
+      let compare  = IAtom.compare
+      let print_in_fmt = IAtom.print_in_fmt
+      let tString  = None
+    end
 
-    type e              = Atom.t
+    module AtSet = Common.Patricia_ext.MyPat(UT)
+
+    type e              = IAtom.t
     type t              = AtSet.t*(e option)
     let hash(a,_)       = AtSet.hash a
     let equal(a,_)(a',_)= AtSet.equal a a'
@@ -39,7 +50,7 @@ module Generate(Atom:AtomType) = struct
       let (l,t2) = AtSet.next t1 in
 	(l, (t2,None))
     let fold f (a,_)    = AtSet.fold f a
-    let toString (h,_)  = AtSet.toString h 
+    let print_in_fmt fmt (h,_)= AtSet.print_in_fmt fmt h 
     let diff (t1,_)(t2,_)     = (AtSet.diff t1 t2,None)
     let compare(a,_)(a',_)    = AtSet.compare a a'
     let compareE              = AtSet.compareE
@@ -50,7 +61,7 @@ module Generate(Atom:AtomType) = struct
     let id (a,_)        = AtSet.id a
     let latest (_,b)    = b
     let cardinal (s,_)  = AtSet.cardinal s
-    let negations (s,_) = AtSet.fold (fun k accu -> add (Atom.negation k) accu) s empty
+    let negations (s,_) = AtSet.fold (fun k accu -> add (MyIAtomNeg.negation k) accu) s empty
 
   end
 
@@ -60,70 +71,19 @@ module Generate(Atom:AtomType) = struct
 
   module F = struct
 
-    type lit = Atom.t
+    type lit = IAtom.Atom.t
+    type t   = IAtom.DSubst.t -> ASet.t * bool
 
-    type tt = {reveal: (tt,Atom.t) form; id:int; aset: ASet.t; fset: bool}
+    let aset (f,tl) = let (r,_) = GForm.data f tl in r
+    let fset (f,tl) = let (_,b) = GForm.data f tl in b
 
-    let id f   = f.id
-    let aset f = f.aset
-    let fset f = f.fset
-      
-    (* HashedType for formulae *)
+    let fdata_build = function
+      | Lit l        -> fun tl -> ASet.add (IAtom.build(l,tl)) ASet.empty, false
+      | AndP (x1,x2) -> fun tl -> 
+        ASet.union (aset(x1,tl)) (aset(x2,tl)),
+        (fset(x1,tl) || fset(x2,tl))
+      | _            -> fun tl -> ASet.empty, true
 
-    module MySmartFormulaImplemPrimitive = 
-      (struct
-	 type t = tt
-	 let equal t1 t2 =
-	   match t1.reveal,t2.reveal with
-	     | Lit l1, Lit l2             -> l1==l2
-	     | AndP (x1,x2), AndP (y1,y2) -> x1==y1 && x2==y2
-	     | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
-	     | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
-	     | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
-	     | ForAll x, ForAll y         -> x==y
-	     | Exists x, Exists y         -> x==y
-	     | a, b                       -> a=b
-	 let hash t1 =
-	   match t1.reveal with
-	     | Lit l        -> Atom.id l
-	     | TrueP        -> 1
-	     | TrueN        -> 2
-	     | FalseP       -> 3
-	     | FalseN       -> 4
-	     | AndP (x1,x2) -> 5*x1.id+17*x2.id
-	     | OrP (x1,x2)  -> 7*x1.id+19*x2.id
-	     | AndN (x1,x2) -> 11*x1.id+23*x2.id
-	     | OrN (x1,x2)  -> 13*x1.id+29*x2.id
-             | ForAll x     -> 31*x.id
-             | Exists x     -> 37*x.id
-       end: Hashtbl.HashedType with type t=tt)
-
-    include MySmartFormulaImplemPrimitive
-
-    module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
-
-    let aset_build = function
-      | Lit l        -> ASet.add l ASet.empty
-      | AndP (x1,x2) -> ASet.union x1.aset x2.aset
-      | _            -> ASet.empty
-
-    let fset_build = function
-      | Lit l        -> false
-      | AndP (x1,x2) -> x1.fset||x2.fset
-      | _            -> true
-
-    (* Constructing a formula with HConsing techniques *)
-
-    let table = H.create 5003
-    let funique =ref 0
-    let build a =
-      let f = {reveal =  a; id = !funique; aset = aset_build a; fset = fset_build a} in
-      try H.find table f
-      with Not_found -> incr funique; H.add table f f; f
-    let reveal f = f.reveal
-
-    let compare t1 t2 = Pervasives.compare t1.id t2.id	  
-    let clear() = H.clear table
   end
 
 
@@ -134,32 +94,35 @@ module Generate(Atom:AtomType) = struct
 
   module FSet = struct
 
-    module UF   = PrintableFormula(Atom)(F)
-    module UT4  = TypesFromCollect(
-      struct
-	include ASet 
-        type keys=F.t
-	let tag = F.aset
-      end)
-
-    module UT3  = TypesFromHConsed(struct
-				     type t = F.t 
-				     let id = F.id 
-				   end)
+    module UT0  = TypesFromCollect(struct 
+      type t = ASet.t
+      type e = IAtom.t
+      let is_in = ASet.is_in
+      let inter = ASet.inter
+      let compare    = ASet.compare
+      let compareE   = ASet.compareE
+      let first_diff = ASet.first_diff 
+      type keys = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let tag = F.aset
+    end)
+    module UT1  = TypesFromHConsed(struct 
+      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let id (f,_) = GForm.id f 
+    end)
+    module UT2  = TypesFromHConsed(struct 
+      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
+      let id (_,tl) = IAtom.DSubst.id tl 
+    end)
 
     module UT   = struct
-      include LexProduct(UT4)(UT3)
-      let compare = F.compare
-      let toString = UF.toString
-      let cstring (a,b) = match a with
-	| None -> "NC"
-	| Some aa-> string_of_int (ASet.id aa)
-      let bstring = function
-	| A(Some at)-> Atom.toString at
-	| A(None)   -> "NC"
-	| _ -> "Bits"
-      let tString = None
-	(* Some(cstring,bstring) *)
+      include LexProduct(UT0)(LexProduct(UT1)(UT2))
+      let compare      = GForm.icompare IAtom.DSubst.compare
+      let print_in_fmt = GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt
+      let cstring fmt (a,b) = fprintf fmt "%i" (ASet.id a)
+      let bstring fmt = function
+	| A(at)-> fprintf fmt "%a" IAtom.Atom.print_in_fmt at
+	| _    -> fprintf fmt "Bits"
+      let tString = None (*Some(cstring,bstring)*)
     end
 
     include Common.Patricia_ext.MyPat(UT)
@@ -173,13 +136,13 @@ module Generate(Atom:AtomType) = struct
       | _            -> failwith("Shouldn't be a union here")
 
     let filter atms =function
-      | A a-> not (ASet.is_in (Atom.negation a) atms)
+      | A a-> not (ASet.is_in (MyIAtomNeg.negation a) atms)
       | _  -> true
 
     let yes _ _ _ = Yes() 
 
     let rchoose atms l =
-      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,-1) l
+      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
 
   end
 

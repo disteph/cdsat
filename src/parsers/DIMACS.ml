@@ -1,7 +1,8 @@
 open Kernel
 
-open Interfaces
+open Interfaces_I
 open Formulae
+open Interfaces_II
 open String
 open Parsers
 

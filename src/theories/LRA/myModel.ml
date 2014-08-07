@@ -1,4 +1,4 @@
-open Kernel.Interfaces
+open Kernel.Interfaces_I
 
 (* open Lib.Sums *)
 open LibSimplex.Core
@@ -34,7 +34,7 @@ let simplify_novar n = function
   | `Lt -> Num.compare_num n num_0 < 0
   | `Le -> Num.compare_num n num_0 <= 0
 
-module Structure(F:PrintableFormulaType with type lit = Atom.t) = struct
+module Structure(F:Kernel.Formulae.FormulaType with type lit = Atom.t) = struct
 
   open Theories
   module PS = ThDecProc_tools.PropStructure(F)

@@ -1,5 +1,5 @@
 open Kernel
-open Interfaces
+open Interfaces_I
 open Lib
 open SetConstructions
 open MyAtom
@@ -10,7 +10,7 @@ open Patricia
 module Sig    = ThSig_register.CCemptySig
 module Atom   = Atom
 
-module Structure(F:PrintableFormulaType with type lit = Atom.t)
+module Structure(F:Formulae.FormulaType with type lit = Atom.t)
   = struct
 
     module PS = ThDecProc_tools.PropStructure(F)

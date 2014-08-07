@@ -1,5 +1,4 @@
-(* let (a,b,c)=info_build in  *)
-
+open Format
 open Sums
 
 type ('keys,'values,'infos) info_build_type = 
@@ -27,6 +26,8 @@ module type Intern = sig
   val disagree    : common->common->common*branching*bool
   val match_prefix: common->common->branching->bool
 end
+
+let pattreenum = ref 0
 
 (* Construction of a Patricia tree structure for maps, given the above *)
 
@@ -80,34 +81,38 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
       | Branch(_,_,t0,t1)-> info_build.branch_info t0.info t1.info  
 
     module H = Hashtbl.Make(PATPrimitive)
-    let table = H.create 5003 
+
+    let num = !pattreenum
+
+    let table = incr pattreenum; H.create 5003 
+
     let uniqq =ref 0
     let build a =
       let f = {reveal =  a; id = !uniqq ; info = info_gen a} in
 	if treeHCons then
+          (
 	  try H.find table f
-	  with Not_found -> (*print_endline("New item found "^string_of_int(!uniqq)); *)
-	    incr uniqq; H.add table f f; f
+	  with Not_found -> incr uniqq; H.add table f f; f)
 	else f
 
-    let clear() = uniqq := 0;H.clear table
+    let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
 
-    let compare t1 t2 = if treeHCons then Pervasives.compare t1.id t2.id else failwith("Cannot compare patricia trees (not HConsed)")
+    let compare t1 t2 = if treeHCons then Pervasives.compare t1.id t2.id else failwith "Cannot compare patricia trees (not HConsed)"
 
     (* Now we start the standard functions on maps/sets *)
 
-    (* let rec checktree aux t = match reveal t with *)
-    (*   | Empty               -> true *)
-    (*   | Leaf (j,_)          -> List.fold_left (fun b m -> let g =(check (tag j) m) in if not g then print_endline("Warning leaf"); b&&g) true aux  *)
-    (*   | Branch (_, m, l, r) -> *)
-    (* 	  let aux' = m::aux in *)
-    (* 	  let o = match aux with *)
-    (* 	    | []   -> true *)
-    (* 	    | a::l when bcompare a m < 0 -> true *)
-    (* 	    | _    -> false *)
-    (* 	  in *)
-    (* 	    if not o then print_endline("Warning Branch"); *)
-    (* 	    o&&(checktree aux r)&&(checktree aux' l) *)
+    let rec checktree aux t = match reveal t with
+      | Empty               -> true
+      | Leaf (j,_)          -> List.fold_left (fun b m -> let g =(check (tag j) m) in if not g then print_endline("Warning leaf"); b&&g) true aux
+      | Branch (_, m, l, r) ->
+    	let aux' = m::aux in
+    	let o = match aux with
+    	  | []   -> true
+    	  | a::l when bcompare a m < 0 -> true
+    	  | _    -> false
+    	in
+    	if not o then print_endline("Warning Branch");
+    	o&&(checktree aux r)&&(checktree aux' l)
 
     let is_empty t = match reveal t with Empty -> true | _ -> false
 
@@ -149,12 +154,13 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
 
     let remove_aux f k t =
       let rec rmv t = match reveal t with
-	| Empty      -> empty
-	| Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith("Remove: Was not there -leaf")
+	| Empty      -> failwith "Remove: Was not there -empty"
+	| Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith "Remove: Was not there -leaf"
 	| Branch (p,m,t0,t1) ->
 	    if match_prefix (tag k) p m then
-	      if check (tag k) m then branch (p, m, rmv t0, t1) else branch (p, m, t0, rmv t1)
-	    else failwith("Remove: Was not there -branch")
+	      if check (tag k) m then branch (p, m, rmv t0, t1)
+              else branch (p, m, t0, rmv t1)
+	    else failwith "Remove: Was not there -branch"
       in rmv t
 
     (* remove function: argument f of remove_aux says "delete the key altogether" *)
@@ -165,21 +171,22 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
        argument b decides whether to print the map as a list [b=None]
        or as a tree [b=Some(g,h)], with g printing prefixes and h printing branchings *)
 
-    let toString b f t =
-      let rec aux indent t = match t.reveal with
-	| Empty            -> "{}"
-	| Leaf(j,x)        -> (match b with
-				 | None -> ""
-				 | _    -> indent^"   ")^f(j,x)
+    let print_in_fmt b f fmt t =
+      let rec aux indent fmt t = match t.reveal with
+	| Empty            -> fprintf fmt "{}"
+	| Leaf(j,x)        -> 
+          (match b with
+	  | None -> fprintf fmt "%a" f (j,x) 
+	  | _    -> fprintf fmt "%t%s%a" indent "   " f (j,x))
 	| Branch(p,m,t0,t1)->
-	    let h0 d = aux (indent^d) t0 in
-	    let h1 d = aux (indent^d) t1 in
-	      match b with
-		| None     -> (h0 "")^","^(h1 "")
-		| Some(g,h)-> (h0 (g p^"+"^h m))^"\n"^(h1 (g p^"-"^h m))
+	  match b with
+	  | None     -> let auxd = aux indent in
+                        fprintf fmt "%a,%a" auxd t0 auxd t1
+	  | Some(g,h)-> let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent g p s h m) in
+                        fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
       in match b with
-	| None   -> (aux "" t)
-	| Some _ -> "\n"^(aux "" t)
+	| None   -> aux (fun fmt -> ()) fmt t
+	| Some _ -> fprintf fmt "\n%a" (aux (fun fmt -> ())) t
 
 
   (* Now we have finished the material that is common to Maps AND Sets,
@@ -472,7 +479,7 @@ module PATSet (D:Dest with type values = unit)(I:Intern with type keys=D.keys) =
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-  let toString b f = toString b (fun (x,y)->f x)
+  let print_in_fmt b f = print_in_fmt b (fun fmt (x,y)->f fmt x)
 
   let make l     = List.fold_right add l empty
 

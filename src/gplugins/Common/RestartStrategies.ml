@@ -1,4 +1,4 @@
-module RestartStrategies (UASet: Kernel.Interfaces.CollectImplem) = struct
+module RestartStrategies (UASet: Kernel.Interfaces_I.CollectImplem) = struct
   exception Restart of UASet.t
 
   class virtual strategy (enabled : bool) =

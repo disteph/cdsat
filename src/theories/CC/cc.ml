@@ -1,5 +1,5 @@
 open Kernel
-open Interfaces
+open Interfaces_I
 open Theories
 open AlgoCC
 open PUFind
@@ -25,7 +25,7 @@ and type d = X.input) : ThDecProc_tools.GThDecProc = struct
       if ASet.is_in t atomN then Some (ASet.add t ASet.empty)
       else
         begin
-          if !Flags.debug>0 then Dump.msg (Some("Procedure called on goal "^Atom.toString t^" under hypotheses\n"^ASet.toString atomN)) None None;
+          Dump.msg (Some(fun p->p "Procedure called on goal %a under hypotheses\n%a" Atom.print_in_fmt t ASet.print_in_fmt atomN)) None None;
 	  let l = ASet.fold (fun t l -> t::l) atomN [] in
 	  let l' = (List.fold_left (fun li e ->
 	    let (b,p,s) = X.predicate e in
@@ -57,12 +57,14 @@ and type d = X.input) : ThDecProc_tools.GThDecProc = struct
 	        Some(List.fold_left (fun e a -> ASet.add a e) ASet.empty ((List.hd !li)::lis))
 	    end
           in
-          if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT with hypotheses" | Some x -> "INCONSISTENT with hypotheses: "^ASet.toString x))) None None; 
+          (match result with 
+          | None   -> Dump.msg (Some(fun p->p "Procedure finished with CONSISTENT with hypotheses.")) None None
+          | Some x -> Dump.msg (Some(fun p->p "Procedure finished with INCONSISTENT with hypotheses\n %a" ASet.print_in_fmt x)) None None); 
           result
         end
 
     let consistency atomN = 
-      if !Flags.debug>0 then Dump.msg (Some("Procedure called on\n"^ASet.toString atomN)) None None;
+      Dump.msg (Some(fun p->p "Procedure called on\n%a" ASet.print_in_fmt atomN)) None None;
       let l = ASet.fold (fun t l -> t::l) atomN [] in
       let l' = (List.fold_right (fun e li ->
 	let (b,p,s) = X.predicate e in
@@ -105,7 +107,9 @@ and type d = X.input) : ThDecProc_tools.GThDecProc = struct
 	    end 
         end
       in
-      if !Flags.debug>0 then Dump.msg (Some("Procedure finished with "^(match result with None -> "CONSISTENT" | Some x -> "INCONSISTENT: "^ASet.toString x))) None None; 
+      (match result with 
+      | None   -> Dump.msg (Some(fun p->p "Procedure finished with CONSISTENT with hypotheses.")) None None
+      | Some x -> Dump.msg (Some(fun p->p "Procedure finished with INCONSISTENT with hypotheses\n %a" ASet.print_in_fmt x)) None None); 
       result
   end
 

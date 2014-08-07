@@ -1,5 +1,5 @@
 open Kernel
-open Interfaces
+open Interfaces_I
 open Formulae
 
 module Sig    = ThSig_register.PropSig
@@ -28,7 +28,7 @@ module Consistency(ASet: CollectImplem with type e = Atom.t)
 	None
   end
 
-module Structure(F:PrintableFormulaType with type lit = Atom.t)
+module Structure(F:Formulae.FormulaType with type lit = Atom.t)
   = struct
 
     open Theories
@@ -144,7 +144,8 @@ module Structure(F:PrintableFormulaType with type lit = Atom.t)
       )
     *)
 
-    let	examples = [(f1,true);(f2,true);(f3,true);(f4,true);(f5,true);(f6,false);(f7,false);(f8,true)]
+    let	examples =
+      [(f1,true);(f2,true);(f3,true);(f4,true);(f5,true);(f6,false);(f7,false);(f8,true)]
 
   end
 

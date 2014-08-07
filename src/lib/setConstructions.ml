@@ -24,9 +24,9 @@ module TypesFromHConsed(S:FromHConsed) = struct
 
   let match_prefix q p m  = mask q m == mask p m
 
-  let disagree p0 p1      = 
-    let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
+  let disagree p0 p1      = let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
 
+  let pequals i1 i2 = (i1=i2)
 end
 
 (* Automatic construction of a UT:UserTypes from a collection *)
@@ -66,7 +66,7 @@ module TypesFromCollect(S: FromCollect) = struct
 
   let disagree p0 p1 = match S.first_diff p0 p1 with
     | (Some b,c) -> (S.inter p0 p1,b,c)
-    | (None,_)   -> failwith("disagree called with two arguments that are equal")
+    | (None,_)   -> failwith "disagree called with two arguments that are equal"
 
   let pequals p1 p2 = (S.compare p1 p2==0)
 end
@@ -164,7 +164,7 @@ module Lift(I:sig include Intern
     | Some pp,Some pp' -> let (com,d,b) = I.disagree pp pp' in (Some com,Some d,b)
     | None , Some _    -> (None,None,true)
     | Some _, None     -> (None,None,false)
-    | None, None       -> failwith("Disagree called on two equal arguments!")
+    | None, None       -> failwith "Disagree called on two equal arguments!"
 
   let sub sub1 alm a a' limit =
     let lift = function Almost b-> Almost (Some b) | Yes _ -> Yes() | No->No in

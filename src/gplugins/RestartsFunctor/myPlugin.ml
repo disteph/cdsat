@@ -1,18 +1,23 @@
-open Kernel.Interfaces
+open Kernel.Interfaces_I
 
-module GenPluginWRestart(MyGenPlugin:Plugins.GenType)(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = struct
-    
-  module MyPlugin = MyGenPlugin(Atom)
+module GenPluginWRestart(MyGenPlugin:Plugins.GenType)(IAtom: IAtomType)
+  :(Plugins.Type with type literals = IAtom.Atom.t
+                 and type iliterals = IAtom.t) = struct
+  
+  type iliterals = IAtom.t
+  type literals  = IAtom.Atom.t
+  type delsubsts = IAtom.DSubst.t
 
-  type literals = Atom.t
-  module UASet = MyPlugin.UASet
-  module UF    = MyPlugin.UF
-  module UFSet = MyPlugin.UFSet
+  module UASet = MyGenPlugin.UASet
+  module UF    = MyGenPlugin.UF
+  module UFSet = MyGenPlugin.UFSet
 
-  module Strategy(FE:FrontEndType with type litType     = literals
-				  and  type formulaType = UF.t
+  module Strategy(FE:FrontEndType with type Form.lit    = literals
+				  and  type Form.datatype = UF.t
 				  and  type fsetType    = UFSet.t
-				  and  type asetType    = UASet.t) = struct
+				  and  type asetType    = UASet.t
+				  and  type ilit        = iliterals
+				  and  type dsubsts     = delsubsts) = struct
 
     module Restarts = Common.RestartStrategies.RestartStrategies(UASet)
     let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2

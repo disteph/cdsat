@@ -4,6 +4,14 @@
 (* printed.                                             *)
 (********************************************************)
 
+let toString a = let buf = Buffer.create 255 in
+                 let fmt = Format.formatter_of_buffer buf in
+                 a (Format.fprintf fmt);
+                 Format.fprintf fmt "%!";
+                 Buffer.contents buf
+
+let stringOf f a = toString (fun p->p "%a" f a)
+                
 let every
     = [|(* local success *)
       0;
@@ -28,14 +36,13 @@ let every
 let msg un deux = function
   | Some i (* when Flags.every.(i)==0||((every.(i) mod Flags.every.(i)) !=0) *)
       -> ()
-  | _ -> let message = ref un in
-         (if !Flags.debug>1
-          then match deux with
-          | Some _ -> message :=deux
-          | None   ->());
-         match !message with
-         | Some a -> print_endline a;
-         | None   ->()
+  | _ when !Flags.debug>0
+      -> (match deux,un with
+      | Some a,_ when !Flags.debug>1 -> print_endline(toString a)
+      | _ , Some a                   -> print_endline(toString a)
+      | _ , None   -> ())
+  | _ -> ()
+        
 
 (**********)
 (* Timers *)

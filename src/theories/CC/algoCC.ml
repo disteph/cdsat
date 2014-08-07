@@ -1,5 +1,5 @@
 open Kernel
-open Interfaces
+open Interfaces_I
 open PUFind
 open Maps
 open Theories
@@ -12,7 +12,7 @@ module type SolvableTheory = sig
 
   module Atom : AtomType
 
-  module Structure(F:Kernel.Interfaces.PrintableFormulaType with type lit=Atom.t) :
+  module Structure(F:Kernel.Formulae.FormulaType with type lit=Atom.t) :
   sig
     type t
     val st      : (Sig.sort,Sig.symbol,t) structureType

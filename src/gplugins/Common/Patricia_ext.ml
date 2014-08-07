@@ -14,8 +14,8 @@ open SetInterface
 module MyPat(UT:sig
 	       include Intern
 	       val compare : keys->keys->int
-	       val toString: keys->string
-	       val tString: ((common -> string)*(branching->string)) option
+	       val print_in_fmt: Format.formatter -> keys -> unit
+	       val tString: ((Format.formatter -> common -> unit)*(Format.formatter -> branching->unit)) option
 	     end)
   :MyPatCollect with type e = UT.keys
 		and  type common=UT.common
@@ -29,7 +29,7 @@ module MyPat(UT:sig
       let vcompare _ _ = 0
       type infos       = keys m_infos
       let info_build   = m_info_build kcompare
-      let treeHCons    = !Flags.memo
+      let treeHCons    = true
     end
 
     include PATSet(D)(UT)
@@ -39,7 +39,7 @@ module MyPat(UT:sig
     type branching = UT.branching
 
     let is_in      = mem
-    let toString   = toString UT.tString UT.toString
+    let print_in_fmt = print_in_fmt UT.tString UT.print_in_fmt
     let next  t1   = let e1 = choose t1 in (e1, remove e1 t1) 
     let compareE   = UT.compare
     let first_diff = first_diff info
@@ -50,20 +50,3 @@ module MyPat(UT:sig
       in sub locprune alm s1 s2
 
   end
-
-
-(* Generic implementation of sets *)
-
-module MyPatriciaCollectImplem(M:sig
-				 type t
-				 val id: t->int
-				 val compare : t->t->int
-				 val toString: t->string
-			       end)
-  :MyPatCollect with type e = M.t
-  =
-  MyPat(struct include TypesFromHConsed(M)
-	       let compare  = M.compare
-	       let toString = M.toString
-	       let tString  = None
-	end)

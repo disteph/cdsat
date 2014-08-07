@@ -1,13 +1,20 @@
 open Lib
 open Kernel
 
-open Interfaces
+open Interfaces_I
+open Interfaces_II
 open Sums
 
-module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = struct
+module GenPlugin(IAtom: IAtomType)
+  :(Plugins.Type with type iliterals = IAtom.t
+                 and  type literals  = IAtom.Atom.t
+                 and  type delsubsts = IAtom.DSubst.t) = struct
   
-  type literals = Atom.t
-  module DataStruct = DataStructures.Generate(Atom)
+  type iliterals = IAtom.t
+  type literals  = IAtom.Atom.t
+  type delsubsts = IAtom.DSubst.t
+
+  module DataStruct = DataStructures.Generate(IAtom)
   module UASet = DataStruct.ASet
   module UF    = DataStruct.F
   module UFSet = DataStruct.FSet
@@ -21,13 +28,15 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
   let decide_cut = true
 
     
-  module Strategy(FE:FrontEndType with type litType     = literals
-				  and  type formulaType = UF.t
+  module Strategy(FE:FrontEndType with type Form.lit    = literals
+				  and  type Form.datatype = UF.t
 				  and  type fsetType    = UFSet.t
-				  and  type asetType    = UASet.t) = struct
+				  and  type asetType    = UASet.t
+				  and  type ilit        = iliterals
+				  and  type dsubsts     = delsubsts) = struct
     include FE
     include Common.Utils.FEext(FE)
-    module Me = Common.Utils.Memo(Atom)(FE)(UFSet)(UASet)
+    module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
     type data       = int
     let initial_data _ = 0
@@ -50,7 +59,8 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
       else let (h,_)=Seq.simplify seq in
            if !Flags.unitp
            then (match UFSet.schoose h l with
-	   | A a       ->if !Flags.debug>1 then print_endline("Yes "^Form.toString a);
+	   | A a       ->
+             Dump.msg (Some(fun p->p "Yes %a" IForm.print_in_fmt a)) None None;
 	     address:=Yes(olda);
 	     count.(1)<-count.(1)+1;
 		    (* let now = count.(4) in *)
@@ -59,7 +69,8 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 		    (*   | _-> failwith "Expected Success" *)
 		    (* in *)
 	     Focus(a,accept,fNone)
-	   | F(Some a) ->if !Flags.debug>1 then print_endline("Almost "^Form.toString a);
+	   | F(Some a) ->
+             Dump.msg (Some(fun p->p "Almost %a" IForm.print_in_fmt a)) None None;
 	     address:=Almost(olda);
 	     count.(2)<-count.(2)+1;
 	     Focus(a,accept,fNone)
@@ -67,11 +78,13 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	     address:=No;
 	     count.(3)<-count.(3)+1;
 	     match UFSet.rchoose h l with
-	     | A a       -> if !Flags.debug>1 then print_endline("Random focus on "^Form.toString a);
+	     | A a       -> 
+               Dump.msg (Some(fun p->p "Random focus on %a" IForm.print_in_fmt a)) None None;
 	       Focus(a,accept,fNone)
-	     | _         -> let a = UFSet.choose l in
-			    if !Flags.debug>1 then print_endline("Random problematic focus on "^Form.toString a);
-			    Focus(a,accept,fNone))
+	     | _         -> 
+               let a = UFSet.choose l in
+               Dump.msg (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None None;
+	       Focus(a,accept,fNone))
            else
 	     Focus(UFSet.choose l,accept,fNone)
 
@@ -88,7 +101,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 
       | Local ans                    ->
 	  Me.report(); Me.clear(); print_endline("   Plugin's report (DPLL_Pat):"); print_endline(print_state 0); print_endline "";
-	  UF.clear(); UASet.clear(); UFSet.clear();Atom.clear(); address:=No;
+	  UASet.clear(); UFSet.clear();IAtom.clear(); address:=No;
 	  for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	  ans
 

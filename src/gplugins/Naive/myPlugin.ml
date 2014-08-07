@@ -1,28 +1,25 @@
+open Format
+
 open Kernel
 
+open Interfaces_I
 open Formulae
-open Interfaces
+open Interfaces_II
 
-module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = struct
-
-  type literals = Atom.t
-
-
-  (* Default implementation for interface FormulaImplem *)
-
-  module MyFormulaImplem = 
-    (struct
-       type lit = literals
-       type t = Reveal of (t,lit) form
-       let reveal (Reveal a) = a
-       let build a = (Reveal a)
-     end : FormulaImplem with type lit = literals)
-
+module GenPlugin(IAtom: IAtomType)
+  :(Plugins.Type with type iliterals = IAtom.t
+                 and  type literals  = IAtom.Atom.t
+                 and  type delsubsts = IAtom.DSubst.t) = struct
+  
+  type iliterals = IAtom.t
+  type literals  = IAtom.Atom.t
+  type delsubsts = IAtom.DSubst.t
+    
   (* Default implementation for interface CollectImplem *)
 
   module type PrintableType = sig 
     type t 
-    val toString: t -> string
+    val print_in_fmt: formatter -> t -> unit
   end
 
   module MyCollectImplem (MyPType:PrintableType) =
@@ -47,7 +44,7 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
 	 | a::gamma2 -> let gamma3 = inter gamma1 gamma2 in
 	     if is_in a gamma1 then a::gamma3 else gamma3
        let rec remove x = function
-	 | [] -> failwith(MyPType.toString(x)^" is not in list!")
+	 | [] -> failwith(Dump.toString (fun p->p "%a is not in list!" MyPType.print_in_fmt x))
 	 | y::l when y=x -> l
 	 | y::l -> y::(remove x l)
        let next = function
@@ -59,29 +56,30 @@ module GenPlugin(Atom: AtomType):(Plugins.Type with type literals = Atom.t) = st
        let subset gamma1 gamma2 =
          fold (fun a b ->b && is_in a gamma2) gamma1 true
 
-       let rec toString = function
-	 | [] -> ""
-	 | f::[] -> MyPType.toString(f)
-	 | f::l -> MyPType.toString(f)^", "^(toString l)
-       let hash = Hashtbl.hash
-       let equal = (=)
+       let rec print_in_fmt fmt = function
+	 | []    -> ()
+	 | f::[] -> fprintf fmt "%a" MyPType.print_in_fmt f
+	 | f::l  -> fprintf fmt "%a, %a" MyPType.print_in_fmt f print_in_fmt l
+
      end: CollectImplem with type e = MyPType.t and type t = MyPType.t list)
 
-  (* Default implementation for interface ACollectImplem *)
+  module UASet = MyCollectImplem(IAtom)
+  module UF = struct
+    type lit = literals
+    type t = unit
+    let fdata_build f = ()
+  end
+  module UFSet = MyCollectImplem(struct
+    type t = (UF.t,UF.lit) GForm.t * IAtom.DSubst.t
+    let print_in_fmt = GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt
+  end)
 
-  module MyACollectImplem = MyCollectImplem(Atom)
-(* CollectImplem with type e = literals and type t = literals list) *)
-
-  (* Default implementation for interface User *)
-
-  module UF    = MyFormulaImplem
-  module UFSet = MyCollectImplem(PrintableFormula(Atom)(UF))
-  module UASet = MyACollectImplem
-  module Strategy(FE:FrontEndType with type litType     = literals
-				  and  type formulaType = UF.t
+  module Strategy(FE:FrontEndType with type Form.lit    = literals
+				  and  type Form.datatype = UF.t
 				  and  type fsetType    = UFSet.t
-				  and  type asetType    = UASet.t)
-    = struct
+				  and  type asetType    = UASet.t
+				  and  type ilit        = iliterals
+				  and  type dsubsts     = delsubsts) = struct
       include FE
       include Common.Utils.FEext(FE)
 	(* The strategy provides the following function solve:

@@ -4,7 +4,7 @@ myPatAset *)
 open Lib.Sums
 
 module type CollectImplemExt = sig
-  include Kernel.Interfaces.CollectImplem
+  include Kernel.Interfaces_I.CollectImplem
 
     (* Comparison of collections *)
   val compare    : t->t->int
@@ -52,7 +52,7 @@ sig
   val equal : t -> t -> bool
   val next : t -> e * t
   val fold : (e -> 'a -> 'a) -> t -> 'a -> 'a
-  val toString : t -> string
+  val print_in_fmt: Format.formatter -> t -> unit
   val compare : t -> t -> int
   val compareE : e -> e -> int
   val sub  : bool->t->t->e option->(unit,e) almost
