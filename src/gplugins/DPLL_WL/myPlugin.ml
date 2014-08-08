@@ -78,7 +78,7 @@ module GenPlugin(IAtom: IAtomType)
     (* The following structure implements the above persistent map *)
 
     module CSetWatched = struct
-      type keys        = IForm.t
+      type keys        = UFSet.UT.keys
       let kcompare     = UFSet.UT.compare
       type values      = iliterals
       let vcompare     = IAtom.compare
@@ -135,7 +135,7 @@ module GenPlugin(IAtom: IAtomType)
     represents a clause), if possible not in atms *)
 
     let picklit formula atms n = 
-      let l = UF.aset formula in
+      let l = UFSet.aset formula in
       pickaux l (UASet.diff l atms) n
 
     (* Adds formula as one of the clauses watching lit, the other
@@ -163,11 +163,12 @@ module GenPlugin(IAtom: IAtomType)
 	  (fun formula -> 
 	     (
 	       (match picklit formula atms 2 with
-		  | lit1::lit2::_ when not (UF.fset formula)-> (addlit lit1 formula lit2 ;
-				                                addlit lit2 formula lit1 )
+		  | lit1::lit2::_ when not (UF.fset (UFSet.form formula))->
+                    (addlit lit1 formula lit2 ;
+		     addlit lit2 formula lit1 )
 		  | _ -> ());
 	       if decide_cut then
-                 alllits := UASet.union !alllits (UF.aset formula)
+                 alllits := UASet.union !alllits (UFSet.aset formula)
 	     )
 	  )
 	  cset;
@@ -188,7 +189,7 @@ module GenPlugin(IAtom: IAtomType)
       let rec aux t = match CSet.reveal t with
 	| CSet.Empty           -> (None,t)
 	| CSet.Leaf(j,x)       ->
-	  (match UASet.sub true (UF.aset j) atms None with
+	  (match UASet.sub true (UFSet.aset j) atms None with
 	  | Yes _   ->
 			  (* Clause j is allowing backtrack;
 			     we stop investigating the table of watched literals and return j *)
@@ -203,7 +204,7 @@ module GenPlugin(IAtom: IAtomType)
 	    (* Clause j allows neither backtrack nor unit propagate;
 	       we need to change the watched literal lit *)
 	    (* Pick a new literal to be watched in l *)
-	    let tobcf = UASet.remove x (UF.aset j) in
+	    let tobcf = UASet.remove x (UFSet.aset j) in
 	    (match pickaux tobcf (UASet.diff tobcf atms) 1 with
 	    | [] -> failwith("Disgrace")
 	    | newlit::_ ->
@@ -250,7 +251,7 @@ module GenPlugin(IAtom: IAtomType)
 	      let (answer,l') = treat atms lit l in
 		(H.replace watched lit l'; 
 		 match answer with
-		 | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt a)) None;
+		 | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
 		   address:=Yes(olda);
 		   count.(1)<-count.(1)+1;
 		   let now = count.(0) in
@@ -260,7 +261,7 @@ module GenPlugin(IAtom: IAtomType)
                      else failwith "Expected Success"
 		   in
 		   stack:=[];
-		   (Some(Focus(a,myaccept,fun ()->failwith("Expected success"))),tset')
+		   (Some(Focus(UFSet.form a,myaccept,fun ()->failwith("Expected success"))),tset')
 		 | None -> (None,tset')
 		)
 	    else (None,tset')
@@ -303,7 +304,7 @@ module GenPlugin(IAtom: IAtomType)
 	| (f,n,_)::h when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms)->
 	    (count.(2)<-count.(2)+1;
 	     stack:=h;
-	     fun()->Some(Focus(f,accept,fNone)))
+	     fun()->Some(Focus(UFSet.form f,accept,fNone)))
 	| (f,n,_)::h ->
 	    stack:=h;
 	    findaction atms alternative

@@ -25,17 +25,19 @@ module Generate(IAtom:IAtomType) : sig
 
   module F : sig
     include FormExtraInfo with type lit = IAtom.Atom.t
-    val aset   : (t,lit) GForm.t * IAtom.DSubst.t -> ASet.t
     val fset   : (t,lit) GForm.t * IAtom.DSubst.t -> bool
   end
 
   module FSet : sig
     include CollectImplemExt with type e = (F.t,F.lit) GForm.t * IAtom.DSubst.t
     module UT: sig
-      include Intern with type keys = e
-      val compare : e -> e -> int
+      include Intern
+      val compare : keys -> keys -> int
     end
-    val iter    : (e -> unit) -> t -> unit
+    type mykeys = UT.keys
+    val aset    : mykeys -> ASet.t
+    val form    : mykeys -> e
+    val iter    : (mykeys -> unit) -> t -> unit
     val choose  : t -> e
     val rchoose : ASet.t -> t -> (e,e option)sum
     val clear   : unit->unit

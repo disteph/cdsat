@@ -22,7 +22,6 @@ module Generate(IAtom:IAtomType) : sig
 
   module FSet : sig
     include CollectImplemExt with type e = (F.t,F.lit) GForm.t * IAtom.DSubst.t
-    val iter    : (e -> unit) -> t -> unit
     val choose  : t -> e
     val schoose : ASet.t -> t -> (e,e option)sum
     val rchoose : ASet.t -> t -> (e,e option)sum

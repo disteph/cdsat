@@ -36,8 +36,6 @@ module Generate(IAtom:IAtomType) = struct
 
     type e              = IAtom.t
     type t              = AtSet.t*(e option)
-    let hash(a,_)       = AtSet.hash a
-    let equal(a,_)(a',_)= AtSet.equal a a'
     let empty           = (AtSet.empty, None)
     let is_empty(a,_)   = AtSet.is_empty a
     let union(a,_)(a',_)= (AtSet.union a a',None)
@@ -94,6 +92,13 @@ module Generate(IAtom:IAtomType) = struct
 
   module FSet = struct
 
+    type e    = (F.t,F.lit)GForm.t*IAtom.DSubst.t
+    type mykeys = ASet.t*e
+
+    let aset (a,_) = a
+    let form (_,b) = b
+    let build f    = (F.aset f,f)
+
     module UT0  = TypesFromCollect(struct 
       type t = ASet.t
       type e = IAtom.t
@@ -102,22 +107,23 @@ module Generate(IAtom:IAtomType) = struct
       let compare    = ASet.compare
       let compareE   = ASet.compareE
       let first_diff = ASet.first_diff 
-      type keys = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
-      let tag = F.aset
+      type keys = mykeys
+      let tag = aset
     end)
     module UT1  = TypesFromHConsed(struct 
-      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
-      let id (f,_) = GForm.id f 
+      type t = mykeys
+      let id (_,(f,_)) = GForm.id f 
     end)
     module UT2  = TypesFromHConsed(struct 
-      type t = (F.t,F.lit)GForm.t*IAtom.DSubst.t 
-      let id (_,tl) = IAtom.DSubst.id tl 
+      type t = mykeys
+      let id (_,(_,tl)) = IAtom.DSubst.id tl 
     end)
 
     module UT   = struct
       include LexProduct(UT0)(LexProduct(UT1)(UT2))
-      let compare      = GForm.icompare IAtom.DSubst.compare
-      let print_in_fmt = GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt
+      let compare a b = GForm.icompare IAtom.DSubst.compare (form a) (form b)
+      let print_in_fmt fmt a = 
+        GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt fmt (form a)
       let cstring fmt (a,b) = fprintf fmt "%i" (ASet.id a)
       let bstring fmt = function
 	| A(at)-> fprintf fmt "%a" IAtom.Atom.print_in_fmt at
@@ -125,7 +131,37 @@ module Generate(IAtom:IAtomType) = struct
       let tString = None (*Some(cstring,bstring)*)
     end
 
-    include Common.Patricia_ext.MyPat(UT)
+    module FoSet = Common.Patricia_ext.MyPat(UT)
+
+    type t              = FoSet.t
+
+    let empty           = FoSet.empty
+    let is_empty        = FoSet.is_empty
+    let union           = FoSet.union
+    let inter           = FoSet.inter
+    let subset          = FoSet.subset
+    let is_in l t       = FoSet.is_in (build l) t
+    let add l t         = FoSet.add (build l) t
+    let remove l t      = FoSet.remove (build l) t
+    let next t          = let (l,t') = FoSet.next t in (form l,t')
+    let fold f          = FoSet.fold (fun b-> f (form b))
+    let iter            = FoSet.iter
+    let print_in_fmt    = FoSet.print_in_fmt
+    let compare         = FoSet.compare
+    let compareE        = GForm.icompare IAtom.DSubst.compare
+    let first_diff t t' = match FoSet.first_diff t t' with
+      | Some a,b -> Some(form a),b
+      | None,b -> None,b
+    let sub alm t t' limit =
+      match
+        FoSet.sub alm t t' (match limit with None -> None | Some e -> Some (F.aset e,e))
+      with
+      | Yes a    -> Yes a
+      | Almost b -> Almost(form b)
+      | No       -> No
+
+    let choose t        = form(FoSet.choose t)
+    let clear ()        = FoSet.clear()
 
     let byes j         = j
     let bempty         = None
@@ -142,7 +178,12 @@ module Generate(IAtom:IAtomType) = struct
     let yes _ _ _ = Yes() 
 
     let rchoose atms l =
-      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
+      match 
+        FoSet.find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
+      with
+      | A a       -> A(form a)
+      | F(Some a) -> F(Some(form a))
+      | F None    -> F None
 
   end
 
