@@ -63,7 +63,8 @@ module type FrontEndType = sig
 
   type polmap
   val emptypolmap : polmap
-  val polarity : polmap -> Form.t -> polarity
+  val apolarity : polmap -> ilit -> polarity
+  val fpolarity : polmap -> IForm.t -> polarity
 
   (* The kernel has a module to implement the notion of sequent;
      the type of sequent states that there are two kinds:
@@ -201,8 +202,8 @@ module type FrontEndType = sig
   | Focus    of IForm.t*receive*alt_action
   | Cut      of int*IForm.t*receive*receive*alt_action
   | ConsistencyCheck of receive*alt_action
-  | Polarise   of Form.lit*receive
-  | DePolarise of Form.lit*receive
+  | Polarise   of ilit*receive
+  | DePolarise of ilit*receive
   | Get      of bool*bool*alt_action
   | Propose  of t
   | Restore  of alt_action

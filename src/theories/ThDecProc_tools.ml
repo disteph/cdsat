@@ -76,7 +76,6 @@ module DummyDSubst = struct
   type t = unit
 
   let init = ()
-  let equal a b = true
   let compare = Pervasives.compare
   let print_in_fmt fmt () = ()
   let id () = 0

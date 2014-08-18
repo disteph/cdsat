@@ -91,7 +91,7 @@ module GenPlugin(IAtom: IAtomType)
 
     (* We now create the hashtable of watched literals *)
 
-    module H = Hashtbl.Make(PHCons_ext(IAtom))
+    module H = Hashtbl.Make(Common.Utils.PHCons_ext(IAtom))
     let watched = H.create 5003
 
     (* Here we can check that the table is well-formed. This function

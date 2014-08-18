@@ -30,12 +30,18 @@ module FrontEnd
       let negation (f,tl) = (Form.negation f,tl)
     end
 
-    module Pol  = Map.Make(IAtom.Atom)
+    module FEIAtomNeg = IAtomNeg(IAtom)
+    let anegation = FEIAtomNeg.negation
+
+    module Pol  = Map.Make(IAtom)
     type polmap = polarity Pol.t
     let emptypolmap = Pol.empty
 
     (* Computes polarity of formula *)
-    let polarity polar f = 
+    let apolarity polar ia = 
+      try Pol.find ia polar with _ -> Und
+
+    let fpolarity polar (f,tl) = 
       match GForm.reveal f with
       | TrueP  -> Pos
       | TrueN  -> Neg
@@ -47,7 +53,7 @@ module FrontEnd
       | OrP(f1,f2)  -> Pos
       | ForAll f    -> Neg
       | Exists f    -> Pos
-      | Lit t  -> (try Pol.find t polar with _ -> Und)
+      | Lit t  -> apolarity polar (IAtom.build(t,tl))
 
 
     module Seq = struct
@@ -169,8 +175,8 @@ module FrontEnd
     | Focus    of IForm.t*receive*alt_action
     | Cut      of int*IForm.t*receive*receive*alt_action
     | ConsistencyCheck of receive*alt_action
-    | Polarise   of Form.lit*receive
-    | DePolarise of Form.lit*receive
+    | Polarise   of ilit*receive
+    | DePolarise of ilit*receive
     | Get      of bool*bool*alt_action
     | Propose  of t
     | Restore  of alt_action

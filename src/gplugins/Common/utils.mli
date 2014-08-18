@@ -4,6 +4,8 @@ open Kernel.Formulae
 open Kernel.Interfaces_II
 open SetInterface
 
+module PHCons_ext(A:PHCons) : Hashtbl.HashedType with type t = A.t
+
 module FEext(FE:FrontEndType): sig
   open FE
   val accept  :receive

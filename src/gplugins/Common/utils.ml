@@ -18,6 +18,11 @@ open Patricia
 open SetConstructions
 open SetInterface
 
+module PHCons_ext(A:PHCons) = struct
+  include A
+  let equal a1 a2 = (id a1 = id a2)
+  let hash = id
+end
 
 module FEext(FE:FrontEndType)
   = struct

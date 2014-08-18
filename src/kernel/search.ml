@@ -219,9 +219,9 @@ module ProofSearch
       Dump.Kernel.print_time();
       Dump.msg None (Some(fun p -> p "attack %a" Seq.print_in_fmt seq)) None;
       match seq with
-      | Seq.EntF(atomN, (g,tl), formP, formPSaved, polar,ar)
+      | Seq.EntF(atomN, ((g,tl) as ig), formP, formPSaved, polar,ar)
         -> begin match GForm.reveal g with
-	| _ when ((polarity polar g) <> Pos) ->
+	| _ when ((fpolarity polar ig) <> Pos) ->
 	  straight 
             (lk_solve inloop (Seq.EntUF (atomN, FSet.add (g,tl) FSet.empty, formP, formPSaved, polar,ar)) data)
             (std1 None seq) (fun a->a) (fun a->a) seq sigma cont
@@ -275,7 +275,7 @@ module ProofSearch
             let (paramformula,newdelta) = FSet.next delta in
              let (toDecompose,tl) = paramformula in
 	     begin match GForm.reveal toDecompose with
-	     | _ when (polarity polar toDecompose) = Pos 
+	     | _ when (fpolarity polar paramformula) = Pos 
                  ->if (FSet.is_in paramformula formP)||(FSet.is_in paramformula formPSaved)
 	           then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar,ar)) data in
 		        straight u (fun a->a) (fun a->a) (fun a->a) seq sigma cont
@@ -296,7 +296,7 @@ module ProofSearch
 	     | FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
 		         straight u (std1 (Some paramformula) seq) (fun a->a) (fun a->a) seq sigma cont
 
-	     | Lit t when (polarity polar toDecompose) = Neg 
+	     | Lit t when (fpolarity polar paramformula) = Neg 
                      ->  let t' = IAtom.build (Atom.negation t,tl) in
 		        if ASet.is_in t' atomN
 		        then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
@@ -310,10 +310,10 @@ module ProofSearch
 			       | _ -> (seqrec,pt))
                                (fun a->a) (fun a->a) seq sigma cont
 
-	     | Lit t when ((polarity polar toDecompose) = Und)
+	     | Lit t when (fpolarity polar paramformula) = Und
                  ->  (* print_string ("Hitting "^MyTheory.Atom.toString t^" in asynchronous phase\n"); *)
                    (* let newpolar = Pol.add t Neg (Pol.add (MyTheory.Atom.negation t) Pos polar) *)
-               let newpolar = Pol.add (Atom.negation t) Pos (Pol.add t Neg polar)
+               let newpolar = Pol.add (IAtom.build(Atom.negation t,tl)) Pos (Pol.add (IAtom.build(t,tl)) Neg polar)
                in
                    (* Pol.iter (fun l pol->print_endline(MyTheory.Atom.toString l^"->"^(match pol with Pos -> "Pos"| Neg->"Neg"|Und->"Und")))newpolar; *)
                straight 
@@ -404,16 +404,16 @@ module ProofSearch
                       let u2 = lk_solvef formPChoose true formP formPSaved l data in
                       ou (pythie (DecProc.consistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont
 
-		| Polarise(l, inter_fun) when (polarity polar (Form.lit l) = Und)
+		| Polarise(l, inter_fun) when (apolarity polar l = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							 Pol.add l Pos (Pol.add (Atom.negation l) Neg polar),
+							 Pol.add l Pos (Pol.add (anegation l) Neg polar),
                                                          ar)) data in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
-		| DePolarise(l, inter_fun) when not (polarity polar (Form.lit l) = Und) 
+		| DePolarise(l, inter_fun) when not (apolarity polar l = Und) 
                     ->if !Flags.depol = false then raise (WrongInstructionException "Depolarisation is not allowed");
 		      let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
-							 Pol.remove l (Pol.remove (Atom.negation l) polar),
+							 Pol.remove l (Pol.remove (anegation l) polar),
                                                          ar)) data in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
