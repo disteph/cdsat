@@ -100,9 +100,8 @@ module GenPlugin(IAtom: IAtomType)
 
       let display_aset atoms =
           let latoms = UASet.fold (fun x l -> x::l) atoms [] in
-          let vatoms = Array.of_list latoms in
-          let showith i a = Format.printf "\t%d: %a\n" i IAtom.print_in_fmt a in
-            Array.iteri showith vatoms
+          let show a = Format.printf "\t%a\n" IAtom.print_in_fmt a in
+            List.iter show latoms
 
       let display_farray forms = 
           let showith i a = Format.printf "\t%d: %a\n" i IForm.print_in_fmt a in
@@ -110,8 +109,8 @@ module GenPlugin(IAtom: IAtomType)
 
       let display_fset forms = 
           let lforms = UFSet.fold (fun x l -> x::l) forms [] in
-          let vforms = Array.of_list lforms in
-            display_farray vforms
+          let show a = Format.printf "\t%a\n" IForm.print_in_fmt a in
+            List.iter show lforms
 
       let print_hrule c = print_endline (String.make 79 c)
 
