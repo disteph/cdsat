@@ -170,17 +170,25 @@ module GenPlugin(IAtom: IAtomType)
               match cmd with
                 | "focus" | "Focus" -> 
                     let lforms = UFSet.fold (fun x l -> x::l) pforms [] in
-                    let vforms = Array.of_list lforms in
-                        display_farray vforms;
-                        print_string "Enter a number > ";
-                        (try
-                            let n = read_int () in 
-                            let f = Array.get vforms n in
-                                Focus(f,((fun _->()),(fun _->())), accept, fNone)
-                        with
-                            | Invalid_argument msg | Failure msg ->
-                                print_endline ("ERROR: " ^ msg);
-                                ask_focus seq pforms more checked)
+                        (match lforms with
+                            [] ->
+                                print_endline "ERROR: no more positive formula to focus on";
+                                ask_focus seq pforms more checked
+                            | [f] ->
+                                Focus(f, ((fun _ -> ()), (fun _ -> ())), accept, fNone)
+                            | _ ->
+                                let vforms = Array.of_list lforms in
+                                    display_farray vforms;
+                                    print_string "Enter a number > ";
+                                    (try
+                                        let n = read_int () in
+                                        let f = Array.get vforms n in
+                                            Focus(f, ((fun _ -> ()), (fun _ -> ())), accept, fNone)
+                                    with
+                                        | Invalid_argument msg | Failure msg ->
+                                            print_endline ("ERROR: " ^ msg);
+                                            ask_focus seq pforms more checked)
+                        )
                 | "check" | "Check" ->
                     if checked then
                         begin
