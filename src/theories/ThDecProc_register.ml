@@ -7,7 +7,7 @@ let bank:(module Theories.ThDecProc)array =
     (module GDecProc2DecProc(Empty.MyTheory));
     (module GDecProc2DecProc(LRA.MyTheory));
     (module GDecProc2DecProc(CC.MyTheory));
-    (* (module FirstOrder.MyTheory); *)
+    (module FirstOrder.MyTheory);
   |]
 
 exception NotFound of string
@@ -20,4 +20,6 @@ let getbyname = function
       -> bank.(1)
   | "emptyCC" | "QF_UF"
       -> bank.(2)
+  | "FO" 
+      -> bank.(3)
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))

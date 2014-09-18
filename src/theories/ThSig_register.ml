@@ -140,3 +140,21 @@ module CCemptySig = struct
     }
 
 end
+
+module FOSig = struct
+  type sort   = [ `Prop | `Term ]
+  type symbol = PropSig.symbol
+
+  let forParser =
+    {names   = ["FO"];
+     prop    = `Prop }
+
+  let forParsing =
+    { arity     = PropSig.forParsing.arity;
+      multiary  = ThSig_tools.r_assoc;
+      sortParse = (function s ->
+        (try PropSig.forParsing.sortParse s with _ -> `Term));
+      symbParse = PropSig.forParsing.symbParse
+    }
+
+end

@@ -30,8 +30,8 @@ module FrontEnd
       let negation (f,tl) = (Form.negation f,tl)
     end
 
-    module FEIAtomNeg = IAtomNeg(IAtom)
-    let anegation = FEIAtomNeg.negation
+    module MyIAtomNeg = IAtomNeg(IAtom)
+    let anegation = MyIAtomNeg.negation
 
     module Pol  = Map.Make(IAtom)
     type polmap = polarity Pol.t

@@ -56,7 +56,6 @@ module type FormulaType = sig
   type datatype
   type lit
   type t   = (datatype,lit) GForm.t
-  val build  : (t,lit) form -> t
   val print_in_fmt  : formatter -> t -> unit
   val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
   val negation : t -> t

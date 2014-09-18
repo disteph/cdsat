@@ -2,6 +2,8 @@
 (* Model primitives *)
 (********************)
 
+open Format
+
 open Kernel.Interfaces_I
 open Theories
 open ThSig_register
@@ -43,33 +45,100 @@ end
 
 (* Basic module for arities *)
 
-module StandardArity : ArityType = struct
+module StandardArity = struct
   type eigen = int
   type meta  = int
-  type t   = int*int*(int list)
-  let init = (0,0,[])
-  let newEigen (n,m,l) = (n+1),(n+1,m,l)
-  let newMeta  (n,m,l) = n,(n,m+1,n::l)
+
+  (* an arity is a triple (n,m,l,l') where
+     - n is the number of next eigenvariable
+     - m is the number of next meta-variable
+     - l is a list of length n indicating, for each eigenvariable, the
+ number of meta-variables that existed when the eigenvariable was
+ introduced
+     - l' is a list of length m indicating, for each meta-variable, the
+ number of eigenvariables that existed when the meta-variable was
+ introduced
+     *)
+
+  type t   = int*int*(int list)*(int list)
+  let init = (0,0,[],[])
+  let newEigen (n,m,l,l') = n,(n+1,m,m::l,l')
+  let newMeta  (n,m,l,l') = m,(n,m+1,l,n::l')
 end
 
 (* Basic module for delayed substitutions *)
 
-(* module StandardDSubst(A:ArityType) = struct *)
-(*   type terms = Eigen of A.eigen | Meta of A.meta *)
+module StandardDSubst = struct
 
-(*   type t = terms list  *)
+  exception DSubstException of string
 
-(*   let init = [] *)
-(*   let equal a b = (a=b) *)
-(*   let compare = Pervasives.compare *)
-(*   let print_in_fmt = failwith "NotImplemented" *)
-(*   let id = failwith "NotImplemented" *)
-(*   let clear = failwith "NotImplemented" *)
+  module Arity = StandardArity
 
-(*   module Arity = A *)
-(*   let bind2eigen e l = (Eigen e)::l *)
-(*   let bind2meta e l  = (Meta e)::l *)
-(* end *)
+  type aux = EmptySubst | ConsE of Arity.eigen*t | ConsM of Arity.meta*t
+  and t = {reveal : aux; id : int}
+
+  let reveal s = s.reveal
+  let id s = s.id
+
+  let equal s1 s2 = match (reveal s1,reveal s2) with
+    | EmptySubst, EmptySubst                   -> true
+    | ConsE(a,s1'), ConsE(b,s2') -> (s1'==s2') && (a == b)
+    | ConsM(a,s1'), ConsM(b,s2') -> (s1'==s2') && (a == b)
+    | _,_ -> false
+
+  let hash s =
+    match s.reveal with
+    | EmptySubst -> 0
+    | ConsE(a,s') -> 2 * a + id s'
+    | ConsM(a,s') -> 3 * a + id s'
+
+  module H = Hashtbl.Make(struct
+    type t1 = t
+    type t = t1
+    let hash = hash
+    let equal = equal
+  end)
+
+  let table = H.create 5003
+
+  let substid = ref 0
+
+  let build a =
+    let f = {reveal = a; id = !substid} in
+    try H.find table f
+    with Not_found ->
+      incr substid;
+      H.add table f f;
+      f
+
+  let rec print_in_fmt fmt t =
+    match t.reveal with
+    | EmptySubst -> fprintf fmt "[]"
+    | ConsE(a,s') -> fprintf fmt "%i::%a" a print_in_fmt s'
+    | ConsM(a,s') -> fprintf fmt "?%i::%a" a print_in_fmt s'
+
+  let init = build EmptySubst
+  let compare s s' = Pervasives.compare (id s) (id s')
+
+  let clear () = substid := 0;  H.clear table
+
+  let bind2eigen e l = build (ConsE(e,l))
+  let bind2meta e l  = build (ConsM(e,l))
+
+  type freeVar = Eigen of Arity.eigen | Meta of Arity.meta
+
+  let get i d =
+    let rec aux j d = match reveal d with
+    | EmptySubst -> raise (DSubstException 
+      (Dump.toString
+         (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j print_in_fmt d)))
+    | ConsE(k,d') -> if (j==0) then  Eigen k else aux (j-1) d'
+    | ConsM(k,d') -> if (j==0) then  Meta k else aux (j-1) d'
+    in
+    aux i d
+end
+
+
 
 module DummyDSubst = struct
   type terms = unit

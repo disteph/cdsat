@@ -1,3 +1,5 @@
+open Format
+
 open Kernel
 open Interfaces_I
 open Formulae
@@ -6,15 +8,58 @@ open MyAtom
 open Lib.Patricia
 open Lib.SetConstructions
 
-module Sig    = ThSig_register.PropSig
+module Sig    = ThSig_register.FOSig
 
 module IAtom  = struct
-  module Atom   = MyAtom.Atom
-  module DSubst = StandardDSubst(StandardArity)
-  include Atom (* TO BE MODIFIED *)
-  let reveal a = (a,[])
-  let build (a,_) = a
+  module Atom   = MyAtom.Atom(struct
+    type t = int
+    let id i = i
+    let print_in_fmt fmt i = fprintf fmt "%i" i
+    let clear () = ()
+    let compare = Pervasives.compare
+  end)
+
+  module DSubst = StandardDSubst
+
+  module A = MyAtom.Atom(struct
+    type t = DSubst.freeVar
+    let id = function
+      | DSubst.Eigen i -> 2*i
+      | DSubst.Meta i  -> 2*i+1
+
+    let print_in_fmt fmt = function
+      | DSubst.Eigen i -> fprintf fmt "%i" i
+      | DSubst.Meta i  -> fprintf fmt "?%i" i
+
+    let clear () = ()
+    let compare v v' = Pervasives.compare (id v) (id v')
+  end)
+
+  type t = { substituted: A.t; original: Atom.t*DSubst.t}
+
+  let id s = A.id s.substituted
+
+  let expose a = A.reveal a.substituted
+
+  let print_in_fmt fmt s = A.print_in_fmt fmt s.substituted
+
+  let clear = A.clear
+  let compare v v' = A.compare v.substituted v'.substituted
+
+  let reveal a = a.original
+
+  let build (a,d) = 
+    let rec propagate t = match Atom.MyTerm.reveal t with
+      | Atom.MyTerm.V i     -> A.MyTerm.build(A.MyTerm.V(DSubst.get i d))
+      | Atom.MyTerm.C(f,tl) -> A.MyTerm.build(A.MyTerm.C(f,List.map propagate tl))
+    in
+    let (b,p,tl) = Atom.reveal a in
+    { substituted = A.build (b,p,List.map propagate tl);
+      original = (a,d)}
+
 end
+
+module Term = IAtom.A.MyTerm
 
 let sugPlugin = None
 
@@ -39,9 +84,9 @@ module Unification = struct
       (t:Term.fsymb * (Term.t list)) 
       (t':Term.fsymb * (Term.t list)) 
       : Unifier.t option
-      = failwith "should implement mgu"
+      = None (* failwith "should implement mgu" *)
   let mguU (u:Unifier.t) (u':Unifier.t): Unifier.t option
-      = failwith "should implement mgu of unifiers"
+      = None (* failwith "should implement mgu of unifiers" *)
 end
 
 
@@ -65,20 +110,20 @@ module Constraint = struct
 end
 
 
-module Consistency(ASet: CollectImplem with type e = Atom.t)
+module Consistency(ASet: CollectImplem with type e = IAtom.t)
   = struct    
 
-    exception FoundIt of Atom.t*Constraint.t*(ASet.t,Constraint.t) stream
+    exception FoundIt of IAtom.t*Constraint.t*(ASet.t,Constraint.t) stream
     
     let rec goal_consistency atomN t (i,u0) = 
       try
         ASet.fold
           (fun a alias -> 
             let newalias = ASet.remove a alias in
-            let (b1,p1,l1) = Atom.reveal a in
-            let (b2,p2,l2) = Atom.reveal t in
+            let (b1,p1,l1) = IAtom.expose a in
+            let (b2,p2,l2) = IAtom.expose t in
             (if b1=b2 
-             then match Unification.mgu u0 (Atom.Predicates.reveal p1,l1)(Atom.Predicates.reveal p2,l2) with
+             then match Unification.mgu u0 (Predicates.reveal p1,l1)(Predicates.reveal p2,l2) with
              | Some u -> 
                raise (FoundIt(a,(i,u), goal_consistency newalias t))
              | None -> ());
@@ -89,7 +134,7 @@ module Consistency(ASet: CollectImplem with type e = Atom.t)
       with
         FoundIt(a,u,f) -> Guard(ASet.add a ASet.empty,u,f)
         
-    let rec consistency atomN = failwith "to be implemented"
+    let rec consistency atomN (i,u0) = NoMore (* failwith "to be implemented" *)
       (* ASet.fold  *)
       (*   (function l -> function *)
       (*   | Some a -> Some a *)
@@ -105,136 +150,44 @@ module Consistency(ASet: CollectImplem with type e = Atom.t)
 
 
 
-module Structure(F:FormulaType with type lit = Atom.t)
+module Structure(F:FormulaType with type lit = IAtom.Atom.t)
   = struct
+
+    module PS = ThDecProc_tools.PropStructure(F)
 
     open Theories
 
-    type t = F.t
+    module BTerm = IAtom.Atom.MyTerm
 
-    let lit (b, f, tl) = F.lit(Atom.bbuild (b, f, tl))
+    type t = Term of BTerm.t | Prop of F.t
+
+    let lit (b, f, tl) = F.lit(IAtom.Atom.bbuild (b, f, tl))
+
+    let toform = function
+      | Prop f -> f
+      | _      -> raise (ModelError "ModelError: trying to convert into a formula an expression that clearly is not one")
+
+    let toterm = function
+      | Term t -> t
+      | _ -> raise (ModelError "ModelError: trying to convert into a term an expression that clearly is not one")
 
     let st = 
-      { sigsymb_i 
-	= (fun symb ->
-	     let module TT = ThDecProc_tools.PropStructure(F) in
-	       TT.symb_i symb);
-	decsymb_i = 
-	  (function
-	  | `Prop -> fun (var:string) l ->
-            if l <> [] 
-            then raise (ModelError ("ModelError: Variable"^var^"shouldn't have any argument"))  
-	    else lit(true,var,[])
-	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: Variable "^var^" not of expected type `Prop")));
-
-        boundsymb_i = (fun db so -> raise (ModelError ("ModelError: cannot treat bound variables")));
-        quantif_i = (fun db so sf -> raise (ModelError ("ModelError: cannot treat quantifiers")))
-
+      { sigsymb_i = 
+          (fun s l -> Prop (PS.symb_i s (List.map toform l))
+	  );
+	decsymb_i =
+          (function
+	  | `Prop -> fun (var:string) l -> 
+	    Prop (lit (true,var,List.map toterm l))
+	  | `Term -> fun (var:string) l -> 
+	    Term (BTerm.build (BTerm.C (var,List.map toterm l)))
+	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: variable "^var^" not of expected type `Prop or `Term")));
+        boundsymb_i = (fun db so -> Term (BTerm.build (BTerm.V db)));
+        quantif_i   = (fun b so sf -> 
+          let f = toform sf in
+          Prop (if b then F.forall f else F.exists f))
       }
 
-    let toform a = a
-
-
-    (* p(x) \/- !p(x) *)
-    let f1() = 
-      F.orN(
-	lit(true,"p",[]),
-	lit(false,"p",[])
-      )
-
-    (* p(x) \/+ !p(x) *)
-    let f2() = 
-      F.orP(
-	lit(true,"p",[]),
-	lit(false,"p",[])
-      )
-
-    (* !p(x) \/+ p(x) : infinite computation if proof-search is depth-first*)
-    let f3() = 
-      F.orP(
-	lit(false,"p",[]),
-	lit(true,"p",[])
-      )
-
-    (* (a \/- b) \/- (!a /\- !b) *)
-
-    let f4() = 
-      F.orN(
-	F.orN(
-	  lit(true,"a",[]),
-	  lit(true,"b",[])
-	),
-	F.andN(
-	  lit(false,"a",[]),
-	  lit(false,"b",[])
-	)
-      )
-
-    (* (a \/+ b) \/- (!a /\- !b) *)
-    let f5() = 
-      F.orN(
-	F.orP(
-	  lit(true,"a",[]),
-	  lit(true,"b",[])
-	),
-	F.andN(
-	  lit(false,"a",[]),
-	  lit(false,"b",[])
-	)
-      )
-
-    (* (!a \/+ !b) not provable - naive algorithm goes into infinite computation *)
-    let f6() = 
-      F.orP(
-	lit(false,"a", []), 
-	lit(false,"b", [])
-      )
-
-    (* (!a /\- !b) *)
-
-    let f7() =
-      F.andN(
-	lit(false,"a", []), 
-	lit(false,"b", [])
-      )
-
-    let f8()=
-      F.orN(
-	F.orP(
-	  lit(false,"p",[]),
-	  lit(false,"q",[])
-	),
-	F.andP(
-	  lit(true,"p",[]),
-	  lit(true,"q",[])
-	)
-      )
-
-    (*
-      let f9=
-      andN(
-      orP(
-      lit(false,"p",[]),
-      lit(true,"p",[])
-      ),
-      lit(true,"p",[])
-      )
-    *)
-
-    let	examples = [(f1,true);(f2,true);(f3,true);(f4,true);(f5,true);(f6,false);(f7,false);(f8,true)]
+    let	examples = []
 
   end
-
-(* OLD CODE, useful for first-order 
-
-   let goal_consistency atomN t =
-   let (b,p,_) = Atom.reveal t in
-   let rec filt_inspect filtered =
-   if ASet.is_empty filtered then None
-   else
-   let (at,newfiltered) = ASet.next filtered in
-   if Atom.equal at t then Some (ASet.add t ASet.empty)
-   else filt_inspect newfiltered
-   in filt_inspect (atomN)
-
-*)
