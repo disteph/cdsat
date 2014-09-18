@@ -44,7 +44,7 @@ module GForm = struct
   and print_bin_op_in_fmt lit_print_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" (print_in_fmt lit_print_in_fmt) f1 op (print_in_fmt lit_print_in_fmt) f2
   and print_unary_op_in_fmt lit_print_in_fmt fmt op f =
-    fprintf fmt "(%s %a)" op (print_in_fmt lit_print_in_fmt) f
+    fprintf fmt "%s %a" op (print_in_fmt lit_print_in_fmt) f
 
   (* Displays a generic formula paired with something *)
   let iprint_in_fmt aux1 aux2 fmt (f,tl) = fprintf fmt "%a%a" (print_in_fmt aux1) f aux2 tl

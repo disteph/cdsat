@@ -1,4 +1,3 @@
-open Printf
 open Format
 
 module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
@@ -127,10 +126,10 @@ module Atom(Leaf : Kernel.Interfaces_I.PHCons) = struct
   let print_in_fmt fmt t =
     match t.reveal with
     | (true, s, tl) ->
-      if tl<>[] then fprintf fmt "{%s(%a)}" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
+      if tl<>[] then fprintf fmt "{%s%a}" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
       else fprintf fmt "{%s}" (Predicates.reveal s)
     | (false, s, tl) ->
-      if tl<>[] then fprintf fmt "\\non {%s}(%a)" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
+      if tl<>[] then fprintf fmt "\\non {%s}%a" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
       else fprintf fmt "\\non {%s}" (Predicates.reveal s)
 
   let toString t =
