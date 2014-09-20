@@ -421,7 +421,11 @@ module ProofSearch
                     ->cont (throw (fail s (lk_solvef formPChoose conschecked formP formPSaved action0 data)))
                   
 		| Propose(Provable(s,pt,sigma')) when (Seq.subseq s seq)
-                    ->cont (throw (Success(Genuine(s,pt),sigma',fun _ -> lk_solvef formPChoose conschecked formP formPSaved action0 data)))
+                    -> let resume = lk_solvef formPChoose conschecked formP formPSaved action0 data
+                       in (match Constraint.meet sigma sigma' with
+                       | None         -> straight resume (fun a->a) (fun a->a) (fun a->a) seq sigma cont
+                       | Some sigma'' -> cont (throw (Success(Genuine(s,pt),sigma'', fun _ -> resume)))
+                       )
                   
 		| Get(b1,b2,l) when b1
                     -> cont (Success(Fake(!dir=b2),sigma,fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
