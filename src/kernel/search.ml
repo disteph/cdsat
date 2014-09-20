@@ -252,7 +252,7 @@ module ProofSearch
 	| Exists a ->
           let (metav,newar) = DSubst.Arity.newMeta ar in
 	  let u = lk_solve inloop (Seq.EntF (atomN, (a,DSubst.bind2meta metav tl), formP, formPSaved, polar, newar)) data in
-	  straight u (std1 None seq) MyTheory.Constraint.lift MyTheory.Constraint.proj seq sigma cont
+	  straight u (std1 None seq) MyTheory.Constraint.liftM MyTheory.Constraint.projM seq sigma cont
             
 	| Lit t -> 
           let rec pythie f sigma cont =
@@ -265,7 +265,7 @@ module ProofSearch
 	      | Guard(a,sigma',f') -> ISuccess(std0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',
                                                fun b -> if b then pythie f' else pythie f)
             ))
-	  in pythie (DecProc.goal_consistency atomN (IAtom.build (t,tl))) sigma cont
+	  in pythie (DecProc.goal_consistency (IAtom.build (t,tl)) atomN) sigma cont
 
 	| _ -> failwith "All cases should have been covered!"
 	end
@@ -333,7 +333,7 @@ module ProofSearch
 	     | ForAll a ->
                let (eigenv,newar) = DSubst.Arity.newEigen ar in
 	       let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a,DSubst.bind2eigen eigenv tl) newdelta, formP, formPSaved, polar,newar)) data in
-	       straight u (std1 (Some paramformula) seq) (fun sigma->sigma) (fun sigma->sigma) seq sigma cont
+	       straight u (std1 (Some paramformula) seq) MyTheory.Constraint.liftE MyTheory.Constraint.projE seq sigma cont
 
 	     | _ -> failwith "All cases should have been covered!"
 
@@ -397,7 +397,7 @@ module ProofSearch
                         cont(throw(
                           match oracle with
 	                  | NoMore             -> fail seq (pythie f)
-	                  | Guard(a,sigma',f') -> ISuccess(std0(relevant(seq,(a,FSet.empty::FSet.empty::[]))),sigma',
+	                  | Guard(a,sigma',f') -> ISuccess(std0(relevant(seq,(a,FSet.empty::FSet.empty::FSet.empty::[]))),sigma',
                                                            fun b -> if b then pythie f' else pythie f)
                         ))
                       in
@@ -424,10 +424,10 @@ module ProofSearch
                     ->cont (throw (ISuccess(Local(s,pt),sigma',fun _ -> lk_solvef formPChoose conschecked formP formPSaved action0 data)))
                   
 		| Get(b1,b2,l) when b1
-                    -> cont (ISuccess(Fake((* !dir= *)b2),sigma,fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
+                    -> cont (ISuccess(Fake(!dir=b2),sigma,fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
 
 		| Get(b1,b2,l)
-                  -> cont (IFail(Fake((* !dir= *)b2),fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
+                  -> cont (IFail(Fake(!dir=b2),fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
                   
 		| Restore l when not (FSet.is_empty formPSaved) 
                     ->if !Flags.fair && not (FSet.is_empty formPChoose)

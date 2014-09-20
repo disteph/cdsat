@@ -128,8 +128,10 @@ end
 module type ConstraintType = sig
   type t
   val topconstraint:t
-  val proj : t -> t
-  val lift : t -> t
+  val projE : t -> t
+  val liftE : t -> t
+  val projM : t -> t
+  val liftM : t -> t
   val meet : t -> t -> t option
   val compare : t -> t -> int
 end
@@ -170,7 +172,7 @@ module type DecProc = sig
   module Consistency(ASet: CollectImplem with type e = IAtom.t)
     :sig
       val consistency     : ASet.t -> (ASet.t,Constraint.t) stream
-      val goal_consistency: ASet.t -> IAtom.t -> (ASet.t,Constraint.t) stream
+      val goal_consistency: IAtom.t -> ASet.t -> (ASet.t,Constraint.t) stream
     end
 
 end

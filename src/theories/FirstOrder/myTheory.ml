@@ -10,7 +10,10 @@ open Lib.SetConstructions
 
 module Sig    = ThSig_register.FOSig
 
+let sugPlugin = None
+
 module IAtom  = struct
+
   module Atom   = MyAtom.Atom(struct
     type t = int
     let id i = i
@@ -24,8 +27,8 @@ module IAtom  = struct
   module A = MyAtom.Atom(struct
     type t = DSubst.freeVar
     let id = function
-      | DSubst.Eigen i -> 2*i
-      | DSubst.Meta i  -> 2*i+1
+      | DSubst.Eigen i -> 2*(i+1)
+      | DSubst.Meta i  -> 2*(i+1)+1
 
     let print_in_fmt fmt = function
       | DSubst.Eigen i -> fprintf fmt "%i" i
@@ -45,13 +48,13 @@ module IAtom  = struct
 
   let clear = A.clear
   let compare v v' = A.compare v.substituted v'.substituted
-
   let reveal a = a.original
 
+
   let build (a,d) = 
-    let rec propagate t = match Atom.MyTerm.reveal t with
-      | Atom.MyTerm.V i     -> A.MyTerm.build(A.MyTerm.V(DSubst.get i d))
-      | Atom.MyTerm.C(f,tl) -> A.MyTerm.build(A.MyTerm.C(f,List.map propagate tl))
+    let rec propagate t = match Atom.Term.reveal t with
+      | Atom.Term.V i     -> A.Term.bV(DSubst.get i d)
+      | Atom.Term.C(f,tl) -> A.Term.bC f (List.map propagate tl)
     in
     let (b,p,tl) = Atom.reveal a in
     { substituted = A.build (b,p,List.map propagate tl);
@@ -59,11 +62,11 @@ module IAtom  = struct
 
 end
 
-module Term = IAtom.A.MyTerm
+module Term  = IAtom.A.Term
+module D     = IAtom.DSubst
+module Arity = D.Arity
 
-let sugPlugin = None
-
-module D = struct
+module Do = struct
   type keys = int
   let kcompare = Pervasives.compare
   type values = Term.t
@@ -73,39 +76,213 @@ module D = struct
   let treeHCons = true
 end
 
-module Unifier = PATMap(D)(TypesFromHConsed(struct 
+module UMap = PATMap(Do)(TypesFromHConsed(struct 
   type t = int 
   let id i = i
 end))
 
-module Unification = struct
-  let mgu 
-      (u:Unifier.t)
-      (t:Term.fsymb * (Term.t list)) 
-      (t':Term.fsymb * (Term.t list)) 
-      : Unifier.t option
-      = None (* failwith "should implement mgu" *)
-  let mguU (u:Unifier.t) (u':Unifier.t): Unifier.t option
-      = None (* failwith "should implement mgu of unifiers" *)
+module Unification =
+struct
+
+  exception WrongArgumentNumber
+
+  open Term
+
+
+  let rec expose ((n,v) as u) t = match reveal t with
+    | V(D.Meta i) when UMap.mem i v -> expose u (UMap.find i v)
+    | a -> a
+
+  (* says whether a meta a appears freely in term t, with current
+  meta assignment c and arity d *)
+
+  let rec isfreein fold c a t = match reveal t with 
+    | C(_,tl)      ->
+      let rec isfreein_tl = function
+        | []    -> false
+        | t::tl -> isfreein fold c a t || isfreein_tl tl
+      in isfreein_tl tl
+    | V(D.Meta i) when UMap.mem i c 
+        -> isfreein fold c a (UMap.find i c)
+    | V(D.Meta i) when i==a -> true
+    | V(D.Meta i)  -> false
+    | V(D.Eigen i) -> 
+      fold i (fun key b -> 
+        b || (UMap.mem key c && isfreein fold c a (UMap.find key c))
+      )
+        false
+
+  let trans get_meta2 get_key1 loc21 i2 =
+    if Arity.IntMap.mem i2 get_meta2
+    then Some(Arity.IntMap.find (Arity.IntMap.find i2 get_meta2) get_key1)
+    else if Arity.IntMap.mem i2 loc21
+    then Some(Arity.IntMap.find i2 loc21)
+    else None
+
+  let translate _ a0 u2 t2 get_meta2 get_key1 cont =
+    let rec aux cont t2 = match expose u2 t2 with
+      | V(D.Eigen i as ei) -> cont (bV ei)
+      | C(a,l)       ->
+        let rec aux_tl cont = function
+          | []   -> cont []
+          | h::l -> let newcont1 h' =
+                      let newcont2 l' =
+                        cont (h'::l') 
+                      in aux_tl newcont2 l
+                    in aux newcont1 h
+        in aux_tl (fun l' -> cont (bC a l')) l
+      | V(D.Meta i2) -> 
+        fun ((next,v1) as u1) loc12 loc21 ->
+          begin
+            match trans get_meta2 get_key1 loc21 i2 with
+            | Some i1 -> cont (bV(D.Meta i1)) u1 loc12 loc21
+            | None ->  
+              let u1' = (next+1,v1) in
+              let loc12' = Arity.IntMap.add next i2 loc12 in
+              let loc21' = Arity.IntMap.add i2 next loc21 in
+              cont (bV(D.Meta next)) u1' loc12' loc21'
+          end
+    in
+    let newcont t1 (next,v1) = 
+      let v1' = UMap.add a0 (fun _ -> t1) v1 in
+      cont (next,v1') u2
+    in
+    aux newcont t2
+
+  let rec combine l = function
+    | [],[]             -> l
+    | (a1::l1),(a2::l2) -> combine ((a1,a2)::l) (l1,l2)
+    | _,_               -> raise WrongArgumentNumber
+
+  let unif fold get_key1 get_meta1 get_key2 get_meta2 u1 u2 l =
+    let rec aux l u1 u2 loc12 loc21 = match l with
+      | []         -> Some(u1,u2)
+      | (t1,t2)::l -> 
+        begin match expose u1 t1,expose u2 t2 with
+
+        | (V(D.Eigen a),V(D.Eigen b)) when a==b -> aux l u1 u2 loc12 loc21
+
+        | (C(a,l1),C(b,l2)) -> aux (combine l (l1,l2)) u1 u2 loc12 loc21
+
+        | (V(D.Meta a),V(D.Meta b)) when 
+            (match trans get_meta2 get_key1 loc21 b with
+            | Some i -> i==a
+            | None   -> false)
+            -> aux l u1 u2 loc12 loc21
+          
+        | (V(D.Meta a),_)  -> translate fold a u2 t2 get_meta2 get_key1 (aux l) u1 loc12 loc21
+
+        | (_,V(D.Meta a))  -> translate fold a u1 t1 get_meta1 get_key2 (fun u2' u1' loc21' loc12' -> aux l u1' u2' loc12' loc21') u1 loc12 loc21
+
+        | (_,_)            -> None
+        end
+    in
+    aux l u1 u2 Arity.IntMap.empty Arity.IntMap.empty
+
+  let mgu_key fold u1 key1 u2 key2 = failwith "mgu_key not implemented"
+
 end
 
 
 module Constraint = struct
 
-  type t = int*Unifier.t
+  exception WrongArity
 
-  let topconstraint = (0,Unifier.empty)
-  let proj (n,u) = 
-    let tn = Unifier.find n u in
-    let newu = Unifier.map (fun  _ tm -> tm) (Unifier.remove n u) in
-    (n-1,newu)
+  type t = { ar : Arity.t;
+             get_key : int Arity.IntMap.t;
+             get_meta: int Arity.IntMap.t;
+             next_key: int;
+             unifier : UMap.t}
 
-  let lift (n,u) = (n+1,u)
-  let compare a b = failwith "should implement unifier comparator"
-  let meet (i,u) (j,v) = if i!=j then None else 
-      match Unification.mguU u v with
-      | None-> None
-      | Some u -> Some(i,u)
+  let topconstraint = { ar  = Arity.init;
+                        get_key  = Arity.IntMap.empty;
+                        get_meta = Arity.IntMap.empty;
+                        next_key = 0;
+                        unifier  = UMap.empty}
+
+  let liftE u =  {
+    ar       = Arity.liftE u.ar;
+    get_key  = u.get_key;
+    get_meta = u.get_meta;
+    next_key = u.next_key;
+    unifier  = u.unifier
+  }
+
+  let projE u = {
+    ar       = Arity.projE u.ar;
+    get_key  = u.get_key;
+    get_meta = u.get_meta;
+    next_key = u.next_key;
+    unifier  = u.unifier
+  }
+
+  let liftM u =  {
+    ar       = Arity.liftM u.ar;
+    get_key  = Arity.IntMap.add u.ar.Arity.next_meta u.next_key u.get_key;
+    get_meta = Arity.IntMap.add u.next_key u.ar.Arity.next_meta u.get_meta;
+    next_key = u.next_key+1;
+    unifier  = u.unifier
+  }
+
+  let projM u = {
+    ar       = Arity.projM u.ar;
+    get_key  = Arity.IntMap.remove (u.ar.Arity.next_meta-1) u.get_key;
+    get_meta = Arity.IntMap.remove (Arity.IntMap.find (u.ar.Arity.next_meta-1) u.get_key) u.get_meta;
+    next_key = u.next_key;
+    unifier  = u.unifier
+  }
+
+  let unif sigma1 sigma2 l1 l2 =
+    if not(Arity.equal sigma1.ar sigma2.ar)
+    then raise WrongArity
+    else
+      let f sigma = Term.subst 
+        (function
+        | D.Meta i -> D.Meta (Arity.IntMap.find i sigma1.get_key)
+        | a -> a)
+      in
+      match
+        Unification.unif () 
+          sigma1.get_key 
+          sigma1.get_meta 
+          sigma2.get_key 
+          sigma2.get_meta 
+          (sigma1.next_key,sigma1.unifier) 
+          (sigma2.next_key,sigma2.unifier)
+          (Unification.combine [] (List.map (f sigma1) l1, List.map (f sigma2) l2))
+      with
+      | None          -> None
+      | Some((n,u),_) -> Some {
+        ar = sigma1.ar;
+        get_key  = sigma1.get_key;
+        get_meta = sigma1.get_meta;
+        next_key = n;
+        unifier  = u
+      }
+
+  let meet sigma1 sigma2 = 
+    if not(Arity.equal sigma1.ar sigma2.ar)
+    then raise WrongArity
+    else match 
+        Arity.IntMap.fold
+          (
+            fun (i:int) (key1:int) -> function
+            | None        -> None
+            | Some(u1,u2) -> Unification.mgu_key () u1 key1 u2 (Arity.IntMap.find i sigma2.get_key)
+          )
+          sigma1.get_key
+          (Some(sigma1.unifier,sigma2.unifier))
+      with
+      | None      -> None
+      | Some(u,_) -> Some {
+        ar = sigma1.ar;
+        get_key  = sigma1.get_key;
+        get_meta = sigma1.get_meta;
+        next_key = sigma1.next_key;
+        unifier  = u
+      }
+
+  let compare a b = 0
 
 end
 
@@ -113,39 +290,61 @@ end
 module Consistency(ASet: CollectImplem with type e = IAtom.t)
   = struct    
 
-    exception FoundIt of IAtom.t*Constraint.t*(ASet.t,Constraint.t) stream
-    
-    let rec goal_consistency atomN t (i,u0) = 
-      try
-        ASet.fold
-          (fun a alias -> 
-            let newalias = ASet.remove a alias in
-            let (b1,p1,l1) = IAtom.expose a in
-            let (b2,p2,l2) = IAtom.expose t in
-            (if b1=b2 
-             then match Unification.mgu u0 (Predicates.reveal p1,l1)(Predicates.reveal p2,l2) with
-             | Some u -> 
-               raise (FoundIt(a,(i,u), goal_consistency newalias t))
-             | None -> ());
-            newalias)
-          atomN 
-          atomN;
+    exception FoundIt of ASet.t*Constraint.t*(ASet.t,Constraint.t) stream
+
+    (* We range over atomN,
+       alias is the set of atoms that haven't been tried (starts with atomN);
+       as soon as we find a solution, we raise an exception *)
+
+    let aux aset compare cont t atomN sigma = 
+      ASet.fold
+        (fun a alias -> 
+          let newalias = ASet.remove a alias in
+          let (b1,p1,l1) = IAtom.expose a in
+          let (b2,p2,l2) = IAtom.expose t in
+          (if (compare b1 b2) && (Predicates.compare p1 p2 == 0)
+           then match Constraint.unif sigma sigma l1 l2 with
+           | Some newsigma -> 
+             raise (FoundIt(ASet.add a aset,newsigma, cont newalias))
+           | None -> ());
+          newalias)
+        atomN 
+        atomN 
+        
+    let rec goal_consistency t atomN sigma = 
+      (* We range over atomN,
+         we catch an exception (means success);
+         otherwise we finish with NoMore *)
+      try 
+        let _ = 
+          aux ASet.empty (=) (goal_consistency t) t atomN sigma
+        in NoMore
+      with
+        FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)
+          
+    let rec consistency atomN sigma =
+      try 
+        let _ =
+          ASet.fold
+            (fun t after -> 
+              let newafter = ASet.remove t after in
+              let aset = ASet.add t ASet.empty in
+              let rec g_consistency remaining sigma =
+                try 
+                  let _ = aux aset (!=) g_consistency t remaining sigma in
+                  consistency newafter sigma
+                with
+                  FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)
+              in
+              let _ = aux aset (!=) g_consistency t newafter sigma in newafter
+            )
+            atomN 
+            atomN 
+        in
         NoMore
       with
-        FoundIt(a,u,f) -> Guard(ASet.add a ASet.empty,u,f)
-        
-    let rec consistency atomN (i,u0) = NoMore (* failwith "to be implemented" *)
-      (* ASet.fold  *)
-      (*   (function l -> function *)
-      (*   | Some a -> Some a *)
-      (*   | None   ->  *)
-      (*     (match goal_consistency atomN (Atom.negation l) with *)
-      (*     | None     -> None *)
-      (*     | Some set -> Some (ASet.add l set) *)
-      (*     ) *)
-      (*   ) *)
-      (*   atomN *)
-      (*   None *)
+        FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)
+
   end
 
 
@@ -157,7 +356,7 @@ module Structure(F:FormulaType with type lit = IAtom.Atom.t)
 
     open Theories
 
-    module BTerm = IAtom.Atom.MyTerm
+    module BTerm = IAtom.Atom.Term
 
     type t = Term of BTerm.t | Prop of F.t
 
@@ -180,12 +379,12 @@ module Structure(F:FormulaType with type lit = IAtom.Atom.t)
 	  | `Prop -> fun (var:string) l -> 
 	    Prop (lit (true,var,List.map toterm l))
 	  | `Term -> fun (var:string) l -> 
-	    Term (BTerm.build (BTerm.C (var,List.map toterm l)))
+	    Term (BTerm.bC var (List.map toterm l))
 	  | _     -> fun (var:string) -> raise (ModelError ("ModelError: variable "^var^" not of expected type `Prop or `Term")));
-        boundsymb_i = (fun db so -> Term (BTerm.build (BTerm.V db)));
+        boundsymb_i = (fun db so -> Term (BTerm.bV db));
         quantif_i   = (fun b so sf -> 
           let f = toform sf in
-          Prop (if b then F.forall f else F.exists f))
+          Prop ((if b then F.forall else F.exists) f))
       }
 
     let	examples = []

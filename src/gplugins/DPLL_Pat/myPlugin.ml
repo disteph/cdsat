@@ -111,7 +111,7 @@ module GenPlugin(IAtom: IAtomType)
 	 we restore the formulae on which we already placed focus *)
 
       | Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
-	  -> solve (machine(Restore fNone))
+	  -> solve (machine(Restore (fun()->Some(Get(false,true,fNone)))))
 
       (* If Memoisation is off, we run focus_pick to determine which
 	 action to perform, passing it the set of atoms, the set of

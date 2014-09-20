@@ -385,7 +385,7 @@ module GenPlugin(IAtom: IAtomType)
 	   we restore the formulae on which we already placed focus *)
 
 	| Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
-	    -> solve_rec(machine(Restore fNone))
+	    -> solve_rec(machine(Restore (fun()->Some(Get(false,true,fNone)))))
 
 	| Fake(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l
 	    -> solve_rec(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))

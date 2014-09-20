@@ -1,16 +1,32 @@
 open Format
 
-module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
+module type TermType = sig
+  type fsymb
+  type leaf
+  type t
+  type term = V of leaf | C of fsymb * (t list)
+  val reveal : t -> term
+  val bV : leaf -> t
+  val bC : fsymb -> t list -> t
+  val subst : (leaf -> leaf) -> t -> t
+  val id     : t -> int
+  val print_in_fmt: Format.formatter -> t -> unit
+  val clear : unit -> unit
+end
+
+module TermMake(Leaf: Kernel.Interfaces_I.PHCons) = struct
 
   type fsymb = string
+  type leaf  = Leaf.t
 
-  type term = V of Leaf.t | C of fsymb * (t list)
+  (* A term is either a variable or a function symbol applied to
+  arguments *)
+
+  type term = V of leaf | C of fsymb * (t list)
   and t = {reveal : term; id : int}
-	(* A term is either a variable or a function symbol applied to arguments *)
 
   let reveal f = f.reveal
-
-  let id f = f.id
+  let id f     = f.id
 
   let rec equaltl = function
     | ([], []) -> true
@@ -19,9 +35,10 @@ module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
 
   let equal t1 t2 =
     match t1.reveal, t2.reveal with
-    | V(a), V(a') -> Leaf.compare a a' == 0
+    | V(a), V(a')        -> Leaf.compare a a' == 0
     | C(a,tl), C(a',tl') -> a = a' && equaltl(tl,tl')
-    | V _, C(_, _) |  C(_, _), V _  -> false 
+    | V _, C(_, _) 
+    | C(_, _), V _  -> false 
 
   let rec hashtl = function
     | [] -> 1
@@ -29,7 +46,7 @@ module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
 
   let hash t1 =
     match t1.reveal with
-    | V a -> 1 + 2 * Leaf.id a
+    | V a    -> 1 + 2 * Leaf.id a
     | C(a,l) -> 3 * Hashtbl.hash a + 7 * hashtl l
 
   module H = Hashtbl.Make(struct
@@ -50,6 +67,9 @@ module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
       incr atomid;
       H.add table f f;
       f
+
+  let bV i   = build(V i)
+  let bC f l = build(C(f,l))
         
   let rec print_in_fmt fmt t =
     match t.reveal with
@@ -62,21 +82,14 @@ module Term(Leaf: Kernel.Interfaces_I.PHCons) = struct
     | [] -> ()
     | t :: l ->
       if l = [] then print_in_fmt fmt t
-      else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt tl
-
-  let print_in_buf t buf = print_in_fmt (formatter_of_buffer buf) t
-
-  let toString t =
-    let buf = Buffer.create 255 in
-    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
-    Buffer.contents buf
-
-  let printtl tl =
-    let buf = Buffer.create 255 in
-    fprintf (formatter_of_buffer buf) "%a%!" printtl_in_fmt tl;
-    Buffer.contents buf
+      else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
 	
   let clear () = atomid := 0; H.clear table
+
+  let rec subst update t = match reveal t with
+    | V i    -> bV (update i)
+    | C(f,l) -> bC f (List.map (subst update) l)
+
 end 
 
 module Predicates = struct
@@ -99,22 +112,21 @@ end
 
 module Atom(Leaf : Kernel.Interfaces_I.PHCons) = struct
 
-  module MyTerm = Term(Leaf)
+  module Term = TermMake(Leaf)
 
-  type t = {reveal : bool * Predicates.t * MyTerm.t list; id : int}
+  type t = {reveal : bool * Predicates.t * Term.t list; id : int}
 
   let reveal t = t.reveal
-
-  let id t = t.id
+  let id t     = t.id
 
   let equal t t'= 
     let (b, a, tl) = t.reveal in
     let (b', a', tl') = t'.reveal in
-	  b = b' && Predicates.compare a a' == 0 && MyTerm.equaltl (tl, tl')
+	  b = b' && Predicates.compare a a' == 0 && Term.equaltl (tl, tl')
 
   let hash t =
     let (b, a, tl) = t.reveal in
-    (if b then 0 else 1) + 2 * Hashtbl.hash a + 3 * MyTerm.hashtl tl
+    (if b then 0 else 1) + 2 * Hashtbl.hash a + 3 * Term.hashtl tl
 
   module H = Hashtbl.Make(struct
     type t1 = t
@@ -126,19 +138,11 @@ module Atom(Leaf : Kernel.Interfaces_I.PHCons) = struct
   let print_in_fmt fmt t =
     match t.reveal with
     | (true, s, tl) ->
-      if tl<>[] then fprintf fmt "{%s%a}" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
+      if tl<>[] then fprintf fmt "{%s%a}" (Predicates.reveal s) Term.printtl_in_fmt tl
       else fprintf fmt "{%s}" (Predicates.reveal s)
     | (false, s, tl) ->
-      if tl<>[] then fprintf fmt "\\non {%s}%a" (Predicates.reveal s) MyTerm.printtl_in_fmt tl
+      if tl<>[] then fprintf fmt "\\non {%s}%a" (Predicates.reveal s) Term.printtl_in_fmt tl
       else fprintf fmt "\\non {%s}" (Predicates.reveal s)
-
-  let toString t =
-    let buf = Buffer.create 255 in
-    fprintf (formatter_of_buffer buf) "%a%!" print_in_fmt t;
-    (* let (b,p,tl)=t.reveal in *)
-    (* (if b then "+" else "-")^"("^Predicates.reveal p^string_of_int (Predicates.id p)^")"^(string_of_int t.id) *)
-    Buffer.contents buf
-    (* ^"-"^(string_of_int t.id) *)
 
   let table = H.create 5003
 
@@ -148,7 +152,6 @@ module Atom(Leaf : Kernel.Interfaces_I.PHCons) = struct
     let f = {reveal = a; id = !attomid} in
     try H.find table f
     with Not_found ->
-      (* print_endline("HashConsing "^toString f); *)
       incr attomid;
       H.add table f f;
       f
@@ -157,12 +160,11 @@ module Atom(Leaf : Kernel.Interfaces_I.PHCons) = struct
 
   let negation t = let (b, a, tl) = t.reveal in build (not b, a, tl)
 
-
   let compare t t' = Pervasives.compare t.id t'.id
 
   let clear () =
     attomid := 0;
     Predicates.clear();
-    MyTerm.clear();
+    Term.clear();
     H.clear table
 end

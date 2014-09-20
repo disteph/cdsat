@@ -46,24 +46,74 @@ end
 (* Basic module for arities *)
 
 module StandardArity = struct
+
   type eigen = int
   type meta  = int
+
+  module IntMap = Map.Make(struct
+    type t = int
+    let compare = Pervasives.compare
+  end)
 
   (* an arity is a triple (n,m,l,l') where
      - n is the number of next eigenvariable
      - m is the number of next meta-variable
-     - l is a list of length n indicating, for each eigenvariable, the
- number of meta-variables that existed when the eigenvariable was
- introduced
-     - l' is a list of length m indicating, for each meta-variable, the
- number of eigenvariables that existed when the meta-variable was
- introduced
-     *)
+     - l is a map giving, for each eigenvariable, the number of
+ meta-variables that existed when the eigenvariable was introduced
+     - l' is a map giving, for each meta-variable, the number of
+ eigenvariables that existed when the meta-variable was introduced
+  *)
 
-  type t   = int*int*(int list)*(int list)
-  let init = (0,0,[],[])
-  let newEigen (n,m,l,l') = n,(n+1,m,m::l,l')
-  let newMeta  (n,m,l,l') = m,(n,m+1,l,n::l')
+  type t   = {
+    next_eigen : int;
+    next_meta  : int;
+    eigen_dependencies : int IntMap.t;
+    meta_dependencies  : int IntMap.t
+  }
+
+  let init = {next_eigen = 0;
+              next_meta  = 0; 
+              eigen_dependencies = IntMap.empty;
+              meta_dependencies  = IntMap.empty;
+             }
+
+  let liftE ar = {
+    next_eigen = ar.next_eigen+1;
+    next_meta  = ar.next_meta; 
+    eigen_dependencies = IntMap.add ar.next_eigen ar.next_meta ar.eigen_dependencies;
+    meta_dependencies  = ar.meta_dependencies;
+  }
+
+  let liftM ar = {
+    next_eigen = ar.next_eigen;
+    next_meta  = ar.next_meta+1; 
+    eigen_dependencies = ar.eigen_dependencies;
+    meta_dependencies  = IntMap.add ar.next_meta ar.next_eigen ar.meta_dependencies;
+  }
+
+  let projE ar = {
+    next_eigen = ar.next_eigen-1;
+    next_meta  = ar.next_meta; 
+    eigen_dependencies = IntMap.remove (ar.next_eigen-1) ar.eigen_dependencies;
+    meta_dependencies  = ar.meta_dependencies;
+  }
+
+  let projM ar = {
+    next_eigen = ar.next_eigen;
+    next_meta  = ar.next_meta-1; 
+    eigen_dependencies = ar.eigen_dependencies;
+    meta_dependencies  = IntMap.remove (ar.next_meta-1) ar.meta_dependencies;
+  }
+
+  let newEigen ar = ar.next_eigen,(liftE ar)
+  let newMeta ar  = ar.next_meta,(liftM ar)
+
+  let equal a1 a2 =
+    (a1.next_eigen == a2.next_eigen)
+    && (a1.next_meta == a2.next_meta)
+    && (IntMap.equal (=) a1.eigen_dependencies a2.eigen_dependencies)
+    && (IntMap.equal (=) a1.meta_dependencies a2.meta_dependencies)
+
 end
 
 (* Basic module for delayed substitutions *)
@@ -111,11 +161,16 @@ module StandardDSubst = struct
       H.add table f f;
       f
 
-  let rec print_in_fmt fmt t =
-    match t.reveal with
-    | EmptySubst -> fprintf fmt "[]"
-    | ConsE(a,s') -> fprintf fmt "%i::%a" a print_in_fmt s'
-    | ConsM(a,s') -> fprintf fmt "?%i::%a" a print_in_fmt s'
+  let print_in_fmt fmt t =
+    let rec aux fmt t = match t.reveal with
+    | EmptySubst -> fprintf fmt ""
+    | ConsE(a,s') -> (match s'.reveal with
+      | EmptySubst -> fprintf fmt "%i" a
+      | _ -> fprintf fmt "%i;%a" a aux s')
+    | ConsM(a,s') -> (match s'.reveal with
+      | EmptySubst -> fprintf fmt "?%i" a
+      | _ -> fprintf fmt "?%i;%a" a aux s')
+    in fprintf fmt "[%a]" aux t
 
   let init = build EmptySubst
   let compare s s' = Pervasives.compare (id s) (id s')
@@ -160,8 +215,10 @@ end
 module EmptyConstraint : ConstraintType = struct
   type t = unit
   let topconstraint = ()
-  let proj a = a
-  let lift a = a
+  let projE a = a
+  let liftE a = a
+  let projM a = a
+  let liftM a = a
   let compare a b = 0
   let meet a b = Some ()
 end
@@ -225,7 +282,7 @@ module GDecProc2DecProc (MyDecProc:GThDecProc) = struct
         | None    -> NoMore
         | Some b  -> Guard(b,sigma,fun _ -> NoMore)
 
-      let goal_consistency a t sigma = match Cons.goal_consistency a t with
+      let goal_consistency t a sigma = match Cons.goal_consistency a t with
         | None    -> NoMore
         | Some a' -> Guard(a',sigma,fun _ -> NoMore)
 
