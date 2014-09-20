@@ -135,7 +135,7 @@ module FrontEnd
 
     (* Type of final answers, private in interface FrontEndType. *)
 
-    type t = Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
+    type answer = Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
 
     let sequent = function
       | Provable(s,_,_) -> s
@@ -180,7 +180,7 @@ module FrontEnd
     *)
 
     type sideaction  = bool
-    type receive     = t -> unit
+    type receive     = answer -> unit
     type focusaction = 
     | Focus    of IForm.t*receive*alt_action
     | Cut      of int*IForm.t*receive*receive*alt_action
@@ -188,13 +188,13 @@ module FrontEnd
     | Polarise   of ilit*receive
     | DePolarise of ilit*receive
     | Get      of bool*bool*alt_action
-    | Propose  of t
+    | Propose  of answer
     | Restore  of receive*alt_action
     and alt_action = unit -> (focusaction option)
 
     type 'a notified = bool*'a*receive*alt_action
 
-    type 'a output = Jackpot of t | InsertCoin of 'a insertcoin
+    type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
     and 'a insertcoin = 
     | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
     | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a

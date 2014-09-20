@@ -37,7 +37,7 @@ module type Type = sig
 	 Set it to unit if not used *)
       type data
       val initial_data : FE.Seq.t->data
-      val solve        : data FE.output -> FE.t
+      val solve        : data FE.output -> FE.answer
     end
 end
 

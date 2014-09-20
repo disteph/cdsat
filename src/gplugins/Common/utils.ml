@@ -64,7 +64,7 @@ module Memo
       let kcompare (a1,f1)(a2,f2) =
 	let c=ASet.compare a1 a2 in
 	  if c==0 then FSet.compare f1 f2 else c
-      type values  = t*int
+      type values  = answer*int
       let vcompare = Pervasives.compare
       type infos     = unit
       let info_build = empty_info_build

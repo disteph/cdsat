@@ -10,8 +10,8 @@ module FEext(FE:FrontEndType): sig
   open FE
   val accept  :receive
   val fNone   :alt_action
-  val isProvable   :t->bool
-  val isNotProvable:t->bool
+  val isProvable   :answer->bool
+  val isNotProvable:answer->bool
   val model   :Seq.t->asetType
 end
 
@@ -23,10 +23,10 @@ module Memo
   (ASet: CollectImplemExt with type e = IAtom.t and type t=FE.asetType)
   : sig
     open FE
-    val tomem          : t -> unit
+    val tomem          : answer -> unit
 
-    val get_usage_stats4provable : t->int 
-    val reset_stats4provable : t->unit
+    val get_usage_stats4provable : answer->int 
+    val reset_stats4provable : answer->unit
     val search4provableNact : Seq.t->alt_action->alt_action
     val search4notprovableNact : Seq.t->(unit->focusaction)->focusaction
 

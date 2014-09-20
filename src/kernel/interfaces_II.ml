@@ -120,9 +120,9 @@ module type FrontEndType = sig
      - a failure of proof-search (carrying the sequent for which no proof was found)
   *)
 
-  type t = private Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
-  val sequent  : t->Seq.t
-  val print_in_fmt: Format.formatter -> t -> unit
+  type answer = private Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
+  val sequent  : answer->Seq.t
+  val print_in_fmt: Format.formatter -> answer -> unit
 
   (* Now comes the heart of the API: 
      the actions that a plugin can order to kernel to trigger
@@ -191,7 +191,7 @@ module type FrontEndType = sig
   *)
 
   type sideaction  = bool
-  type receive     = t -> unit
+  type receive     = answer -> unit
   type focusaction = 
   | Focus    of IForm.t*receive*alt_action
   | Cut      of int*IForm.t*receive*receive*alt_action
@@ -199,7 +199,7 @@ module type FrontEndType = sig
   | Polarise   of ilit*receive
   | DePolarise of ilit*receive
   | Get      of bool*bool*alt_action
-  | Propose  of t
+  | Propose  of answer
   | Restore  of receive*alt_action
   and alt_action = unit -> (focusaction option)
 
@@ -278,7 +278,7 @@ module type FrontEndType = sig
 
   *)
 
-  type 'a output = Jackpot of t | InsertCoin of 'a insertcoin
+  type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
   and  'a insertcoin = 
   | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
   | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
