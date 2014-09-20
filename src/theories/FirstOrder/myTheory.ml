@@ -85,32 +85,13 @@ module Unification =
 struct
 
   exception WrongArgumentNumber
+  exception NonUnifiable
 
   open Term
-
 
   let rec expose ((n,v) as u) t = match reveal t with
     | V(D.Meta i) when UMap.mem i v -> expose u (UMap.find i v)
     | a -> a
-
-  (* says whether a meta a appears freely in term t, with current
-  meta assignment c and arity d *)
-
-  let rec isfreein fold c a t = match reveal t with 
-    | C(_,tl)      ->
-      let rec isfreein_tl = function
-        | []    -> false
-        | t::tl -> isfreein fold c a t || isfreein_tl tl
-      in isfreein_tl tl
-    | V(D.Meta i) when UMap.mem i c 
-        -> isfreein fold c a (UMap.find i c)
-    | V(D.Meta i) when i==a -> true
-    | V(D.Meta i)  -> false
-    | V(D.Eigen i) -> 
-      fold i (fun key b -> 
-        b || (UMap.mem key c && isfreein fold c a (UMap.find key c))
-      )
-        false
 
   let trans get_meta2 get_key1 loc21 i2 =
     if Arity.IntMap.mem i2 get_meta2
@@ -119,10 +100,21 @@ struct
     then Some(Arity.IntMap.find i2 loc21)
     else None
 
-  let translate _ a0 u2 t2 get_meta2 get_key1 cont =
+  let occurs_check fold a u t get_key =
+    let rec aux t = match expose u t with
+      | V(D.Eigen i) -> fold i (fun mv -> aux (bV(D.Meta (Arity.IntMap.find mv get_key))))
+      | C(a,l)       -> List.fold_left (fun () -> aux) () l
+      | V(D.Meta i) when i!=a -> ()
+      | V(D.Meta i)  -> raise NonUnifiable
+    in
+    aux t
+
+  let translate b fold a0 u2 t2 get_meta2 get_key1 cont =
     let rec aux cont t2 = match expose u2 t2 with
-      | V(D.Eigen i as ei) -> cont (bV ei)
-      | C(a,l)       ->
+      | V(D.Eigen i as ei) when b -> fun u1 ->
+        fold i (fun mv -> occurs_check fold a0 u1 (bV(D.Meta (Arity.IntMap.find mv get_key1))) get_key1);
+        cont (bV ei) u1
+      | C(a,l) when b ->
         let rec aux_tl cont = function
           | []   -> cont []
           | h::l -> let newcont1 h' =
@@ -135,13 +127,15 @@ struct
         fun ((next,v1) as u1) loc12 loc21 ->
           begin
             match trans get_meta2 get_key1 loc21 i2 with
-            | Some i1 -> cont (bV(D.Meta i1)) u1 loc12 loc21
             | None ->  
               let u1' = (next+1,v1) in
               let loc12' = Arity.IntMap.add next i2 loc12 in
               let loc21' = Arity.IntMap.add i2 next loc21 in
               cont (bV(D.Meta next)) u1' loc12' loc21'
+            | Some i1 when b && i1!=a0 -> cont (bV(D.Meta i1)) u1 loc12 loc21
+            | Some _ -> raise NonUnifiable
           end
+      | _ -> raise NonUnifiable
     in
     let newcont t1 (next,v1) = 
       let v1' = UMap.add a0 (fun _ -> t1) v1 in
@@ -154,11 +148,11 @@ struct
     | (a1::l1),(a2::l2) -> combine ((a1,a2)::l) (l1,l2)
     | _,_               -> raise WrongArgumentNumber
 
-  let unif fold get_key1 get_meta1 get_key2 get_meta2 u1 u2 l =
+  let unif b fold get_key1 get_meta1 get_key2 get_meta2 u1 u2 l =
     let rec aux l u1 u2 loc12 loc21 = match l with
       | []         -> Some(u1,u2)
       | (t1,t2)::l -> 
-        begin match expose u1 t1,expose u2 t2 with
+        try match expose u1 t1,expose u2 t2 with
 
         | (V(D.Eigen a),V(D.Eigen b)) when a==b -> aux l u1 u2 loc12 loc21
 
@@ -170,16 +164,14 @@ struct
             | None   -> false)
             -> aux l u1 u2 loc12 loc21
           
-        | (V(D.Meta a),_)  -> translate fold a u2 t2 get_meta2 get_key1 (aux l) u1 loc12 loc21
+        | (V(D.Meta a),_)  -> translate b fold a u2 t2 get_meta2 get_key1 (aux l) u1 loc12 loc21
 
-        | (_,V(D.Meta a))  -> translate fold a u1 t1 get_meta1 get_key2 (fun u2' u1' loc21' loc12' -> aux l u1' u2' loc12' loc21') u1 loc12 loc21
+        | (_,V(D.Meta a))  -> translate b fold a u1 t1 get_meta1 get_key2 (fun u2' u1' loc21' loc12' -> aux l u1' u2' loc12' loc21') u1 loc12 loc21
 
-        | (_,_)            -> None
-        end
+        | (_,_)            -> raise NonUnifiable
+        with NonUnifiable -> None
     in
     aux l u1 u2 Arity.IntMap.empty Arity.IntMap.empty
-
-  let mgu_key fold u1 key1 u2 key2 = failwith "mgu_key not implemented"
 
 end
 
@@ -232,7 +224,7 @@ module Constraint = struct
     unifier  = u.unifier
   }
 
-  let unif sigma1 sigma2 l1 l2 =
+  let unif_aux b sigma1 sigma2 l1 l2 =
     if not(Arity.equal sigma1.ar sigma2.ar)
     then raise WrongArity
     else
@@ -242,7 +234,12 @@ module Constraint = struct
         | a -> a)
       in
       match
-        Unification.unif () 
+        Unification.unif 
+          b
+          (fun i f ->
+            for j = 0 to (Arity.IntMap.find i sigma2.ar.Arity.eigen_dependencies) - 1 do
+              f j
+            done)
           sigma1.get_key 
           sigma1.get_meta 
           sigma2.get_key 
@@ -260,29 +257,29 @@ module Constraint = struct
         unifier  = u
       }
 
-  let meet sigma1 sigma2 = 
-    if not(Arity.equal sigma1.ar sigma2.ar)
-    then raise WrongArity
-    else match 
-        Arity.IntMap.fold
-          (
-            fun (i:int) (key1:int) -> function
-            | None        -> None
-            | Some(u1,u2) -> Unification.mgu_key () u1 key1 u2 (Arity.IntMap.find i sigma2.get_key)
-          )
-          sigma1.get_key
-          (Some(sigma1.unifier,sigma2.unifier))
-      with
-      | None      -> None
-      | Some(u,_) -> Some {
-        ar = sigma1.ar;
-        get_key  = sigma1.get_key;
-        get_meta = sigma1.get_meta;
-        next_key = sigma1.next_key;
-        unifier  = u
-      }
+  let unif = unif_aux true
 
-  let compare a b = 0
+  let meet_aux b sigma1 sigma2 = 
+    let l1 = 
+      Arity.IntMap.fold
+        (fun _ key l -> Term.bV(D.Meta key)::l)
+        sigma1.get_key
+        []
+    in
+    let l2 = 
+      Arity.IntMap.fold
+        (fun _ key l -> Term.bV(D.Meta key)::l)
+        sigma2.get_key
+        []
+    in
+    unif_aux b sigma1 sigma2 l1 l2
+
+  let meet = meet_aux true
+
+  let compare sigma1 sigma2 =
+    match meet_aux false sigma1 sigma2 with 
+    | Some _ -> 0
+    | None   -> 1
 
 end
 
