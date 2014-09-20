@@ -30,8 +30,8 @@ module FEext(FE:FrontEndType)
     (* A function to systematically accept answers *)
     let accept _ = ()
     let fNone () = None
-    let isSuccess = function Success _ -> true | _ -> false
-    let isFailure = function Fail _ -> true | _ -> false
+    let isProvable = function Provable _ -> true | _ -> false
+    let isNotProvable = function NotProvable _ -> true | _ -> false
     let model seq = let (a,_)=Seq.simplify seq in a
 
   end
@@ -107,8 +107,8 @@ module Memo
 
     let tomem ans = 
       let (table,algo,b) = match ans with
-	| Success(s,_,_)-> (tableS,find_sub false,true)
-	| Fail(s)       -> (tableF,find_sup false,false)
+	| Provable(s,_,_)-> (tableS,find_sub false,true)
+	| NotProvable(s) -> (tableF,find_sup false,false)
       in
       let s = sequent ans in
       let k = Seq.simplify s in
@@ -144,13 +144,13 @@ module Memo
 	   let (toCut,tl)= IAtom.reveal toCut in
            Some(Cut(7,(Form.lit toCut,tl),(fun _->()),(fun _->()),(fun _->None)))
 
-    let get_usage_stats4success ans =
+    let get_usage_stats4provable ans =
       snd (MP.find (Seq.simplify (sequent ans)) !tableS)
 
-    let reset_stats4success ans =
+    let reset_stats4provable ans =
       tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, 0)) !tableS
 
-    let search4successNact seq alternative () =
+    let search4provableNact seq alternative () =
       match search4success !Flags.almo seq with
       | A(a) 
         -> Dump.Plugin.incr_count 8;
@@ -160,7 +160,7 @@ module Memo
           Some(Propose ans)
       | F(d1,d2) -> cut_series seq alternative (d1,d2)
 
-    let search4failureNact seq alternative =
+    let search4notprovableNact seq alternative =
       match search4failure false seq with
       | A(a) -> Dump.msg None (Some(fun p->p "Found previous failure for %a" Seq.print_in_fmt seq)) None;
 	Propose (fst a)
@@ -169,8 +169,8 @@ module Memo
 
     let report() = 
       print_endline("   Memoisation report:");
-      print_endline("Successes had "^(string_of_int (MP.cardinal !tableS))^" entries, "
-		    ^"Failures had "^(string_of_int (MP.cardinal !tableF))^" entries")
+      print_endline("Table of provables had "^(string_of_int (MP.cardinal !tableS))^" entries, "
+		    ^"Table of non-provables had "^(string_of_int (MP.cardinal !tableF))^" entries")
 	
     let clear () = tableS := MP.empty; tableF := MP.empty; MP.clear()
       

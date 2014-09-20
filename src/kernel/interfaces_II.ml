@@ -115,23 +115,15 @@ module type FrontEndType = sig
   module NoProof : ProofType with type seq=Seq.t
 
   (* t is the plugin-readable type of answers:
-     a final answer is either
+     an answer is either
      - a success of proof-search, with a proof-tree
      - a failure of proof-search (carrying the sequent for which no proof was found)
-
-     local will be used as the type of intermediary outputs of the
-     proof-search engine. Intuitively, such an output is
-     - either a final answer embedded into that type with Local
-     - or a state of the proof-search that is not yet finished,
-     embedded into that type by Fake
   *)
 
-  type t = private Success of Seq.t*Proof.t*constraints | Fail of Seq.t
+  type t = private Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
   val sequent  : t->Seq.t
   val print_in_fmt: Format.formatter -> t -> unit
 
-  type ('a,'b) local =  Local of 'a | Fake  of 'b
-      
   (* Now comes the heart of the API: 
      the actions that a plugin can order to kernel to trigger
      computation
@@ -194,10 +186,12 @@ module type FrontEndType = sig
      6) Restore(l)
      - restore formPSaved (the formulae on which focus has already
      been placed) into the set of positive formulae on which focus
-     can be placed
+     can be placed, then do l
 
   *)
 
+  type sideaction  = bool
+  type receive     = t -> unit
   type focusaction = 
   | Focus    of IForm.t*receive*alt_action
   | Cut      of int*IForm.t*receive*receive*alt_action
@@ -206,10 +200,8 @@ module type FrontEndType = sig
   | DePolarise of ilit*receive
   | Get      of bool*bool*alt_action
   | Propose  of t
-  | Restore  of alt_action
-  and sideaction = bool
-  and receive = t -> unit
-  and alt_action = unit->(focusaction option)
+  | Restore  of receive*alt_action
+  and alt_action = unit -> (focusaction option)
 
   (* 'a notified = the input that plugin must provide
      upon reception of Notify signal (a new node has been reached)
@@ -229,11 +221,11 @@ module type FrontEndType = sig
 
   type 'a notified = bool*'a*receive*alt_action
 
-
   (* Output of a call to the kernel:
 
-     it can be either a final answer (type t)
-     or a intermediary answer, i.e. a signal of one of the following 4 forms
+     it can be either a final answer (Jackpot of type t)
+     or a intermediary answer (InsertCoin of 'a insertcoins),
+     i.e. a signal of one of the following 4 forms
 
      1) Notify(s,loop,action_anaylsis,data)
      - Kernel has reached a new focus point: a sequent (s) where
@@ -286,12 +278,12 @@ module type FrontEndType = sig
 
   *)
 
-  type 'a output = (t,'a fakeoutput) local
-  and  'a fakeoutput = 
-  | Notify   of Seq.t*constraints*bool*  ('a notified -> 'a output)*'a
+  type 'a output = Jackpot of t | InsertCoin of 'a insertcoin
+  and  'a insertcoin = 
+  | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
   | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
-  | AskSide  of Seq.t*constraints*       (sideaction  -> 'a output)*'a
-  | Stop     of bool*bool*   (unit        -> 'a output)
+  | AskSide  of Seq.t*constraints*(sideaction  -> 'a output)*'a
+  | Stop     of bool*bool*(unit -> 'a output)
 
 
 end

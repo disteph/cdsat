@@ -200,7 +200,7 @@ module GenPlugin(IAtom: IAtomType)
                     get false
                 | "restore" | "Restore" ->
                     if more then
-                        Restore fNone
+                        Restore(accept,fNone)
                     else
                         begin
                             print_endline "ERROR: no more formulae";
@@ -224,8 +224,8 @@ module GenPlugin(IAtom: IAtomType)
               | cmd::args -> interp_cmd cmd args
 
     let rec solve = function
-      | Local ans -> ans
-      | Fake(Notify  (seq,_,_,execute,_)) -> 
+      | Jackpot ans -> ans
+      | InsertCoin(Notify  (seq,_,_,execute,_)) -> 
         print_hrule '=';
         display_seq seq;
         print_hrule '-';
@@ -233,21 +233,21 @@ module GenPlugin(IAtom: IAtomType)
         print_string "Hit enter to continue > ";
         wait ();
         solve (execute (true,(),accept,fNone))
-      | Fake(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
+      | InsertCoin(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
         print_hrule '=';
         display_seq seq;
         print_hrule '-';
         print_endline "Status: AskFocus";
         let ans = ask_focus seq pforms more checked in
         solve (execute ans)
-      | Fake(AskSide (seq, _, execute,_)) -> 
+      | InsertCoin(AskSide (seq, _, execute,_)) -> 
         print_hrule '=';
         display_seq seq;
         print_hrule '-';
         print_endline "Status: AskSide";
         let side = ask_side () in
         solve (execute side)
-      | Fake(Stop(b1,b2, execute)) ->
+      | InsertCoin(Stop(b1,b2, execute)) ->
         print_hrule '=';
         print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
         solve (execute ())

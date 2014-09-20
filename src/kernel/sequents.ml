@@ -135,33 +135,41 @@ module FrontEnd
 
     (* Type of final answers, private in interface FrontEndType. *)
 
-    type t = Success of Seq.t*Proof.t*constraints | Fail of Seq.t
+    type t = Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
 
     let sequent = function
-      | Success(s,_,_) -> s
-      | Fail s -> s
+      | Provable(s,_,_) -> s
+      | NotProvable s -> s
 
     (* Displays answer *)
     let print_in_fmt fmt = function
-      | Success(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.print_in_fmt p;
-      | Fail s         -> fprintf fmt "\\textsf {FAIL} \\[%a\\]" Seq.print_in_fmt s
+      | Provable(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.print_in_fmt p;
+      | NotProvable s   -> fprintf fmt "\\textsf {The following sequent is not provable} \\[%a\\]" Seq.print_in_fmt s
 
-    (* Generator of local answer types, either definitive answer or a fake answer *)
-    type ('a,'b) local = Local of 'a | Fake  of 'b
+    (* Generator of local answer types, either genuine answer or a fake answer *)
+    type ('a,'b) local = Genuine of 'a | Fake  of 'b
 
+    (* 'a intern is the type of local answers, for internal use during
+       search 
 
-    (* Type of local answers, for internal use during search
-       In case of Fake,
-       first bool: true= faking success, false= faking failure
-       second bool: true= look for next branch, false= look for previous branch
-       third argument = computation at resume point; 
-       (it suffices to apply it to a continuation to trigger it) 
+       In both cases,
+
+       1st argument says whether it is
+       - a genuine answer, with appropriate data
+       - or a fake one, with boolean b saying whether we go to the
+         right (b=true) or to the left (b=false)
+
+       Last argument is the computation at resume point; 
+       (it suffices to apply it to a continuation to trigger it)
+
+       In case of success (genuine or fake), we also produce the
+    constraint produced so far.
     *)
 
     type 'a intern =
-    | ISuccess of 
+    | Success of 
         (Seq.t*Proof.t , bool) local * constraints * 'a computations
-    | IFail    of (Seq.t,bool) local * 'a computations
+    | Fail    of (Seq.t,bool) local * 'a computations
     and 'a computations = bool -> constraints -> ('a intern -> 'a) -> 'a
 
 
@@ -171,6 +179,8 @@ module FrontEnd
        receive: user's reaction when he hears back the result, of type (final,bool*bool) local, from his chosen action
     *)
 
+    type sideaction  = bool
+    type receive     = t -> unit
     type focusaction = 
     | Focus    of IForm.t*receive*alt_action
     | Cut      of int*IForm.t*receive*receive*alt_action
@@ -179,26 +189,16 @@ module FrontEnd
     | DePolarise of ilit*receive
     | Get      of bool*bool*alt_action
     | Propose  of t
-    | Restore  of alt_action
-    and sideaction = bool
-    and receive = t -> unit
-    and alt_action = unit->(focusaction option)
+    | Restore  of receive*alt_action
+    and alt_action = unit -> (focusaction option)
 
     type 'a notified = bool*'a*receive*alt_action
 
-    (* Type of local answers, for output of search
-       AskFocus: new focus must be chosen to continue search
-       the sequent is provided, as well as the computation to perform once the user indicates next action
-       AskSide: side must be chosen to continue search
-       Stop: there is no [next/previous] branch after [Success/Failure] branch
-       first bool: [true/false] = [Success/Failure]
-       second bool: [true/false] = [next/previous]
-    *)
-    type 'a output = (t,'a fakeoutput) local
-    and 'a fakeoutput = 
-    | Notify   of Seq.t*constraints*bool*  ('a notified -> 'a output)*'a
+    type 'a output = Jackpot of t | InsertCoin of 'a insertcoin
+    and 'a insertcoin = 
+    | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
     | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*constraints*       (sideaction  -> 'a output)*'a
-    | Stop     of bool*bool*   (unit        -> 'a output)
+    | AskSide  of Seq.t*constraints*(sideaction  -> 'a output)*'a
+    | Stop     of bool*bool*(unit -> 'a output)
 
   end

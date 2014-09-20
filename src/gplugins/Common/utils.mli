@@ -10,8 +10,8 @@ module FEext(FE:FrontEndType): sig
   open FE
   val accept  :receive
   val fNone   :alt_action
-  val isSuccess:t->bool
-  val isFailure:t->bool
+  val isProvable   :t->bool
+  val isNotProvable:t->bool
   val model   :Seq.t->asetType
 end
 
@@ -25,10 +25,10 @@ module Memo
     open FE
     val tomem          : t -> unit
 
-    val get_usage_stats4success : t->int 
-    val reset_stats4success : t->unit
-    val search4successNact : Seq.t->alt_action->alt_action
-    val search4failureNact : Seq.t->(unit->focusaction)->focusaction
+    val get_usage_stats4provable : t->int 
+    val reset_stats4provable : t->unit
+    val search4provableNact : Seq.t->alt_action->alt_action
+    val search4notprovableNact : Seq.t->(unit->focusaction)->focusaction
 
     val report         : unit->unit
     val clear          : unit->unit

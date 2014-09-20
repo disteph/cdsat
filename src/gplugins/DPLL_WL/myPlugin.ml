@@ -39,10 +39,10 @@ module GenPlugin(IAtom: IAtomType)
     include Common.Utils.FEext(FE)
     module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
-    type data       = int*UASet.t
-    let initial_data _ = (0,UASet.empty)
+    type data       = int*(bool ref)*bool*UASet.t
+    let initial_data _ = (0,ref false,false,UASet.empty)
     let address     = ref No
-    
+
     module Restarts = Common.RestartStrategies.RestartStrategies(UASet)
     let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
         
@@ -256,7 +256,7 @@ module GenPlugin(IAtom: IAtomType)
 		   count.(1)<-count.(1)+1;
 		   let now = count.(0) in
 		   let myaccept a = 
-                     if (isSuccess a&& count.(0)==now)
+                     if (isProvable a&& count.(0)==now)
                      then (address:=No)
                      else failwith "Expected Success"
 		   in
@@ -329,12 +329,12 @@ module GenPlugin(IAtom: IAtomType)
 	   instruction is given to kernel
 	*)
 
-	| Fake(Notify(seq,_,inloop,machine,(olda,tset)))
+	| InsertCoin(Notify(seq,_,inloop,machine,(olda,changepar,resto,tset)))
 	  ->(* (match !address with *)
 	    (*    | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	    (*    | Yes(exp) -> failwith("Yes not expected") *)
 	  (*    | _ -> address:=No); *)
-	  if inloop then solve_rec(machine(true,(count.(0),tset),accept,fNone))
+	  if inloop then solve_rec(machine(true,(count.(0),changepar,resto,tset),accept,fNone))
 	  else
 	    (
 	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
@@ -346,7 +346,7 @@ module GenPlugin(IAtom: IAtomType)
 		 else tset) in
 	      let atms = model seq in
 	      let (action,tset') = update atms (olda,tsetnew) in
-	      let alternative = Me.search4successNact seq (decide atms tset')
+	      let alternative = Me.search4provableNact seq (decide atms tset')
 	      in
 	      (if !Flags.debug >1 then 
 		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
@@ -358,11 +358,11 @@ module GenPlugin(IAtom: IAtomType)
                 if restart_strategy#is_enabled then
                   (match out with
                   | Some (Propose (a)) ->
-                    let count = Me.get_usage_stats4success a in
+                    let count = Me.get_usage_stats4provable a in
                     
                     if count >= restart_strategy#next then (
                       Dump.Plugin.incr_count 10;
-                      Me.reset_stats4success a;
+                      Me.reset_stats4provable a;
                       raise (Restarts.Restart (extract_lits a))
                     )
                   | _ -> ());
@@ -370,7 +370,7 @@ module GenPlugin(IAtom: IAtomType)
               in
 
 	      solve_rec (machine (true,
-			          (count.(0),tset'),
+			          (count.(0),ref false,(resto!= !changepar),tset'),
 			          Me.tomem,
 			          match action with  
 			          | Some action as saction -> (fun()->saction)
@@ -384,11 +384,15 @@ module GenPlugin(IAtom: IAtomType)
 	(* If there is no more positive formulae to place the focus on,
 	   we restore the formulae on which we already placed focus *)
 
-	| Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
-	    -> solve_rec(machine(Restore (fun()->Some(Get(false,true,fNone)))))
+	| InsertCoin(AskFocus(_,_,l,true,_,machine,(olda,changepar,resto,_))) when UFSet.is_empty l
+	    -> changepar := true;
+              let todo = function NotProvable _ -> changepar := false | _ -> () in
+              let next_move = if not resto then fNone else fun()->Some(Get(false,true,fNone))
+              in
+              solve_rec(machine(Restore(todo,next_move)))
 
-	| Fake(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l
-	    -> solve_rec(machine(Me.search4failureNact seq (fun()->ConsistencyCheck(accept,fNone))))
+	| InsertCoin(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l
+	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(accept,fNone))))
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -402,28 +406,28 @@ module GenPlugin(IAtom: IAtomType)
 	   allowed, and the address of the current focus point
 	*)
 
-	| Fake(AskFocus(seq,_,l,_,_,machine,(olda,tset)))
+	| InsertCoin(AskFocus(seq,_,l,_,_,machine,(_,_,_,tset)))
 	  -> let atms = model seq in
              let alternative()= match findaction atms fNone () with
                | Some action -> action
                | None -> Focus(clause_pick atms l,accept,fNone)
              in
-	     solve_rec(machine(Me.search4failureNact seq alternative))
+	     solve_rec(machine(Me.search4notprovableNact seq alternative))
 
 
 	(* When we are asked a side, we always go for the left first *)
 
-	| Fake(AskSide(seq,_,machine,_)) -> solve_rec (machine true)
+	| InsertCoin(AskSide(seq,_,machine,_)) -> solve_rec (machine true)
 
 	(* When kernel has explored all branches and proposes to go
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| Fake(Stop(b1,b2, machine))   -> solve_rec (machine ())
+	| InsertCoin(Stop(b1,b2, machine))   -> solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
-	| Local ans                    -> report(); stack := []; is_init:=true; address:=No;
+	| Jackpot ans                    -> report(); stack := []; is_init:=true; address:=No;
 	    H.clear watched; restart_strategy#reset() ; Me.clear(); UASet.clear(); UFSet.clear();IAtom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans

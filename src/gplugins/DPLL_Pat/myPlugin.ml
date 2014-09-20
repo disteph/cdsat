@@ -65,7 +65,7 @@ module GenPlugin(IAtom: IAtomType)
 	     count.(1)<-count.(1)+1;
 		    (* let now = count.(4) in *)
 		    (* let myaccept = function  *)
-		    (*   | Local(Success _) when count.(4)==now ->address:=No;Accept *)
+		    (*   | Jackpot(Success _) when count.(4)==now ->address:=No;Accept *)
 		    (*   | _-> failwith "Expected Success" *)
 		    (* in *)
 	     Focus(a,accept,fNone)
@@ -99,7 +99,7 @@ module GenPlugin(IAtom: IAtomType)
 
       (* When the kernel gives us a final answer, we return it and clear all the caches *)
 
-      | Local ans                    ->
+      | Jackpot ans                    ->
 	  Me.report(); Me.clear(); print_endline("   Plugin's report (DPLL_Pat):"); print_endline(print_state 0); print_endline "";
 	  UASet.clear(); UFSet.clear();IAtom.clear(); address:=No;
 	  for i=0 to Array.length count-1 do count.(i) <- 0 done;
@@ -110,15 +110,15 @@ module GenPlugin(IAtom: IAtomType)
       (* If there is no more positive formulae to place the focus on,
 	 we restore the formulae on which we already placed focus *)
 
-      | Fake(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
-	  -> solve (machine(Restore (fun()->Some(Get(false,true,fNone)))))
+      | InsertCoin(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
+	  -> solve (machine(Restore(accept,fun()->Some(Get(false,true,fNone)))))
 
       (* If Memoisation is off, we run focus_pick to determine which
 	 action to perform, passing it the set of atoms, the set of
 	 formulae on which focus is allowed, and the address of the
 	 current focus point *)
 
-      | Fake(AskFocus(seq,_,l,_,_,machine,olda)) when not !Flags.memo
+      | InsertCoin(AskFocus(seq,_,l,_,_,machine,olda)) when not !Flags.memo
 	  -> solve (machine(focus_pick seq l olda ()))
 
       (* If Memoisation is on, we
@@ -131,8 +131,8 @@ module GenPlugin(IAtom: IAtomType)
 	 allowed, and the address of the current focus point
       *)
 
-      | Fake(AskFocus(seq,_,l,_,_,machine,olda))
-	  -> solve(machine(Me.search4failureNact seq (focus_pick seq l olda)))
+      | InsertCoin(AskFocus(seq,_,l,_,_,machine,olda))
+	  -> solve(machine(Me.search4notprovableNact seq (focus_pick seq l olda)))
 
       (* When we are notified of new focus point: *)
 
@@ -144,7 +144,7 @@ module GenPlugin(IAtom: IAtomType)
 	 - no further instruction is given to kernel
       *)
 
-      | Fake(Notify(_,_,_,machine,olda))  when not !Flags.memo
+      | InsertCoin(Notify(_,_,_,machine,olda))  when not !Flags.memo
           ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
             then print_endline(print_state olda);
             count.(4)<-count.(4)+1;
@@ -163,7 +163,7 @@ module GenPlugin(IAtom: IAtomType)
 	 instruction is given to kernel
       *)
 
-      | Fake(Notify(seq,_,_,machine,olda))     
+      | InsertCoin(Notify(seq,_,_,machine,olda))     
 	-> (* (match !address with *)
 	    (* 	| Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	    (* 	| Yes(exp) -> failwith("Yes not expected") *)
@@ -172,18 +172,18 @@ module GenPlugin(IAtom: IAtomType)
 	if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
 	then print_endline(print_state olda);
 	  count.(4)<-count.(4)+1;
-	  solve(machine(true,count.(4),Me.tomem,Me.search4successNact seq fNone))
+	  solve(machine(true,count.(4),Me.tomem,Me.search4provableNact seq fNone))
 
 
       (* When we are asked a side, we always go for the left first *)
 
-      | Fake(AskSide(seq,_,machine,_)) -> solve (machine true)
+      | InsertCoin(AskSide(seq,_,machine,_)) -> solve (machine true)
 
       (* When kernel has explored all branches and proposes to go
 	 backwards to close remaining branches, we give it the green
 	 light *)
 
-      | Fake(Stop(b1,b2, machine))   -> solve (machine ())
+      | InsertCoin(Stop(b1,b2, machine))   -> solve (machine ())
 
   end
 

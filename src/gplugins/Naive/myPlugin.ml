@@ -95,13 +95,13 @@ module GenPlugin(IAtom: IAtomType)
       type data = unit
       let initial_data _ =()
       let rec solve = function
-	| Local ans                                -> ans
-	| Fake(Notify(_,_,_,machine,_))            -> solve (machine (true,(),accept,fNone))
-	| Fake(AskFocus(_,_,[],true,_,machine,_))  -> solve (machine (Restore fNone))
-	| Fake(AskFocus(_,_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
-	| Fake(AskFocus(_,_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
-	| Fake(AskSide (_,_,machine,_))            -> solve (machine true)
-	| Fake(Stop(b1,b2, machine))               -> solve (machine ())
+	| Jackpot ans                                -> ans
+	| InsertCoin(Notify(_,_,_,machine,_))            -> solve (machine (true,(),accept,fNone))
+	| InsertCoin(AskFocus(_,_,[],true,_,machine,_))  -> solve (machine (Restore(accept,fNone)))
+	| InsertCoin(AskFocus(_,_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
+	| InsertCoin(AskFocus(_,_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
+	| InsertCoin(AskSide (_,_,machine,_))            -> solve (machine true)
+	| InsertCoin(Stop(b1,b2, machine))               -> solve (machine ())
 	    
     end
 
