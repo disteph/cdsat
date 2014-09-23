@@ -178,8 +178,6 @@ end
 
 module Constraint = struct
 
-  exception WrongArity
-
   type t = { ar : Arity.t;
              get_key : int Arity.IntMap.t;
              get_meta: int Arity.IntMap.t;
@@ -224,10 +222,25 @@ module Constraint = struct
     unifier  = u.unifier
   }
 
+  let liftAr u ar =
+    let diff = ar.Arity.next_meta - u.ar.Arity.next_meta in
+    let rec liftN ui = function
+      | 0 -> ui
+      | n -> liftN (liftM ui) (n-1)
+    in
+    let tmp = liftN u diff in
+    { ar  = ar;
+      get_key  = tmp.get_key;
+      get_meta = tmp.get_meta;
+      next_key = tmp.next_key;
+      unifier  = tmp.unifier}
+
+
   let unif_aux b sigma1 sigma2 l1 l2 =
-    if not(Arity.equal sigma1.ar sigma2.ar)
-    then raise WrongArity
+    if not(Arity.prefix sigma1.ar sigma2.ar)
+    then None
     else
+      let sigma1 =  liftAr sigma1 sigma2.ar in
       let f sigma = Term.subst 
         (function
         | D.Meta i -> D.Meta (Arity.IntMap.find i sigma1.get_key)
