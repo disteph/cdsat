@@ -1,0 +1,6 @@
+(set-logic FO)
+(set-info :status unsat)
+(declare-fun f (Term Term) Bool)
+(assert (exists ((y Term)) (forall ((x Term)) (<=> (f x y) (not (exists ((z Term)) (and (f x z) (f z x))))))))
+(check-sat)
+(exit)
