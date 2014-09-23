@@ -114,6 +114,12 @@ module StandardArity = struct
     && (IntMap.equal (=) a1.eigen_dependencies a2.eigen_dependencies)
     && (IntMap.equal (=) a1.meta_dependencies a2.meta_dependencies)
 
+  let prefix a1 a2 =
+    (a1.next_eigen <= a2.next_eigen)
+    && (a1.next_meta <= a2.next_meta)
+    && (IntMap.for_all (fun ei nbm -> nbm == IntMap.find ei a2.eigen_dependencies) a1.eigen_dependencies)
+    && (IntMap.for_all (fun mv nbe -> nbe == IntMap.find mv a2.meta_dependencies) a1.meta_dependencies)
+
 end
 
 (* Basic module for delayed substitutions *)
