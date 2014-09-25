@@ -182,7 +182,7 @@ struct
         for irow = 0 to simplex.sp_n_eqs-1 do
           for icol = 0 to simplex.sp_n_vars-1 do
             let coeff = simplex.sp_tableau.(irow).(icol) in
-              output (Printf.sprintf " %.*s " maxsize (Num.string_of_num coeff))
+              output (Printf.sprintf " %*s " maxsize (Num.string_of_num coeff))
           done;
           output_nl ()
         done;
