@@ -61,6 +61,7 @@ let options =
     ("-restarts",    Set_string restarts_strategy,    "select a restart stratedy (from constant, arithmetic, geometric, exponential, luby, and none; default: none; DPLL_WL specific)")::
     ("-rsettings",   Tuple [Set_int restarts_p1; Set_int restarts_p2], "fine-tunes the restart strategy, specifying the initial restart threshold and a strategy-specific setting (defaults: 10 0; some strategies discard the second parameter; DPLL_WL specific)")::
     ("-plot",        Set plot,                        "prints large amounts of debug data, formatted for input to a plotting script")::
+    ("-version", Unit(fun ()-> print_endline Version.version_string; Pervasives.exit 0), "prints version and exits")::
     []
 
 let description =
