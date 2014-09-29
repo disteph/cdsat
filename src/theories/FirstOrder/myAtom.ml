@@ -4,8 +4,9 @@ module type TermType = sig
   type fsymb
   type leaf
   type t
-  type term = V of leaf | C of fsymb * (t list)
-  val reveal : t -> term
+  type ('a,'b) term = V of 'a | C of fsymb * ('b list)
+  val reveal : t -> (leaf,t) term
+  val build : (leaf,t) term -> t
   val bV : leaf -> t
   val bC : fsymb -> t list -> t
   val subst : (leaf -> leaf) -> t -> t
@@ -22,8 +23,9 @@ module TermMake(Leaf: Kernel.Interfaces_I.PHCons) = struct
   (* A term is either a variable or a function symbol applied to
   arguments *)
 
-  type term = V of leaf | C of fsymb * (t list)
-  and t = {reveal : term; id : int}
+  type ('a,'b) term = V of 'a | C of fsymb * ('b list)
+
+  type t = {reveal : (leaf,t) term; id : int}
 
   let reveal f = f.reveal
   let id f     = f.id

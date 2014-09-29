@@ -313,7 +313,7 @@ module GenPlugin(IAtom: IAtomType)
       let lits, _ = Seq.simplify (sequent a)
       in lits
 
-    let rec solve_rec input = (*print_time report;*)
+    let rec solve_rec input = 
       match input with
 
 	(* When we are notified of new focus point, we
@@ -387,8 +387,9 @@ module GenPlugin(IAtom: IAtomType)
 	| InsertCoin(AskFocus(_,_,l,true,_,machine,(olda,changepar,resto,_))) when UFSet.is_empty l
 	    -> changepar := true;
               let todo = function NotProvable _ -> changepar := false | _ -> () in
-              let next_move = if not resto then fNone else fun()->Some(Get(false,true,fNone))
+              let next_move = if false then fNone else fun()->Some(Get(false,true,fNone))
               in
+              (* print_endline ("Restore "^string_of_int olda); *)
               solve_rec(machine(Restore(todo,next_move)))
 
 	| InsertCoin(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l

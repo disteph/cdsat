@@ -55,15 +55,6 @@ module StandardArity = struct
     let compare = Pervasives.compare
   end)
 
-  (* an arity is a triple (n,m,l,l') where
-     - n is the number of next eigenvariable
-     - m is the number of next meta-variable
-     - l is a map giving, for each eigenvariable, the number of
- meta-variables that existed when the eigenvariable was introduced
-     - l' is a map giving, for each meta-variable, the number of
- eigenvariables that existed when the meta-variable was introduced
-  *)
-
   type t   = {
     next_eigen : int;
     next_meta  : int;
@@ -119,6 +110,12 @@ module StandardArity = struct
     && (a1.next_meta <= a2.next_meta)
     && (IntMap.for_all (fun ei nbm -> nbm == IntMap.find ei a2.eigen_dependencies) a1.eigen_dependencies)
     && (IntMap.for_all (fun mv nbe -> nbe == IntMap.find mv a2.meta_dependencies) a1.meta_dependencies)
+
+  let print_in_fmtEM fmt ar = 
+    IntMap.fold (fun eigen mv () -> Format.fprintf fmt "%i -> #%i; " eigen mv) ar.eigen_dependencies ()
+
+  let print_in_fmtME fmt ar = 
+    IntMap.fold (fun mv eigen () -> Format.fprintf fmt "%i -> #%i; " mv eigen) ar.meta_dependencies ()
 
 end
 
@@ -221,6 +218,7 @@ end
 module EmptyConstraint : ConstraintType = struct
   type t = unit
   let topconstraint = ()
+  let print_in_fmt fmt () = ()
   let projE a = a
   let liftE a = a
   let projM a = a

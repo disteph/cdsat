@@ -2,8 +2,9 @@ module type TermType = sig
   type fsymb
   type leaf
   type t
-  type term = V of leaf | C of fsymb * (t list)
-  val reveal : t -> term
+  type ('a,'b) term = V of 'a | C of fsymb * ('b list)
+  val reveal : t -> (leaf,t) term
+  val build : (leaf,t) term -> t
   val bV : leaf -> t
   val bC : fsymb -> t list -> t
   val subst : (leaf -> leaf) -> t -> t

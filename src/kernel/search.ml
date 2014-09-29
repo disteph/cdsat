@@ -105,7 +105,7 @@ module ProofSearch
     (* Combines two computations in AND style (with backtrack
        management): success = success for both computations *)
 
-    let rec et v1 v2 bfun seq sigma cont = Dump.Kernel.incr_branches();
+    let rec et v1 v2 bfun seq sigma cont =  Dump.Kernel.incr_branches();
       let newcont1 u1 = Dump.Kernel.decr_branches(); match u1 with
 	| Fail(ans1,f1)   ->
           cont(Fail((lift2local (fun _ -> seq)) ans1, fun b -> et (f1 b) v2 bfun seq))
@@ -422,7 +422,8 @@ module ProofSearch
                   
 		| Propose(Provable(s,pt,sigma')) when (Seq.subseq s seq)
                     -> let resume = lk_solvef formPChoose conschecked formP formPSaved action0 data
-                       in (match Constraint.meet sigma' sigma with
+                       in
+                       (match Constraint.meet sigma' sigma with
                        | None         -> straight resume (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                        | Some sigma'' -> cont (throw (Success(Genuine(s,pt),sigma'', fun _ -> resume)))
                        )

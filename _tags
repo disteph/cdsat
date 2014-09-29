@@ -33,3 +33,4 @@
 <src/gplugins/RestartsFunctor/*.cmx>: for-pack(RestartsFunctor)
 <src/gplugins/Hint/*.cmx>:            for-pack(Hint)
 <src/*.{byte,native}>:                use_nums, use_str, use_unix
+<**/*.ml>: annot

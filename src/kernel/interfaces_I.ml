@@ -134,6 +134,7 @@ module type ConstraintType = sig
   val liftM : t -> t
   val meet : t -> t -> t option
   val compare : t -> t -> int
+  val print_in_fmt : Format.formatter -> t -> unit
 end
 
 (* types for streams *)
