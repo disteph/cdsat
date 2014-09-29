@@ -53,6 +53,8 @@ module type FrontEndType = sig
   type dsubsts
   type constraints
 
+  val print_in_fmtC : Format.formatter -> constraints -> unit
+
   module IForm : sig
     type t = Form.t*dsubsts
     val print_in_fmt: Format.formatter -> t -> unit

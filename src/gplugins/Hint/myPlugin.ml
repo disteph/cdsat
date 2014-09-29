@@ -115,15 +115,16 @@ module GenPlugin(IAtom: IAtomType)
 
       let print_hrule c = print_endline (String.make 79 c)
 
-      let display_seq seq =
+      let display_seq seq sigma =
         let display_gen atomN formP formPSaved =
-            print_endline "atomN : ";
+            print_endline "Atoms: ";
             display_aset atomN;
-            print_endline "formP:";
+            print_endline "Positive formulae:";
             display_fset formP;
-            print_endline "formPSaved :";
-            display_fset formPSaved
+            print_endline "Positive formulae on which focus has already been placed:";
+            display_fset formPSaved;
         in
+        let display_full seq = 
             match seq with
             | Seq.EntF(atomN, g, formP, formPSaved, polar, ar) -> 
                 display_gen atomN formP formPSaved;
@@ -131,8 +132,12 @@ module GenPlugin(IAtom: IAtomType)
                 Format.printf "[ %a]\n" IForm.print_in_fmt g
             | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
                 display_gen atomN formP formPSaved;
-                print_endline "delta:";
+                print_endline "Formulae to asynchronously decompose:";
                 display_fset delta
+        in
+        display_full seq;
+        print_endline "Current constraint:";
+        Format.printf "%a\n" print_in_fmtC sigma
 
       let parse_abort = function 
         | "abort" | "Abort" -> raise (Plugins.PluginAbort "I abort")
@@ -225,24 +230,24 @@ module GenPlugin(IAtom: IAtomType)
 
     let rec solve = function
       | Jackpot ans -> ans
-      | InsertCoin(Notify  (seq,_,_,execute,_)) -> 
+      | InsertCoin(Notify  (seq,sigma,_,execute,_)) -> 
         print_hrule '=';
-        display_seq seq;
+        display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: Notify";
         print_string "Hit enter to continue > ";
         wait ();
         solve (execute (true,(),accept,fNone))
-      | InsertCoin(AskFocus(seq,_,pforms,more,checked,execute,label)) -> 
+      | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,label)) -> 
         print_hrule '=';
-        display_seq seq;
+        display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: AskFocus";
         let ans = ask_focus seq pforms more checked in
         solve (execute ans)
-      | InsertCoin(AskSide (seq, _, execute,_)) -> 
+      | InsertCoin(AskSide (seq,sigma, execute,_)) -> 
         print_hrule '=';
-        display_seq seq;
+        display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: AskSide";
         let side = ask_side () in

@@ -24,6 +24,8 @@ module FrontEnd
     type dsubsts     = IAtom.DSubst.t
     type constraints = Constraint.t
 
+    let print_in_fmtC = Constraint.print_in_fmt
+
     module IForm = struct
       type t = Form.t*dsubsts
       let print_in_fmt    = Form.iprint_in_fmt IAtom.DSubst.print_in_fmt
