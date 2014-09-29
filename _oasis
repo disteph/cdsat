@@ -1,5 +1,6 @@
 OASISFormat: 0.3
 Name:        Psyche
+Version: 2.0
 Synopsis:    Proof-Search factorY for Collaborative HEuristics
 Authors: Stephane Graham-Lengrand, CNRS
          Assia Mahboubi, INRIA
@@ -11,6 +12,7 @@ Authors: Stephane Graham-Lengrand, CNRS
          Matthieu Vegreville, Ecole Polytechnique
 License:     CeCILL-C
 LicenseFile: LICENCE.txt
+FilesAB: src/version.ml.ab
 
 Executable psyche
   Path:       src
