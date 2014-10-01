@@ -131,9 +131,7 @@ module GenPlugin(IAtom: IAtomType)
                 print_string "Goal:\t";
                 Format.printf "[ %a]\n" IForm.print_in_fmt g
             | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
-                display_gen atomN formP formPSaved;
-                print_endline "Formulae to asynchronously decompose:";
-                display_fset delta
+                display_gen atomN formP formPSaved
         in
         display_full seq;
         print_endline "Current constraint:";

@@ -7,6 +7,8 @@ open Interfaces_II
 open Patricia
 open Sums
 
+open Common.Addressing
+
 module GenPlugin(IAtom: IAtomType)
   :(Plugins.Type with type iliterals = IAtom.t
                  and  type literals  = IAtom.Atom.t
@@ -424,7 +426,7 @@ module GenPlugin(IAtom: IAtomType)
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| InsertCoin(Stop(b1,b2, machine))   -> solve_rec (machine ())
+	| InsertCoin(Stop(b1,b2, machine))   -> report();ignore (read_line ());solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
