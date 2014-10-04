@@ -385,18 +385,23 @@ module ProofSearch
                     let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) (bleft newdata1) in
                     let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                     let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
-                    ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
+                    let (_,ds) = toCut in
+                    if (DSubst.Arity.prefix (DSubst.get_arity ds) ar)
+                    then
+                      ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
+                    else 
+                      u3 sigma cont
                       
 		| Cut(7,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*cut_7*)
 		  ->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
-                    let (_,ds) = toCut in
                     let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) (bleft newdata1) in
                     let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                     let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
+                    let (_,ds) = toCut in
                     if (DSubst.Arity.prefix (DSubst.get_arity ds) ar)
                     then
-                    ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont 
+                      ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont 
                     else 
                       u3 sigma cont
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)

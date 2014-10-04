@@ -41,8 +41,9 @@ module GenPlugin(IAtom: IAtomType)
     include Common.Utils.FEext(FE)
     module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
-    type data       = (int*UASet.t) addressing
-    let initial_data _ = ad_init (0,UASet.empty)
+    type my_data = {i: int; remlits : UASet.t; restore_parity : bool}
+    type data       = my_data addressing
+    let initial_data _ = ad_init {i = 0; remlits = UASet.empty; restore_parity = false}
     let address     = ref No
 
     module Restarts = Common.RestartStrategies.RestartStrategies(UASet)
@@ -240,7 +241,7 @@ module GenPlugin(IAtom: IAtomType)
     *)
 
     let update atms ad =
-      let (olda,tset) = ad.data in
+      let tset = ad.data.remlits in
       match UASet.latest atms with
       | Some lit ->
 	let tset' = 
@@ -250,14 +251,14 @@ module GenPlugin(IAtom: IAtomType)
 	     if UASet.is_in lit tsettmp then UASet.remove lit tsettmp else tsettmp)
 	  else tset
 	in
-        let newad = ad_up ad (count.(0),tset') in
+        let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = ad.data.restore_parity } in
 	if H.mem watched lit then
 	  let l = H.find watched lit in
 	  let (answer,l') = treat atms lit l in
 	  (H.replace watched lit l'; 
 	   match answer with
 	   | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
-	     address:=Yes(olda);
+	     address:=Yes(ad.data.i);
 	     count.(1)<-count.(1)+1;
 	     let now = count.(0) in
 	     let myaccept a = 
@@ -361,7 +362,6 @@ module GenPlugin(IAtom: IAtomType)
 	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
 	      count.(0)<-count.(0)+1;
               let a = ad [] in
-              let (olda,tset) = a.data in
 
               (* We test if this is the first ever call, in which case we initialise things *)
 	      let adOr = 
@@ -369,14 +369,14 @@ module GenPlugin(IAtom: IAtomType)
                   (if !is_init then
 		      let (atms,cset)= Seq.simplify seq in 
 		      is_init:=false;
-                      ad_up a (olda,initialise atms cset)
+                      ad_up a { i = a.data.i; remlits = initialise atms cset; restore_parity = a.data.restore_parity}
 		   else a) in
 
 	      let atms = model seq in
 
               (* We update our non-persistent data structures *)
 	      let (action,adOr) = update atms adOr in
-	      let (_,tset') = adOr.data in
+	      let tset' = adOr.data.remlits in
 
               (* We start building the next action to perform:
                  first, we shall test if a tabled proof can be pasted there, otherwise our next action will be determined by decide *)
@@ -386,7 +386,7 @@ module GenPlugin(IAtom: IAtomType)
 	      in
 
 	      (if !Flags.debug >1 then 
-		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
+		  (let u,u' = UASet.cardinal a.data.remlits,UASet.cardinal tset' in
 		   if u'>0 then print_endline(string_of_int u')
 		   else if u>0 then report()));
               
@@ -422,8 +422,12 @@ module GenPlugin(IAtom: IAtomType)
 	   we restore the formulae on which we already placed focus *)
 
 	| InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when UFSet.is_empty l
-	    -> solve_rec(machine(Restore(ad,accept,fun ()->Some(Get(false,true,fNone)))))
-	    (* -> solve_rec(machine(Restore(ad,accept,fNone))) *)
+	    -> 
+          let a = ad[] in
+          let newad = el_wrap(ad_up a {i=a.data.i; remlits=a.data.remlits; restore_parity = not a.data.restore_parity})
+          in
+          let next_action = if a.data.restore_parity then (fun ()->Some(Get(false,true,fNone))) else fNone in
+          solve_rec(machine(Restore(newad,accept,next_action)))
 
 	| InsertCoin(AskFocus(seq,_,_,_,false,machine,ad))  (* when UFSet.is_empty l  *)
 	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
