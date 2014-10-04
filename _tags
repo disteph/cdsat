@@ -26,6 +26,7 @@
 <src/theories/LRA/libSimplex/*.cmx>:  for-pack(LRA.LibSimplex)
 <src/theories/LRA/*.cmx>:             for-pack(LRA)
 <src/theories/FirstOrder/*.cmx>:      for-pack(FirstOrder)
+<src/theories/Tools/*.cmx>:           for-pack(Tools)
 <src/gplugins/Common/*.cmx>:          for-pack(Common)
 <src/gplugins/DPLL_Pat/*.cmx>:        for-pack(DPLL_Pat)
 <src/gplugins/DPLL_WL/*.cmx>:         for-pack(DPLL_WL)

@@ -37,7 +37,7 @@ let simplify_novar n = function
 module Structure(F:Kernel.Formulae.FormulaType with type lit = Atom.t) = struct
 
   open Theories
-  module PS = ThDecProc_tools.PropStructure(F)
+  module PS = Tools.Prop.Structure(F)
 
   type t = 
     | Rat of (StringMap.t*Num.num) PS.ite

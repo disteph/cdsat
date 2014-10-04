@@ -39,7 +39,7 @@ module GenPlugin(IAtom: IAtomType)
     module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
     type data       = int
-    let initial_data _ = 0
+    let initial_data _ _ = 0
     let address     = ref No
 
     (* focus_pick chooses a focus
@@ -55,7 +55,7 @@ module GenPlugin(IAtom: IAtomType)
 
     let focus_pick seq l olda ()=count.(0)<-count.(0)+1; 
       if UFSet.is_empty l 
-      then ConsistencyCheck(accept,fNone)
+      then ConsistencyCheck(olda,accept,fNone)
       else let (h,_)=Seq.simplify seq in
            if !Flags.unitp
            then (match UFSet.schoose h l with
@@ -68,25 +68,25 @@ module GenPlugin(IAtom: IAtomType)
 		    (*   | Jackpot(Success _) when count.(4)==now ->address:=No;Accept *)
 		    (*   | _-> failwith "Expected Success" *)
 		    (* in *)
-	     Focus(a,accept,fNone)
+	     Focus(a,(olda,olda),accept,fNone)
 	   | F(Some a) ->
              Dump.msg (Some(fun p->p "Almost %a" IForm.print_in_fmt a)) None None;
 	     address:=Almost(olda);
 	     count.(2)<-count.(2)+1;
-	     Focus(a,accept,fNone)
+	     Focus(a,(olda,olda),accept,fNone)
 	   | _         ->
 	     address:=No;
 	     count.(3)<-count.(3)+1;
 	     match UFSet.rchoose h l with
 	     | A a       -> 
                Dump.msg (Some(fun p->p "Random focus on %a" IForm.print_in_fmt a)) None None;
-	       Focus(a,accept,fNone)
+	       Focus(a,(olda,olda),accept,fNone)
 	     | _         -> 
                let a = UFSet.choose l in
                Dump.msg (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None None;
-	       Focus(a,accept,fNone))
+	       Focus(a,(olda,olda),accept,fNone))
            else
-	     Focus(UFSet.choose l,accept,fNone)
+	     Focus(UFSet.choose l,(olda,olda),accept,fNone)
 
     let print_state olda =
       string_of_int count.(4)^" notifies, "^
@@ -110,8 +110,8 @@ module GenPlugin(IAtom: IAtomType)
       (* If there is no more positive formulae to place the focus on,
 	 we restore the formulae on which we already placed focus *)
 
-      | InsertCoin(AskFocus(_,_,l,true,_,machine,_)) when UFSet.is_empty l
-	  -> solve (machine(Restore(accept,fun()->Some(Get(false,true,fNone)))))
+      | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l
+	  -> solve (machine(Restore(olda,accept,fNone)))
 
       (* If Memoisation is off, we run focus_pick to determine which
 	 action to perform, passing it the set of atoms, the set of
@@ -148,7 +148,7 @@ module GenPlugin(IAtom: IAtomType)
           ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
             then print_endline(print_state olda);
             count.(4)<-count.(4)+1;
-            solve (machine (true,0,accept,fNone))
+            solve (machine (true,(fun _ ->0),accept,fNone))
 
       (* If Memoisation is on, we
 	 - accept defeat if kernel has detected a loop and proposes to fail
@@ -172,12 +172,12 @@ module GenPlugin(IAtom: IAtomType)
 	if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
 	then print_endline(print_state olda);
 	  count.(4)<-count.(4)+1;
-	  solve(machine(true,count.(4),Me.tomem,Me.search4provableNact seq fNone))
+	  solve(machine(true,(fun _ -> count.(4)),Me.tomem,Me.search4provableNact seq ((fun _ -> count.(4)),(fun _ -> count.(4))) fNone))
 
 
       (* When we are asked a side, we always go for the left first *)
 
-      | InsertCoin(AskSide(seq,_,machine,_)) -> solve (machine true)
+      | InsertCoin(AskSide(seq,_,machine,olda)) -> solve (machine (true, (olda, olda)))
 
       (* When kernel has explored all branches and proposes to go
 	 backwards to close remaining branches, we give it the green

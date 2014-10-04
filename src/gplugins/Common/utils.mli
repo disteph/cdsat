@@ -8,8 +8,8 @@ module PHCons_ext(A:PHCons) : Hashtbl.HashedType with type t = A.t
 
 module FEext(FE:FrontEndType): sig
   open FE
-  val accept  :receive
-  val fNone   :alt_action
+  val accept  : receive
+  val fNone   : 'a alt_action
   val isProvable   :answer->bool
   val isNotProvable:answer->bool
   val model   :Seq.t->asetType
@@ -26,9 +26,9 @@ module Memo
     val tomem          : answer -> unit
 
     val get_usage_stats4provable : answer->int 
-    val reset_stats4provable : answer->unit
-    val search4provableNact : Seq.t->alt_action->alt_action
-    val search4notprovableNact : Seq.t->(unit->focusaction)->focusaction
+    val reset_stats4provable     : answer->unit
+    val search4provableNact    : Seq.t-> ('a address*'a address) -> 'a alt_action->'a alt_action
+    val search4notprovableNact : Seq.t->(unit->'a focusaction)->'a focusaction
 
     val report         : unit->unit
     val clear          : unit->unit

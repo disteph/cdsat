@@ -72,15 +72,11 @@ module Run(MyThPlug:ThPlug)= struct
       | Some _,None       when !Flags.skipunknown-> print_endline("Skipping problem with no expectation");None
       | Some _,Some(true) when !Flags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
-      | Some b,c    ->
-        let orig_formula = (b(),IAtom.DSubst.init) in
-	let orig_seq = 
-	  FE.Seq.EntUF(UASet.empty,UFSet.add orig_formula UFSet.empty, UFSet.empty, UFSet.empty,FE.emptypolmap,IAtom.DSubst.Arity.init)
-	in
+      | Some formula,c    ->
 	try 
 	  let d =
-	    Dump.msg (Some(fun p->p "I am now starting: %t" (if !Flags.printrhs then fun fmt -> FE.Form.print_in_fmt fmt (b()) else fun fmt -> ()))) None None;
-	    Strat.solve(Src.machine orig_seq (Strat.initial_data orig_seq))
+	    Dump.msg (Some(fun p->p "I am now starting: %t" (if !Flags.printrhs then fun fmt -> FE.Form.print_in_fmt fmt (formula()) else fun fmt -> ()))) None None;
+	    Strat.solve(Src.machine (formula()) Strat.initial_data)
 	  in 
 	  print_endline(match c,d with
 	  |None ,_                 -> "Nothing expected"

@@ -95,7 +95,7 @@ module type FrontEndType = sig
 
 
   module Seq : sig
-    type t =
+    type t = private
     | EntF  of asetType * IForm.t * fsetType * fsetType * polmap * arities
     | EntUF of asetType * fsetType * fsetType * fsetType * polmap * arities
     val simplify : t -> asetType*fsetType
@@ -130,6 +130,11 @@ module type FrontEndType = sig
      the actions that a plugin can order to kernel to trigger
      computation
   *)
+
+  type 'a address = bool list -> 'a
+
+  type 'a sideaction  = bool*('a address * 'a address)
+
 
   (* focusaction: list of actions that can be instructed by plugin
      upon reception of AskFocus signal
@@ -192,18 +197,18 @@ module type FrontEndType = sig
 
   *)
 
-  type sideaction  = bool
-  type receive     = answer -> unit
-  type focusaction = 
-  | Focus    of IForm.t*receive*alt_action
-  | Cut      of int*IForm.t*receive*receive*alt_action
-  | ConsistencyCheck of receive*alt_action
-  | Polarise   of ilit*receive
-  | DePolarise of ilit*receive
-  | Get      of bool*bool*alt_action
+  type receive = answer -> unit
+
+  type 'a focusaction = 
+  | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
+  | Cut      of int*IForm.t*('a address*'a address)*receive*receive*('a alt_action)
+  | ConsistencyCheck of ('a address)*receive*('a alt_action)
+  | Polarise   of ilit*('a address)*receive
+  | DePolarise of ilit*('a address)*receive
+  | Get      of bool*bool*('a alt_action)
   | Propose  of answer
-  | Restore  of receive*alt_action
-  and alt_action = unit -> (focusaction option)
+  | Restore  of ('a address)*receive*('a alt_action)
+  and 'a alt_action = unit -> ('a focusaction option)
 
   (* 'a notified = the input that plugin must provide
      upon reception of Notify signal (a new node has been reached)
@@ -221,7 +226,7 @@ module type FrontEndType = sig
      l: next action to do for this newly created node is l (optional)
   *)
 
-  type 'a notified = bool*'a*receive*alt_action
+  type 'a notified = bool*('a address)*receive*('a alt_action)
 
   (* Output of a call to the kernel:
 
@@ -282,10 +287,9 @@ module type FrontEndType = sig
 
   type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
   and  'a insertcoin = 
-  | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
-  | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
-  | AskSide  of Seq.t*constraints*(sideaction  -> 'a output)*'a
+  | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*('a address)
+  | AskFocus of Seq.t*constraints*fsetType*bool*bool*('a focusaction -> 'a output)*('a address)
+  | AskSide  of Seq.t*constraints*('a sideaction  -> 'a output)*('a address)
   | Stop     of bool*bool*(unit -> 'a output)
-
 
 end

@@ -97,8 +97,8 @@ module FrontEnd
       let print_in_fmt fmt seq =
         if !Flags.printrhs = true then print_in_fmt_aux fmt seq
         else match seq with
-        | EntUF(atms,_,_,_,_,_) -> ASet.print_in_fmt fmt atms
-        | EntF(atms,_,_,_,_,_)  -> ASet.print_in_fmt fmt atms
+        | EntUF(atms,_,_,_,_,ar) -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms IAtom.DSubst.Arity.print_in_fmt ar
+        | EntF(atms,_,_,_,_,ar)  -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms IAtom.DSubst.Arity.print_in_fmt ar
 
     end
 
@@ -181,26 +181,30 @@ module FrontEnd
        receive: user's reaction when he hears back the result, of type (final,bool*bool) local, from his chosen action
     *)
 
-    type sideaction  = bool
-    type receive     = answer -> unit
-    type focusaction = 
-    | Focus    of IForm.t*receive*alt_action
-    | Cut      of int*IForm.t*receive*receive*alt_action
-    | ConsistencyCheck of receive*alt_action
-    | Polarise   of ilit*receive
-    | DePolarise of ilit*receive
-    | Get      of bool*bool*alt_action
-    | Propose  of answer
-    | Restore  of receive*alt_action
-    and alt_action = unit -> (focusaction option)
+    type 'a address = bool list -> 'a
 
-    type 'a notified = bool*'a*receive*alt_action
+    type 'a sideaction  = bool*('a address * 'a address)
+
+    type receive = answer -> unit
+
+    type 'a focusaction = 
+    | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
+    | Cut      of int*IForm.t*('a address*'a address)*receive*receive*('a alt_action)
+    | ConsistencyCheck of ('a address)*receive*('a alt_action)
+    | Polarise   of ilit*('a address)*receive
+    | DePolarise of ilit*('a address)*receive
+    | Get      of bool*bool*('a alt_action)
+    | Propose  of answer
+    | Restore  of ('a address)*receive*('a alt_action)
+    and 'a alt_action = unit -> ('a focusaction option)
+
+    type 'a notified = bool*('a address)*receive*('a alt_action)
 
     type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
-    and 'a insertcoin = 
-    | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*'a
-    | AskFocus of Seq.t*constraints*fsetType*bool*bool*(focusaction -> 'a output)*'a
-    | AskSide  of Seq.t*constraints*(sideaction  -> 'a output)*'a
+    and  'a insertcoin = 
+    | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*('a address)
+    | AskFocus of Seq.t*constraints*fsetType*bool*bool*('a focusaction -> 'a output)*('a address)
+    | AskSide  of Seq.t*constraints*('a sideaction  -> 'a output)*('a address)
     | Stop     of bool*bool*(unit -> 'a output)
 
   end

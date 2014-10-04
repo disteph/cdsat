@@ -43,6 +43,8 @@ module type ArityType = sig
   val init     : t
   val newEigen : t -> eigen*t
   val newMeta  : t -> meta*t
+  val print_in_fmt: Format.formatter -> t -> unit
+  val prefix  : t -> t -> bool
 end
 
 (* Module type of Delayed Substitutions.
@@ -65,8 +67,9 @@ module type DSubstType = sig
   include PHCons
   module Arity: ArityType
   val init      : t
-  val bind2eigen: Arity.eigen -> t -> t
-  val bind2meta : Arity.meta  -> t -> t
+  val bind2eigen: (Arity.eigen*Arity.t) -> t -> t
+  val bind2meta : (Arity.meta*Arity.t) -> t -> t
+  val get_arity : t -> Arity.t
 end
 
 (* Module type of Atoms. RAS *)

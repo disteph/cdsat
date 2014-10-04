@@ -13,7 +13,7 @@ module Atom   = Atom
 module Structure(F:Formulae.FormulaType with type lit = Atom.t)
   = struct
 
-    module PS = ThDecProc_tools.PropStructure(F)
+    module PS = Tools.Prop.Structure(F)
 
     open Theories
 

@@ -40,7 +40,7 @@ module Structure(F:Formulae.FormulaType with type lit = Atom.t)
     let st = 
       { sigsymb_i 
 	= (fun symb ->
-	     let module TT = ThDecProc_tools.PropStructure(F) in
+	     let module TT = Tools.Prop.Structure(F) in
 	       TT.symb_i symb);
 	decsymb_i = 
 	  (function

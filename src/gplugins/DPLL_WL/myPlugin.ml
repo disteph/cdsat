@@ -41,8 +41,8 @@ module GenPlugin(IAtom: IAtomType)
     include Common.Utils.FEext(FE)
     module Me = Common.Utils.Memo(IAtom)(FE)(UFSet)(UASet)
 
-    type data       = int*(bool ref)*bool*UASet.t
-    let initial_data _ = (0,ref false,false,UASet.empty)
+    type data       = (int*UASet.t) addressing
+    let initial_data _ = ad_init (0,UASet.empty)
     let address     = ref No
 
     module Restarts = Common.RestartStrategies.RestartStrategies(UASet)
@@ -239,35 +239,38 @@ module GenPlugin(IAtom: IAtomType)
        - integrate watched lit for learnt clauses
     *)
 
-    let update atms (olda,tset) = match UASet.latest atms with
+    let update atms ad =
+      let (olda,tset) = ad.data in
+      match UASet.latest atms with
       | Some lit ->
-	  let tset' = 
-	    if decide_cut then 
-	      (let nolit = DataStruct.MyIAtomNeg.negation lit in
-	       let tsettmp = if UASet.is_in nolit tset then UASet.remove nolit tset else tset in
-		 if UASet.is_in lit tsettmp then UASet.remove lit tsettmp else tsettmp)
-	    else tset
-	  in
-	    if H.mem watched lit then
-	      let l = H.find watched lit in
-	      let (answer,l') = treat atms lit l in
-		(H.replace watched lit l'; 
-		 match answer with
-		 | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
-		   address:=Yes(olda);
-		   count.(1)<-count.(1)+1;
-		   let now = count.(0) in
-		   let myaccept a = 
-                     if (isProvable a&& count.(0)==now)
-                     then (address:=No)
-                     else failwith "Expected Success"
-		   in
-		   stack:=[];
-		   (Some(Focus(UFSet.form a,myaccept,fun ()->failwith("Expected success"))),tset')
-		 | None -> (None,tset')
-		)
-	    else (None,tset')
-      | _ -> (None,tset)
+	let tset' = 
+	  if decide_cut then 
+	    (let nolit = DataStruct.MyIAtomNeg.negation lit in
+	     let tsettmp = if UASet.is_in nolit tset then UASet.remove nolit tset else tset in
+	     if UASet.is_in lit tsettmp then UASet.remove lit tsettmp else tsettmp)
+	  else tset
+	in
+        let newad = ad_up ad (count.(0),tset') in
+	if H.mem watched lit then
+	  let l = H.find watched lit in
+	  let (answer,l') = treat atms lit l in
+	  (H.replace watched lit l'; 
+	   match answer with
+	   | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
+	     address:=Yes(olda);
+	     count.(1)<-count.(1)+1;
+	     let now = count.(0) in
+	     let myaccept a = 
+               if (isProvable a&& count.(0)==now)
+               then (address:=No)
+               else failwith "Expected Success"
+	     in
+	     stack:=[];
+	     (Some(Focus(UFSet.form a,branch_one newad,myaccept,fun ()->failwith("Expected success"))),newad)
+	   | None -> (None,newad)
+	  )
+	else (None,newad)
+      | _ -> (None,ad)
 
 
     exception Nonempty_intersection of UASet.t
@@ -281,13 +284,15 @@ module GenPlugin(IAtom: IAtomType)
         with Nonempty_intersection inter -> inter
       in UASet.choose pool
 
-    let decide atms tset () = 
+    (* Picks an atom from tset to branch on it *)
+
+    let decide atms adO tset () = 
       if decide_cut && not (UASet.is_empty tset) then
 	(let lit = pick_lit_from tset in
          if UASet.is_in lit atms then failwith("Chosen lit in atms");
          if UASet.is_in (DataStruct.MyIAtomNeg.negation lit) atms then failwith("Chosen nlit in atms");
          let (a,tl) = IAtom.reveal lit in
-         Some(Cut(7,(Form.lit a,tl),accept,accept,fNone)))
+         Some(Cut(7,(Form.lit a,tl),branch_one adO,accept,accept,fNone)))
       else
         None
 	  
@@ -300,20 +305,33 @@ module GenPlugin(IAtom: IAtomType)
 	               Dump.msg None (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None; a
 
 
-    let rec findaction atms alternative =
+    (* We look at the stack to see if there is any unit propagation left to do:
+       if it contains a triple (f,n,_) then f is a clause available for
+    UP and "not n" is the literal to be added to the model 
+    *)
+
+    let rec findaction atms ad alternative =
       match !stack with
+
+        (* No UP to perform -> we fall back on the alternative action *)
+
 	| []       -> alternative
+
+        (* UP to perform in order to add "not n", checking that we don't already have it in atms *)
+
 	| (f,n,_)::h when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms)->
 	    (count.(2)<-count.(2)+1;
 	     stack:=h;
-	     fun()->Some(Focus(UFSet.form f,accept,fNone)))
+	     fun()->Some(Focus(UFSet.form f,branch_one ad,accept,fNone)))
+
+        (* UP to perform in order to add "not n", but we already have it *)
+
 	| (f,n,_)::h ->
 	    stack:=h;
-	    findaction atms alternative
+	    findaction atms ad alternative
 
-    let extract_lits a =
-      let lits, _ = Seq.simplify (sequent a)
-      in lits
+
+    (* Recursive function solve *)
 
     let rec solve_rec input = 
       match input with
@@ -331,25 +349,42 @@ module GenPlugin(IAtom: IAtomType)
 	   instruction is given to kernel
 	*)
 
-	| InsertCoin(Notify(seq,_,inloop,machine,(olda,changepar,resto,tset)))
-	  ->(* (match !address with *)
-	    (*    | Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
-	    (*    | Yes(exp) -> failwith("Yes not expected") *)
-	  (*    | _ -> address:=No); *)
-	  if inloop then solve_rec(machine(true,(count.(0),changepar,resto,tset),accept,fNone))
+	| InsertCoin(Notify(seq,_,inloop,machine,ad))
+	  ->
+
+          (* If kernel warns that no progress has been made, we accept defeat *)
+
+	  if inloop then solve_rec(machine(true,ad,accept,fNone))
+
 	  else
 	    (
 	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
 	      count.(0)<-count.(0)+1;
-	      let tsetnew = 
-		(if !is_init then
-		    let (atms,cset)= Seq.simplify seq in 
-		    is_init:=false; initialise atms cset
-		 else tset) in
+              let a = ad [] in
+              let (olda,tset) = a.data in
+
+              (* We test if this is the first ever call, in which case we initialise things *)
+	      let adOr = 
+		branch OrNode 
+                  (if !is_init then
+		      let (atms,cset)= Seq.simplify seq in 
+		      is_init:=false;
+                      ad_up a (olda,initialise atms cset)
+		   else a) in
+
 	      let atms = model seq in
-	      let (action,tset') = update atms (olda,tsetnew) in
-	      let alternative = Me.search4provableNact seq (decide atms tset')
+
+              (* We update our non-persistent data structures *)
+	      let (action,adOr) = update atms adOr in
+	      let (_,tset') = adOr.data in
+
+              (* We start building the next action to perform:
+                 first, we shall test if a tabled proof can be pasted there, otherwise our next action will be determined by decide *)
+
+	      let alternative = 
+                Me.search4provableNact seq (branch_one adOr) (decide atms adOr tset')
 	      in
+
 	      (if !Flags.debug >1 then 
 		  (let u,u' = UASet.cardinal tset,UASet.cardinal tset' in
 		   if u'>0 then print_endline(string_of_int u')
@@ -359,24 +394,24 @@ module GenPlugin(IAtom: IAtomType)
                 let out = alternative () in
                 if restart_strategy#is_enabled then
                   (match out with
-                  | Some (Propose (a)) ->
+                  | Some (Propose a) ->
                     let count = Me.get_usage_stats4provable a in
                     
                     if count >= restart_strategy#next then (
                       Dump.Plugin.incr_count 10;
                       Me.reset_stats4provable a;
-                      raise (Restarts.Restart (extract_lits a))
+                      raise (Restarts.Restart (model(sequent a)))
                     )
                   | _ -> ());
                 out
               in
 
 	      solve_rec (machine (true,
-			          (count.(0),ref false,(resto!= !changepar),tset'),
+			          el_wrap adOr,
 			          Me.tomem,
 			          match action with  
 			          | Some action as saction -> (fun()->saction)
-			          | None        -> findaction atms alternative_restart
+			          | None        -> findaction atms adOr alternative_restart
 	      )
 	      )
 	    )
@@ -386,16 +421,12 @@ module GenPlugin(IAtom: IAtomType)
 	(* If there is no more positive formulae to place the focus on,
 	   we restore the formulae on which we already placed focus *)
 
-	| InsertCoin(AskFocus(_,_,l,true,_,machine,(olda,changepar,resto,_))) when UFSet.is_empty l
-	    -> changepar := true;
-              let todo = function NotProvable _ -> changepar := false | _ -> () in
-              let next_move = if false then fNone else fun()->Some(Get(false,true,fNone))
-              in
-              (* print_endline ("Restore "^string_of_int olda); *)
-              solve_rec(machine(Restore(todo,next_move)))
+	| InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when UFSet.is_empty l
+	    -> solve_rec(machine(Restore(ad,accept,fun ()->Some(Get(false,true,fNone)))))
+	    (* -> solve_rec(machine(Restore(ad,accept,fNone))) *)
 
-	| InsertCoin(AskFocus(seq,_,l,false,_,machine,_)) when UFSet.is_empty l
-	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(accept,fNone))))
+	| InsertCoin(AskFocus(seq,_,_,_,false,machine,ad))  (* when UFSet.is_empty l  *)
+	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -409,24 +440,25 @@ module GenPlugin(IAtom: IAtomType)
 	   allowed, and the address of the current focus point
 	*)
 
-	| InsertCoin(AskFocus(seq,_,l,_,_,machine,(_,_,_,tset)))
+	| InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))
 	  -> let atms = model seq in
-             let alternative()= match findaction atms fNone () with
+             let a = ad[] in
+             let alternative()= match findaction atms a fNone () with
                | Some action -> action
-               | None -> Focus(clause_pick atms l,accept,fNone)
+               | None -> Focus(clause_pick atms l,branch_one a,accept,fNone)
              in
 	     solve_rec(machine(Me.search4notprovableNact seq alternative))
 
 
 	(* When we are asked a side, we always go for the left first *)
 
-	| InsertCoin(AskSide(seq,_,machine,_)) -> solve_rec (machine true)
+	| InsertCoin(AskSide(seq,_,machine,ad)) -> solve_rec (machine(true,branch_two(branch OrNode (ad[]))))
 
 	(* When kernel has explored all branches and proposes to go
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| InsertCoin(Stop(b1,b2, machine))   -> report();ignore (read_line ());solve_rec (machine ())
+	| InsertCoin(Stop(b1,b2, machine))   -> solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 

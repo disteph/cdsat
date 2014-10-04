@@ -71,7 +71,9 @@ module ProofSearch
     (* Combines two computations in OR style (with backtrack
        management): success = success for either computation *)
 
-    let rec ou v1 v2 bfun1 bfun2 seq sigma cont = Dump.Kernel.incr_branches();
+    let rec ou v1 v2 bfun1 bfun2 seq sigma cont =
+      (* print_endline(Dump.toString(fun p-> p "ou on %a\nwith constraint %a" Seq.print_in_fmt seq Constraint.print_in_fmt sigma)); *)
+      Dump.Kernel.incr_branches();
       let newcont1 u1 = Dump.Kernel.decr_branches(); match u1 with
 	| Success(ans1,sigma1,alt1) ->
           cont(Success((lift2local bfun1) ans1, sigma1, fun b -> ou (alt1 b) v2 bfun1 bfun2 seq))
@@ -85,6 +87,7 @@ module ProofSearch
       v1 sigma newcont1
 
     and ouR (ans1,f1) bfun1 bfun2 seq sigma cont u2 = 
+      (* print_endline(Dump.toString(fun p-> p "ouR on %a\nwith constraint %a" Seq.print_in_fmt seq Constraint.print_in_fmt sigma)); *)
       let nextcont2 b = ouR (if b then (ans1,f1) else (Fake true,fun _ -> f1 false)) bfun1 bfun2 seq in
       match u2 with
       | Success(ans2,sigma2,alt2)-> 
@@ -105,7 +108,9 @@ module ProofSearch
     (* Combines two computations in AND style (with backtrack
        management): success = success for both computations *)
 
-    let rec et v1 v2 bfun seq sigma cont =  Dump.Kernel.incr_branches();
+    let rec et v1 v2 bfun seq sigma cont =  
+      (* print_endline(Dump.toString(fun p-> p "et on %a\nwith constraint %a" Seq.print_in_fmt seq Constraint.print_in_fmt sigma)); *)
+      Dump.Kernel.incr_branches();
       let newcont1 u1 = Dump.Kernel.decr_branches(); match u1 with
 	| Fail(ans1,f1)   ->
           cont(Fail((lift2local (fun _ -> seq)) ans1, fun b -> et (f1 b) v2 bfun seq))
@@ -203,6 +208,9 @@ module ProofSearch
       | Fail(Genuine seq,f) -> Some(NotProvable seq)
       | _                  -> None
 
+    let bleft c = fun l -> c (true::l)
+    let bright c = fun l -> c (false::l)
+
     (*
      * Main Search function 
      * delta = Formulae to be asynchronously decomposed 
@@ -223,7 +231,7 @@ module ProofSearch
         -> begin match GForm.reveal g with
 	| _ when ((fpolarity polar ig) <> Pos) ->
 	  straight 
-            (lk_solve inloop (Seq.EntUF (atomN, FSet.add (g,tl) FSet.empty, formP, formPSaved, polar,ar)) data)
+            (lk_solve inloop (Seq.EntUF (atomN, FSet.add ig FSet.empty, formP, formPSaved, polar,ar)) data)
             (std1 None seq) (fun a->a) (fun a->a) seq sigma cont
             
 	| TrueP -> let x = Success(std0 (relevant(seq,(ASet.empty,FSet.empty::FSet.empty::[]))),
@@ -234,24 +242,24 @@ module ProofSearch
 	| FalseP -> cont (throw(totalfail seq))
 	  
 	| AndP(a1, a2) ->
-	  let u1 = lk_solve inloop (Seq.EntF (atomN, (a1,tl), formP, formPSaved, polar,ar)) data in
-	  let u2 = lk_solve inloop (Seq.EntF (atomN, (a2,tl), formP, formPSaved, polar,ar)) data in
+	  let u1 = lk_solve inloop (Seq.EntF (atomN, (a1,tl), formP, formPSaved, polar,ar)) (bleft data) in
+	  let u2 = lk_solve inloop (Seq.EntF (atomN, (a2,tl), formP, formPSaved, polar,ar)) (bright data) in
 	  et u1 u2 (std2 None seq) seq sigma cont
 	    
 	| OrP(a1, a2) -> 
-	  let side_pick b = 
+	  let side_pick (b,(newdata1,newdata2)) = 
             Dump.Kernel.fromPlugin();
 	    let (a1',a2') = if b then (a1,a2) else (a2,a1) in
-	    let u1 = lk_solve inloop (Seq.EntF (atomN, (a1',tl), formP, formPSaved, polar,ar)) data in
-	    let u2 = lk_solve inloop (Seq.EntF (atomN, (a2',tl), formP, formPSaved, polar,ar)) data in
+	    let u1 = lk_solve inloop (Seq.EntF (atomN, (a1',tl), formP, formPSaved, polar,ar)) newdata1 in
+	    let u2 = lk_solve inloop (Seq.EntF (atomN, (a2',tl), formP, formPSaved, polar,ar)) newdata2 in
 	    ou u1 u2 (std1 None seq) (std1 None seq) seq sigma cont
 	  in
           Dump.Kernel.toPlugin();
 	  InsertCoin(AskSide(seq,sigma,side_pick,data))
 
 	| Exists a ->
-          let (metav,newar) = DSubst.Arity.newMeta ar in
-	  let u = lk_solve inloop (Seq.EntF (atomN, (a,DSubst.bind2meta metav tl), formP, formPSaved, polar, newar)) data in
+          let (_,newar) as c = DSubst.Arity.newMeta ar in
+	  let u = lk_solve inloop (Seq.EntF (atomN, (a,DSubst.bind2meta c tl), formP, formPSaved, polar, newar)) data in
 	  straight u (std1 None seq) MyTheory.Constraint.liftM MyTheory.Constraint.projM seq sigma cont
             
 	| Lit t -> 
@@ -321,8 +329,8 @@ module ProofSearch
 		 (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                  
 	     | AndN (a1, a2) -> 
-	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a1,tl) newdelta, formP, formPSaved, polar,ar)) data in
-	       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a2,tl) newdelta, formP, formPSaved, polar,ar)) data in
+	       let u1 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a1,tl) newdelta, formP, formPSaved, polar,ar)) (bleft data) in
+	       let u2 = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a2,tl) newdelta, formP, formPSaved, polar,ar)) (bright data) in
 	       et u1 u2 (std2 (Some paramformula) seq) seq sigma cont
 		 
 	     | OrN (a1, a2) -> 
@@ -331,8 +339,8 @@ module ProofSearch
 		 (std1 (Some paramformula) seq) (fun a->a)(fun a->a) seq sigma cont
 
 	     | ForAll a ->
-               let (eigenv,newar) = DSubst.Arity.newEigen ar in
-	       let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a,DSubst.bind2eigen eigenv tl) newdelta, formP, formPSaved, polar,newar)) data in
+               let (_,newar) as c = DSubst.Arity.newEigen ar in
+	       let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add (a,DSubst.bind2eigen c tl) newdelta, formP, formPSaved, polar,newar)) data in
 	       straight u (std1 (Some paramformula) seq) MyTheory.Constraint.liftE MyTheory.Constraint.projE seq sigma cont
 
 	     | _ -> failwith "All cases should have been covered!"
@@ -356,12 +364,12 @@ module ProofSearch
               ->
                 Dump.Kernel.fromPlugin();	
                 match instruction with
-		| Focus(toFocus,inter_fun,l) 
+		| Focus(toFocus,(newdata1,newdata),inter_fun,l) 
                   ->Dump.Kernel.incr_count 4;(* real focus *)
 		    if not (FSet.is_in toFocus formPChoose) then raise (WrongInstructionException "Not allowed to focus on this, you are cheating, you naughty!!!")
 		    else
-		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar,ar)) data in
-		      let u2 = lk_solvef (FSet.remove toFocus formPChoose) conschecked formP formPSaved l data in
+		      let u1 = lk_solve true  (Seq.EntF (atomN, toFocus, FSet.remove toFocus formP, FSet.add toFocus formPSaved, polar,ar)) newdata1 in
+		      let u2 = lk_solvef (FSet.remove toFocus formPChoose) conschecked formP formPSaved l newdata in
 		      ou (intercept inter_fun u1) u2
                         (fun (seqrec,pt) -> match ext [seqrec] with
 		        | (ga,gfP::gfPS::[])
@@ -370,27 +378,32 @@ module ProofSearch
 			| _ -> (seqrec,pt))
 			(fun a->a) seq sigma cont
 			
-		| Cut(3,toCut, inter_fun1, inter_fun2,l) (*cut_3*)
+		| Cut(3,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*cut_3*)
 		  ->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
                     Dump.msg None (Some (fun p->p "Cut3 on %a" IForm.print_in_fmt toCut)) (Some 5);
-                    let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) data in
-                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) data in
-                    let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
+                    let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) (bleft newdata1) in
+                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
+                    let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
                     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
                       
-		| Cut(7,toCut, inter_fun1, inter_fun2,l) (*cut_7*)
+		| Cut(7,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*cut_7*)
 		  ->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
-                    Dump.msg None (Some (fun p->p "Cut7 on %a" IForm.print_in_fmt toCut)) (Some 5);
-                    let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) data in
-                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) data in
-                    let u3 = lk_solvef formPChoose conschecked formP formPSaved l data in
+                    let (_,ds) = toCut in
+                    let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) (bleft newdata1) in
+                    let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
+                    let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
+                    if (DSubst.Arity.prefix (DSubst.get_arity ds) ar)
+                    then
                     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont 
+                    else 
+                      u3 sigma cont
 		(*	et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 seq) seq cont *)
 
-		| ConsistencyCheck(inter_fun,l) when not conschecked (*Checking consistency*)
-		    ->let rec pythie f sigma cont =
+		| ConsistencyCheck(newdata,inter_fun,l) when not conschecked (*Checking consistency*)
+		    ->
+                      let rec pythie f sigma cont =
                         Dump.Kernel.toTheory();
                         let oracle = f sigma in
                         Dump.Kernel.fromTheory();
@@ -401,27 +414,27 @@ module ProofSearch
                                                            fun b -> if b then pythie f' else pythie f)
                         ))
                       in
-                      let u2 = lk_solvef formPChoose true formP formPSaved l data in
+                      let u2 = lk_solvef formPChoose true formP formPSaved l newdata in
                       ou (pythie (DecProc.consistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont
 
-		| Polarise(l, inter_fun) when (apolarity polar l = Und)
+		| Polarise(l,newdata, inter_fun) when (apolarity polar l = Und)
                     ->let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
 							 Pol.add l Pos (Pol.add (anegation l) Neg polar),
-                                                         ar)) data in
+                                                         ar)) newdata in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
-		| DePolarise(l, inter_fun) when not (apolarity polar l = Und) 
+		| DePolarise(l,newdata, inter_fun) when not (apolarity polar l = Und) 
                     ->if !Flags.depol = false then raise (WrongInstructionException "Depolarisation is not allowed");
 		      let u = lk_solve false (Seq.EntUF (atomN, FSet.empty, formP, formPSaved,
 							 Pol.remove l (Pol.remove (anegation l) polar),
-                                                         ar)) data in
+                                                         ar)) newdata in
 		      straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
                         
 		| Propose(NotProvable s) when (Seq.subseq seq s)
-                    ->cont (throw (fail s (lk_solvef formPChoose conschecked formP formPSaved action0 data)))
+                    ->cont (throw (fail s (lk_solvef formPChoose conschecked formP formPSaved (fun ()->None) data)))
                   
 		| Propose(Provable(s,pt,sigma')) when (Seq.subseq s seq)
-                    -> let resume = lk_solvef formPChoose conschecked formP formPSaved action0 data
+                    -> let resume = lk_solvef formPChoose conschecked formP formPSaved (fun ()->None) data
                        in
                        (match Constraint.meet sigma' sigma with
                        | None         -> straight resume (fun a->a) (fun a->a) (fun a->a) seq sigma cont
@@ -434,12 +447,12 @@ module ProofSearch
 		| Get(b1,b2,l)
                   -> cont (Fail(Fake(!dir=b2),fun _ -> lk_solvef formPChoose conschecked formP formPSaved l data))
                   
-		| Restore(inter_fun,l) when not (FSet.is_empty formPSaved) 
+		| Restore(newdata,inter_fun,l) when not (FSet.is_empty formPSaved) 
                     ->if !Flags.fair && not (FSet.is_empty formPChoose)
 		      then raise (WrongInstructionException "Trying to restore formulae on which focus has already been placed,
  but there still are formulae that you have not tried;
  your treatment is unfair");
-		      let u = lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l data
+		      let u = lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l newdata
                       in straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
 
 		| _ -> raise (WrongInstructionException "focus_pick has suggested a stupid action")
@@ -491,7 +504,12 @@ module ProofSearch
     (* Wraps the above function by providing initial inloop and
        initial sequent *)
 
-    let machine seq data = Dump.Kernel.init(); wrap (lk_solve false seq data)
+    let machine_seq seq data = Dump.Kernel.init(); wrap (lk_solve false seq data)
+
+    let machine formula init_data = 
+      let seq = 
+	Seq.EntUF(ASet.empty,FSet.add (formula,DSubst.init) FSet.empty, FSet.empty, FSet.empty,emptypolmap,DSubst.Arity.init)
+      in machine_seq seq (init_data seq)
 
    end: sig
      module FE : (FrontEndType  with type arities     = MyTheory.IAtom.DSubst.Arity.t
@@ -502,5 +520,5 @@ module ProofSearch
 				and  type Form.datatype = F.t
 				and  type fsetType    = FSet.t
 				and  type asetType    = ASet.t)
-     val machine : FE.Seq.t -> 'a ->'a FE.output
+     val machine : FE.Form.t -> (FE.Seq.t -> 'a FE.address) -> 'a FE.output
    end)

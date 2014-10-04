@@ -36,7 +36,7 @@ module type Type = sig
       (* A user can embark his own data on the proof-search.
 	 Set it to unit if not used *)
       type data
-      val initial_data : FE.Seq.t->data
+      val initial_data : FE.Seq.t -> bool list -> data
       val solve        : data FE.output -> FE.answer
     end
 end

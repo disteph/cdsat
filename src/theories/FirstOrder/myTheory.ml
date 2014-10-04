@@ -3,7 +3,7 @@ open Format
 open Kernel
 open Interfaces_I
 open Formulae
-open ThDecProc_tools
+open Tools.AritiesDSubst
 open MyAtom
 open Lib.Patricia
 open Lib.SetConstructions
@@ -402,16 +402,18 @@ module Constraint = struct
   }
 
   let liftM sigma =
+    let (newmeta,newar) = Arity.newMeta sigma.ar in
     let (newkey,newu) = IU.add_new sigma.unifier in
     {
-      ar      = Arity.liftM sigma.ar;
-      mk      = MKcorr.add sigma.mk sigma.ar.Arity.next_meta newkey;
+      ar      = newar;
+      mk      = MKcorr.add sigma.mk newmeta newkey;
       unifier = newu
     }
 
   let projM sigma = {
     ar      = Arity.projM sigma.ar;
-    mk      = MKcorr.remove sigma.mk (sigma.ar.Arity.next_meta-1);
+    mk      = ((* print_endline (Dump.toString(fun p->p "Hiding %i from %a" (sigma.ar.Arity.next_meta-1) MKcorr.print_in_fmt sigma.mk));  *)
+               MKcorr.remove sigma.mk (sigma.ar.Arity.next_meta -1));
     unifier = sigma.unifier
   }
 
@@ -518,6 +520,7 @@ module Consistency(ASet: CollectImplem with type e = IAtom.t)
         FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)
 
     let rec consistency atomN sigma =
+      (* (print_endline (Dump.toString(fun p->p "consistency on %a" ASet.print_in_fmt atomN)));  *)
       try 
         let _ =
           ASet.fold
@@ -547,7 +550,7 @@ module Consistency(ASet: CollectImplem with type e = IAtom.t)
 module Structure(F:FormulaType with type lit = IAtom.Atom.t)
   = struct
 
-    module PS = ThDecProc_tools.PropStructure(F)
+    module PS = Tools.Prop.Structure(F)
 
     open Theories
 

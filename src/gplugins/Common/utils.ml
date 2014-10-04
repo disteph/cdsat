@@ -127,7 +127,7 @@ module Memo
     let search4success b s = find_sub b (Seq.simplify s) !tableS
     let search4failure b s = find_sup b (Seq.simplify s) !tableF
 
-    let cut_series seq alternative (a,f) =
+    let cut_series seq data alternative (a,f) =
       if ASet.is_empty a then
 	if FSet.is_empty f then
           (Dump.msg None (Some(fun p->p "Found no previous success for %a" Seq.print_in_fmt seq)) None;
@@ -137,12 +137,12 @@ module Memo
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
               let (toCutf,_)= toCut in
               Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq Form.print_in_fmt toCutf)) None;
-	      Some(Cut(7,toCut,(fun _->()),(fun _->()),(fun _-> None))))
+	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
       else let (toCut,_)=ASet.next a in
 	   Dump.Plugin.incr_count 7;
            Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq IAtom.print_in_fmt toCut)) None;
 	   let (toCut,tl)= IAtom.reveal toCut in
-           Some(Cut(7,(Form.lit toCut,tl),(fun _->()),(fun _->()),(fun _->None)))
+           Some(Cut(7,(Form.lit toCut,tl),data,(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4provable ans =
       snd (MP.find (Seq.simplify (sequent ans)) !tableS)
@@ -150,7 +150,7 @@ module Memo
     let reset_stats4provable ans =
       tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, 0)) !tableS
 
-    let search4provableNact seq alternative () =
+    let search4provableNact seq data alternative () =
       match search4success !Flags.almo seq with
       | A(a) 
         -> Dump.Plugin.incr_count 8;
@@ -158,7 +158,7 @@ module Memo
           let ans, count = a in
           tableS := MP.add (Seq.simplify (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
           Some(Propose ans)
-      | F(d1,d2) -> cut_series seq alternative (d1,d2)
+      | F(d1,d2) -> cut_series seq data alternative (d1,d2)
 
     let search4notprovableNact seq alternative =
       match search4failure false seq with

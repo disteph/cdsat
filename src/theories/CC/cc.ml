@@ -7,7 +7,7 @@ open PUFind
 (* the theory CC(X) *)
 
 module CCModulo (X : SolvableTheory) (U:PersistentUnionFind with type e = X.v 
-and type d = X.input) : ThDecProc_tools.GThDecProc = struct
+and type d = X.input) : Tools.ForGround.GThDecProc = struct
     
   module Sig = X.Sig
 

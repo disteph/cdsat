@@ -93,14 +93,14 @@ module GenPlugin(IAtom: IAtomType)
 	   available one) *)
 
       type data = unit
-      let initial_data _ =()
+      let initial_data _ _=()
       let rec solve = function
 	| Jackpot ans                                -> ans
-	| InsertCoin(Notify(_,_,_,machine,_))            -> solve (machine (true,(),accept,fNone))
-	| InsertCoin(AskFocus(_,_,[],true,_,machine,_))  -> solve (machine (Restore(accept,fNone)))
-	| InsertCoin(AskFocus(_,_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck(accept,fNone)))
-	| InsertCoin(AskFocus(_,_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,accept,fNone)))
-	| InsertCoin(AskSide (_,_,machine,_))            -> solve (machine true)
+	| InsertCoin(Notify(_,_,_,machine,_))            -> solve (machine (true,(fun _->()),accept,fNone))
+	| InsertCoin(AskFocus(_,_,[],true,_,machine,_))  -> solve (machine (Restore((fun _->()),accept,fNone)))
+	| InsertCoin(AskFocus(_,_,[],false,_,machine,_)) -> solve (machine (ConsistencyCheck((fun _->()),accept,fNone)))
+	| InsertCoin(AskFocus(_,_,a::l,_,_,machine,_))   -> solve (machine (Focus(a,((fun _->()),(fun _->())),accept,fNone)))
+	| InsertCoin(AskSide (_,_,machine,_))            -> solve (machine (true,((fun _->()),(fun _->()))))
 	| InsertCoin(Stop(b1,b2, machine))               -> solve (machine ())
 	    
     end

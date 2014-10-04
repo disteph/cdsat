@@ -94,7 +94,7 @@ module GenPlugin(IAtom: IAtomType)
 	   available one) *)
 
       type data = unit
-      let initial_data _ = ()
+      let initial_data _ _ = ()
 
       let wait () = ignore (read_line ())
 
@@ -177,7 +177,7 @@ module GenPlugin(IAtom: IAtomType)
                         (try
                             let n = read_int () in 
                             let f = Array.get vforms n in
-                                Focus(f, accept, fNone)
+                                Focus(f,((fun _->()),(fun _->())), accept, fNone)
                         with
                             | Invalid_argument msg | Failure msg ->
                                 print_endline ("ERROR: " ^ msg);
@@ -189,7 +189,7 @@ module GenPlugin(IAtom: IAtomType)
                             ask_focus seq pforms more checked
                         end
                     else
-                        ConsistencyCheck(accept, fNone)
+                        ConsistencyCheck((fun _->()),accept, fNone)
                 | "cut" | "Cut" -> 
                     (match args with
                         | [] -> too_few_arguments ()
@@ -203,7 +203,7 @@ module GenPlugin(IAtom: IAtomType)
                     get false
                 | "restore" | "Restore" ->
                     if more then
-                        Restore(accept,fNone)
+                        Restore((fun _->()),accept,fNone)
                     else
                         begin
                             print_endline "ERROR: no more formulae";
@@ -235,7 +235,7 @@ module GenPlugin(IAtom: IAtomType)
         print_endline "Status: Notify";
         print_string "Hit enter to continue > ";
         wait ();
-        solve (execute (true,(),accept,fNone))
+        solve (execute (true,(fun _->()),accept,fNone))
       | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,label)) -> 
         print_hrule '=';
         display_seq seq sigma;
@@ -249,7 +249,7 @@ module GenPlugin(IAtom: IAtomType)
         print_hrule '-';
         print_endline "Status: AskSide";
         let side = ask_side () in
-        solve (execute side)
+        solve (execute(side,((fun _->()),(fun _->()))))
       | InsertCoin(Stop(b1,b2, execute)) ->
         print_hrule '=';
         print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
