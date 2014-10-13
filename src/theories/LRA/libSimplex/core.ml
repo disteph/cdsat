@@ -55,23 +55,26 @@ module D  = struct
   let kcompare = StringComparable.compare
   type infos   = unit
   let info_build = Patricia.empty_info_build
-  let treeHCons = true
 end
 
 module UT = SetConstructions.TypesFromHConsed(StringComparable)
 
 module StringSet = Patricia.PATSet(struct
-				     include D
-				     type values      = unit
-				     let vcompare _ _ = 0
-				   end)(UT)
+  include D
+  type values      = unit
+  let vcompare _ _ = 0
+  let treeHCons = Some(StringComparable.id,fun()->0)
+end)(UT)
 
 module StringMap = struct
+
   include Patricia.PATMap(struct
-			    include D
-			    type values  = Num.num
-			    let vcompare = Num.compare_num
-			  end)(UT)
+    include D
+    type values  = Num.num
+    let vcompare = Num.compare_num
+    let treeHCons = Some(StringComparable.id,Num.int_of_num)
+  end)(UT)
+
   let keys t =
     fold (fun k v keys -> StringSet.add k keys) t StringSet.empty
 end

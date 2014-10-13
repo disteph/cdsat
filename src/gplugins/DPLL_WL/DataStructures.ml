@@ -27,9 +27,10 @@ module Generate(IAtom:IAtomType) = struct
 
     module UT  = struct
       include TypesFromHConsed(IAtom)
-      let compare  = IAtom.compare
+      let compare = IAtom.compare
       let print_in_fmt = IAtom.print_in_fmt
-      let tString  = None
+      let tString = None
+      let keyhash = tag
     end
 
     module AtSet = Common.Patricia_ext.MyPat(UT)
@@ -48,7 +49,11 @@ module Generate(IAtom:IAtomType) = struct
       let (l,t2) = AtSet.next t1 in
 	(l, (t2,None))
     let fold f (a,_)    = AtSet.fold f a
-    let print_in_fmt fmt (h,_)= AtSet.print_in_fmt fmt h 
+    let print_in_fmt fmt (h,a)= 
+      match a with
+      | None   -> Format.fprintf fmt "({ %a },last= None)" AtSet.print_in_fmt h
+      | Some a -> Format.fprintf fmt "({ %a },last= %a)" AtSet.print_in_fmt h IAtom.print_in_fmt a
+
     let diff (t1,_)(t2,_)     = (AtSet.diff t1 t2,None)
     let compare(a,_)(a',_)    = AtSet.compare a a'
     let compareE              = AtSet.compareE
@@ -104,7 +109,7 @@ module Generate(IAtom:IAtomType) = struct
       type e = IAtom.t
       let is_in = ASet.is_in
       let inter = ASet.inter
-      let compare    = ASet.compare
+      let compare = ASet.compare
       let compareE   = ASet.compareE
       let first_diff = ASet.first_diff 
       type keys = mykeys
@@ -121,14 +126,15 @@ module Generate(IAtom:IAtomType) = struct
 
     module UT   = struct
       include LexProduct(UT0)(LexProduct(UT1)(UT2))
-      let compare a b = GForm.icompare IAtom.DSubst.compare (form a) (form b)
       let print_in_fmt fmt a = 
         GForm.iprint_in_fmt IAtom.Atom.print_in_fmt IAtom.DSubst.print_in_fmt fmt (form a)
-      let cstring fmt (a,b) = fprintf fmt "%i" (ASet.id a)
+      let compare a b = GForm.icompare IAtom.DSubst.compare (form a) (form b) 
+      let cstring fmt (a,_) = () (* fprintf fmt "%i" (ASet.id a) *)
       let bstring fmt = function
-	| A(at)-> fprintf fmt "%a" IAtom.Atom.print_in_fmt at
+	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
 	| _    -> fprintf fmt "Bits"
-      let tString = None (*Some(cstring,bstring)*)
+      let tString = None (* Some(cstring,bstring) *)
+      let keyhash = UT2.tag
     end
 
     module FoSet = Common.Patricia_ext.MyPat(UT)

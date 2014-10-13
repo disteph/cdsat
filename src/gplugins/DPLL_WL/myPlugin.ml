@@ -87,7 +87,7 @@ module GenPlugin(IAtom: IAtomType)
       let vcompare     = IAtom.compare
       type infos       = unit
       let info_build   = empty_info_build
-      let treeHCons    = true
+      let treeHCons    = None
     end
 
     module CSet = PATMap(CSetWatched)(UFSet.UT)
@@ -178,7 +178,9 @@ module GenPlugin(IAtom: IAtomType)
 	if decide_cut then 
 	  (Dump.msg (Some(fun p->p "%i atoms and negations present in non-unit clauses" (UASet.cardinal !alllits))) None None;
 	   let onoatms = UASet.union atms (UASet.negations atms) in
-	     UASet.diff !alllits onoatms)
+	   let res = UASet.diff !alllits onoatms in
+           UASet.union res (UASet.negations res)
+          )
 	else UASet.empty
 
     (* Function treating the set t of clauses that are watching literal
@@ -194,12 +196,12 @@ module GenPlugin(IAtom: IAtomType)
 	| CSet.Leaf(j,x)       ->
 	  (match UASet.sub true (UFSet.aset j) atms None with
 	  | Yes _   ->
-			  (* Clause j is allowing backtrack;
-			     we stop investigating the table of watched literals and return j *)
+	    (* Clause j is allowing backtrack;
+	       we stop investigating the table of watched literals and return j *)
 	    (Some j,t)
 	  | Almost n when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms) ->
-			  (* Clause j is allowing Unit Propagation;
-			     we stack it, and leave the table of watched literals unchanged *)
+	    (* Clause j is allowing Unit Propagation;
+	       we stack it, and leave the table of watched literals unchanged *)
 	    stack:= (j,n,false)::!stack;
 	    (None,t)
 	  | Almost n -> (None,t)
@@ -209,14 +211,13 @@ module GenPlugin(IAtom: IAtomType)
 	    (* Pick a new literal to be watched in l *)
 	    let tobcf = UASet.remove x (UFSet.aset j) in
 	    (match pickaux tobcf (UASet.diff tobcf atms) 1 with
-	    | [] -> failwith("Disgrace")
-	    | newlit::_ ->
-	      (* if (x=newlit)   then failwith("x=newlit"); *)
-	      (* if (lit=newlit) then failwith("lit=newlit"); *)
-	      (* if (x=lit)      then failwith("x=lit"); *)
+	    | newlit::[] ->
+	      (* if (x=newlit)   then failwith "x=newlit"; *)
+	      (* if (lit=newlit) then failwith "lit=newlit"; *)
+	      (* if (x=lit)      then failwith "x=lit"; *)
 	      (* Updating entry of other watched literal x:
 		 lit -> newlit *)
-	      if not (H.mem watched x) then failwith("fad");
+	      if not (H.mem watched x) then failwith "fad";
 	      (let watchingx = H.find watched x in
 	       H.replace watched x (CSet.add j (fun _ -> newlit) (CSet.remove j watchingx)));
 	      (* Updating entry of new literal newlit *)
@@ -225,6 +226,7 @@ module GenPlugin(IAtom: IAtomType)
 	      H.replace watched newlit (CSet.add j (fun _ -> x) watchingnewlit);
 	      (* Final output: no backtrack clause, clause j removed from entry of lit *)
 	      (None,CSet.empty)
+	    | _ -> failwith "Disgrace"
 	    )
 	  )  
 	| CSet.Branch(p,m,l,r) -> 
@@ -241,37 +243,30 @@ module GenPlugin(IAtom: IAtomType)
     *)
 
     let update atms ad =
-      let tset = ad.data.remlits in
-      match UASet.latest atms with
-      | Some lit ->
-	let tset' = 
-	  if decide_cut then 
-	    (let nolit = DataStruct.MyIAtomNeg.negation lit in
-	     let tsettmp = if UASet.is_in nolit tset then UASet.remove nolit tset else tset in
-	     if UASet.is_in lit tsettmp then UASet.remove lit tsettmp else tsettmp)
-	  else tset
-	in
-        let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = ad.data.restore_parity } in
-	if H.mem watched lit then
+      let newatoms = UASet.inter atms ad.data.remlits in
+      let tset' = UASet.diff ad.data.remlits (UASet.union newatoms (UASet.negations newatoms)) in
+      let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = ad.data.restore_parity } in
+      let aux lit a = match a with
+        | None when H.mem watched lit ->
 	  let l = H.find watched lit in
 	  let (answer,l') = treat atms lit l in
-	  (H.replace watched lit l'; 
-	   match answer with
-	   | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
-	     address:=Yes(ad.data.i);
-	     count.(1)<-count.(1)+1;
-	     let now = count.(0) in
-	     let myaccept a = 
-               if (isProvable a&& count.(0)==now)
-               then (address:=No)
-               else failwith "Expected Success"
-	     in
-	     stack:=[];
-	     (Some(Focus(UFSet.form a,branch_one newad,myaccept,fun ()->failwith("Expected success"))),newad)
-	   | None -> (None,newad)
-	  )
-	else (None,newad)
-      | _ -> (None,ad)
+          H.replace watched lit l';
+          answer
+        | a -> a
+      in
+      match UASet.fold aux newatoms None with
+      | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt (UFSet.form a))) None;
+	address:=Yes(ad.data.i);
+	count.(1)<-count.(1)+1;
+	let now = count.(0) in
+	let myaccept a = 
+          if isProvable a && count.(0)==now
+          then address:=No
+          else failwith "Expected Success"
+	in
+	stack:=[];
+	(Some(Focus(UFSet.form a,branch_one newad,myaccept,fun ()->failwith "Expected success")),newad)
+      | None -> (None,newad)
 
 
     exception Nonempty_intersection of UASet.t
@@ -290,8 +285,8 @@ module GenPlugin(IAtom: IAtomType)
     let decide atms adO tset () = 
       if decide_cut && not (UASet.is_empty tset) then
 	(let lit = pick_lit_from tset in
-         if UASet.is_in lit atms then failwith("Chosen lit in atms");
-         if UASet.is_in (DataStruct.MyIAtomNeg.negation lit) atms then failwith("Chosen nlit in atms");
+         if UASet.is_in lit atms then failwith "Chosen lit in atms";
+         if UASet.is_in (DataStruct.MyIAtomNeg.negation lit) atms then failwith "Chosen nlit in atms";
          let (a,tl) = IAtom.reveal lit in
          Some(Cut(7,(Form.lit a,tl),branch_one adO,accept,accept,fNone)))
       else
@@ -323,7 +318,7 @@ module GenPlugin(IAtom: IAtomType)
 	| (f,n,_)::h when not (UASet.is_in (DataStruct.MyIAtomNeg.negation n) atms)->
 	    (count.(2)<-count.(2)+1;
 	     stack:=h;
-	     fun()->Some(Focus(UFSet.form f,branch_one ad,accept,fNone)))
+	     fun()-> Some(Focus(UFSet.form f,branch_one ad,accept,fNone)))
 
         (* UP to perform in order to add "not n", but we already have it *)
 
@@ -361,6 +356,7 @@ module GenPlugin(IAtom: IAtomType)
 	    (
 	      if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report();
 	      count.(0)<-count.(0)+1;
+
               let a = ad [] in
 
               (* We test if this is the first ever call, in which case we initialise things *)
@@ -422,15 +418,21 @@ module GenPlugin(IAtom: IAtomType)
 	   we restore the formulae on which we already placed focus *)
 
 	| InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when UFSet.is_empty l
-	    -> 
+	    ->
           let a = ad[] in
           let newad = el_wrap(ad_up a {i=a.data.i; remlits=a.data.remlits; restore_parity = not a.data.restore_parity})
           in
           let next_action = if a.data.restore_parity then (fun ()->Some(Get(false,true,fNone))) else fNone in
           solve_rec(machine(Restore(newad,accept,next_action)))
 
-	| InsertCoin(AskFocus(seq,_,_,_,false,machine,ad))  (* when UFSet.is_empty l  *)
+        (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)
+	(*   -> solve_rec (machine(Restore(olda,accept,fNone))) *)
+
+	| InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) when UFSet.is_empty l
 	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
+
+	 (* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
+	 (*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -462,7 +464,7 @@ module GenPlugin(IAtom: IAtomType)
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| InsertCoin(Stop(b1,b2, machine))   -> solve_rec (machine ())
+	| InsertCoin(Stop(b1,b2, machine)) -> solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 

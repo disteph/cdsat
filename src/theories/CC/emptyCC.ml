@@ -76,7 +76,7 @@ module DTSet = struct
   let vcompare () () = 0
   type infos = unit
   let info_build = empty_info_build
-  let treeHCons = true
+  let treeHCons = Some(Term.id,fun()->0)
 end
 
 module TSet = struct
@@ -117,7 +117,7 @@ module DVtoTSet = struct
   let vcompare = TSet.compare
   type infos = unit
   let info_build = empty_info_build
-  let treeHCons = true
+  let treeHCons = Some(Term.id,TSet.id)
 end
 
 module MVtoTSet = PATMap (DVtoTSet) (I)
@@ -127,7 +127,7 @@ module VtoTSet = struct
   type v = TSet.t
   type t = MVtoTSet.t
   let find = MVtoTSet.find
-  let empty = MVtoTSet.build MVtoTSet.Empty
+  let empty = MVtoTSet.empty
   let add i s t = MVtoTSet.add i (fun f -> match f with
     | None -> s
     | (Some r) -> s) t
@@ -144,7 +144,7 @@ module DVtoV = struct
   let vcompare = compare
   type infos = unit
   let info_build = empty_info_build
-  let treeHCons = true
+  let treeHCons = Some(Term.id,Term.id)
 end
 
 module MVtoV = PATMap (DVtoV) (I)
@@ -154,7 +154,7 @@ module VtoV = struct
   type v = t
   type t = MVtoV.t
   let find = MVtoV.find
-  let empty = MVtoV.build MVtoV.Empty
+  let empty = MVtoV.empty
   let add i s t = MVtoV.add i (fun f -> match f with
     | None -> s
     | (Some r) -> s) t

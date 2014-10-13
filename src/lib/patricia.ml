@@ -13,7 +13,7 @@ module type Dest = sig
   val vcompare : values -> values -> int
   type infos
   val info_build : (keys,values,infos) info_build_type
-  val treeHCons : bool
+  val treeHCons : ((keys->int)*(values->int)) option
 end
 
 module type Intern = sig
@@ -53,23 +53,33 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     module PATPrimitive = struct
       type t = {reveal: t pat ; id:int ; info: infos}
 
-      let rec equal t1 t2 = if not treeHCons then (t1=t2) else
-	match t1.reveal,t2.reveal with
+      let rec equal t1 t2 =
+        match treeHCons with
+        | None -> failwith "No function equal when patricia trees are not HConsed"
+        | Some _ -> (match t1.reveal,t2.reveal with
 	  | Empty, Empty                             -> true
 	  | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2==0) && (vcompare value1 value2==0)
-	  | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> let i,j,k,l = (bcompare b1 b2==0),(match_prefix c1 c2 b1),(t3==t4),(t3'==t4') in
-	      (*if (not i)||(not j) then print_endline("B");*) i&&j&&k&&l
+	  | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (t3==t4)&&(t3'==t4')&&(bcompare b1 b2==0)&&(match_prefix c1 c2 b1)
 	  | _                                        -> false
+        )
 
-      let hash t1 = if not treeHCons then Hashtbl.hash t1 else
-	match t1.reveal with
+      let hash t1 = match treeHCons with
+        | None -> failwith "No function hash when patricia trees are not HConsed"
+        | Some(khash,vhash) ->
+          (match t1.reveal with
 	  | Empty            -> 1
-	  | Leaf(key,value)  -> 2*(Hashtbl.hash key)+3*(Hashtbl.hash value)
-	  | Branch(_,b,t2,t3)-> 5*(Hashtbl.hash b)+7*t2.id+11*t3.id
+	  | Leaf(key,value)  -> 2*(khash key)+3*(vhash value)
+	  | Branch(_,b,t2,t3)-> 5*t2.id+7*t3.id
+          )
 
     end
 
     include PATPrimitive
+
+    let rec size t = match t.reveal with
+      | Empty               -> 0
+      | Leaf (j,_)          -> 1
+      | Branch (_, _, l, r) -> size l + size r
 
     let reveal f = f.reveal
     let id f     = f.id
@@ -89,15 +99,18 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     let uniqq =ref 0
     let build a =
       let f = {reveal =  a; id = !uniqq ; info = info_gen a} in
-	if treeHCons then
-          (
+	match treeHCons with
+        | None   -> f
+        | Some _ ->
 	  try H.find table f
-	  with Not_found -> incr uniqq; H.add table f f; f)
-	else f
+	  with Not_found -> incr uniqq; H.add table f f; f
 
     let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
 
-    let compare t1 t2 = if treeHCons then Pervasives.compare t1.id t2.id else failwith "Cannot compare patricia trees (not HConsed)"
+    let compare t1 t2 = 
+      match treeHCons with 
+      | None   -> failwith "No function compare when patricia trees are not HConsed"
+      | Some _ -> Pervasives.compare t1.id t2.id
 
     (* Now we start the standard functions on maps/sets *)
 
@@ -314,7 +327,7 @@ module PATMap (D:Dest)(I:Intern with type keys=D.keys) = struct
     | No       -> (*print_endline("left No");*)No
 
   let sub f locprune alm s1 s2 =
-    let rec aux s1 s2 alm= match locprune s1, locprune s2 with
+    let rec aux s1 s2 alm= match reveal(locprune s1), reveal(locprune s2) with
       | Empty, _                        -> Yes()
       | Leaf(k,x), _      when mem k s2 -> let y = find k s2 in f alm k x (Some y)
       | Leaf(k,x), _                    -> f alm k x None

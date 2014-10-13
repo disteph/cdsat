@@ -68,7 +68,7 @@ module Memo
       let vcompare = Pervasives.compare
       type infos     = unit
       let info_build = empty_info_build
-      let treeHCons  = false
+      let treeHCons  = None
     end
 
     module EASet = struct include ASet type keys=D.keys let tag(a,b)=a end
@@ -121,8 +121,7 @@ module Memo
       | A a -> Dump.Plugin.incr_count 5;
 	Dump.msg None
           (Some(fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
-          (Some 5);
-        Dump.msg None (Some(fun p->p "%a" )) (Some 5)
+          (Some 5)
 
     let search4success b s = find_sub b (Seq.simplify s) !tableS
     let search4failure b s = find_sup b (Seq.simplify s) !tableF

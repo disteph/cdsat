@@ -5,6 +5,7 @@ open Kernel
 open Interfaces_I
 open Formulae
 open Interfaces_II
+open Common.Addressing
 
 module GenPlugin(IAtom: IAtomType)
   :(Plugins.Type with type iliterals = IAtom.t
@@ -93,24 +94,27 @@ module GenPlugin(IAtom: IAtomType)
 	   formula to place in the next focus - here: the first
 	   available one) *)
 
-      type data = unit
-      let initial_data _ _ = ()
+      type data = unit addressing
+      let initial_data _ = ad_init ()
 
-      let wait () = ignore (read_line ())
+      let wait () = Format.printf "%!";ignore (read_line ())
 
       let display_aset atoms =
           let latoms = UASet.fold (fun x l -> x::l) atoms [] in
-          let show a = Format.printf "\t%a\n" IAtom.print_in_fmt a in
+          let show a = Format.printf "\t%a\n%!" IAtom.print_in_fmt a in
             List.iter show latoms
 
       let display_farray forms = 
-          let showith i a = Format.printf "\t%d: %a\n" i IForm.print_in_fmt a in
+          let showith i a = Format.printf "\t%d: %a\n%!" i IForm.print_in_fmt a in
             Array.iteri showith forms
 
       let display_fset forms = 
           let lforms = UFSet.fold (fun x l -> x::l) forms [] in
-          let show a = Format.printf "\t%a\n" IForm.print_in_fmt a in
+          let show a = Format.printf "\t%a\n%!" IForm.print_in_fmt a in
             List.iter show lforms
+
+      let display_ad ad =
+        Format.printf "Address: %a\n%!" print_in_fmt_ad (ad[])
 
       let print_hrule c = print_endline (String.make 79 c)
 
@@ -127,38 +131,37 @@ module GenPlugin(IAtom: IAtomType)
             match seq with
             | Seq.EntF(atomN, g, formP, formPSaved, polar, ar) -> 
                 display_gen atomN formP formPSaved;
-                print_string "Goal:\t";
-                Format.printf "[ %a]\n" IForm.print_in_fmt g
+                Format.printf "Goal:\t[ %a]\n%!" IForm.print_in_fmt g
             | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
                 display_gen atomN formP formPSaved
         in
         display_full seq;
         print_endline "Current constraint:";
-        Format.printf "%a\n" print_in_fmtC sigma
+        Format.printf "%a\n%!" print_in_fmtC sigma
 
       let parse_abort = function 
         | "abort" | "Abort" -> raise (Plugins.PluginAbort "I abort")
         | _ -> ()
 
       let rec ask_side () = 
-            print_string "Choose a side (left or right) > "; 
-            match read_line () with
-                | "left" | "Left" -> true
-                | "right" | "Right" -> false
-                | s -> parse_abort s; ask_side ()
+        Format.printf "Choose a side (left or right) > %!"; 
+        match read_line () with
+        | "left" | "Left" -> true
+        | "right" | "Right" -> false
+        | s -> parse_abort s; ask_side ()
                 
       let re_space = Str.regexp " +"
 
-      let rec ask_focus seq pforms more checked =
+      let rec ask_focus seq pforms more checked ad =
           let too_few_arguments () = 
             print_endline "ERROR: too few arguments";
-            ask_focus seq pforms more checked in
+            ask_focus seq pforms more checked ad in
           let cannot_parse_argument () = 
             print_endline "ERROR: cannot parse arguments";
-            ask_focus seq pforms more checked in
+            ask_focus seq pforms more checked ad in
           let unknown_command () = 
             print_endline "ERROR: unknown command";
-            ask_focus seq pforms more checked in
+            ask_focus seq pforms more checked ad in
           let interp_cmd cmd args = 
             let get b =
                 match args with
@@ -173,30 +176,30 @@ module GenPlugin(IAtom: IAtomType)
                         (match lforms with
                             [] ->
                                 print_endline "ERROR: no more positive formula to focus on";
-                                ask_focus seq pforms more checked
+                                ask_focus seq pforms more checked ad
                             | [f] ->
-                                Focus(f, ((fun _ -> ()), (fun _ -> ())), accept, fNone)
+                                Focus(f, branch_one (ad[]), accept, fNone)
                             | _ ->
                                 let vforms = Array.of_list lforms in
                                     display_farray vforms;
-                                    print_string "Enter a number > ";
+                                    Format.printf "Enter a number > %!";
                                     (try
                                         let n = read_int () in
                                         let f = Array.get vforms n in
-                                            Focus(f, ((fun _ -> ()), (fun _ -> ())), accept, fNone)
+                                            Focus(f, branch_one (ad[]), accept, fNone)
                                     with
                                         | Invalid_argument msg | Failure msg ->
                                             print_endline ("ERROR: " ^ msg);
-                                            ask_focus seq pforms more checked)
+                                            ask_focus seq pforms more checked ad)
                         )
                 | "check" | "Check" ->
                     if checked then
                         begin
                             print_endline "ERROR: cannot run consistency check";
-                            ask_focus seq pforms more checked
+                            ask_focus seq pforms more checked ad
                         end
                     else
-                        ConsistencyCheck((fun _->()),accept, fNone)
+                        ConsistencyCheck(ad,accept, fNone)
                 | "cut" | "Cut" -> 
                     (match args with
                         | [] -> too_few_arguments ()
@@ -210,11 +213,11 @@ module GenPlugin(IAtom: IAtomType)
                     get false
                 | "restore" | "Restore" ->
                     if more then
-                        Restore((fun _->()),accept,fNone)
+                        Restore(ad,accept,fNone)
                     else
                         begin
                             print_endline "ERROR: no more formulae";
-                            ask_focus seq pforms more checked
+                            ask_focus seq pforms more checked ad
                         end
                 | "propose" | "Propose" ->
                     (match args with
@@ -228,35 +231,39 @@ module GenPlugin(IAtom: IAtomType)
                     failwith "Not yet implemented "
                 | s -> parse_abort s; unknown_command ()
           in
-            print_string "Enter a focus action > ";
+            Format.printf "Enter a focus action > %!";
             match Str.split re_space (read_line ()) with
-              | [] -> print_endline "ERROR: empty line"; ask_focus seq pforms more checked
+              | [] -> print_endline "ERROR: empty line"; ask_focus seq pforms more checked ad
               | cmd::args -> interp_cmd cmd args
 
     let rec solve = function
       | Jackpot ans -> ans
-      | InsertCoin(Notify  (seq,sigma,_,execute,_)) -> 
+      | InsertCoin(Notify(seq,sigma,_,execute,ad)) -> 
         print_hrule '=';
+        display_ad ad;
         display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: Notify";
-        print_string "Hit enter to continue > ";
+        Format.printf "Hit enter to continue > %!";
         wait ();
-        solve (execute (true,(fun _->()),accept,fNone))
-      | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,label)) -> 
+        let newad = el_wrap (branch OrNode (ad [])) in
+        solve (execute (true,newad,accept,fNone))
+      | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,ad)) -> 
         print_hrule '=';
+        display_ad ad;
         display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: AskFocus";
-        let ans = ask_focus seq pforms more checked in
+        let ans = ask_focus seq pforms more checked ad in
         solve (execute ans)
-      | InsertCoin(AskSide (seq,sigma, execute,_)) -> 
+      | InsertCoin(AskSide (seq,sigma, execute,ad)) -> 
         print_hrule '=';
+        display_ad ad;
         display_seq seq sigma;
         print_hrule '-';
         print_endline "Status: AskSide";
         let side = ask_side () in
-        solve (execute(side,((fun _->()),(fun _->()))))
+        solve (execute(side,branch_two(branch OrNode (ad[]))))
       | InsertCoin(Stop(b1,b2, execute)) ->
         print_hrule '=';
         print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));

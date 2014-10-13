@@ -73,7 +73,7 @@ module Do = struct
   let vcompare t1 t2 = Pervasives.compare (Term.id t1) (Term.id t2)
   type infos = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons = true
+  let treeHCons = Some((fun i->i),Term.id)
 end
 
 module IU = (struct

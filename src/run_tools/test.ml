@@ -80,10 +80,10 @@ module Run(MyThPlug:ThPlug)= struct
 	  in 
 	  print_endline(match c,d with
 	  |None ,_                 -> "Nothing expected"
-	  |Some true, FE.Provable _ -> "Expected Success (UNSAT/provable), got it"
-	  |Some true, FE.NotProvable _    -> "*** WARNING ***: Expected Success (UNSAT/provable), got Failure (SAT/unprovable)"
-	  |Some false,FE.Provable _ -> "*** WARNING ***: Expected Failure (SAT/unprovable), got Success (UNSAT/provable)"
-	  |Some false,FE.NotProvable _    -> "Expected Failure (SAT/unprovable), got it"
+	  |Some true, FE.Provable _ -> "Expected Provable (UNSAT), got it"
+	  |Some true, FE.NotProvable _    -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
+	  |Some false,FE.Provable _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
+	  |Some false,FE.NotProvable _    -> "Expected Unprovable (SAT), got it"
 	  );
 	  Some d
         with Plugins.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None

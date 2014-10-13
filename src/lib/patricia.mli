@@ -36,8 +36,10 @@ module type Dest = sig
     of two tree *)
   val info_build : (keys,values,infos) info_build_type
 
-  (** Do you want the patricia trees hconsed? *)
-  val treeHCons : bool
+  (** Do you want the patricia trees hconsed? if so you should provide
+    hash functions for keys and values *) 
+
+  val treeHCons : ((keys->int)*(values->int)) option
 end
 
 module type Intern = sig
@@ -71,15 +73,11 @@ module PATMap
   (D : Dest)
   (I:Intern with type keys=D.keys)
   : sig
-    type 'a pat =
+    type 'a pat = private
       | Empty
       | Leaf of D.keys * D.values
       | Branch of I.common * I.branching * 'a * 'a
-    type t = {
-      reveal : t pat;
-      id : int;
-      info : D.infos;
-    }
+    type t
     val equal : t -> t -> bool
     val hash : t -> int
     val reveal : t -> t pat
@@ -111,7 +109,7 @@ module PATMap
       (bool -> (unit, 'a) almost) -> bool -> (unit, 'a) almost
     val sub :
       (bool -> I.keys -> D.values -> D.values option -> (unit, 'a) almost) ->
-      (t -> t pat) -> bool -> t -> t -> (unit, 'a) almost
+      (t -> t) -> bool -> t -> t -> (unit, 'a) almost
     val opt_st : ('a -> 'b -> int) -> 'a option * 'b option -> int
     val first_diff :
       (I.keys -> D.values -> D.values -> 'a option * bool) ->
@@ -143,15 +141,11 @@ module PATSet
   (D:Dest with type values = unit)
   (I:Intern with type keys=D.keys)
   : sig
-    type 'a pat =
+    type 'a pat = private
       | Empty
       | Leaf of D.keys * unit
       | Branch of I.common * I.branching * 'a * 'a
-    type t = {
-      reveal : t pat;
-      id : int;
-      info : D.infos;
-    }
+    type t
     val equal : t -> t -> bool
     val hash : t -> int
     val reveal : t -> t pat
@@ -177,7 +171,7 @@ module PATSet
     val first_diff :
       (t -> D.keys option) -> t -> t -> D.keys option * bool
     val sub :
-      (t -> t pat) ->
+      (t -> t) ->
       bool -> t -> t -> (unit, I.keys) almost
     val iter : (D.keys -> unit) -> t -> unit
     val map : (D.keys -> unit) -> t -> t

@@ -27,9 +27,10 @@ module Generate(IAtom:IAtomType) = struct
 
     module UT  = struct
       include TypesFromHConsed(IAtom)
-      let compare  = IAtom.compare
+      let compare = IAtom.compare
       let print_in_fmt = IAtom.print_in_fmt
-      let tString  = None
+      let tString = None
+      let keyhash = tag
     end
 
     include Common.Patricia_ext.MyPat(UT)
@@ -98,6 +99,7 @@ module Generate(IAtom:IAtomType) = struct
 	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
 	| _    -> fprintf fmt "Bits"
       let tString = None (* Some(cstring,bstring) *)
+      let keyhash = UT2.tag
     end
 
     module FoSet = Common.Patricia_ext.MyPat(UT)
