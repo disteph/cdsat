@@ -4,6 +4,6 @@
 (declare-fun b () Term)
 (declare-fun c () Term)
 (set-info :status unsat)
-(assert (not (<=> (forall ((x Term)) (=> (and (p a) (=> (p x) (p b))))) (and (forall ((x Term)) (or (not (p a)) (or (p x) (p c)))) (or (not (p a)) (or (not (p b)) (p c)))))))
+(assert (not (<=> (forall ((x Term)) (=> (and (p a) (=> (p x) (p b))) (p c))) (and (forall ((x Term)) (or (not (p a)) (or (p x) (p c)))) (or (not (p a)) (or (not (p b)) (p c)))))))
 (check-sat)
 (exit)

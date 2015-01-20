@@ -329,7 +329,7 @@ module GenPlugin(IAtom: IAtomType)
 
     (* Recursive function solve *)
 
-    let rec solve_rec input = 
+    let rec solve_rec_aux input = 
       match input with
 
 	(* When we are notified of new focus point, we
@@ -405,7 +405,7 @@ module GenPlugin(IAtom: IAtomType)
 	      solve_rec (machine (true,
 			          el_wrap adOr,
 			          Me.tomem,
-			          match action with  
+			          match action with
 			          | Some action as saction -> (fun()->saction)
 			          | None        -> findaction atms adOr alternative_restart
 	      )
@@ -413,6 +413,13 @@ module GenPlugin(IAtom: IAtomType)
 	    )
 		
 	(* When we are asked for focus: *)
+
+	| InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) (* when UFSet.is_empty l *)
+	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
+
+	 (* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
+	 (*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
+
 
 	(* If there is no more positive formulae to place the focus on,
 	   we restore the formulae on which we already placed focus *)
@@ -422,17 +429,12 @@ module GenPlugin(IAtom: IAtomType)
           let a = ad[] in
           let newad = el_wrap(ad_up a {i=a.data.i; remlits=a.data.remlits; restore_parity = not a.data.restore_parity})
           in
-          let next_action = if a.data.restore_parity then (fun ()->Some(Get(false,true,fNone))) else fNone in
+          let next_action = if a.data.restore_parity then (Format.printf "Restoring but next thing is move\n%!"; (fun ()->Some(Get(false,true,fNone)))) else fNone in
           solve_rec(machine(Restore(newad,accept,next_action)))
 
         (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)
 	(*   -> solve_rec (machine(Restore(olda,accept,fNone))) *)
 
-	| InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) when UFSet.is_empty l
-	    -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
-
-	 (* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
-	 (*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
 
 	(* We
 	   - start searching whether a bigger sequent doesn't already
@@ -464,7 +466,8 @@ module GenPlugin(IAtom: IAtomType)
 	   backwards to close remaining branches, we give it the green
 	   light *)
 
-	| InsertCoin(Stop(b1,b2, machine)) -> solve_rec (machine ())
+	| InsertCoin(Stop(b1,b2, machine)) ->  Format.printf "Reaching the END\n%!"; 
+          solve_rec (machine ())
 
 	(* When the kernel gives us a final answer, we return it and clear all the caches *)
 
@@ -472,6 +475,28 @@ module GenPlugin(IAtom: IAtomType)
 	    H.clear watched; restart_strategy#reset() ; Me.clear(); UASet.clear(); UFSet.clear();IAtom.clear();Dump.Plugin.clear();
 	    for i=0 to Array.length count-1 do count.(i) <- 0 done;
 	    ans
+
+    and solve_rec input =
+      (* begin *)
+      (*   match input with *)
+      (*   | InsertCoin(Notify(seq,_,inloop,machine,ad)) *)
+      (*     -> Format.printf "Notify: %a%!" print_in_fmt_ad (ad[]) *)
+      (*   | InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) when UFSet.is_empty l *)
+      (*     -> Format.printf "AskFocus empty l + false: %a%!" print_in_fmt_ad (ad[]) *)
+      (*   | InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when UFSet.is_empty l *)
+      (*     -> Format.printf "AskFocus empty l + true: %a%!" print_in_fmt_ad (ad[]) *)
+      (*   | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad)) *)
+      (*     -> Format.printf "AskFocus non-empty l: %a%!" print_in_fmt_ad (ad[]) *)
+      (*   | InsertCoin(AskSide(seq,_,machine,ad)) *)
+      (*     -> Format.printf "AskSide: %a%!" print_in_fmt_ad (ad[]) *)
+      (*   | InsertCoin(Stop(b1,b2, machine)) *)
+      (*     -> Format.printf "Reached end: %b %b %!" b1 b2 *)
+      (*   | Jackpot ans *)
+      (*     -> Format.printf "Jackpot%!" *)
+      (* end; *)
+      (* ignore (read_line ()); *)
+      solve_rec_aux input
+
 
     let reset () =
       stack := [];
