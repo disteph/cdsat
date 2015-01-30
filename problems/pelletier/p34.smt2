@@ -5,7 +5,7 @@
 (assert (not (<=> 
     (<=>
         (exists ((x Term)) (forall ((y Term)) (<=> (p x) (p y))))
-        (<=> (exists ((x Term)) (q x)) (forall ((y Term)) (p y)))
+        (<=> (exists ((x Term)) (q x)) (forall ((y Term)) (q y)))
     )
     (<=>
         (exists ((x Term)) (forall ((y Term)) (<=> (q x) (q y))))

@@ -6,7 +6,7 @@
 (declare-fun f (Term) Bool)
 (declare-fun g (Term) Bool)
 (set-info :status unsat)
-(assert (=> (forall ((x Term)) (p x)) (forall ((x Term)) (q x))))
+(assert (forall ((x Term)) (=> (p x) (forall ((x Term)) (q x)))))
 (assert (=> (forall ((x Term)) (or (q x) (r x))) (exists ((x Term)) (and (q x) (s x)))))
 (assert (=> (exists ((x Term)) (s x)) (forall ((x Term)) (=> (f x) (g x)))))
 (assert (not (forall ((x Term)) (=> (and (p x) (f x)) (g x)))))
