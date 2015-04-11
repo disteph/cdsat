@@ -5,23 +5,22 @@
 exception TypingError of string
 exception ModelError of string
 
-type 'sort forParser =
-    { names: string list ;
-      prop: 'sort}
+type sort = [ `Prop | `Rat | `Term ]
 
-type ('sort,'symbol,'a) forParsing =
-    { arity     : 'symbol -> 'sort*('sort list);
-      multiary  : ('symbol->'a list->'a list)->'symbol->'a list->'a;
-      sortParse : string  -> 'sort;
+type forParser = { names: string list }
+
+type ('symbol,'a) forParsing =
+    { arity     : 'symbol -> sort*(sort list);
+      multiary  : ( 'symbol -> 'a list->'a list)->'symbol->'a list->'a;
+      sortParse : string  -> sort;
       symbParse : string  -> 'symbol list}
 
 (* Module type for a theory signature *)
 
 module type SigType = sig
-  type sort
   type symbol
-  val forParser : sort forParser
-  val forParsing: (sort,symbol,'a) forParsing
+  val forParser : forParser
+  val forParsing: (symbol,'a) forParsing
 end
 
 
@@ -31,11 +30,11 @@ sigsymb_i : an interpretation for signature symbols,
 decsymb_i  : an interpretation for declared symbols
 *)
 
-type ('sort,'symbol,'t) structureType = 
+type ('symbol,'t) structureType = 
     { sigsymb_i   : 'symbol -> 't list -> 't;
-      decsymb_i   : 'sort -> string  -> 't list -> 't;
-      boundsymb_i : int -> 'sort -> 't;
-      quantif_i   : bool -> 'sort -> 't -> 't                 
+      decsymb_i   : sort -> string  -> 't list -> 't;
+      boundsymb_i : int -> sort -> 't;
+      quantif_i   : bool -> sort -> 't -> 't                 
     }
 
 (* Type of interpretation functions for applied symbols, pertaining to
@@ -48,10 +47,10 @@ For declared symbols, there is an extra argument, which is the
 declared signature for the symbol (for signature symbols, that
 information is to be found in the signature). *)
 
-type ('sort,'t) interpretType = 
-    { sigsymb : string -> 'sort -> ('sort->'t) list -> 't ;
-      decsymb : string -> 'sort -> ('sort->'t) list -> (string * (string list)) -> 't;
-      boundsymb : int -> string -> 'sort -> 't;
+type 't interpretType = 
+    { sigsymb : string -> sort -> (sort->'t) list -> 't ;
+      decsymb : string -> sort -> (sort->'t) list -> (string * (string list)) -> 't;
+      boundsymb : int -> string -> sort -> 't;
       quantif : bool -> string list -> 't -> 't
     }
 
@@ -75,7 +74,7 @@ module type ThDecProc = sig
   module Structure(F:Kernel.Formulae.FormulaType with type lit=IAtom.Atom.t) :
   sig
     type t
-    val st      : (Sig.sort,Sig.symbol,t) structureType
+    val st      : (Sig.symbol,t) structureType
     val toform  : t->F.t
     val examples: ((unit->F.t)*bool) list
   end

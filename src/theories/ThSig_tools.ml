@@ -79,8 +79,8 @@ a list of possible symbols, and ts.arity provides the arity of
 symbols) and st (provided by the decision procedure: st.symb_i). *)
 
 let interpret 
-    (ts: ('sort,'symbol,'a) forParsing)
-    (st: ('sort,'symbol,'t) structureType)
+    (ts: ('symbol,'a) forParsing)
+    (st: ('symbol,'t) structureType)
     =
   { sigsymb =
       (fun s expsort l ->
@@ -114,3 +114,45 @@ let interpret
         aux sf l)
           
   }
+
+
+(*************************)
+(* Signature combination *)
+(*************************)
+
+module NOSig (Sig1 : SigType) (Sig2 : SigType) = struct
+
+  type symbol =
+              | SymbSig1 of Sig1.symbol
+              | SymbSig2 of Sig2.symbol
+
+  let forParser = { names = [] }
+
+  let forParsing =
+    { arity     = 
+        (function 
+        | SymbSig1 sym ->
+          let (s,sl) = Sig1.forParsing.arity sym in
+          (s, sl)
+        | SymbSig2 sym ->
+          let (s,sl) = Sig2.forParsing.arity sym in
+          (s, sl)
+        );
+
+      (* : ('symbol->'a list->'a list)->'symbol->'a list->'a; *)
+      multiary  = (fun _ -> failwith "TT");
+
+      (* : string  -> 'sort *)
+      sortParse = (fun s ->
+        (try Sig1.forParsing.sortParse s
+         with _ -> Sig2.forParsing.sortParse s));
+      
+      (* : string  -> 'symbol list *)
+      symbParse = (fun s ->
+        List.append 
+          (List.map (fun x -> SymbSig1 x) (Sig1.forParsing.symbParse s))
+          (List.map (fun x -> SymbSig2 x) (Sig2.forParsing.symbParse s))
+      ) 
+    }
+
+end

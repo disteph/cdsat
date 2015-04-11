@@ -88,10 +88,14 @@ module Structure(F:Kernel.Formulae.FormulaType with type lit = Atom.t) = struct
 	  else match so with
 	  | `Rat  -> Rat(PS.Leaf(StringMap.add (StringComparable.build var) (fun _ -> Int 1) StringMap.empty,num_0))
 	  | `Prop ->
-	    match aux `Rat var [] with
-	    | Rat a -> Prop(build_lit `Gt a)
-	    | _     -> raise (ModelError
-				("ModelError: should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
+            begin
+	      match aux `Rat var [] with
+	      | Rat a -> Prop(build_lit `Gt a)
+	      | _     -> raise (ModelError
+				  ("ModelError: should not happen (whilst converting a boolean variable "^var^" to an atom "^var^" >0 )"))
+            end
+          | _ -> raise (ModelError
+			  ("ModelError: the sort for declared symbol "^var^" is unknown for theory LRA"))
 	in aux);
 
         boundsymb_i = (fun db so -> raise (ModelError ("ModelError: cannot treat bound variables")));

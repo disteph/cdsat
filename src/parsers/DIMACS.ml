@@ -71,21 +71,21 @@ let parse ts i l =
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
-    let v = i.decsymb var ts.prop [] ("prop",[]) in
+    let v = i.decsymb var `Prop [] ("prop",[]) in
       if b then v 
-      else i.sigsymb "not" ts.prop [fun _->v]
+      else i.sigsymb "not" `Prop [fun _->v]
   in
 
   (* parse a clause from list of literal descriptions *)
   let generate_clause = function
-    | [] -> i.sigsymb "true" ts.prop []
-    | l  -> i.sigsymb "and" ts.prop (List.map (fun t _ -> generate_atom t) l)
+    | [] -> i.sigsymb "true" `Prop []
+    | l  -> i.sigsymb "and" `Prop (List.map (fun t _ -> generate_atom t) l)
   in
 
   (* parse a cnf from list of clause descriptions *)
   let generate_cnf = function
-    | [] -> i.sigsymb "false" ts.prop []
-    | l  -> i.sigsymb "or" ts.prop (List.map (fun t _ -> generate_clause t) l)
+    | [] -> i.sigsymb "false" `Prop []
+    | l  -> i.sigsymb "or" `Prop (List.map (fun t _ -> generate_clause t) l)
   in
 
     (Some(generate_cnf l),None)
