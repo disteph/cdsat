@@ -16,22 +16,30 @@
 # Executable psyche
 # OASIS_STOP
 
-<src> or <src/gplugins> or <src/theories> or <src/parsers>: include
-<src/lib/*.cmx>:                      for-pack(Lib)
+<src> or <src/top-level> or <src/lib> or <src/portfolio> or <src/specs> or <src/theories>: include
+
 <src/kernel/*.cmx>:                   for-pack(Kernel)
-<src/run_tools/*.cmx>:                for-pack(Run_tools)
-<src/parsers/SMTLib2_tools/*>:        for-pack(SMTLib2_tools)
-<src/theories/Empty/*.cmx>:           for-pack(Empty)
-<src/theories/CC/*.cmx>:              for-pack(CC)
-<src/theories/LRA/libSimplex/*.cmx>:  for-pack(LRA.LibSimplex)
-<src/theories/LRA/*.cmx>:             for-pack(LRA)
-<src/theories/FirstOrder/*.cmx>:      for-pack(FirstOrder)
-<src/theories/Tools/*.cmx>:           for-pack(Tools)
-<src/gplugins/Common/*.cmx>:          for-pack(Common)
-<src/gplugins/DPLL_Pat/*.cmx>:        for-pack(DPLL_Pat)
-<src/gplugins/DPLL_WL/*.cmx>:         for-pack(DPLL_WL)
-<src/gplugins/Naive/*.cmx>:           for-pack(Naive)
-<src/gplugins/RestartsFunctor/*.cmx>: for-pack(RestartsFunctor)
-<src/gplugins/Hint/*.cmx>:            for-pack(Hint)
+
+<src/lib/general/*.cmx>:              for-pack(General)
+<src/lib/gplugins_tools/*.cmx>:       for-pack(Gplugins_tools)
+<src/lib/theories_tools/*.cmx>:       for-pack(Theories_tools)
+
+<src/portfolio/gplugins/*.cmx>:        for-pack(Gplugins)
+<src/portfolio/gplugins/DPLL_Pat/*.cmx>:        for-pack(Gplugins.DPLL_Pat)
+<src/portfolio/gplugins/DPLL_WL/*.cmx>:         for-pack(Gplugins.DPLL_WL)
+<src/portfolio/gplugins/Naive/*.cmx>:           for-pack(Gplugins.Naive)
+<src/portfolio/gplugins/RestartsFunctor/*.cmx>: for-pack(Gplugins.RestartsFunctor)
+<src/portfolio/gplugins/Hint/*.cmx>:            for-pack(Gplugins.Hint)
+
+<src/portfolio/theories/*.cmx>:        for-pack(Theories)
+<src/portfolio/theories/Empty/*.cmx>:           for-pack(Theories.Empty)
+<src/portfolio/theories/CC/*.cmx>:              for-pack(Theories.CC)
+<src/portfolio/theories/LRA/libSimplex/*.cmx>:  for-pack(Theories.LRA.LibSimplex)
+<src/portfolio/theories/LRA/*.cmx>:             for-pack(Theories.LRA)
+<src/portfolio/theories/FirstOrder/*.cmx>:      for-pack(Theories.FirstOrder)
+
+<src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
+<src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
+
 <src/*.{byte,native}>:                use_nums, use_str, use_unix
 <**/*.ml>: annot

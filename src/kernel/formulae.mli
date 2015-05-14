@@ -1,7 +1,7 @@
 (* This is the implementation of formulae *)
 
 open Format
-open Interfaces_I
+open Interfaces_theory
 
 (* Type for a formula head:
    'a is the type of what is found below connectives
@@ -17,8 +17,8 @@ type ('a,'lit) form =
   | OrP of 'a * 'a
   | AndN of 'a * 'a
   | OrN of 'a * 'a
-  | ForAll of 'a
-  | Exists of 'a
+  | ForAll of Sorts.t * 'a 
+  | Exists of Sorts.t * 'a
 
 (* (Recursive) type for a generic formula, with identifiers:
    'a is the type of the extra information that is found at every node
@@ -46,7 +46,7 @@ module GForm : sig
   val icompare : ('b->'b->int) -> (('a,'lit) t * 'b) -> (('a,'lit) t * 'b) -> int 
 end
 
-module type FormExtraInfo = sig
+module type FormExtra = sig
   type t
   type lit
   val fdata_build: (t,lit) GForm.revealt -> t
@@ -58,6 +58,7 @@ module type FormulaType = sig
   type t   = (datatype,lit) GForm.t
   val print_in_fmt  : formatter -> t -> unit
   val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
+  val compare : t -> t -> int
   val negation : t -> t
   val lit    : lit -> t
   val trueN  : t
@@ -68,9 +69,9 @@ module type FormulaType = sig
   val andP   : t * t -> t
   val orN    : t * t -> t
   val orP    : t * t -> t
-  val forall : t -> t
-  val exists : t -> t
+  val forall : Sorts.t * t -> t
+  val exists : Sorts.t * t -> t
 end
 
-module Formula(Atom: AtomType)(Fdata: FormExtraInfo with type lit = Atom.t) : 
+module Formula(Atom: AtomType)(Fdata: FormExtra with type lit = Atom.t) : 
   FormulaType with type datatype = Fdata.t and type lit = Atom.t

@@ -24,22 +24,23 @@
 (**************************************************************************)
 (* Main file *)
 
-open Flags
-open Run_tools.IO
-open Run_tools.Test
 open Arg
+
+open Flags
+open IO
+open Top_level
 
 (* Deals with command line arguments *)
 let options =
   ("-theory",        String(fun s->
 			      mytheory:=
-				Some(try ThDecProc_register.getbyname s
-				     with ThDecProc_register.NotFound msg
+				Some(try Theories_register.getbyname s
+				     with Theories_register.NotFound msg
 					 -> failwith msg)),"selects theory (among empty, lra)")::
     ("-gplugin",     String(fun s->
 			      mygplugin:=
-				Some(try GPlugins_register.getbyname s
-				     with GPlugins_register.NotFound msg
+				Some(try Gplugins_register.getbyname s
+				     with Gplugins_register.NotFound msg
 					 -> failwith msg)),"selects generic plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
     ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
