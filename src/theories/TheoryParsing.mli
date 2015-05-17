@@ -6,9 +6,7 @@ open Basic
 open Theory
 
 (* Type of functions used to type-check and interpret an untyped AST.
-Same functions as above, but arguments are closer to the form in which
-they appear in the input file:
-- For symbols declared in the signature (decsymb), we have to understand
+- For symbols declared in the signature (sigsymb), we have to understand
 which symbol is meant by the string appearing in the input file.
 - For symbols declared in the input file (decsymb), the file
 should specify the full arity, with the sorts of arguments.
