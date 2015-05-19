@@ -69,12 +69,12 @@ module Generate(DS:TheoryDSType) = struct
   module UF = struct
     type lit = Atom.t
     type t   = unit
-    let fdata_build f = ()
+    let build f = ()
   end
 
   module UFSet = MyCollectImplem(struct
-    type t = (UF.t,UF.lit) GForm.t * dsubsts
-    let print_in_fmt = GForm.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt
+    type t = (UF.lit,UF.t) Formula.generic * dsubsts
+    let print_in_fmt = Formula.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt
   end)
 
 end

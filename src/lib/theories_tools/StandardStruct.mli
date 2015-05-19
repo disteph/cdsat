@@ -8,16 +8,16 @@ module TermDef : sig
 
   val reveal : ('leaf,'datatype) term -> ('leaf,('leaf,'datatype) term) xterm
   val data   : ('leaf,'datatype) term -> 'datatype
+  val id     : ('leaf,'datatype) term -> int
 
-  module type Type = sig
+  module type S = sig
     type leaf
     type datatype
     type t = (leaf,datatype) term
     val bV : leaf -> t
     val bC : Symbol.t -> t list -> t
-    val id : t -> int
-    val print_in_fmt: Format.formatter -> t -> unit
     val clear : unit -> unit
+    val print_in_fmt: Format.formatter -> t -> unit
     module Homo(Mon: MonadType) : sig
       val lift : 
         ('a -> leaf Mon.t) -> ('a,datatype) term -> (leaf,datatype) term Mon.t
@@ -30,37 +30,31 @@ module TermDef : sig
   module Make
     (Leaf : PHCons)
     (Data : Theory.ForParsingType with type leaf := Leaf.t) 
-    : Type with type leaf = Leaf.t
-           and  type datatype = Data.t
+    : S with type leaf := Leaf.t
+        and  type datatype := Data.t
 
-end
-
-module Predicates : sig
-  type t
-  val reveal  : t -> Symbol.t
-  val compare : t -> t -> int
 end
 
 
 module AtomDef : sig
 
   type ('leaf,'datatype) atom
-  val reveal : ('leaf,'datatype) atom -> bool * Predicates.t * (('leaf,'datatype) TermDef.term list)
-  val data   : ('leaf,'datatype) atom -> 'datatype
 
-  module type Type = sig
+  module type S = sig
     type leaf
     type datatype
     type t = (leaf,datatype) atom
-    module Term : TermDef.Type with type leaf = leaf
-                               and  type datatype = datatype
-    val build  : bool * Predicates.t * Term.t list -> t
-    val bbuild : bool * Symbol.t * Term.t list -> t
-    val id : t -> int 
-    val negation : t -> t
-    val print_in_fmt: Format.formatter -> t -> unit
+
+    module Term : TermDef.S with type leaf := leaf
+                            and  type datatype = datatype
+
+    val reveal  : t -> bool * Symbol.t * (Term.t list)
+    val id      : t -> int 
     val compare : t -> t -> int
+    val build : bool * Symbol.t * Term.t list -> t
     val clear   : unit -> unit
+    val print_in_fmt: Format.formatter -> t -> unit
+    val negation : t -> t
     module Homo(Mon: MonadType) : sig
       val lift : 
         ('a -> leaf Mon.t) -> ('a,datatype) atom -> t Mon.t
@@ -70,8 +64,8 @@ module AtomDef : sig
   module Make
     (Leaf : Kernel.Interfaces_basic.PHCons)
     (Data : Theory.ForParsingType with type leaf := Leaf.t)
-    : Type with type leaf = Leaf.t
-           and  type datatype = Data.t
+    : S with type leaf := Leaf.t
+        and  type datatype := Data.t
 
 end
 
@@ -80,30 +74,30 @@ module StandardDSData
   (Data : Theory.ForParsingType with type leaf := Leaf.t) :
 sig
 
-  module Atom : AtomDef.Type with type leaf = Leaf.t
-                             and  type datatype = Data.t
+  module Atom : AtomDef.S with type leaf := Leaf.t
+                          and  type datatype := Data.t
 
-  module ForParsingWOEx(F: Kernel.Formulae.FormulaType with type lit = Atom.t) :
+  module ForParsingWOEx(F: Kernel.Formulae.Formula.S with type lit = Atom.t) :
   sig
-    include Theory.ForParsingType with type leaf = Leaf.t
+    include Theory.ForParsingType with type leaf := Leaf.t
     val toForm  : t -> F.t
     val examples: ((unit->F.t)*bool) list
   end
 end
 
 module EmptyData(Leaf : PHCons)
-  : Theory.ForParsingType with type leaf = Leaf.t
+  : Theory.ForParsingType with type leaf := Leaf.t
                           and  type t = unit option
 
 module StandardDS(Leaf : PHCons):
 sig
 
-  module Atom : AtomDef.Type with type leaf = Leaf.t
-                             and  type datatype = unit option
+  module Atom : AtomDef.S with type leaf := Leaf.t
+                          and  type datatype = unit option
 
-  module ForParsingWOEx(F: Kernel.Formulae.FormulaType with type lit = Atom.t) :
+  module ForParsingWOEx(F: Kernel.Formulae.Formula.S with type lit = Atom.t) :
   sig
-    include Theory.ForParsingType with type leaf = Leaf.t
+    include Theory.ForParsingType with type leaf := Leaf.t
     val toForm  : t -> F.t
     val examples: ((unit->F.t)*bool) list
   end

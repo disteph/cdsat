@@ -48,11 +48,11 @@ struct
 end
 
 
-module ForParsing(F:Formulae.FormulaType with type lit = Atom.t) = struct
+module ForParsing(F:Formula.S with type lit = Atom.t) = struct
 
   include ForParsingWOEx(F)
 
-  let lit(b, f) = F.lit(Atom.bbuild(b, Symbol.User(f,(Sorts.Prop,[])), []))
+  let lit(b, f) = F.lit(Atom.build(b, Symbol.User(f,(Sorts.Prop,[])), []))
 
     (* p(x) \/- !p(x) *)
   let f1() = 

@@ -77,10 +77,10 @@ module Generate(ThDS:TheoryDSType) = struct
     type lit = Atom.t
     type t   = DSubst.t -> UASet.t * bool
 
-    let aset (f,tl) = let (r,_) = GForm.data f tl in r
-    let fset (f,tl) = let (_,b) = GForm.data f tl in b
+    let aset (f,tl) = let (r,_) = Formula.data f tl in r
+    let fset (f,tl) = let (_,b) = Formula.data f tl in b
 
-    let fdata_build = function
+    let build = function
       | Lit l        -> fun tl -> UASet.add (iatom_build(l,tl)) UASet.empty, false
       | AndP (x1,x2) -> fun tl -> 
         UASet.union (aset(x1,tl)) (aset(x2,tl)),
@@ -97,7 +97,7 @@ module Generate(ThDS:TheoryDSType) = struct
 
   module UFSet = struct
 
-    type e    = (UF.t,UF.lit)GForm.t*DSubst.t
+    type e    = (UF.lit,UF.t)Formula.generic*DSubst.t
     type mykeys = UASet.t*e
 
     let aset (a,_) = a
@@ -118,7 +118,7 @@ module Generate(ThDS:TheoryDSType) = struct
 
     module UT1  = TypesFromHConsed(struct 
       type t = mykeys
-      let id (_,(f,_)) = GForm.id f 
+      let id (_,(f,_)) = Formula.id f 
     end)
 
     module UT2  = TypesFromHConsed(struct 
@@ -129,8 +129,8 @@ module Generate(ThDS:TheoryDSType) = struct
     module UT   = struct
       include LexProduct(UT0)(LexProduct(UT1)(UT2))
       let print_in_fmt fmt a = 
-        GForm.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt fmt (form a)
-      let compare a b = GForm.icompare DSubst.compare (form a) (form b) 
+        Formula.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt fmt (form a)
+      let compare a b = Formula.icompare DSubst.compare (form a) (form b) 
       let cstring fmt (a,_) = () (* fprintf fmt "%i" (ASet.id a) *)
       let bstring fmt = function
 	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
@@ -156,7 +156,7 @@ module Generate(ThDS:TheoryDSType) = struct
     let iter            = FoSet.iter
     let print_in_fmt    = FoSet.print_in_fmt
     let compare         = FoSet.compare
-    let compareE        = GForm.icompare DSubst.compare
+    let compareE        = Formula.icompare DSubst.compare
     let first_diff t t' = match FoSet.first_diff t t' with
       | Some a,b -> Some(form a),b
       | None,b -> None,b

@@ -42,9 +42,9 @@ struct
       (fun a alias -> 
         Dump.msg(Some(fun p -> p "Unifying atoms %a and %a" Atom.print_in_fmt (EAtom.proj a) Atom.print_in_fmt t))None None;
         let newalias = ASet.remove a alias in
-        let (b1,p1,l1) = AtomDef.reveal (EAtom.proj a) in
-        let (b2,p2,l2) = AtomDef.reveal t in
-        (if (compare b1 b2) && (Predicates.compare p1 p2 == 0)
+        let (b1,p1,l1) = Atom.reveal (EAtom.proj a) in
+        let (b2,p2,l2) = Atom.reveal t in
+        (if (compare b1 b2) && (p1 = p2)
          then
             (Dump.msg (Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
              let internalise = List.map(IU.internalise (MKcorr.get_key sigma.Constraint.mk)) in

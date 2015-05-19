@@ -19,10 +19,10 @@ module Generate(DS:TheoryDSType) : sig
     val clear    : unit->unit
   end
 
-  module UF : FormExtra with type lit = Atom.t
+  module UF : Formula.Extra with type lit = Atom.t
 
   module UFSet : sig
-    include CollectImplemExt with type e = (UF.t,UF.lit) GForm.t * DSubst.t
+    include CollectImplemExt with type e = (UF.lit,UF.t) Formula.generic * DSubst.t
     val choose  : t -> e
     val schoose : UASet.t -> t -> (e,e option)sum
     val rchoose : UASet.t -> t -> (e,e option)sum

@@ -7,66 +7,83 @@ module EmptyData = struct
   let build _ = ()
 end
 
+module type PolyS = sig
+  type ('t,'a) initial
+  type ('a,'data) generic
+  type ('a,'data) revealed = (('a,'data) generic,'a) initial
+  val reveal : ('a,'data) generic -> ('a,'data) revealed
+  val id     : ('a,'data) generic -> int
+  val data   : ('a,'data) generic -> 'data
+  val compare: ('a,'data) generic -> ('a,'data) generic -> int
+end
+
 module MakePoly
   (M: sig 
     type ('t,'a) t
-    val equal: ('a->'a->bool) -> ('t->'t->bool) -> (('t,'a) t -> ('t,'a) t -> bool) 
-    val hash: ('a->int) -> ('t->int) -> (('t,'a) t -> int)    
+    val equal: ('t->'t->bool) -> ('a->'a->bool) -> (('t,'a) t -> ('t,'a) t -> bool) 
+    val hash: ('t->int) -> ('a->int) -> (('t,'a) t -> int)    
   end) = struct
 
-    type ('a,'data) t = {reveal: ('a,'data) revealt; id:int; data:'data}
-    and  ('a,'data) revealt = (('a,'data) t,'a) M.t
+    type ('a,'data) generic = {reveal: ('a,'data) revealed; id:int; data:'data}
+    and  ('a,'data) revealed = (('a,'data) generic,'a) M.t
 
     let reveal f = f.reveal
     let id f     = f.id
     let data f   = f.data
+    let compare a1 a2 = Pervasives.compare a1.id a2.id
 
     module InitData
-      (Par: sig
-        type t
-        val equal : t -> t -> bool
-        val hash : t -> int
-      end)
+      (Par: Hashtbl.HashedType)
       (Data: sig
         type t
-        val build : (Par.t,t) revealt -> t
+        val build : (Par.t,t) revealed -> t
       end)
       = struct
 
+        type t = (Par.t,Data.t) generic
+
         module Arg = struct
-          type t = (Par.t,Data.t) revealt
-          let equal = M.equal Par.equal (fun x y -> x == y)
-          let hash = M.hash Par.hash Hashtbl.hash
+          type t = ((Par.t,Data.t) revealed)*((Par.t,Data.t) generic option)
+          let equal (a,_) (b,_) = M.equal (fun x y -> x == y) Par.equal a b
+          let hash (a,_) = M.hash Hashtbl.hash Par.hash a
         end
 
         module H = Hashtbl.Make(Arg)
+        (* module H = Weak.Make(Arg) *)
 
-        include Arg
-        
         let table = H.create 5003
         let unique =ref 0
         let build a =
-          try H.find table a
+          try 
+            (match H.find table (a, None) with
+            | (_,Some res) -> res
+            | (_,None) -> failwith "HCons table contains None!"
+            )
           with Not_found -> 
             let f = {reveal =  a; id = !unique; data = Data.build a} in
-            incr unique; H.add table a f; f
+            let b = (a,Some f) in
+            incr unique;
+            H.add table b b;
+            (* H.add table b; *)
+            f
 
-        let clear() = H.clear table
-
-        let compare a1 a2 = Pervasives.compare a1.id a2.id
+        let clear() = unique := 0; H.clear table
 
       end
 
-    module Init
-      (Par: sig
-        type t
-        val equal : t -> t -> bool
-        val hash : t -> int
-      end)
-      = InitData(Par)(EmptyData)
+    module Init(Par: Hashtbl.HashedType) = InitData(Par)(EmptyData)
 
   end
 
+module type S = sig
+  type 't initial
+  type 'data generic
+  type 'data revealed = 'data generic initial
+  val reveal : 'data generic -> 'data revealed
+  val id     : 'data generic -> int
+  val data   : 'data generic -> 'data
+  val compare: 'data generic -> 'data generic -> int
+end
 
 module Make
   (M: sig 
@@ -77,22 +94,23 @@ module Make
 
     module N = struct
       type ('t,'a) t = 't M.t
-      let equal _ = M.equal
-      let hash _ = M.hash
+      let equal eq _ = M.equal eq
+      let hash h _ = M.hash h
     end
     module TMP = MakePoly(N)
 
-    type 'data t = (unit,'data) TMP.t
-    type 'data revealt = (unit,'data) TMP.revealt
+    type 'data generic = (unit,'data) TMP.generic
+    type 'data revealed = (unit,'data) TMP.revealed
 
     let reveal f = f.TMP.reveal
     let id f     = f.TMP.id
     let data f   = f.TMP.data
+    let compare a1 a2 = Pervasives.compare a1.TMP.id a2.TMP.id
 
     module InitData
       (Data: sig
         type t
-        val build : t revealt -> t
+        val build : t revealed -> t
       end)
       = TMP.InitData(struct
         type t = unit

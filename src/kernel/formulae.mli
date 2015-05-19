@@ -17,7 +17,7 @@ type ('a,'lit) form =
   | OrP of 'a * 'a
   | AndN of 'a * 'a
   | OrN of 'a * 'a
-  | ForAll of Sorts.t * 'a 
+  | ForAll of Sorts.t * 'a
   | Exists of Sorts.t * 'a
 
 (* (Recursive) type for a generic formula, with identifiers:
@@ -32,46 +32,51 @@ type ('a,'lit) form =
    (comparison of the formulae themselves is done by looking at their identifiers only)
 *)
 
-module GForm : sig
-  type ('a,'lit) t
-  type ('a,'lit) revealt = (('a,'lit) t,'lit) form
-  val reveal : ('a,'lit) t -> ('a,'lit) revealt
-  val id     : ('a,'lit) t -> int
-  val data   : ('a,'lit) t -> 'a
-  val print_in_fmt : (formatter -> 'lit -> unit) -> formatter -> ('a,'lit) t -> unit
+module Formula : sig
+
+  include HCons.PolyS with type ('t,'lit) initial := ('t,'lit) form
+
+  val print_in_fmt : (formatter -> 'lit -> unit) -> formatter -> ('lit,'a) generic -> unit
+
   val iprint_in_fmt : 
     (formatter -> 'lit -> unit)
     -> (formatter -> 'subst -> unit)
-    -> formatter -> ('a,'lit) t*'subst -> unit
-  val icompare : ('b->'b->int) -> (('a,'lit) t * 'b) -> (('a,'lit) t * 'b) -> int 
-end
+    -> formatter -> ('lit,'a) generic*'subst -> unit
 
-module type FormExtra = sig
-  type t
-  type lit
-  val fdata_build: (t,lit) GForm.revealt -> t
-end
+  val icompare : 
+    ('b->'b->int)
+    -> (('lit,'a) generic * 'b)
+    -> (('lit,'a) generic * 'b)
+    -> int 
 
-module type FormulaType = sig
-  type datatype
-  type lit
-  type t   = (datatype,lit) GForm.t
-  val print_in_fmt  : formatter -> t -> unit
-  val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
-  val compare : t -> t -> int
-  val negation : t -> t
-  val lit    : lit -> t
-  val trueN  : t
-  val trueP  : t
-  val falseN : t
-  val falseP : t
-  val andN   : t * t -> t
-  val andP   : t * t -> t
-  val orN    : t * t -> t
-  val orP    : t * t -> t
-  val forall : Sorts.t * t -> t
-  val exists : Sorts.t * t -> t
-end
+  module type Extra = sig
+    type t
+    type lit
+    val build: (lit,t) revealed -> t
+  end
 
-module Formula(Atom: AtomType)(Fdata: FormExtra with type lit = Atom.t) : 
-  FormulaType with type datatype = Fdata.t and type lit = Atom.t
+  module type S = sig
+    type datatype
+    type lit
+    type t   = (lit,datatype) generic
+    val print_in_fmt  : formatter -> t -> unit
+    val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
+    val compare : t -> t -> int
+    val negation : t -> t
+    val lit    : lit -> t
+    val trueN  : t
+    val trueP  : t
+    val falseN : t
+    val falseP : t
+    val andN   : t * t -> t
+    val andP   : t * t -> t
+    val orN    : t * t -> t
+    val orP    : t * t -> t
+    val forall : Sorts.t * t -> t
+    val exists : Sorts.t * t -> t
+  end
+
+  module Make(Atom: AtomType)(Fdata: Extra with type lit = Atom.t) : 
+    S with type datatype = Fdata.t and type lit = Atom.t
+
+end

@@ -13,14 +13,11 @@ module MakeCollectTrusted
     val print_in_fmt: Format.formatter -> t -> unit
   end) =
   (struct
-
     include Set.Make(OT)
     type e    = elt
-
     let next t = let e = choose t in (e,remove e t)
     let print_in_fmt fmt = fprintf fmt "%a "
       (fun fmt -> iter (fprintf fmt "%a, " OT.print_in_fmt))
-
    end: CollectTrusted with type e = OT.t)
 
 
@@ -70,7 +67,7 @@ module FrontEnd
     let print_in_fmtC = Constraint.print_in_fmt
 
     (* New datastructures, visible outside Kernel *)
-    module Form    = Formula(Atom)(PlDS.UF)
+    module Form    = Formula.Make(Atom)(PlDS.UF)
     module IForm   = struct
       type t = Form.t*DSubst.t
       let print_in_fmt    = Form.iprint_in_fmt DSubst.print_in_fmt
@@ -104,7 +101,7 @@ module FrontEnd
 
       (* Computes polarity of instantiated formula *)
       let form polar (f,tl) = 
-        match GForm.reveal f with
+        match Formula.reveal f with
         | TrueP  -> Pos
         | TrueN  -> Neg
         | FalseP -> Pos

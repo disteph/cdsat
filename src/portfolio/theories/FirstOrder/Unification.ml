@@ -17,7 +17,7 @@ open Theories_tools.StandardStruct
 module D = DSubst
 
 
-module Make(Term: TermDef.Type with type leaf = IntSort.t) =
+module Make(Term: TermDef.S with type leaf := IntSort.t) =
 struct
 
   (* Internal representation of a Unifier *)
@@ -57,7 +57,7 @@ struct
       type values = Term.t
       type infos = keys m_infos
       let info_build = m_info_build kcompare
-      let treeHCons = Some((fun x y -> Term.id x = Term.id y),IntSort.id,Term.id)
+      let treeHCons = Some((fun x y -> TermDef.id x = TermDef.id y),IntSort.id,TermDef.id)
     end
 
     module TMap = PATMap.Make(TermDest)(TypesFromHConsed(IntSort))

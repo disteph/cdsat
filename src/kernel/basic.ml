@@ -35,3 +35,13 @@ module IntMap = Map.Make(struct
   type t = int
   let compare = Pervasives.compare
 end)
+
+module HashedTypeFromHCons(M: sig
+  type t
+  val id: t -> int
+end)
+= struct
+  type t = M.t
+  let hash = M.id
+  let equal a b = Pervasives.compare (M.id a) (M.id b) == 0
+end

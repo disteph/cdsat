@@ -8,7 +8,7 @@ open Kernel.Interfaces_theory
 (* Module type for Theory+DecProc+Plugin compatible with each other *)
 
 module type ThPlug = sig
-  module MyTheory : ThManager.Type
+  module MyTheory : ThManager.S
   module MyPlugin : Plugin.Type with type DS.UASet.e = MyTheory.DS.IAtom.t
                                 and  type DS.UF.lit  = MyTheory.DS.Atom.t
 end

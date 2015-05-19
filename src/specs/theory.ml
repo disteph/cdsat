@@ -62,9 +62,9 @@ module type StructType = sig
 
   module Atom : AtomType
 
-  module ForParsing(F: Kernel.Formulae.FormulaType with type lit = Atom.t) :
+  module ForParsing(F: Kernel.Formulae.Formula.S with type lit = Atom.t) :
   sig
-    include ForParsingType with type leaf = IntSort.t
+    include ForParsingType with type leaf := IntSort.t
     val toForm : t -> F.t
     val examples : ((unit->F.t)*bool) list
   end

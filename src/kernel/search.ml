@@ -220,7 +220,7 @@ module ProofSearch
       Dump.msg None (Some(fun p -> p "---attack\n %a" Seq.print_in_fmt seq)) None;
       match seq with
       | Seq.EntF(atomN, ((g,tl) as ig), formP, formPSaved, polar,ar)
-        -> begin match GForm.reveal g with
+        -> begin match Formula.reveal g with
 	| _ when ((Pol.form polar ig) <> Pos) ->
 	  straight 
             (lk_solve inloop (Seq.EntUF (atomN, FSet.add ig FSet.empty, formP, formPSaved, polar,ar)) data)
@@ -274,7 +274,7 @@ module ProofSearch
 	  -> 
             let (paramformula,newdelta) = FSet.next delta in
              let (toDecompose,tl) = paramformula in
-	     begin match GForm.reveal toDecompose with
+	     begin match Formula.reveal toDecompose with
 	     | _ when (Pol.form polar paramformula) = Pos 
                  ->if (FSet.mem paramformula formP)||(FSet.mem paramformula formPSaved)
 	           then let u = lk_solve inloop (Seq.EntUF (atomN, newdelta, formP, formPSaved, polar,ar)) data in

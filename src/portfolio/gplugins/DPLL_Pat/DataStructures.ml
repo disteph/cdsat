@@ -46,9 +46,9 @@ module Generate(ThDS:TheoryDSType) = struct
     type lit = Atom.t
     type t   = DSubst.t -> UASet.t
 
-    let aset (f,tl) = GForm.data f tl
+    let aset (f,tl) = Formula.data f tl
 
-    let fdata_build f tl = match f with
+    let build f tl = match f with
       | Lit l        -> UASet.add (iatom_build(l,tl)) UASet.empty
       | AndP (x1,x2) -> UASet.union (aset(x1,tl)) (aset(x2,tl))
       | _            -> UASet.empty
@@ -61,7 +61,7 @@ module Generate(ThDS:TheoryDSType) = struct
 
   module UFSet = struct
 
-    type e    = (UF.t,UF.lit)GForm.t*DSubst.t
+    type e    = (UF.lit,UF.t) Formula.generic*DSubst.t
     type mykeys = UASet.t*e
 
     let aset (a,_) = a
@@ -82,7 +82,7 @@ module Generate(ThDS:TheoryDSType) = struct
 
     module UT1  = TypesFromHConsed(struct 
       type t = mykeys
-      let id (_,(f,_)) = GForm.id f 
+      let id (_,(f,_)) = Formula.id f 
     end)
 
     module UT2  = TypesFromHConsed(struct 
@@ -92,9 +92,9 @@ module Generate(ThDS:TheoryDSType) = struct
 
     module UT   = struct
       include LexProduct(UT0)(LexProduct(UT1)(UT2))
-      let compare a b = GForm.icompare DSubst.compare (form a) (form b)
+      let compare a b = Formula.icompare DSubst.compare (form a) (form b)
       let print_in_fmt fmt a = 
-        GForm.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt fmt (form a)
+        Formula.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt fmt (form a)
       let cstring fmt ((a,_):common) = fprintf fmt "%a" UASet.print_in_fmt a
       let bstring fmt (g:branching) = match g with
 	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
@@ -118,7 +118,7 @@ module Generate(ThDS:TheoryDSType) = struct
     let fold f          = FoSet.fold (fun b-> f (form b))
     let print_in_fmt    = FoSet.print_in_fmt
     let compare         = FoSet.compare
-    let compareE        = GForm.icompare DSubst.compare
+    let compareE        = Formula.icompare DSubst.compare
     let first_diff t t' = match FoSet.first_diff t t' with
       | Some a,b -> Some(form a),b
       | None,b -> None,b

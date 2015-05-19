@@ -18,8 +18,8 @@ module type ProofType = sig
 end
 
 module type PlugDSType = sig
-  module UF   : FormExtra
-  module UFSet: CollectExtra with type e = (UF.t,UF.lit) GForm.t * DSubst.t
+  module UF   : Formula.Extra
+  module UFSet: CollectExtra with type e = (UF.lit,UF.t) Formula.generic * DSubst.t
   module UASet: CollectExtra
 end
 
@@ -40,7 +40,7 @@ module type FrontEndType = sig
   formulae, sets of instantiated formulae, and sets of instantiated
   atoms. *)
 
-  module Form : FormulaType
+  module Form : Formula.S
   module IForm : sig
     type t = Form.t*DSubst.t
     val print_in_fmt: Format.formatter -> t -> unit

@@ -6,7 +6,7 @@ open Kernel
 open Formulae
 open Symbol
 
-module Intern(F: FormulaType) = struct
+module Intern(F: Formula.S) = struct
 
   (* let rec bool_simpl = function *)
   (*   | Leaf a      -> a *)

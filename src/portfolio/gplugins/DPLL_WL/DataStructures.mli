@@ -22,12 +22,12 @@ module Generate(DS:TheoryDSType) : sig
   end
 
   module UF : sig
-    include FormExtra with type lit = Atom.t
-    val fset : (t,lit) GForm.t * DSubst.t -> bool
+    include Formula.Extra with type lit = Atom.t
+    val fset : (lit,t) Formula.generic * DSubst.t -> bool
   end
 
   module UFSet : sig
-    include CollectImplemExt with type e = (UF.t,UF.lit) GForm.t * DSubst.t
+    include CollectImplemExt with type e = (UF.lit,UF.t) Formula.generic * DSubst.t
     module UT: sig
       include Intern
       val compare : keys -> keys -> int

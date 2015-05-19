@@ -3,6 +3,7 @@ Interfaces_basic
 Basic
 World
 DSubst
+HCons
 Interfaces_theory
 Formulae
 Interfaces_plugin

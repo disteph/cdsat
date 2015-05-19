@@ -17,7 +17,7 @@ module IJMon = (struct
 end : MonadType with type 'a t = 'a*int*int)
 
 
-module type Type = sig
+module type S = sig
 
   (* Implem of atoms and consistency checks, as required by kernel *)
   include Kernel.Interfaces_theory.DecProc
@@ -25,9 +25,9 @@ module type Type = sig
   val names    : string list
   val sugPlugin: string option
 
-  module ForParsing(F: Kernel.Formulae.FormulaType with type lit = DS.Atom.t)
+  module ForParsing(F: Kernel.Formulae.Formula.S with type lit = DS.Atom.t)
     :sig        
-      include Theory.ForParsingType with type leaf = Kernel.Basic.IntSort.t
+      include Theory.ForParsingType with type leaf := Kernel.Basic.IntSort.t
       val toForm : t -> F.t
 
       (* A list of illustrative examples *)
@@ -36,7 +36,7 @@ module type Type = sig
 end
 
 
-module Make(MDP:Theory.Type): Type = struct
+module Make(MDP:Theory.Type): S = struct
 
   let names     = MDP.names
   let sugPlugin = MDP.sugPlugin

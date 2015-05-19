@@ -6,26 +6,51 @@ open Format
 open Interfaces_theory
 
 type ('a,'lit) form =
-  | Lit of 'lit
-  | TrueP
-  | TrueN
-  | FalseP
-  | FalseN
-  | AndP of 'a * 'a
-  | OrP of 'a * 'a
-  | AndN of 'a * 'a
-  | OrN of 'a * 'a
-  | ForAll of Sorts.t * 'a 
-  | Exists of Sorts.t * 'a
+| Lit of 'lit
+| TrueP
+| TrueN
+| FalseP
+| FalseN
+| AndP of 'a * 'a
+| OrP of 'a * 'a
+| AndN of 'a * 'a
+| OrN of 'a * 'a
+| ForAll of Sorts.t * 'a 
+| Exists of Sorts.t * 'a
 
-module GForm = struct
+module M = struct
 
-  type ('a,'lit) t  = {reveal: ('a,'lit) revealt; id:int; data:'a}
-  and  ('a,'lit) revealt = (('a,'lit) t,'lit) form
+  type ('a,'lit) t = ('a,'lit) form
 
-  let reveal f = f.reveal
-  let id f     = f.id
-  let data f   = f.data
+  let equal eqRec eqLit t1 t2 =
+    match t1,t2 with
+    | Lit l1, Lit l2             -> eqLit l1 l2
+    | AndP (x1,x2), AndP (y1,y2) -> eqRec x1 y1 && eqRec x2 y2
+    | OrP (x1,x2), OrP (y1,y2)   -> eqRec x1 y1 && eqRec x2 y2
+    | AndN (x1,x2), AndN (y1,y2) -> eqRec x1 y1 && eqRec x2 y2
+    | OrN (x1,x2), OrN (y1,y2)   -> eqRec x1 y1 && eqRec x2 y2
+    | ForAll(so,x), ForAll(so',y)-> eqRec x y && so=so'
+    | Exists(so,x), Exists(so',y)-> eqRec x y && so=so'
+    | a, b                       -> false
+
+  let hash hRec hLit = function
+    | Lit l        -> hLit l
+    | TrueP        -> 1
+    | TrueN        -> 2
+    | FalseP       -> 3
+    | FalseN       -> 4
+    | AndP (x1,x2) -> 5*(hRec x1)+17*(hRec x2)
+    | OrP (x1,x2)  -> 7*(hRec x1)+19*(hRec x2)
+    | AndN (x1,x2) -> 11*(hRec x1)+23*(hRec x2)
+    | OrN (x1,x2)  -> 13*(hRec x1)+29*(hRec x2)
+    | ForAll(so,x) -> 31*(hRec x)
+    | Exists(so,x) -> 37*(hRec x)
+
+end
+
+module Formula = struct
+
+  include HCons.MakePoly(M)
 
   (* Displays a generic formula *)
   let print_in_fmt lit_print_in_fmt =
@@ -51,127 +76,82 @@ module GForm = struct
   (* Displays a generic formula paired with something *)
   let iprint_in_fmt aux1 aux2 fmt (f,tl) = fprintf fmt "%a%a" (print_in_fmt aux1) f aux2 tl
 
-  let compare f1 f2 = Pervasives.compare f1.id f2.id
-
   (* Compares generic formulae paired with something *)
   let icompare aux (f1,tl1)(f2,tl2) =
     if compare f1 f2 = 0 then aux tl1 tl2
     else compare f1 f2
 
-end
+  module type Extra = sig
+    type t
+    type lit
+    val build: (lit,t) revealed -> t
+  end
 
-module type FormExtra = sig
-  type t
-  type lit
-  val fdata_build: (t,lit) GForm.revealt -> t
-end
+  module Make(Atom:AtomType)(Fdata: Extra with type lit = Atom.t)
+    = struct
 
-module type FormulaType = sig
-  type datatype
-  type lit
-  type t   = (datatype,lit) GForm.t
-  val print_in_fmt : formatter -> t -> unit
-  val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
-  val compare : t -> t -> int
-  val negation : t -> t
-  val lit    : lit -> t
-  val trueN  : t
-  val trueP  : t
-  val falseN : t
-  val falseP : t
-  val andN   : t * t -> t
-  val andP   : t * t -> t
-  val orN    : t * t -> t
-  val orP    : t * t -> t
-  val forall : Sorts.t * t -> t
-  val exists : Sorts.t * t -> t
-end
+      include InitData(Basic.HashedTypeFromHCons(Atom))(Fdata)
 
-module Formula(Atom:AtomType)(Fdata: FormExtra with type lit = Atom.t)
-  = struct
+      type lit      = Atom.t
+      type datatype = Fdata.t
 
-    type lit      = Atom.t
-    type datatype = Fdata.t
-    type t = (datatype,lit) GForm.t
-      
-    (* HashedType for formulae *)
-
-    module MySmartFormulaImplemPrimitive = 
-      (struct
-        type t = (datatype,lit) GForm.revealt
-        let equal t1 t2 =
-	  match t1,t2 with
-	  | Lit l1, Lit l2             -> l1==l2
-	  | AndP (x1,x2), AndP (y1,y2) -> x1==y1 && x2==y2
-	  | OrP (x1,x2), OrP (y1,y2)   -> x1==y1 && x2==y2
-	  | AndN (x1,x2), AndN (y1,y2) -> x1==y1 && x2==y2
-	  | OrN (x1,x2), OrN (y1,y2)   -> x1==y1 && x2==y2
-	  | ForAll(so,x), ForAll(so',y)-> x==y && so=so'
-	  | Exists(so,x), Exists(so',y)-> x==y && so=so'
-	  | a, b                       -> a=b
-        let hash t1 =
-	  match t1 with
-	  | Lit l        -> Atom.id l
-	  | TrueP        -> 1
-	  | TrueN        -> 2
-	  | FalseP       -> 3
-	  | FalseN       -> 4
-	  | AndP (x1,x2) -> 5*x1.GForm.id+17*x2.GForm.id
-	  | OrP (x1,x2)  -> 7*x1.GForm.id+19*x2.GForm.id
-	  | AndN (x1,x2) -> 11*x1.GForm.id+23*x2.GForm.id
-	  | OrN (x1,x2)  -> 13*x1.GForm.id+29*x2.GForm.id
-          | ForAll(so,x) -> 31*x.GForm.id
-          | Exists(so,x) -> 37*x.GForm.id
-       end: Hashtbl.HashedType with type t = (datatype,lit) GForm.revealt)
-
-    module H = Hashtbl.Make(MySmartFormulaImplemPrimitive)
-
-    (* Constructing a formula with HConsing techniques *)
-
-    let table = H.create 5003
-    let funique =ref 0
-    let build a =
-      try H.find table a
-      with Not_found -> 
-        let f = {GForm.reveal =  a; GForm.id = !funique; GForm.data = Fdata.fdata_build a} in
-        incr funique; H.add table a f; f
-
-    let clear() = H.clear table
-
-    let compare = GForm.compare
+      let compare = compare
 
     (* Displays a formula *)
-    let print_in_fmt = GForm.print_in_fmt Atom.print_in_fmt
+      let print_in_fmt = print_in_fmt Atom.print_in_fmt
 
     (* Displays a formula paired with something *)
-    let iprint_in_fmt aux = GForm.iprint_in_fmt Atom.print_in_fmt aux
+      let iprint_in_fmt aux = iprint_in_fmt Atom.print_in_fmt aux
 
     (* Negates a formula *)
-    let rec negation f =
-      let f1 = match GForm.reveal f with
-	| Lit t  -> Lit(Atom.negation t)
-	| TrueP  -> FalseN
-	| TrueN  -> FalseP
-	| FalseP -> TrueN
-	| FalseN -> TrueP
-	| AndN(f1, f2) -> OrP(negation f1, negation f2)
-	| OrN(f1, f2)  -> AndP(negation f1, negation f2)
-	| AndP(f1, f2) -> OrN(negation f1, negation f2)
-	| OrP(f1, f2)  -> AndN(negation f1, negation f2) 
-	| ForAll(so,f) -> Exists(so,negation f) 
-	| Exists(so,f) -> ForAll(so,negation f) 
-      in
-      build f1
+      let rec negation f =
+        let f1 = match reveal f with
+	  | Lit t  -> Lit(Atom.negation t)
+	  | TrueP  -> FalseN
+	  | TrueN  -> FalseP
+	  | FalseP -> TrueN
+	  | FalseN -> TrueP
+	  | AndN(f1, f2) -> OrP(negation f1, negation f2)
+	  | OrN(f1, f2)  -> AndP(negation f1, negation f2)
+	  | AndP(f1, f2) -> OrN(negation f1, negation f2)
+	  | OrP(f1, f2)  -> AndN(negation f1, negation f2) 
+	  | ForAll(so,f) -> Exists(so,negation f) 
+	  | Exists(so,f) -> ForAll(so,negation f) 
+        in
+        build f1
 
-    let lit a         = build(Lit a)
-    let trueN         = build TrueN
-    let trueP         = build TrueP
-    let falseN        = build FalseN
-    let falseP        = build FalseP
-    let andN (f1, f2) = build(AndN(f1, f2))
-    let andP (f1, f2) = build(AndP(f1, f2))
-    let orN (f1, f2)  = build(OrN(f1, f2))
-    let orP (f1, f2)  = build(OrP(f1, f2))
-    let forall(so,f)  = build(ForAll(so,f))
-    let exists(so,f)  = build(Exists(so,f))
+      let lit a         = build(Lit a)
+      let trueN         = build TrueN
+      let trueP         = build TrueP
+      let falseN        = build FalseN
+      let falseP        = build FalseP
+      let andN (f1, f2) = build(AndN(f1, f2))
+      let andP (f1, f2) = build(AndP(f1, f2))
+      let orN (f1, f2)  = build(OrN(f1, f2))
+      let orP (f1, f2)  = build(OrP(f1, f2))
+      let forall(so,f)  = build(ForAll(so,f))
+      let exists(so,f)  = build(Exists(so,f))
+    end
+
+  module type S = sig
+    type datatype
+    type lit
+    type t   = (lit,datatype) generic
+    val print_in_fmt : formatter -> t -> unit
+    val iprint_in_fmt : (formatter -> 'subst -> unit) -> formatter -> (t*'subst) -> unit
+    val compare : t -> t -> int
+    val negation : t -> t
+    val lit    : lit -> t
+    val trueN  : t
+    val trueP  : t
+    val falseN : t
+    val falseP : t
+    val andN   : t * t -> t
+    val andP   : t * t -> t
+    val orN    : t * t -> t
+    val orP    : t * t -> t
+    val forall : Sorts.t * t -> t
+    val exists : Sorts.t * t -> t
   end
+
+end
