@@ -4,7 +4,7 @@
 
 module EmptyData = struct 
   type t = unit
-  let build _ = ()
+  let build _ _ = ()
 end
 
 module type PolyS = sig
@@ -24,48 +24,48 @@ module MakePoly
     val hash: ('t->int) -> ('a->int) -> (('t,'a) t -> int)    
   end) = struct
 
-    type ('a,'data) generic = {reveal: ('a,'data) revealed; id:int; data:'data}
+    type ('a,'data) generic = {reveal: ('a,'data) revealed; id:int; data:'data option}
     and  ('a,'data) revealed = (('a,'data) generic,'a) M.t
 
     let reveal f = f.reveal
     let id f     = f.id
-    let data f   = f.data
+    let data f   = 
+      match f.data with
+      | Some d -> d
+      | None -> failwith "HConsed value contains None!"
+
     let compare a1 a2 = Pervasives.compare a1.id a2.id
 
     module InitData
       (Par: Hashtbl.HashedType)
       (Data: sig
         type t
-        val build : (Par.t,t) revealed -> t
+        val build : int -> (Par.t,t) revealed -> t
       end)
       = struct
 
         type t = (Par.t,Data.t) generic
 
         module Arg = struct
-          type t = ((Par.t,Data.t) revealed)*((Par.t,Data.t) generic option)
-          let equal (a,_) (b,_) = M.equal (fun x y -> x == y) Par.equal a b
-          let hash (a,_) = M.hash Hashtbl.hash Par.hash a
+          type t = (Par.t,Data.t) generic
+          let equal a b = M.equal (fun x y -> x == y) Par.equal a.reveal b.reveal
+          let hash a    = M.hash Hashtbl.hash Par.hash a.reveal
         end
 
-        module H = Hashtbl.Make(Arg)
-        (* module H = Weak.Make(Arg) *)
+        module H = Weak.Make(Arg)
+        (* module H = Hashtbl.Make(Arg) *)
 
-        let table = H.create 5003
-        let unique =ref 0
+        let table   = H.create 5003
+        let unique  = ref 0
         let build a =
-          try 
-            (match H.find table (a, None) with
-            | (_,Some res) -> res
-            | (_,None) -> failwith "HCons table contains None!"
-            )
+          let f = {reveal =  a; id = !unique; data = None} in
+          try H.find table f
           with Not_found -> 
-            let f = {reveal =  a; id = !unique; data = Data.build a} in
-            let b = (a,Some f) in
+            let newf = {reveal =  a; id = !unique; data = Some(Data.build !unique a)} in
             incr unique;
-            H.add table b b;
-            (* H.add table b; *)
-            f
+            (* H.add table newf newf; *)
+            H.add table newf;
+            newf
 
         let clear() = unique := 0; H.clear table
 
@@ -99,18 +99,18 @@ module Make
     end
     module TMP = MakePoly(N)
 
-    type 'data generic = (unit,'data) TMP.generic
+    type 'data generic  = (unit,'data) TMP.generic
     type 'data revealed = (unit,'data) TMP.revealed
 
     let reveal f = f.TMP.reveal
     let id f     = f.TMP.id
-    let data f   = f.TMP.data
+    let data f   = TMP.data f
     let compare a1 a2 = Pervasives.compare a1.TMP.id a2.TMP.id
 
     module InitData
       (Data: sig
         type t
-        val build : t revealed -> t
+        val build : int -> t revealed -> t
       end)
       = TMP.InitData(struct
         type t = unit

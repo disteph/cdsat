@@ -1,6 +1,13 @@
 open Kernel.Interfaces_basic
 open Kernel.Interfaces_theory
 
+module type Semantic = sig
+  type t
+  type leaf
+  val leaf     : leaf -> t
+  val semantic : int -> Symbol.t -> t list -> t
+end
+
 module TermDef : sig 
 
   type ('a,'b) xterm = V of 'a | C of Symbol.t * ('b list)
@@ -29,9 +36,9 @@ module TermDef : sig
 
   module Make
     (Leaf : PHCons)
-    (Data : Theory.ForParsingType with type leaf := Leaf.t) 
-    : S with type leaf := Leaf.t
-        and  type datatype := Data.t
+    (Data : Semantic with type leaf := Leaf.t)
+    : S with type leaf = Leaf.t
+        and  type datatype = Data.t
 
 end
 
@@ -42,40 +49,40 @@ module AtomDef : sig
 
   module type S = sig
     type leaf
-    type datatype
-    type t = (leaf,datatype) atom
-
     module Term : TermDef.S with type leaf := leaf
-                            and  type datatype = datatype
-
+    type t = (leaf,Term.datatype) atom
     val reveal  : t -> bool * Symbol.t * (Term.t list)
     val id      : t -> int 
     val compare : t -> t -> int
-    val build : bool * Symbol.t * Term.t list -> t
-    val clear   : unit -> unit
+    val build    : bool * Symbol.t * Term.t list -> t
+    val clear    : unit -> unit
     val print_in_fmt: Format.formatter -> t -> unit
     val negation : t -> t
     module Homo(Mon: MonadType) : sig
       val lift : 
-        ('a -> leaf Mon.t) -> ('a,datatype) atom -> t Mon.t
+        ('a -> leaf Mon.t) -> ('a,Term.datatype) atom -> t Mon.t
     end
   end
 
   module Make
     (Leaf : Kernel.Interfaces_basic.PHCons)
-    (Data : Theory.ForParsingType with type leaf := Leaf.t)
+    (Data : Semantic with type leaf := Leaf.t)
     : S with type leaf := Leaf.t
-        and  type datatype := Data.t
+        and  type Term.datatype = Data.t
 
 end
 
 module StandardDSData
   (Leaf : PHCons)
-  (Data : Theory.ForParsingType with type leaf := Leaf.t) :
+  (Data : sig
+    type t
+    val leaf     : Leaf.t -> t
+    val semantic : int -> Symbol.t -> t list -> t
+  end) :
 sig
 
   module Atom : AtomDef.S with type leaf := Leaf.t
-                          and  type datatype := Data.t
+                          and  type Term.datatype = Data.t
 
   module ForParsingWOEx(F: Kernel.Formulae.Formula.S with type lit = Atom.t) :
   sig
@@ -86,14 +93,12 @@ sig
 end
 
 module EmptyData(Leaf : PHCons)
-  : Theory.ForParsingType with type leaf := Leaf.t
-                          and  type t = unit option
+  : Semantic with type leaf := Leaf.t
 
 module StandardDS(Leaf : PHCons):
 sig
 
   module Atom : AtomDef.S with type leaf := Leaf.t
-                          and  type datatype = unit option
 
   module ForParsingWOEx(F: Kernel.Formulae.Formula.S with type lit = Atom.t) :
   sig

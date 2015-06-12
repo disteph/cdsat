@@ -90,7 +90,7 @@ module Formula = struct
   module Make(Atom:AtomType)(Fdata: Extra with type lit = Atom.t)
     = struct
 
-      include InitData(Basic.HashedTypeFromHCons(Atom))(Fdata)
+      include InitData(Basic.HashedTypeFromHCons(Atom))(struct type t = Fdata.t let build _ = Fdata.build end)
 
       type lit      = Atom.t
       type datatype = Fdata.t

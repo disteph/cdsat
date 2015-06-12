@@ -4,8 +4,9 @@ open Theories
 open Theories_tools
 
 let bank:(module Theory.Type)array = 
+  let module M = (val Manager.init []) in
   [|
-    (module ForGround.GTh2Th(Empty.MyTheory));
+    (module ForGround.GTh2Th(M));
     (* (module ForGround.GDecProc2DecProc(LRA.MyTheory)); *)
     (* (module ForGround.GDecProc2DecProc(CC.MyTheory)); *)
     (module FirstOrder.MyTheory);

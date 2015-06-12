@@ -5,6 +5,13 @@ open Interfaces_basic
 open Interfaces_theory
 open General
 
+module type Semantic = sig
+  type t
+  type leaf
+  val leaf     : leaf -> t
+  val semantic : int -> Symbol.t -> t list -> t
+end
+
 module TermDef = struct
 
 (* A term is either a variable or a function symbol applied to
@@ -60,19 +67,20 @@ module TermDef = struct
 
   module Make
     (Leaf : PHCons)
-    (Data : Theory.ForParsingType with type leaf := Leaf.t) =
+    (Data : Semantic with type leaf := Leaf.t) =
   struct
 
     include InitData
       (Basic.HashedTypeFromHCons(Leaf))
       (struct 
         type t = Data.t
-        let build = function
+        let build tag = function
           | V v    -> Data.leaf v
-          | C(f,l) -> Data.semantic f (List.map data l)
+          | C(f,l) -> Data.semantic tag f (List.map data l)
        end)
 
     type datatype = Data.t
+    type leaf = Leaf.t
 
     let bV i   = build(V i)
     let bC f l = build(C(f,l))
@@ -132,15 +140,12 @@ module AtomDef = struct
 
   module H = HCons.MakePoly(M)
 
-  type ('leaf,'datatype) atom = (('leaf,'datatype)prod, 'datatype) H.generic
+  type ('leaf,'datatype) atom = (('leaf,'datatype)prod, unit) H.generic
 
   module type S = sig
     type leaf
-    type datatype
-    type t = (leaf,datatype) atom
     module Term : TermDef.S with type leaf := leaf
-                            and  type datatype = datatype
-
+    type t = (leaf,Term.datatype) atom
     val reveal  : t -> bool * Symbol.t * (Term.t list)
     val id      : t -> int 
     val compare : t -> t -> int
@@ -150,31 +155,23 @@ module AtomDef = struct
     val negation : t -> t
     module Homo(Mon: MonadType) : sig
       val lift : 
-        ('a -> leaf Mon.t) -> ('a,datatype) atom -> t Mon.t
+        ('a -> leaf Mon.t) -> ('a,Term.datatype) atom -> t Mon.t
     end
   end
 
   module Make
     (Leaf : PHCons)
-    (Data : Theory.ForParsingType with type leaf := Leaf.t) =
+    (Data : Semantic with type leaf := Leaf.t) =
   struct
 
     type leaf = Leaf.t
-    type datatype = Data.t
-    type t = (leaf,datatype) atom
+    type t = (leaf,Data.t) atom
 
     module Term = TermDef.Make(Leaf)(Data)
-    module I = H.InitData(struct
+    module I = H.Init(struct
       type t = (Leaf.t,Data.t) prod
       let equal _ _ = failwith "equal function on type (Leaf.t,Data.t) prod should not exist"
       let hash _ = failwith "hash function on type (Leaf.t,Data.t) prod should not exist"
-    end)(struct
-      type t = Data.t
-      let build (M.AtomCons(b,p,l) (* : ((Leaf.t, Data.t) prod, Data.t) H.revealed *))
-          = 
-        let at = Data.semantic p (List.map TermDef.data l) in
-        if b then at
-        else Data.semantic Symbol.Neg [at]
     end)
 
     let reveal a = match H.reveal a with
@@ -211,7 +208,7 @@ end
 
 module StandardDSData
   (Leaf : PHCons)
-  (Data : Theory.ForParsingType with type leaf := Leaf.t) =
+  (Data : Semantic with type leaf := Leaf.t) =
 struct
 
   module Atom = AtomDef.Make(Leaf)(Data)
@@ -258,12 +255,9 @@ end
 
 module EmptyData(Leaf : PHCons) =
 struct
-  type t = unit option
-  let semantic _ _ = None
-  type leaf = Leaf.t
-  let leaf     _ = None
-  type form = unit
-  let toForm   _ = ()
+  type t = unit
+  let semantic _ _ _ = ()
+  let leaf     _ = ()
 end
 
 module StandardDS(Leaf : PHCons) = StandardDSData(Leaf)(EmptyData(Leaf))
