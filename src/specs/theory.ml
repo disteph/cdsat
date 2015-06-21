@@ -41,6 +41,11 @@ end
 
 (* Data-structures that a theory should provide.
 
+   names indicates a list of names for the theory
+
+   sugPlugin allows the theory to specify a plugin that is well-suited
+   for it.
+
    Module Atom commits to a particular type leaf for these leaves, and
    the rest of the module provides the basic functions for
    manipulating atoms (see Kernel.Interfaces_I for the definition of
@@ -73,16 +78,9 @@ end
 
 (* Finally, complete module type for a theory.
 
-   names indicates a list of names for the theory
-
-   sugPlugin allows the theory to specify a plugin that is well-suited
-   for it.
-
    type 'leaf atom is the type family discussed above
 
-   All the rest depends on a module Leaf implementing the variables.
-
-   Every component of ThStruct, as described above, is required.
+   Every component of StructType, as described above, is required.
 
    Additionally, the theory must provide the data-structure for the
    constraints that its consistency functions will produces (as

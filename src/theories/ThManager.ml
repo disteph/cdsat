@@ -20,14 +20,14 @@ end : MonadType with type 'a t = 'a*int*int)
 module type S = sig
 
   (* Implem of atoms and consistency checks, as required by kernel *)
-  include Kernel.Interfaces_theory.DecProc
+  include Interfaces_theory.DecProc
 
   val names    : string list
   val sugPlugin: string option
 
-  module ForParsing(F: Kernel.Formulae.Formula.S with type lit = DS.Atom.t)
-    :sig        
-      include Theory.ForParsingType with type leaf := Kernel.Basic.IntSort.t
+  module ForParsing(F: Formulae.Formula.S with type lit = DS.Atom.t)
+    :sig
+      include Theory.ForParsingType with type leaf := IntSort.t
       val toForm : t -> F.t
 
       (* A list of illustrative examples *)
@@ -68,12 +68,12 @@ module Make(MDP:Theory.Type): S = struct
     let iatom_build (a,d) =
       let module M = Atom.Homo(IJMon) in
       let get_ij iso = 
-        let (k,_) = IntSort.reveal iso in
-        let (fv,ar) = Kernel.DSubst.get k d in
+        let k,_   = IntSort.reveal iso in
+        let fv,ar = Kernel.DSubst.get k d in
         (World.asIntSort fv, ar.World.next_eigen, ar.World.next_meta)
       in
-      (M.lift get_ij a,
-       M.lift get_ij (Atom.negation a))
+      M.lift get_ij a,
+      M.lift get_ij (Atom.negation a)
 
     let makes_sense ((_,i,j),_) ar = 
       (i <= ar.World.next_eigen) && (j >= ar.World.next_meta)
