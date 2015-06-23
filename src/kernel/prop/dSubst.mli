@@ -14,6 +14,8 @@
    functions bind2eigen and bind2meta.
 *)
 
+open Top
+
 type t
 val id: t -> int
 val print_in_fmt: Format.formatter -> t -> unit

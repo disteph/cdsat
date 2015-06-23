@@ -3,6 +3,7 @@
 interacts with Theory *)
 (******************************************************************)
 
+open Top
 open Basic
 open Interfaces_basic
 

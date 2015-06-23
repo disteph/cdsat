@@ -3,9 +3,9 @@
 (****************)
 
 open Format
-open Kernel.Basic
-open Kernel.Interfaces_basic
-open Theories_tools.StandardStruct
+
+open Interfaces_basic
+open Basic
 
 (* Useful abbreviations for module types *)
 
@@ -29,7 +29,7 @@ module OM = struct
   type ('a,'b) answer = private 
                         | UNSAT of 'b
                         | SAT   of ('a,'b) resume
-                        | GimmeFreshVar of Kernel.Sorts.t*(Kernel.World.FreeVar.t -> ('a,'b) resume)
+                        | GimmeFreshVar of Sorts.t*(World.FreeVar.t -> ('a,'b) resume)
                         | Write of 'b * (('a,'b) resume)
                             
   and ('a,'b) resume = 'b -> (('a,'b) answer)

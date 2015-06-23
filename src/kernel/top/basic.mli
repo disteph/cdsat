@@ -2,8 +2,10 @@
 (* Basic modules *)
 (*****************)
 
+open Interfaces_basic
+
 module IntSort : sig
-  include Interfaces_basic.PHCons
+  include PHCons
   val reveal : t -> int*Sorts.t
   val build  : int*Sorts.t -> t
   val buildH : int*Sorts.t -> t
@@ -16,3 +18,8 @@ module HashedTypeFromHCons(M: sig
   type t
   val id: t -> int
 end): Hashtbl.HashedType with type t = M.t
+
+module EmptyData(Leaf : PHCons)
+  : Semantic with type leaf := Leaf.t
+
+module IdMon : MonadType with type 'a t = 'a

@@ -18,9 +18,10 @@ true: annot, bin_annot
 # OASIS_STOP
 
 
-<src> or <src/top-level> or <src/lib> or <src/portfolio> or <src/specs> or <src/theories>: include
+<src> or <src/top-level> or <src/lib> or <src/portfolio> or <src/specs> or <src/theories> or <src/kernel> : include
 
-<src/kernel/*.cmx>:                   for-pack(Kernel)
+<src/kernel/top/*.cmx>:                for-pack(Top)
+<src/kernel/prop/*.cmx>:               for-pack(Prop)
 
 <src/lib/general/*.cmx>:              for-pack(General)
 <src/lib/gplugins_tools/*.cmx>:       for-pack(Gplugins_tools)

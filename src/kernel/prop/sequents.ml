@@ -1,6 +1,7 @@
 (* This file contains the kernel's API to be used by a plugin *)
 open Format
 
+open Top
 open Interfaces_basic
 open Interfaces_theory
 open Formulae

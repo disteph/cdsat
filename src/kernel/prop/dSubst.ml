@@ -4,6 +4,7 @@
 
 open Format
 
+open Top
 exception Exception of string
 
 type aux = EmptySubst | ConsSubst of World.FreeVar.t*World.t*t

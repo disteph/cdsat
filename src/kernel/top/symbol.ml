@@ -3,7 +3,6 @@
 (***********************************************)
 
 open Format
-open Kernel
 
 type t =
 
@@ -38,8 +37,10 @@ let arity = function
 
 
   (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
-let multiary _ = Some General.Multiary.r_assoc
-  (* let multiary = function *)
+let multiary _ = None
+
+(* Some General.Multiary.r_assoc *)
+(* let multiary = function *)
   (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
 
 let print_in_fmt fmt  = function

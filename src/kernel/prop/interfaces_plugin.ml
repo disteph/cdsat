@@ -3,6 +3,7 @@
    interacts with the other components of Psyche - Part II *)
 (******************************************************************)
 
+open Top
 open Interfaces_basic
 open Formulae
 

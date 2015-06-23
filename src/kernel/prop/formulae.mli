@@ -1,6 +1,8 @@
 (* This is the implementation of formulae *)
 
 open Format
+
+open Top
 open Interfaces_theory
 
 (* Type for a formula head:

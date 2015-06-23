@@ -2,9 +2,10 @@
 (* Tools for Prop signature *)
 (****************************)
 
-open Kernel
-open Formulae
+open Top
 open Symbol
+
+open Formulae
 
 module Intern(F: Formula.S) = struct
 
@@ -29,6 +30,6 @@ module Intern(F: Formula.S) = struct
       | Forall so,[a]  -> F.forall(so,a)
       | Exists so,[a]  -> F.exists(so,a)
       (* | ITEProp,[a;b;c] -> bool_simpl(INode(a,Leaf b,Leaf c)) *)
-      | _             -> raise (Theory.ModelError ("ModelError: Unknown symbol "^Dump.stringOf Symbol.print_in_fmt symb^" or wrong number of arguments"))
+      | _             -> failwith ""
 
 end

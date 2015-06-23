@@ -3,7 +3,12 @@
 (*****************************************************)
 
 open Format
+
+open Top
+open Basic
 open Interfaces_theory
+
+(* module Literals = AtomDef.Make(IntSort)(EmptyData(IntSort)) *)
 
 type ('a,'lit) form =
 | Lit of 'lit
