@@ -41,6 +41,13 @@ type ('leaf,'datatype) term = ('leaf,'datatype) generic
 let equaltl (tl1,tl2) = M.equaltl (fun t1 t2 -> compare t1 t2 ==0) (tl1,tl2)
 let hashtl tl  = M.hashtl id tl
 
+module type DataType = sig
+  type t
+  type leaf
+  val bV : leaf -> t
+  val bC : int -> Symbol.t -> t list -> t
+end
+
 module type S = sig
   type leaf
   type datatype
@@ -52,16 +59,16 @@ module type S = sig
   val printtl_in_fmt: Format.formatter -> t list -> unit
   module Homo(Mon: MonadType) : sig
     val lift : 
-      ('a -> leaf Mon.t) -> ('a,datatype) term -> (leaf,datatype) term Mon.t
+      ('a -> leaf Mon.t) -> ('a,_) term -> (leaf,datatype) term Mon.t
     val lifttl : 
-      ('a -> leaf Mon.t) -> ('a,datatype) term list -> (leaf,datatype) term list Mon.t
+      ('a -> leaf Mon.t) -> ('a,_) term list -> (leaf,datatype) term list Mon.t
   end
-  val subst : ('a -> leaf) -> ('a,datatype) term -> (leaf,datatype) term
+  val subst : ('a -> leaf) -> ('a,_) term -> (leaf,datatype) term
 end
 
 module Make
   (Leaf : PHCons)
-  (Data : Semantic with type leaf := Leaf.t) =
+  (Data : DataType with type leaf := Leaf.t) =
 struct
 
   include InitData
@@ -69,8 +76,8 @@ struct
     (struct 
       type t = Data.t
       let build tag = function
-        | V v    -> Data.leaf v
-        | C(f,l) -> Data.semantic tag f (List.map data l)
+        | V v    -> Data.bV v
+        | C(f,l) -> Data.bC tag f (List.map data l)
      end)
 
   type datatype = Data.t
@@ -93,12 +100,12 @@ struct
       else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
 	
   module Homo(Mon: MonadType) = struct
-    let rec lift (update: 'a -> Leaf.t Mon.t) (t: ('a,Data.t) term)
+    let rec lift update t
         = match reveal t with
         | V i    -> Mon.bind (fun v -> Mon.return (bV v)) (update i)
         | C(f,l) -> Mon.bind (fun l -> Mon.return (bC f l)) (lifttl update l)
     and
-        lifttl (update: 'a -> Leaf.t Mon.t)
+        lifttl update
         = function
         | []    -> Mon.return []
         | t::tl -> let aux t' tl' = Mon.return(t'::tl') in
@@ -109,3 +116,10 @@ struct
   module M = Homo(Basic.IdMon)
   let subst = M.lift
 end 
+
+module EmptyData(Leaf : PHCons) =
+struct
+  type t = unit
+  let bC _ _ _ = ()
+  let bV     _ = ()
+end

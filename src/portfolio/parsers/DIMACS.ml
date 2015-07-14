@@ -57,9 +57,9 @@ let glance contents =
 
 let guessThDecProc _ = "empty"
 
-let parse (type t) _ l i = 
+let parse (type t) l i = 
 
-  let module I = (val i: TheoryParsing.InterpretType with type t=t) in
+  let module I = (val i: Typing.InterpretType with type t=t) in
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 

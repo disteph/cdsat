@@ -1,5 +1,5 @@
-open Kernel.Interfaces_basic
-open Kernel.Interfaces_plugin
+open Kernel.Top.Interfaces_basic
+open Kernel.Prop.Interfaces_plugin
 
 module PHCons_ext(A:PHCons) : Hashtbl.HashedType with type t = A.t
 

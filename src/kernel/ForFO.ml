@@ -4,7 +4,6 @@
 
 open Format
 
-open Kernel
 open Basic
 open Interfaces_basic
 
@@ -27,7 +26,7 @@ module type S = sig
 
   module ForParsing(F: Formulae.Formula.S with type lit = DS.Atom.t)
     :sig
-      include Theory.ForParsingType with type leaf := IntSort.t
+      include OpenModule.ForParsingType with type leaf := IntSort.t
       val toForm : t -> F.t
 
       (* A list of illustrative examples *)
@@ -69,7 +68,7 @@ module Make(MDP:Theory.Type): S = struct
       let module M = Atom.Homo(IJMon) in
       let get_ij iso = 
         let k,_   = IntSort.reveal iso in
-        let fv,ar = Kernel.DSubst.get k d in
+        let fv,ar = Prop.DSubst.get k d in
         (World.asIntSort fv, ar.World.next_eigen, ar.World.next_meta)
       in
       M.lift get_ij a,

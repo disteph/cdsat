@@ -1,13 +1,12 @@
 open General.Sums
-open Kernel.Interfaces_basic
-open Kernel.Interfaces_theory
-open Kernel.Formulae
-open Kernel.Interfaces_plugin
+open Kernel.Top.Interfaces_basic
+open Kernel.Prop.Interfaces_theory
+open Kernel.Prop.Formulae
+open Kernel.Prop.Interfaces_plugin
 open SetInterface
 
 module Make
-  (IAtom:AtomType)
-  (FE: FrontEndType with type ASet.e = IAtom.t)
+  (FE: FrontEndType)
   (FS: CollectImplemExt with type e = FE.FSet.e and type t=FE.FSet.ps)
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   : sig

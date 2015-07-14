@@ -1,9 +1,8 @@
 (********************************************************)
 (* Specifications and tools for theory-specific parsing *)
 (********************************************************)
-open Kernel
+open Kernel.Top
 open Basic
-open Theory
 
 (* Type of functions used to type-check and interpret an untyped AST.
 - For symbols declared in the signature (sigsymb), we have to understand
@@ -27,5 +26,4 @@ end
 
 exception TypingError of string
 
-module ForParser(I: ForParsingType with type leaf := IntSort.t)
-  : InterpretType with type t = Sorts.t -> I.t
+module ForParser(I: Specs.ForParsing) : InterpretType with type t = Sorts.t -> I.t

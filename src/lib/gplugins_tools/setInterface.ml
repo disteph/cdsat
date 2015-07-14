@@ -4,7 +4,7 @@ myPatAset *)
 open General.Sums
 
 module type CollectImplemExt = sig
-  include Kernel.Interfaces_basic.CollectExtra
+  include Kernel.Top.Interfaces_basic.CollectExtra
 
   val mem    : e -> t -> bool
   val is_empty : t -> bool

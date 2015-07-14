@@ -1,6 +1,5 @@
-open Kernel
-open Formulae
-open Theory
+open Kernel.Top
+open Kernel.Prop.Formulae
 open General.Multiary
 
 module type InterpretType = sig
@@ -35,7 +34,7 @@ let symb (output,input) multiary sym_i =
       MultiaryError _ | TypingError _ -> mul interpret l
 
 
-module ForParser(I: ForParsingType with type leaf := Basic.IntSort.t) = struct
+module ForParser(I: Specs.ForParsing) = struct
   
   type t = Sorts.t -> I.t
 

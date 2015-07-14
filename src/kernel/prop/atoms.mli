@@ -6,7 +6,7 @@ type ('leaf,'datatype) atom
 
 module type S = sig
   type leaf
-  module Term : TermDef.S with type leaf := leaf
+  module Term : Terms.S with type leaf := leaf
   type t = (leaf,Term.datatype) atom
   val reveal  : t -> bool * Symbol.t * (Term.t list)
   val id      : t -> int
@@ -23,9 +23,9 @@ end
 
 module Make
   (Leaf : PHCons)
-  (Data : Semantic with type leaf := Leaf.t)
+  (Data : Terms.DataType with type leaf := Leaf.t)
   : S with type leaf := Leaf.t
       and  type Term.datatype = Data.t
 
-
-
+module Lit : S with type leaf := IntSort.t
+               and  type Term.datatype = unit

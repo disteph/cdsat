@@ -3,15 +3,6 @@
 (************************************)
 
 open General.Sums
-open Kernel.Interfaces_theory
-
-(* Module type for Theory+DecProc+Plugin compatible with each other *)
-
-module type ThPlug = sig
-  module MyTheory : ThManager.S
-  module MyPlugin : Plugin.Type with type DS.UASet.e = MyTheory.DS.IAtom.t
-                                and  type DS.UF.lit  = MyTheory.DS.Atom.t
-end
 
 (* Variables containing the Theory+DecProc (resp. generic plugin)
 forced by the user (from command-line) *)
@@ -23,80 +14,59 @@ let mygplugin = ref None
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
-let guessThPlug s =
-  let myth = 
-    match !mytheory with
-      | Some a -> a
-      | None ->
-	  try Theories_register.getbyname s
-	  with Not_found 
-	    -> (Dump.msg (Some(fun p->p "Could not find theory %s in the theory signatures register, using Empty(Propositional)" s)) None None;
-		Theories_register.bank.(0))
-  in
-  let module MyDecProc  = (val myth:Theory.Type) in
-  let module MyTheory   = ThManager.Make(MyDecProc) in
+let init th =
   let plugin =
     match !mygplugin with
     | Some a -> a
-    | None   -> 
-      try 
-        match MyTheory.sugPlugin with
-        | Some a -> Gplugins_register.getbyname a
-        | None -> raise (Gplugins_register.NotFound "Theory did not suggest any plugin")
-      with Gplugins_register.NotFound msg
-        -> (Dump.msg (Some(fun p->p "Could not find plugin %s in the gplugins register, DPLL_WL" msg)) None None;
-	    Gplugins_register.bank.(1))
+    | None   -> (Dump.msg (Some(fun p->p "No plugin specified, using DPLL_WL")) None None;
+                 Gplugins_register.bank.(2))
   in
-  let module MyGPlugin = (val plugin) in
-  let module MyThPlug  = struct
-    module MyTheory = MyTheory 
-    module MyPlugin = MyGPlugin(MyTheory.DS)
-  end
-  in (module MyThPlug:ThPlug)
-
-
-(* Given a compatibleTheory+DecProc + Plugin, module Run provides the
-main run function: go *)
-
-module Run(MyThPlug:ThPlug)= struct
-
-  open MyThPlug
-  
-  module Src   = Kernel.Search.ProofSearch(MyTheory)(MyPlugin.DS)
-  module FE    = Src.FE
-  module Strat = MyPlugin.Strategy(FE)
-
-(* Constraint.topconstraint *)
-
+  let module MyPlugin = (val plugin) in
+  let module PS = Kernel.Prop.Search.ProofSearch(MyPlugin.DS) in
+  let propds = (module PS.Semantic: Kernel.Top.Specs.Semantic with type t = PS.Semantic.t) in
+  let theory = 
+    match !mytheory with
+      | Some a -> a
+      | None ->
+        try Kernel.Theories_register.getbyname th
+        with Kernel.Theories_register.NotFound _ 
+	    -> (Dump.msg (Some(fun p->p "Could not find theory %s in the theory signatures register, using Empty(Propositional)" th)) None None;
+		0)
+  in
+  let module MyTheory = (val (Kernel.Theories_register.bank propds).(theory)) in
+  let module Src   = PS.Make(MyTheory) in
+  let module Strat = MyPlugin.Strategy(Src.FE) in
   let go f stringOrunit =
     let result = match f with 
       | None,_                                   -> print_endline("No formula to treat");None 
       | Some _,None       when !Flags.skipunknown-> print_endline("Skipping problem with no expectation");None
       | Some _,Some(true) when !Flags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
-      | Some formula,c    ->
+      | Some parsed,c    ->
 	try 
+          let formula = Kernel.Prop.ForParsing.toForm parsed in
 	  let d =
-	    Dump.msg (Some(fun p->p "I am now starting: %t" (if !Flags.printrhs then fun fmt -> FE.Form.print_in_fmt fmt (formula()) else fun fmt -> ()))) None None;
-	    Strat.solve(Src.machine (formula()) Strat.initial_data)
+	    Dump.msg 
+              (Some(fun p->p "I am now starting: %t" 
+                (if !Flags.printrhs then fun fmt -> Kernel.Prop.Formulae.FormulaB.print_in_fmt fmt formula else fun fmt -> ())))
+              None None;
+	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
 	  print_endline(match c,d with
 	  |None ,_                 -> "Nothing expected"
-	  |Some true, FE.Provable _ -> "Expected Provable (UNSAT), got it"
-	  |Some true, FE.NotProvable _    -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
-	  |Some false,FE.Provable _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
-	  |Some false,FE.NotProvable _    -> "Expected Unprovable (SAT), got it"
+	  |Some true, Src.FE.Provable _ -> "Expected Provable (UNSAT), got it"
+	  |Some true, Src.FE.NotProvable _    -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
+	  |Some false,Src.FE.Provable _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
+	  |Some false,Src.FE.NotProvable _    -> "Expected Unprovable (SAT), got it"
 	  );
 	  Some d
         with Plugin.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None
     in 
     match result with
     | None -> None
-    | Some r when stringOrunit-> Some(A(Dump.toString (fun p->p "%a" FE.print_in_fmt r)))
+    | Some r when stringOrunit-> Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
     | Some r                  -> Some(F())
-
-end
-
+  in go
 
 
 (* Now we run on a particular input, trying out various parsers *)
@@ -107,20 +77,18 @@ let parseNrun input =
       let module MyParser = (val Parsers_register.bank.(i):Parser.Type) in
       begin
 	try 
-	  let aft                = MyParser.glance input in
-	  let module MyThPlug    = (val guessThPlug(MyParser.guessThDecProc aft):ThPlug) in
-	  let module R           = Run(MyThPlug) in
-	  let module MyTheory    = MyThPlug.MyTheory in
-	  let module MyForParse  = MyTheory.ForParsing(R.FE.Form) in
-          let open TheoryParsing in
-	  let inter = (module ForParser(MyForParse):InterpretType with type t = Kernel.Sorts.t -> MyForParse.t) in
-	  let (a,b) = match MyParser.parse MyTheory.names aft inter with
-	    | None,b  -> None,b
-	    | Some a,b-> Some(fun ()-> MyForParse.toForm (a Kernel.Sorts.Prop)),b
-	  in
+          let aft = MyParser.glance input in
+	  let th = MyParser.guessThDecProc aft in
+          let go = init th in
+          let open Typing in
+	  let inter = (module ForParser(Kernel.Prop.ForParsing):InterpretType with type t = Kernel.Top.Sorts.t -> Kernel.Prop.ForParsing.t) in
+          let pair = match MyParser.parse aft inter with
+            | Some parsable, b -> Some(parsable Kernel.Top.Sorts.Prop),b
+            | None, b -> None, b
+          in
           Dump.msg (Some (fun p->p "Successfully parsed by %s parser." MyParser.name)) None None;
-	  R.go(a,b)
-	with Parser.ParsingError s | TheoryParsing.TypingError s ->
+	  go pair
+	with Parser.ParsingError s | Typing.TypingError s ->
           if !Flags.debug>0 
           then Dump.msg (Some (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s)) None None;
           trying (i+1)
@@ -205,25 +173,28 @@ let treatname pack name =
   then treatdir pack name
   else treatfile pack name
 
+
+
 (* treatexamples treats the examples provided by the theory *)
 
-let treatexamples pack () =
-  let mythplug = guessThPlug("") in
-  let module MyThPlug    = (val mythplug:ThPlug) in
-  let module R           = Run(MyThPlug) in
-  let module MyStructure = MyThPlug.MyTheory.ForParsing(R.FE.Form) in
-  let examples = MyStructure.examples in
-  let rec aux acc = function
-    | []            -> pack.final acc
-    | (a,expect)::l -> 
-	let formulastring = Dump.stringOf R.FE.Form.print_in_fmt (a()) in
-        print_endline ("---\n"^formulastring);
-        let newacc = pack.accu acc ("$"^formulastring^"$") (R.go(Some a,Some expect)) in
-        aux newacc l
-  in
-  aux pack.init examples
+(* let treatexamples pack () = *)
+(*   let mythplug = guessThPlug("") in *)
+(*   let module MyThPlug    = (val mythplug:ThPlug) in *)
+(*   let module R           = Run(MyThPlug) in *)
+(*   let module MyStructure = MyThPlug.MyTheory.ForParsing(R.FE.Form) in *)
+(*   let examples = MyStructure.examples: ((unit->F.t)*bool) list *)
+(*   in *)
+(*   let rec aux acc = function *)
+(*     | []            -> pack.final acc *)
+(*     | (a,expect)::l ->  *)
+(* 	let formulastring = Dump.stringOf R.FE.Form.print_in_fmt (a()) in *)
+(*         print_endline ("---\n"^formulastring); *)
+(*         let newacc = pack.accu acc ("$"^formulastring^"$") (R.go(Some a,Some expect)) in *)
+(*         aux newacc l *)
+(*   in *)
+(*   aux pack.init examples *)
 
 let treatprimitives () =
   if !Flags.latex
-  then (treatname latex_wrap, treatexamples latex_wrap, treatstdin latex_wrap)
-  else (treatname empty_wrap, treatexamples empty_wrap, treatstdin empty_wrap)
+  then (treatname latex_wrap, (* treatexamples latex_wrap, *) treatstdin latex_wrap)
+  else (treatname empty_wrap, (* treatexamples empty_wrap, *) treatstdin empty_wrap)

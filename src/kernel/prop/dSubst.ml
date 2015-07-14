@@ -5,7 +5,8 @@
 open Format
 
 open Top
-exception Exception of string
+
+exception DSubst of string
 
 type aux = EmptySubst | ConsSubst of World.FreeVar.t*World.t*t
 and t    = {reveal : aux; id : int}
@@ -68,7 +69,7 @@ let get_arity d = match d.reveal with
   | ConsSubst(_,ar,_) -> ar
 
 let rec get j d = match d.reveal with
-  | EmptySubst -> raise (Exception 
+  | EmptySubst -> raise (DSubst 
                            (Dump.toString
                               (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j print_in_fmt d)))
   | ConsSubst(fv,ar,d')

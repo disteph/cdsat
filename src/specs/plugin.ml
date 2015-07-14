@@ -1,5 +1,5 @@
 open Kernel
-
+open Prop
 open Interfaces_theory
 open Formulae
 open Interfaces_plugin
@@ -20,9 +20,7 @@ module type Type = sig
      temporary answer (output) into a final answer (t).  See the
      default implementation in module MyNaive *)
 
-  module Strategy(FE:FrontEndType with type ASet.e      = DS.UASet.e
-                                  and  type Form.lit    = DS.UF.lit
-				  and  type Form.datatype = DS.UF.t
+  module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				  and  type FSet.ps     = DS.UFSet.t
 				  and  type ASet.ps     = DS.UASet.t)
     : sig
@@ -33,10 +31,3 @@ module type Type = sig
       val solve        : data FE.output -> FE.answer
     end
 end
-
-
-module type GenType =
-  functor(ThDS:TheoryDSType)
-    -> (Type with type DS.UASet.e = ThDS.IAtom.t
-             and  type DS.UF.lit  = ThDS.Atom.t)
-      

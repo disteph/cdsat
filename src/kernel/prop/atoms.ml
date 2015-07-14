@@ -8,16 +8,16 @@ type ('a,'b) prod = private Prod
 module M = struct
 
   type (_,_) t =
-    AtomCons : bool * Symbol.t * (('leaf,'datatype) TermDef.term list)
+    AtomCons : bool * Symbol.t * (('leaf,'datatype) Terms.term list)
     -> ('t,('leaf,'datatype)prod) t
 
   let equal (type a)(type b) _ _ 
       (AtomCons(b, a, tl)   :(a,b)t)
       (AtomCons(b', a', tl'):(a,b)t) = 
-    b = b' && a = a' && TermDef.equaltl (tl, tl')
+    b = b' && a = a' && Terms.equaltl (tl, tl')
 
   let hash (type a)(type b) _ _ (AtomCons(b, a, tl):(a,b)t) =
-    (if b then 0 else 1) + 2 * Hashtbl.hash a + 3 * TermDef.hashtl tl
+    (if b then 0 else 1) + 2 * Hashtbl.hash a + 3 * Terms.hashtl tl
 
 end
 
@@ -27,7 +27,7 @@ type ('leaf,'datatype) atom = (('leaf,'datatype)prod, unit) H.generic
 
 module type S = sig
   type leaf
-  module Term : TermDef.S with type leaf := leaf
+  module Term : Terms.S with type leaf := leaf
   type t = (leaf,Term.datatype) atom
   val reveal  : t -> bool * Symbol.t * (Term.t list)
   val id      : t -> int 
@@ -44,13 +44,13 @@ end
 
 module Make
   (Leaf : PHCons)
-  (Data : Semantic with type leaf := Leaf.t) =
+  (Data : Terms.DataType with type leaf := Leaf.t) =
 struct
 
   type leaf = Leaf.t
   type t = (leaf,Data.t) atom
 
-  module Term = TermDef.Make(Leaf)(Data)
+  module Term = Terms.Make(Leaf)(Data)
   module I = H.Init(struct
     type t = (Leaf.t,Data.t) prod
     let equal _ _ = failwith "equal function on type (Leaf.t,Data.t) prod should not exist"
@@ -88,3 +88,4 @@ struct
   end
 end
 
+module Lit = Make(Basic.IntSort)(Terms.EmptyData(Basic.IntSort))

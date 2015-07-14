@@ -3,10 +3,11 @@ open Format
 
 open Top
 open Interfaces_basic
+open Basic
+
 open Interfaces_theory
 open Formulae
 open Interfaces_plugin
-open HCons
 
 module MakeCollectTrusted
   (OT: sig
@@ -52,12 +53,13 @@ module DblSet(TrustedSet: CollectTrusted)(PluginSet: CollectExtra with type e = 
                      and  type ts = TrustedSet.t
                      and  type ps = PluginSet.t)
 
+module Make(PlDS: PlugDSType) = struct
 
-module FrontEnd
-  (DS: TheoryDSType)
-  (PlDS: PlugDSType with type UASet.e = DS.IAtom.t
-                    and  type UF.lit  = DS.Atom.t)
-  = struct
+  module Semantic = FormulaF.Make(PlDS.UF)
+    
+  module FrontEnd(DS: TheoryDSType with type formulaF = PlDS.UF.t FormulaF.generic) = struct
+
+    (* val makes_sense: IAtom.t -> World.t -> bool *)
 
     (* Abbreviations for Kernel *)
     open DS
@@ -67,23 +69,44 @@ module FrontEnd
     type constraints = Constraint.t
     let print_in_fmtC = Constraint.print_in_fmt
 
-    (* New datastructures, visible outside Kernel *)
-    module Form    = Formula.Make(Atom)(PlDS.UF)
-    module IForm   = struct
-      type t = Form.t*DSubst.t
-      let print_in_fmt    = Form.iprint_in_fmt DSubst.print_in_fmt
-      let negation (f,tl) = (Form.negation f,tl)
-      let compare (f1,tl1) (f2,tl2) =
-        let fst = Form.compare f1 f2 in
-        if fst == 0 then DSubst.compare tl1 tl2 else fst
-    end
+    module IForm = Semantic
     module FSet = DblSet(MakeCollectTrusted(IForm))(PlDS.UFSet)
-    module ASet = DblSet(DS.ThASet)(PlDS.UASet)
+    module ASet = DblSet(MakeCollectTrusted(LitF))(PlDS.UASet)
+
+    let iatom_build d l =
+      let b,symb,tl = LitB.reveal l in
+      let module M = Term.Homo(IdMon) in
+      let get_in_subst intso = 
+        let k,_   = IntSort.reveal intso in
+        let fv,_ = DSubst.get k d in
+        World.asIntSort fv
+      in
+      let newtl = M.lifttl get_in_subst tl in
+      let atom = Term.bC symb newtl in
+      if b then atom else Term.bC Symbol.Neg [atom]
  
+    let rec propagate d f =
+      match FormulaB.reveal f with
+      | LitB l  -> asF(Terms.data(iatom_build d l))
+      | TrueP   -> IForm.trueP
+      | TrueN   -> IForm.trueN
+      | FalseP  -> IForm.falseP
+      | FalseN  -> IForm.falseN
+      | AndN(f1, f2)   -> IForm.andN(propagate d f1, propagate d f2)
+      | OrN(f1, f2)    -> IForm.orN(propagate d f1, propagate d f2)
+      | AndP(f1, f2)   -> IForm.andP(propagate d f1, propagate d f2)
+      | OrP(f1, f2)    -> IForm.orP(propagate d f1, propagate d f2) 
+      | ForAllB(so,f)  -> IForm.forall(so,f,d)
+      | ExistsB(so,f)  -> IForm.exists(so,f,d)
+
+
+    let asTSet: ASet.t -> TSet.t = failwith "TODO"
+    let asASet: TSet.t -> ASet.t = failwith "TODO"
+
     (* Module of Polarities *)
 
     module Pol  = struct
-      module PolMap = Map.Make(IAtom)
+      module PolMap = Map.Make(LitF)
 
       type t = polarity PolMap.t
 
@@ -91,18 +114,18 @@ module FrontEnd
 
       let declarePos polar l =
         if PolMap.mem l polar then polar else
-          PolMap.add l Pos (PolMap.add (IAtom.negation l) Neg polar)
+          PolMap.add l Pos (PolMap.add (LitF.negation l) Neg polar)
 
       let remove polar l =
-        PolMap.remove l (PolMap.remove (IAtom.negation l) polar)
+        PolMap.remove l (PolMap.remove (LitF.negation l) polar)
 
-      (* Computes polarity of instantiated atom *)
+      (* Computes polarity of instantiated literal *)
       let iatom polar ia = 
         try PolMap.find ia polar with _ -> Und
 
       (* Computes polarity of instantiated formula *)
-      let form polar (f,tl) = 
-        match Formula.reveal f with
+      let form polar f = 
+        match FormulaF.reveal f with
         | TrueP  -> Pos
         | TrueN  -> Neg
         | FalseP -> Pos
@@ -111,9 +134,9 @@ module FrontEnd
         | OrN(f1,f2)  -> Neg
         | AndP(f1,f2) -> Pos
         | OrP(f1,f2)  -> Pos
-        | ForAll(so,f)-> Neg
-        | Exists(so,f)-> Pos
-        | Lit t  -> iatom polar (DS.iatom_build(t,tl))        
+        | ForAll(so,f,d)-> Neg
+        | Exists(so,f,d)-> Pos
+        | Lit t  -> iatom polar t
     end
 
     (* Module of Sequents *)
@@ -252,7 +275,7 @@ module FrontEnd
     type 'a focusCoin = 
     | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
     | Cut      of int*IForm.t*('a address*'a address)*receive*receive*('a alt_action)
-    | ACut     of ASet.e*('a address*'a address)*receive*receive*('a alt_action)
+    (* | ACut     of ASet.e*('a address*'a address)*receive*receive*('a alt_action) *)
     | ConsistencyCheck of ('a address)*receive*('a alt_action)
     | Polarise   of ASet.e*('a address)*receive
     | DePolarise of ASet.e*('a address)*receive
@@ -271,3 +294,5 @@ module FrontEnd
     | Stop     of bool*bool*(unit -> 'a output)
 
   end
+
+end

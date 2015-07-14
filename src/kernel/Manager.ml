@@ -3,15 +3,13 @@
 (******************)
 
 open Format
-open Lwt
 
-open Kernel
+open Top
 open Basic
 open Interfaces_basic
-open Formulae
+open Messages
 
-open Theories_tools.StandardStruct
-open OpenModule
+open Prop.Formulae
 
 (*********************************************************************)
 (* First, we collect, from the various available theories, the
@@ -23,25 +21,26 @@ open OpenModule
 
 module type Intermediary = sig
 
-  module Builder : Semantic with type leaf := IntSort.t
+  module Builder : Terms.DataType with type leaf := IntSort.t
 
   val make
     : ('a -> Builder.t)
-    -> (module TermType with type datatype = 'a)
+    -> (module Specs.Term with type datatype = 'a)
     -> (module CollectTrusted with type e = 'a term and type t = 'b)
-    -> ('a,'b) OM.resume list
+    -> ('a,'b) resume list
+
 end
 
 (* Base case in the traversal *)
 
-let noTheory: (module Intermediary) = 
+let noTheory: (module Intermediary) =
   (module struct
 
     module Builder = struct
       type t = unit
-      let semantic _ _ _ = ()
-      let leaf _ = ()
-    end 
+      let bC _ _ _ = ()
+      let bV _ = ()
+    end
 
     let make _ _ _ = []
 
@@ -49,27 +48,37 @@ let noTheory: (module Intermediary) =
 
 (* Incremental case in the traversal *)
 
-let addTheory (i:(module Intermediary)) (th:(module OM.Type))
+module Semantic2DataType(Sem:Specs.Semantic)
+  :Terms.DataType with type leaf := IntSort.t
+                  and  type t = Sem.t           =
+struct
+  type t = Sem.t
+  let bC tag symb args = 
+    match Sem.semantic symb with
+    | Some f -> f args
+    | None   -> let (so,_) = Symbol.arity symb in
+                Sem.leaf(IntSort.buildH(tag,so))
+  let bV = Sem.leaf
+end
+
+let addTheory (i:(module Intermediary)) (th:(module Specs.Theory))
     :(module Intermediary) =
   let module Th = (val th) in
+  let module Sem = Semantic2DataType(Th.Semantic) in
   let module I = (val i) in
   (module struct
 
     module Builder = struct
-      type t = I.Builder.t*Th.Builder.t
-      let semantic tag symb args = 
-        (I.Builder.semantic tag symb (List.map fst args),
-         match Th.Builder.semantic symb with
-         | Some f -> f (List.map snd args)
-         | None   -> let (so,_) = Symbol.arity symb in
-                     Th.Builder.leaf (IntSort.buildH (tag,so))
-        )
-      let leaf v = (I.Builder.leaf v, Th.Builder.leaf v)
+      type t = I.Builder.t*Sem.t
+      let bC tag symb args = 
+        (I.Builder.bC tag symb (List.map fst args),
+         Sem.bC tag symb (List.map snd args))
+      let bV v = (I.Builder.bV v, Sem.bV v)
     end 
 
     let make (type a)(type b)
         (p: a-> Builder.t)
-        (terms: (module TermType with type datatype = a))
+        (terms: (module Specs.Term with type datatype = a))
         (tset : (module CollectTrusted with type e = a term and type t = b))
         =
       (Th.make (fun a -> snd(p a)) terms tset)
@@ -81,44 +90,88 @@ let addTheory (i:(module Intermediary)) (th:(module OM.Type))
 traversal function, and converts its result into the real module that
 we want, of the following module type *)
 
-let init (l:(module OM.Type) list)
-    : (module Theories_tools.ForGround.Type) =
+let make 
+    (type a) 
+    (propds:(module Specs.Semantic with type t = a))
+    (l:(module Specs.Theory) list)
+    : (module ForGround.GDecProc with type DS.formulaF = a) =
 
   (* First we do the traversal *)
 
   let module M = (val List.fold_left addTheory noTheory l) in
+  let module PropDS = (val propds) in
+  let module Sem = Semantic2DataType(PropDS) in
 
   (module struct
 
-    let names    = []
-    let sugPlugin= None
+    module DS = struct
 
-    include StandardDSData(IntSort)(M.Builder)
+      module Builder = struct
+        type t = M.Builder.t*Sem.t
+        let bC tag symb args = 
+          (M.Builder.bC tag symb (List.map fst args),
+           Sem.bC tag symb (List.map snd args))
+        let bV v = (M.Builder.bV v, Sem.bV v)
+      end
 
-    module ForParsing = ForParsingWOEx
-    module Terms = Atom.Term
+      module Term = Terms.Make(IntSort)(Builder)
 
-    module TSet = Sequents.MakeCollectTrusted(
-      struct
-        type t    = M.Builder.t term
-        let id t  = TermDef.id t
-        let clear = Terms.clear
-        let compare a b  = Pervasives.compare (id a) (id b)
-        let print_in_fmt = Terms.print_in_fmt
-      end)
+      type formulaF = PropDS.t
+      let asF = snd
 
-    let theories: (Terms.datatype,TSet.t) OM.resume list = 
-      let terms = (module Terms : TermType with type datatype = M.Builder.t) in
-      let tset  = (module TSet  : CollectTrusted with type e = M.Builder.t term and type t = TSet.t) in
-      M.make (fun a -> a) terms tset
+      module TSet = Prop.Sequents.MakeCollectTrusted(
+        struct
+          type t       = Builder.t term
+          let id       = Terms.id
+          let compare  = Terms.compare
+          let clear    = Term.clear
+          let print_in_fmt = Term.print_in_fmt
+        end)
 
-    let nb_th, init_state, init_buffer =
-      List.fold_left 
-        (fun (i, state, buffer) th 
-        -> (i+1,IntMap.add i false state,IntMap.add i [] buffer))
-        (0,IntMap.empty,IntMap.empty)
-        theories
+      let theories: (Term.datatype,TSet.t) resume list = 
+        let terms = (module Term  : Specs.Term with type datatype = Builder.t) in
+        let tset  = (module TSet  : CollectTrusted with type e = Builder.t term and type t = TSet.t) in
+        M.make fst terms tset
 
+      let nb_th, init_state, init_buffer =
+        List.fold_left 
+          (fun (i, state, buffer) th 
+          -> (i+1,IntMap.add i false state,IntMap.add i [] buffer))
+          (0,IntMap.empty,IntMap.empty)
+          theories
+
+    end
+
+    open DS
+
+
+
+    type answer = Provable of TSet.t | NotProvable of TSet.t
+
+    (* Generator of local answer types, either genuine answer or a fake answer *)
+    type ('a,'b) local = Genuine of 'a | Fake  of 'b
+
+    (* 'a intern is the type of local answers, for internal use during
+       search 
+
+       In both cases,
+
+       1st argument says whether it is
+       - a genuine answer, with appropriate data
+       - or a fake one, with boolean b saying whether we go to the
+         right (b=true) or to the left (b=false)
+
+       Last argument is the computation at resume point; 
+       (it suffices to apply it to a continuation to trigger it)
+
+       In case of success (genuine or fake), we also produce the
+    constraint produced so far.
+    *)
+
+    type 'a intern =
+    | Success of (TSet.t,bool) local * 'a computations
+    | Fail    of (TSet.t,bool) local * 'a computations
+    and 'a computations = bool -> ('a intern -> 'a) -> 'a
 
     module type InsertCoin = sig
       type t
@@ -126,10 +179,16 @@ let init (l:(module OM.Type) list)
       val sat  : int -> TSet.t -> t
       val write: int -> TSet.t -> t
       val read : int -> TSet.t*t
-      val gimmeFreshEigen: Kernel.Sorts.t -> Kernel.World.FreeVar.t * t
+      val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t
     end
 
-    type answer = Provable of TSet.t | NotProvable
+    module type NewInsertCoin = sig
+      type t
+      val take : 'a Register.t -> ('a,TSet.t) message -> t
+      val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t
+    end
+
+
     type output = Jackpot of answer | InsertCoin of (module InsertCoin with type t = output)
 
     let rec treat world state buffer:(module InsertCoin with type t = output) =
@@ -145,7 +204,7 @@ let init (l:(module OM.Type) list)
             (IntMap.for_all (fun _ b -> b) newstate)
             && (IntMap.for_all (fun _ -> TSet.is_empty) buffer)
           in
-          if happyNdone then Jackpot NotProvable
+          if happyNdone then Jackpot (NotProvable tset)
           else InsertCoin(treat world newstate buffer)
 
         let write i conclusions =
@@ -170,38 +229,23 @@ let init (l:(module OM.Type) list)
 
     (* let newtreat world = treat world init *)
 
-    module GConsistency(EAtom : sig
-      type t
-      val proj: t -> Atom.t
-      val negation: t->t
-    end) = struct
 
-      module ASet = Sequents.MakeCollectTrusted(
-        struct
-          type t    = EAtom.t
-          let id t  = Atom.id(EAtom.proj t)
-          let clear = Atom.clear
-          let compare a b = Atom.compare (EAtom.proj a) (EAtom.proj b)
-          let print_in_fmt fmt a = Atom.print_in_fmt fmt (EAtom.proj a)
-        end)
-
-      let goal_consistency t atomN = 
-        if ASet.mem t atomN then Some (ASet.add t ASet.empty)
-        else None
-          
-      let rec consistency atomN =
-        ASet.fold 
-          (function l -> function
-          | Some a -> Some a
-          | None   -> 
-	    (match goal_consistency (EAtom.negation l) atomN with
-	    | None     -> None
-	    | Some set -> Some (ASet.add l set)
-	    )
-          )
-          atomN
-          None
-    end
+    let goal_consistency t atomN = 
+      if TSet.mem t atomN then Some (TSet.add t TSet.empty)
+      else None
+        
+    let rec consistency atomN =
+      TSet.fold 
+        (function l -> function
+        | Some a -> Some a
+        | None   -> 
+	  (match goal_consistency (Term.bC Symbol.Neg [l]) atomN with
+	  | None     -> None
+	  | Some set -> Some (TSet.add l set)
+	  )
+        )
+        atomN
+        None
 
 
   end)

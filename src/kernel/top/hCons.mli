@@ -10,8 +10,8 @@ end
 module type PolyS = sig
   type ('t,'a) initial
   type ('a,'data) generic
-  type ('a,'data) revealed = (('a,'data) generic,'a) initial
-  val reveal : ('a,'data) generic -> ('a,'data) revealed
+  type ('a,'data) g_revealed = (('a,'data) generic,'a) initial
+  val reveal : ('a,'data) generic -> ('a,'data) g_revealed
   val id     : ('a,'data) generic -> int
   val data   : ('a,'data) generic -> 'data
   val compare: ('a,'data) generic -> ('a,'data) generic -> int
@@ -24,24 +24,26 @@ module MakePoly
     val hash : ('t->int) -> ('a->int) -> (('t,'a) t -> int)    
   end) : sig
 
-    include PolyS with type ('t,'a) initial := ('t,'a) M.t
+    include PolyS with type ('t,'a) initial = ('t,'a) M.t
 
     module InitData
       (Par: Hashtbl.HashedType)
       (Data: sig
         type t
-        val build : int -> (Par.t,t) revealed -> t
+        val build : int -> (Par.t,t) g_revealed -> t
       end)
       : sig
         type t = (Par.t,Data.t) generic
-        val build : (Par.t,Data.t) revealed -> t
+        type revealed = (Par.t,Data.t) g_revealed
+        val build : revealed -> t
         val clear : unit -> unit
       end
 
     module Init(Par: Hashtbl.HashedType)
       : sig
         type t = (Par.t,unit) generic
-        val build : (Par.t,unit) revealed -> t
+        type revealed = (Par.t,unit) g_revealed
+        val build : revealed -> t
         val clear : unit -> unit
       end
 
@@ -50,8 +52,8 @@ module MakePoly
 module type S = sig
   type 't initial
   type 'data generic
-  type 'data revealed = 'data generic initial
-  val reveal : 'data generic -> 'data revealed
+  type 'data g_revealed = 'data generic initial
+  val reveal : 'data generic -> 'data g_revealed
   val id     : 'data generic -> int
   val data   : 'data generic -> 'data
   val compare: 'data generic -> 'data generic -> int
@@ -64,22 +66,24 @@ module Make
     val hash : ('t->int) -> 't t -> int
   end) : sig
 
-    include S with type 't initial := 't M.t
+    include S with type 't initial = 't M.t
 
     module InitData
       (Data: sig
         type t
-        val build : int -> t revealed -> t
+        val build : int -> t g_revealed -> t
       end)
       : sig
         type t = Data.t generic
-        val build : Data.t revealed -> t
+        type revealed = Data.t g_revealed
+        val build : revealed -> t
         val clear : unit -> unit
       end
       
     module Init : sig
       type t = unit generic
-      val build : unit revealed -> t
+      type revealed = unit g_revealed
+      val build : revealed -> t
       val clear : unit -> unit
     end
 

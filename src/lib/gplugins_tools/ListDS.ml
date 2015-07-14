@@ -9,9 +9,9 @@ open Format
 open General
 open Kernel
 
-open Interfaces_basic
-open Interfaces_theory
-open Formulae
+open Top.Interfaces_basic
+open Prop.Interfaces_theory
+open Prop.Formulae
 
 module type PrintableType = sig 
   type t 
@@ -58,23 +58,18 @@ struct
 
 end
 
-module Generate(DS:TheoryDSType) = struct
+module Generate = struct
 
-  open DS
-
-  type dsubsts = DSubst.t
-
-  module UASet = MyCollectImplem(IAtom)
+  module UASet = MyCollectImplem(LitF)
 
   module UF = struct
-    type lit = Atom.t
     type t   = unit
     let build f = ()
   end
 
   module UFSet = MyCollectImplem(struct
-    type t = (UF.lit,UF.t) Formula.generic * dsubsts
-    let print_in_fmt = Formula.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt
+    type t = UF.t FormulaF.generic
+    let print_in_fmt = FormulaF.print_in_fmt
   end)
 
 end

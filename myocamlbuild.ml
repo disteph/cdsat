@@ -615,4 +615,11 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
 # 617 "myocamlbuild.ml"
 (* OASIS_STOP *)
-Ocamlbuild_plugin.dispatch dispatch_default;;
+
+let mydispatch r = match r with
+  | After_rules ->
+    Pathname.define_context "src/kernel/prop" ["src/kernel"; "src/kernel/prop"];
+    dispatch_default r
+  | _ -> dispatch_default r;;
+
+Ocamlbuild_plugin.dispatch mydispatch;;

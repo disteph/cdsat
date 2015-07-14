@@ -4,6 +4,7 @@
 (******************************************************************)
 
 open Top
+open Basic
 open Interfaces_basic
 open Formulae
 
@@ -19,9 +20,9 @@ module type ProofType = sig
 end
 
 module type PlugDSType = sig
-  module UF   : Formula.Extra
-  module UFSet: CollectExtra with type e = (UF.lit,UF.t) Formula.generic * DSubst.t
-  module UASet: CollectExtra
+  module UF   : FormulaF.Extra
+  module UFSet: CollectExtra with type e = UF.t FormulaF.generic
+  module UASet: CollectExtra with type e = LitF.t
 end
 
 type polarity = Pos | Neg | Und
@@ -41,14 +42,9 @@ module type FrontEndType = sig
   formulae, sets of instantiated formulae, and sets of instantiated
   atoms. *)
 
-  module Form : Formula.S
-  module IForm : sig
-    type t = Form.t*DSubst.t
-    val print_in_fmt: Format.formatter -> t -> unit
-    val negation : t -> t
-  end
+  module IForm : FormulaF.S
   module FSet : CollectKernel with type e = IForm.t
-  module ASet : CollectKernel
+  module ASet : CollectKernel with type e = LitF.t
 
   (* The kernel has a module for polarity assignment for literals, and how to compute the polarity of a formula *)
 
@@ -190,7 +186,6 @@ module type FrontEndType = sig
   type 'a focusCoin = 
   | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
   | Cut      of int*IForm.t*('a address*'a address)*receive*receive*('a alt_action)
-  | ACut     of ASet.e*('a address*'a address)*receive*receive*('a alt_action)
   | ConsistencyCheck of ('a address)*receive*('a alt_action)
   | Polarise   of ASet.e*('a address)*receive
   | DePolarise of ASet.e*('a address)*receive

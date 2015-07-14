@@ -10,8 +10,8 @@ end
 module type PolyS = sig
   type ('t,'a) initial
   type ('a,'data) generic
-  type ('a,'data) revealed = (('a,'data) generic,'a) initial
-  val reveal : ('a,'data) generic -> ('a,'data) revealed
+  type ('a,'data) g_revealed = (('a,'data) generic,'a) initial
+  val reveal : ('a,'data) generic -> ('a,'data) g_revealed
   val id     : ('a,'data) generic -> int
   val data   : ('a,'data) generic -> 'data
   val compare: ('a,'data) generic -> ('a,'data) generic -> int
@@ -24,8 +24,9 @@ module MakePoly
     val hash: ('t->int) -> ('a->int) -> (('t,'a) t -> int)    
   end) = struct
 
-    type ('a,'data) generic = {reveal: ('a,'data) revealed; id:int; data:'data option}
-    and  ('a,'data) revealed = (('a,'data) generic,'a) M.t
+    type ('t,'a) initial = ('t,'a) M.t
+    type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data option}
+    and  ('a,'data) g_revealed = (('a,'data) generic,'a) M.t
 
     let reveal f = f.reveal
     let id f     = f.id
@@ -40,11 +41,12 @@ module MakePoly
       (Par: Hashtbl.HashedType)
       (Data: sig
         type t
-        val build : int -> (Par.t,t) revealed -> t
+        val build : int -> (Par.t,t) g_revealed -> t
       end)
       = struct
 
         type t = (Par.t,Data.t) generic
+        type revealed = (Par.t,Data.t) g_revealed
 
         module Arg = struct
           type t = (Par.t,Data.t) generic
@@ -78,11 +80,23 @@ module MakePoly
 module type S = sig
   type 't initial
   type 'data generic
-  type 'data revealed = 'data generic initial
-  val reveal : 'data generic -> 'data revealed
+  type 'data g_revealed = 'data generic initial
+  val reveal : 'data generic -> 'data g_revealed
   val id     : 'data generic -> int
   val data   : 'data generic -> 'data
   val compare: 'data generic -> 'data generic -> int
+end
+
+module type BuiltS = sig
+  type 't initial
+  type t
+  type data
+  val reveal : t -> t initial
+  val id     : t -> int
+  val data   : t -> data
+  val compare: t -> t -> int
+  val built  : t initial -> t
+  val clear  : unit -> unit
 end
 
 module Make
@@ -99,8 +113,9 @@ module Make
     end
     module TMP = MakePoly(N)
 
+    type 't initial = 't M.t
     type 'data generic  = (unit,'data) TMP.generic
-    type 'data revealed = (unit,'data) TMP.revealed
+    type 'data g_revealed = (unit,'data) TMP.g_revealed
 
     let reveal f = f.TMP.reveal
     let id f     = f.TMP.id
@@ -110,7 +125,7 @@ module Make
     module InitData
       (Data: sig
         type t
-        val build : int -> t revealed -> t
+        val build : int -> t g_revealed -> t
       end)
       = TMP.InitData(struct
         type t = unit

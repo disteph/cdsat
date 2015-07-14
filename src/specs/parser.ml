@@ -6,7 +6,7 @@ module type Type = sig
   val glance        : string -> afterglance
   val guessThDecProc: afterglance -> string
   val parse         :
-    string list -> afterglance -> (module TheoryParsing.InterpretType with type t = 't) -> ('t option*bool option)
+    afterglance -> (module Typing.InterpretType with type t = 't) -> ('t option*bool option)
 end
 
 let latexescaped = function

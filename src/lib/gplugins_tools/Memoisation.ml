@@ -15,10 +15,10 @@
 (*******************************************************************)
 
 
-open Kernel.Interfaces_basic
-open Kernel.Interfaces_theory
-open Kernel.Formulae
-open Kernel.Interfaces_plugin
+open Kernel.Top.Interfaces_basic
+open Kernel.Prop.Interfaces_theory
+open Kernel.Prop.Formulae
+open Kernel.Prop.Interfaces_plugin
 
 open General
 open Sums
@@ -28,8 +28,7 @@ open SetConstructions
 open SetInterface
 
 module Make
-  (IAtom:AtomType)
-  (FE: FrontEndType with type ASet.e = IAtom.t)
+  (FE: FrontEndType)
   (FS: CollectImplemExt with type e = FE.FSet.e and type t=FE.FSet.ps)
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   = struct
@@ -67,7 +66,7 @@ module Make
     let find_sub alm (k1,k2) =
       let filter =function
 	| F f  -> alm
-	| A ia -> alm && not (AS.mem (IAtom.negation ia) k1) (* && not (FS.is_in (Form.lit a,tl) k2) *)
+	| A ia -> alm && not (AS.mem (LitF.negation ia) k1) (* && not (FS.is_in (Form.lit a,tl) k2) *)
       in
 	MP.find_su byes bsingleton bempty bunion (sub alm) true filter (fun _-> true) (k1,k2)
 
@@ -107,13 +106,12 @@ module Make
 	   alternative())
 	else let (toCut,_)=FS.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
-              let (toCutf,_)= toCut in
-              Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq Form.print_in_fmt toCutf)) None;
+              Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq IForm.print_in_fmt toCut)) None;
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
-      else let (toCut,_)=AS.next a in
+      else let (toCut,_) = AS.next a in
 	   Dump.Plugin.incr_count 8;
-           Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq IAtom.print_in_fmt toCut)) None ;
-           Some(ACut(toCut,data,(fun _->()),(fun _->()),(fun _->None)))
+           Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq LitF.print_in_fmt toCut)) None ;
+           Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4provable ans =
       snd (MP.find (Seq.forPlugin (sequent ans)) !tableS)

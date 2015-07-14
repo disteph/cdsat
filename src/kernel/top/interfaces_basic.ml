@@ -13,13 +13,6 @@ module type PHCons = sig
   val compare : t -> t -> int
 end
 
-module type Semantic = sig
-  type t
-  type leaf
-  val leaf     : leaf -> t
-  val semantic : int -> Symbol.t -> t list -> t
-end
-
 (* Collection Interface that Plugin needs to provide for Kernel *)
 
 module type CollectExtra = sig

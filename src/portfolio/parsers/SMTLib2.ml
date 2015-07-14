@@ -130,9 +130,9 @@ let rec list_index a accu = function
   | (b,so)::l when a=b -> Some (accu,so)
   | _::l -> list_index a (accu+1) l
 
-let parse (type t) names (theory,satprov,status,declared,formulalist) i = 
+let parse (type t) (theory,satprov,status,declared,formulalist) i = 
 
-  let module I = (val i: TheoryParsing.InterpretType with type t=t) in
+  let module I = (val i: Typing.InterpretType with type t=t) in
   
   let rec transformTermBase env boundvarlist s l =
     match list_index s 0 boundvarlist,l with
@@ -151,13 +151,9 @@ let parse (type t) names (theory,satprov,status,declared,formulalist) i =
       
   in
 
-    (match theory with
-       | Some th when not(List.mem th names) ->
-	   print_endline("WARNING: Input mentions theory "^th^" that is not among the theory's names")
-       | _ ->());
-    match formulalist with
-      | []-> (None,status)
-      | _ -> 
-	let formula = transformTermBase EmptyEnv [] "and" formulalist in
-	let fformula = if satprov then formula else I.sigsymb "not" [formula] in
-	(Some fformula,status)
+  match formulalist with
+  | []-> (None,status)
+  | _ -> 
+    let formula = transformTermBase EmptyEnv [] "and" formulalist in
+    let fformula = if satprov then formula else I.sigsymb "not" [formula] in
+    (Some fformula,status)

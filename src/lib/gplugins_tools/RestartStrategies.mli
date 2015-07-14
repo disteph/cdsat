@@ -1,4 +1,4 @@
-module RestartStrategies (UASet: Kernel.Interfaces_basic.CollectExtra):
+module RestartStrategies (UASet: Kernel.Top.Interfaces_basic.CollectExtra):
 sig
   exception Restart of UASet.t
 

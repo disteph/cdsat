@@ -3,6 +3,7 @@ Symbol
 Interfaces_basic
 Basic
 HCons
-TermDef
+Terms
 World
-OpenModule
+Messages
+Specs

@@ -2,12 +2,12 @@
 
 open Gplugins
 
-let bank:(module Plugin.GenType)array= 
+let bank:(module Plugin.Type)array= 
   [|
-    (module Naive.MyPlugin.GenPlugin);
-    (module DPLL_Pat.MyPlugin.GenPlugin);
-    (module DPLL_WL.MyPlugin.GenPlugin);
-    (module Hint.MyPlugin.GenPlugin);
+    (module Naive.MyPlugin);
+    (module DPLL_Pat.MyPlugin);
+    (module DPLL_WL.MyPlugin);
+    (module Hint.MyPlugin);
   |]
 
 exception NotFound of string

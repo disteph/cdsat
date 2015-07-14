@@ -8,6 +8,7 @@ open Format
 
 open General
 open Kernel
+open Prop
 
 open Interfaces_theory
 open Formulae
@@ -15,156 +16,87 @@ open Sums
 open SetConstructions
 open Gplugins_tools.SetInterface
 
-module Generate(ThDS:TheoryDSType) = struct
+(* **************************************** *)
+(* Implementation of sets of atoms for DPLL *)
 
-  open ThDS
+module UT  = struct
+  include TypesFromHConsed(LitF)
+  let compare = LitF.compare
+  let print_in_fmt = LitF.print_in_fmt
+  let tString = None
+  let keyhash = tag
+end
 
-  (* **************************************** *)
-  (* Implementation of sets of atoms for DPLL *)
+module UASet = struct
+  include Gplugins_tools.Patricia_ext.MyPat(UT)
+  let negations s = fold (fun k accu -> add (LitF.negation k) accu) s empty
+end
 
-  module UASet = struct
+(* **************************************** *)
+(* Implementation of formulae info for DPLL *)
 
-    module UT  = struct
-      include TypesFromHConsed(IAtom)
-      let compare = IAtom.compare
-      let print_in_fmt = IAtom.print_in_fmt
-      let tString = None
-      let keyhash = tag
-    end
+module UF = struct
 
-    include Gplugins_tools.Patricia_ext.MyPat(UT)
+  type t = UASet.t
 
-    let negations s = fold (fun k accu -> add (IAtom.negation k) accu) s empty
+  let build = function
+    | Lit l        -> UASet.add l UASet.empty
+    | AndP (x1,x2) -> UASet.union (FormulaF.data x1) (FormulaF.data x2)
+    | _            -> UASet.empty
+
+end
+
+
+(* ******************************************* *)
+(* Implementation of sets of formulae for DPLL *)
+
+module UFSet = struct
+
+  module UT0  = TypesFromCollect(struct 
+    include UASet
+    type keys = UF.t FormulaF.generic
+    let tag = FormulaF.data
+  end)
+
+  module UT1  = TypesFromHConsed(struct 
+    type t = UF.t FormulaF.generic
+    let id = FormulaF.id
+  end)
+
+  module UT   = struct
+    include LexProduct(UT0)(UT1)
+    let compare = FormulaF.compare
+    let print_in_fmt = FormulaF.print_in_fmt
+    let cstring fmt ((a,_):common) = fprintf fmt "%a" UASet.print_in_fmt a
+    let bstring fmt (g:branching) = match g with
+      | A(at)-> fprintf fmt "%a" LitF.print_in_fmt at
+      | _    -> fprintf fmt "Bits"
+    let tString = None (* Some(cstring,bstring) *)
+    let keyhash = FormulaF.id
   end
 
+  include Gplugins_tools.Patricia_ext.MyPat(UT)
 
-  (* **************************************** *)
-  (* Implementation of formulae info for DPLL *)
+  let sous = UT.sub UASet.sub (fun _ _ _ _->Yes()) true
 
-  module UF = struct
+  let byes j         = j
+  let bempty         = None
+  let bsingleton j m = Some j
+  let bunion a b = match a,b with
+    | None, None   -> None
+    | None, Some bb-> Some bb
+    | _            -> failwith "Shouldn't be a union here"
 
-    type lit = Atom.t
-    type t   = DSubst.t -> UASet.t
+  let filter atms = function
+    | A a-> not (UASet.mem (LitF.negation a) atms)
+    | _  -> true
 
-    let aset (f,tl) = Formula.data f tl
+  let schoose atms l =
+      find_su byes bsingleton bempty bunion sous true (filter atms) (function None -> true | _ -> false) (atms,-1) l
 
-    let build f tl = match f with
-      | Lit l        -> UASet.add (iatom_build(l,tl)) UASet.empty
-      | AndP (x1,x2) -> UASet.union (aset(x1,tl)) (aset(x2,tl))
-      | _            -> UASet.empty
+  let yes _ _ _ = Yes() 
 
-  end
-
-
-  (* ******************************************* *)
-  (* Implementation of sets of formulae for DPLL *)
-
-  module UFSet = struct
-
-    type e    = (UF.lit,UF.t) Formula.generic*DSubst.t
-    type mykeys = UASet.t*e
-
-    let aset (a,_) = a
-    let form (_,b) = b
-    let build f    = (UF.aset f,f)
-
-    module UT0  = TypesFromCollect(struct 
-      type t = UASet.t
-      type e = IAtom.t
-      let mem = UASet.mem
-      let inter = UASet.inter
-      let compare = UASet.compare
-      let compareE   = UASet.compareE
-      let first_diff = UASet.first_diff 
-      type keys = mykeys
-      let tag   = aset
-    end)
-
-    module UT1  = TypesFromHConsed(struct 
-      type t = mykeys
-      let id (_,(f,_)) = Formula.id f 
-    end)
-
-    module UT2  = TypesFromHConsed(struct 
-      type t = mykeys
-      let id (_,(_,tl)) = DSubst.id tl 
-    end)
-
-    module UT   = struct
-      include LexProduct(UT0)(LexProduct(UT1)(UT2))
-      let compare a b = Formula.icompare DSubst.compare (form a) (form b)
-      let print_in_fmt fmt a = 
-        Formula.iprint_in_fmt Atom.print_in_fmt DSubst.print_in_fmt fmt (form a)
-      let cstring fmt ((a,_):common) = fprintf fmt "%a" UASet.print_in_fmt a
-      let bstring fmt (g:branching) = match g with
-	| A(at)-> fprintf fmt "%a" IAtom.print_in_fmt at
-	| _    -> fprintf fmt "Bits"
-      let tString = None (* Some(cstring,bstring) *)
-      let keyhash = UT2.tag
-    end
-
-    module FoSet = Gplugins_tools.Patricia_ext.MyPat(UT)
-
-    type t              = FoSet.t
-    let empty           = FoSet.empty
-    let is_empty        = FoSet.is_empty
-    let union           = FoSet.union
-    let inter           = FoSet.inter
-    let subset          = FoSet.subset
-    let mem l t         = FoSet.mem (build l) t
-    let add l t         = FoSet.add (build l) t
-    let remove l t      = FoSet.remove (build l) t
-    let next t          = let (l,t') = FoSet.next t in (form l,t')
-    let fold f          = FoSet.fold (fun b-> f (form b))
-    let print_in_fmt    = FoSet.print_in_fmt
-    let compare         = FoSet.compare
-    let compareE        = Formula.icompare DSubst.compare
-    let first_diff t t' = match FoSet.first_diff t t' with
-      | Some a,b -> Some(form a),b
-      | None,b -> None,b
-    let sub alm t t' limit =
-      match
-        FoSet.sub alm t t' (match limit with None -> None | Some e -> Some (UF.aset e,e))
-      with
-      | Yes a    -> Yes a
-      | Almost b -> Almost(form b)
-      | No       -> No
-
-    let choose t        = form(FoSet.choose t)
-    let clear ()        = FoSet.clear()
-
-    let sous = UT.sub UASet.sub (fun _ _ _ _->Yes()) true
-
-    let byes j         = j
-    let bempty         = None
-    let bsingleton j m = Some j
-    let bunion a b = match a,b with
-      | None, None   -> None
-      | None, Some bb-> Some bb
-      | _            -> failwith "Shouldn't be a union here"
-
-    let filter atms = function
-      | A a-> not (UASet.mem (IAtom.negation a) atms)
-      | _  -> true
-
-    let schoose atms l =
-      match 
-        FoSet.find_su byes bsingleton bempty bunion sous true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
-      with
-      | A a       -> A(form a)
-      | F(Some a) -> F(Some(form a))
-      | F None    -> F None
-
-    let yes _ _ _ = Yes() 
-
-    let rchoose atms l =
-      match 
-        FoSet.find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,(-1,-1)) l
-      with
-      | A a       -> A(form a)
-      | F(Some a) -> F(Some(form a))
-      | F None    -> F None
-
-  end
+  let rchoose atms l =
+      find_su byes bsingleton bempty bunion yes true (filter atms) (function None -> true | _ -> false) (atms,-1) l
 
 end

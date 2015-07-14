@@ -3,7 +3,7 @@
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
-true: annot, bin_annot
+# true: annot, bin_annot
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
 ".bzr": -traverse
@@ -17,15 +17,14 @@ true: annot, bin_annot
 # Executable psyche
 # OASIS_STOP
 
+<src> or <src/lib> or <src/portfolio> or <src/specs> or <src/top-level>: include
 
-<src> or <src/top-level> or <src/lib> or <src/portfolio> or <src/specs> or <src/theories> or <src/kernel> : include
-
-<src/kernel/top/*.cmx>:                for-pack(Top)
-<src/kernel/prop/*.cmx>:               for-pack(Prop)
+<src/kernel/*.cmx>      : for-pack(Kernel)
+<src/kernel/top/*.cmx>  : for-pack(Kernel.Top)
+<src/kernel/prop/*>     : for-pack(Kernel.Prop)
 
 <src/lib/general/*.cmx>:              for-pack(General)
 <src/lib/gplugins_tools/*.cmx>:       for-pack(Gplugins_tools)
-<src/lib/theories_tools/*.cmx>:       for-pack(Theories_tools)
 
 <src/portfolio/gplugins/*.cmx>:        for-pack(Gplugins)
 <src/portfolio/gplugins/DPLL_Pat/*.cmx>:        for-pack(Gplugins.DPLL_Pat)
@@ -34,16 +33,9 @@ true: annot, bin_annot
 <src/portfolio/gplugins/RestartsFunctor/*.cmx>: for-pack(Gplugins.RestartsFunctor)
 <src/portfolio/gplugins/Hint/*.cmx>:            for-pack(Gplugins.Hint)
 
-<src/portfolio/theories/*.cmx>:        for-pack(Theories)
-<src/portfolio/theories/Empty/*.cmx>:           for-pack(Theories.Empty)
-<src/portfolio/theories/CC/*.cmx>:              for-pack(Theories.CC)
-<src/portfolio/theories/LRA/libSimplex/*.cmx>:  for-pack(Theories.LRA.LibSimplex)
-<src/portfolio/theories/LRA/*.cmx>:             for-pack(Theories.LRA)
-<src/portfolio/theories/FirstOrder/*.cmx>:      for-pack(Theories.FirstOrder)
-
 <src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
 <src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
 
 <src/*.{byte,native}>:                use_nums, use_str, use_unix
 <src/*/*.ml{,i,y}>: pkg_lwt
-<**/*.ml>: annot
+

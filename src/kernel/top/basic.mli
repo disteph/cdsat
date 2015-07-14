@@ -19,7 +19,4 @@ module HashedTypeFromHCons(M: sig
   val id: t -> int
 end): Hashtbl.HashedType with type t = M.t
 
-module EmptyData(Leaf : PHCons)
-  : Semantic with type leaf := Leaf.t
-
 module IdMon : MonadType with type 'a t = 'a

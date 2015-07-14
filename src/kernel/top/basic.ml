@@ -49,13 +49,6 @@ end)
   let equal a b = Pervasives.compare (M.id a) (M.id b) == 0
 end
 
-module EmptyData(Leaf : PHCons) =
-struct
-  type t = unit
-  let semantic _ _ _ = ()
-  let leaf     _ = ()
-end
-
 module IdMon = struct
   type 'a t = 'a
   let return a = a

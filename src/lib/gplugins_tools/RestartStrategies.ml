@@ -1,4 +1,4 @@
-module RestartStrategies (UASet: Kernel.Interfaces_basic.CollectExtra) = struct
+module RestartStrategies (UASet: Kernel.Top.Interfaces_basic.CollectExtra) = struct
   exception Restart of UASet.t
 
   class virtual strategy (enabled : bool) =

@@ -4,12 +4,12 @@
 
 open Format
 
-open Kernel
-open Interfaces_basic
-open Interfaces_theory
+open Top.Interfaces_basic
+
+open Prop.Interfaces_theory
 
 module type GTheoryDSType = sig
-  module Term : OpenModule.TermType
+  module Term : Top.Specs.Term
   type formulaF
   val asF : Term.datatype -> formulaF
   module TSet : CollectTrusted with type e = Term.t
@@ -40,7 +40,7 @@ end
 (* Functor turning a ground theory into a proper theory.
 Cannot treat sequents with meta-variables, obviously *)
 
-module GTh2Th (MDP:GDecProc) : DecProc = struct
+module GTh2Th (MDP:GDecProc) : DecProc with type DS.formulaF = MDP.DS.formulaF = struct
 
   module DS = struct
     include MDP.DS

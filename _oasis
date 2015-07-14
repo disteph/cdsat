@@ -1,4 +1,4 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name:        Psyche
 Version: 2.0
 Synopsis:    Proof-Search factorY for Collaborative HEuristics
@@ -13,13 +13,13 @@ Authors: Stephane Graham-Lengrand, CNRS
 License:     CeCILL-C
 LicenseFile: LICENCE.txt
 FilesAB: src/version.ml.ab
+BuildTools: ocamlbuild
 
 Executable psyche
   Path:       src
-  BuildTools: ocamlbuild
   MainIs:     main.ml
   CompiledObject: best
-  
+
 Document "Psyche"
   Type: ocamlbuild
   BuildTools: ocamlbuild,ocamldoc

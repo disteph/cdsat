@@ -34,8 +34,8 @@ open Top_level
 let options =
   ("-theory",        String(fun s->
 			      mytheory:=
-				Some(try Theories_register.getbyname s
-				     with Theories_register.NotFound msg
+				Some(try Kernel.Theories_register.getbyname s
+				     with Kernel.Theories_register.NotFound msg
 					 -> failwith msg)),"selects theory (among empty, lra)")::
     ("-gplugin",     String(fun s->
 			      mygplugin:=
@@ -88,12 +88,12 @@ Available options are:";;
 *)
 
 Arg.parse options (fun a->fname:= a::!fname) description;
-let (trname,trexamples,trstdin)=treatprimitives() in
+let (trname(* ,trexamples *),trstdin)=treatprimitives() in
 let rec treat = function
   | []      -> ()
   | name::l -> trname name; treat l
 in
   match !fname with
-    | [] when !texamples-> trexamples ()
+    (* | [] when !texamples-> trexamples () *)
     | []                -> trstdin    ()
     | l                 -> treat (collect_sort l)
