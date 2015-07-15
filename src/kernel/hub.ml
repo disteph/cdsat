@@ -70,7 +70,7 @@ type b. b dataList -> (module DataType with type t = b) =
   | NoData -> noTheory
   | ConsData(th,l') -> (addTheory th (make_datastruct l'))
 
-module Handlers: Map.OrderedType = struct
+module Handlers = struct
   type t = Handler: 'a Register.t -> t
   let id _ = 0
   let compare a b = Pervasives.compare (id a) (id b)
@@ -116,7 +116,7 @@ let make (type a)(type b)
 
     end
 
-    let init_state =
+    let init_map =
       HandlersMap.fold
         (fun th () -> HandlersMap.add th false)
         theories
@@ -136,24 +136,27 @@ let make (type a)(type b)
     let rec search set m =
       if HandlersMap.for_all (fun _ b -> b) m
       then Jackpot(NotProvable set)
-      else Jackpot(Provable set)
+      else InsertCoin(search_coin set m)
+    and search_coin set m:(module InsertCoin with type t=output)
+        = (module struct
 
-    let goal_consistency t atomN =
-      if TSet.mem t atomN then Provable (TSet.add t TSet.empty)
-      else NotProvable atomN
+          type t = output
+
+          let take hdl = function
+            | ThProvable(_,newset) -> Jackpot(Provable newset)
+            | ThNotProvable(_,newset) ->
+              if TSet.subset set newset then 
+                search set (HandlersMap.add (Handlers.Handler hdl) true m)
+              else failwith "ThPlugin is trying to cheat" 
+            | ThStraight(_,newset,justif) ->  failwith "Not Implemented"
+            | ThAnd(_,newset1,newset2,justif) -> failwith "Not Implemented"
+            | ThOr(_,newset1,newset2,justif) -> failwith "Not Implemented"
+
+        end)
         
-    let consistency atomN =
-      TSet.fold
-        (function l -> function
-        | Provable set as ans -> ans
-        | _   ->
-	  (match goal_consistency (Term.bC Symbol.Neg [l]) atomN with
-	  | Provable set -> Provable (TSet.add l set)
-	  | ans     -> ans
-	  )
-        )
-        atomN
-        (NotProvable atomN)
+    let consistency atomN = search atomN init_map
+
+    let goal_consistency t atomN = search (TSet.add (Term.bC Symbol.Neg [t]) atomN) init_map
         
   end)
 

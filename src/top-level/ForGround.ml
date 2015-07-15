@@ -28,8 +28,7 @@ Cannot treat sequents with meta-variables, obviously *)
 module GTh2Th
   (WB: WhiteBoard)
   (MDP: sig
-    val consistency     :                 WB.DS.TSet.t -> WB.answer
-    val goal_consistency: WB.DS.Term.t -> WB.DS.TSet.t -> WB.answer
+    val solve : WB.output -> WB.answer
   end) 
   : DecProc with type DS.formulaF = WB.DS.formulaF = struct
 
@@ -40,12 +39,20 @@ module GTh2Th
 
   open DS
 
-  let consistency a sigma = match MDP.consistency a with
+  let consistency a sigma = match MDP.solve(WB.consistency a) with
     | WB.NotProvable _ -> NoMore
     | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
 
-  let goal_consistency t a sigma = match MDP.goal_consistency t a with
+  let goal_consistency t a sigma = match MDP.solve(WB.goal_consistency t a) with
     | WB.NotProvable _ -> NoMore
     | WB.Provable a'   -> Guard(a',sigma,fun _ -> NoMore)
 
 end
+
+    (* let goal_consistency t atomN = if TSet.mem t atomN then Provable *)
+    (*   (TSet.add t TSet.empty) else NotProvable atomN *)
+        
+    (* let consistency atomN = TSet.fold (function l -> function | *)
+    (*   Provable set as ans -> ans | _ -> (match goal_consistency *)
+    (*   (Term.bC Symbol.Neg [l]) atomN with | Provable set -> Provable *)
+    (*   (TSet.add l set) | ans -> ans ) ) atomN (NotProvable atomN) *)

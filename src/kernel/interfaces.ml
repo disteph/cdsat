@@ -18,6 +18,6 @@ module type WhiteBoard = sig
   end
   type answer = private Provable of TSet.t | NotProvable of TSet.t
   type output = Jackpot of answer | InsertCoin of (module InsertCoin with type t=output)
-  val consistency     :           TSet.t -> answer
-  val goal_consistency: Term.t -> TSet.t -> answer
+  val consistency     :           TSet.t -> output
+  val goal_consistency: Term.t -> TSet.t -> output
 end

@@ -8,7 +8,8 @@ let datalist = NoData
 module Strategy(WB: Interfaces.WhiteBoard)
   = struct
     open WB.DS
-    let consistency = WB.consistency
-    let goal_consistency = WB.goal_consistency
+    let solve = function
+      | WB.Jackpot ans -> ans
+      | WB.InsertCoin _ -> failwith "NotImplemented"
   end
 

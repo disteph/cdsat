@@ -47,35 +47,3 @@ end
 
 module type Term = Terms.S with type leaf := IntSort.t
 
-
-(* (\* The module type of a theory that knows of the type gen of *)
-(*    aggregated datastructures used by the theories *\) *)
-
-(*   module type TheoryType = sig *)
-(*     type gen *)
-(*     type tset *)
-(*     val init     : (gen,tset) resume *)
-(*     val examples : ((unit-> gen term)*bool) list *)
-(*   end *)
-
-(* The module type of a theory that does not yet know of the type gen
-   of aggregated datastructures used by the theories: it should first
-   provide the datatype for its own representation of terms (module
-   Builder), then it should be able to receive the module of terms with
-   the aggregated representation and a projection function from this
-   aggregated datatype to its own term representation type, and produce
-   one of the above *)
-
-module type Theory = sig
-
-  val names    : string list
-
-  module Semantic : Semantic
-
-  val make
-    : ('a -> Semantic.t)
-    -> (module Term with type datatype = 'a)
-    -> (module CollectTrusted with type e = 'a term and type t = 'b)
-    -> ('a,'b) resume
-
-end

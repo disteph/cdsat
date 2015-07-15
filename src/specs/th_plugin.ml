@@ -11,7 +11,6 @@ module type Type = sig
   module Strategy(WB: WhiteBoard)
     : sig
       open WB.DS
-      val consistency     :           TSet.t -> WB.answer
-      val goal_consistency: Term.t -> TSet.t -> WB.answer
+      val solve : WB.output -> WB.answer
     end
 end
