@@ -28,12 +28,12 @@ let init th =
     match !mytheory with
       | Some a -> a
       | None ->
-        try Kernel.Theories_register.getbyname th
-        with Kernel.Theories_register.NotFound _ 
+        try Theories_register.getbyname th
+        with Theories_register.NotFound _ 
 	    -> (Dump.msg (Some(fun p->p "Could not find theory %s in the theory signatures register, using Empty(Propositional)" th)) None None;
 		0)
   in
-  let module MyTheory = (val (Kernel.Theories_register.bank propds).(theory)) in
+  let module MyTheory = (val (Theories_register.bank propds).(theory)) in
   let module Src   = PS.Make(MyTheory) in
   let module Strat = MyPlugin.Strategy(Src.FE) in
   let go f stringOrunit =

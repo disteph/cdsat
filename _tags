@@ -33,6 +33,8 @@
 <src/portfolio/gplugins/RestartsFunctor/*.cmx>: for-pack(Gplugins.RestartsFunctor)
 <src/portfolio/gplugins/Hint/*.cmx>:            for-pack(Gplugins.Hint)
 
+<src/portfolio/thplugins/*.cmx>:      for-pack(Thplugins)
+
 <src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
 <src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
 

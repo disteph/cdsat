@@ -1,2 +1,2 @@
 type _ t = 
-| NoTheory: int -> unit t
+| NoTheory: unit -> unit t

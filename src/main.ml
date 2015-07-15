@@ -34,8 +34,8 @@ open Top_level
 let options =
   ("-theory",        String(fun s->
 			      mytheory:=
-				Some(try Kernel.Theories_register.getbyname s
-				     with Kernel.Theories_register.NotFound msg
+				Some(try Theories_register.getbyname s
+				     with Theories_register.NotFound msg
 					 -> failwith msg)),"selects theory (among empty, lra)")::
     ("-gplugin",     String(fun s->
 			      mygplugin:=

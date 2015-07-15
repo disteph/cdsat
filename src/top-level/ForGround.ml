@@ -4,23 +4,8 @@
 
 open Format
 
-open Top.Interfaces_basic
-
-open Prop.Interfaces_theory
-
-module type GTheoryDSType = sig
-  module Term : Top.Specs.Term
-  type formulaF
-  val asF : Term.datatype -> formulaF
-  module TSet : CollectTrusted with type e = Term.t
-end
-
-module type GDecProc = sig
-  module DS : GTheoryDSType 
-  open DS
-  val consistency     :           TSet.t -> TSet.t option
-  val goal_consistency: Term.t -> TSet.t -> TSet.t option
-end
+open Kernel.Interfaces
+open Kernel.Prop.Interfaces_theory
 
 (* Basic module for constraints, for ground theories *)
 
@@ -40,21 +25,27 @@ end
 (* Functor turning a ground theory into a proper theory.
 Cannot treat sequents with meta-variables, obviously *)
 
-module GTh2Th (MDP:GDecProc) : DecProc with type DS.formulaF = MDP.DS.formulaF = struct
+module GTh2Th
+  (WB: WhiteBoard)
+  (MDP: sig
+    val consistency     :                 WB.DS.TSet.t -> WB.answer
+    val goal_consistency: WB.DS.Term.t -> WB.DS.TSet.t -> WB.answer
+  end) 
+  : DecProc with type DS.formulaF = WB.DS.formulaF = struct
 
   module DS = struct
-    include MDP.DS
+    include WB.DS
     module Constraint = EmptyConstraint
   end
 
   open DS
 
   let consistency a sigma = match MDP.consistency a with
-    | None    -> NoMore
-    | Some b  -> Guard(b,sigma,fun _ -> NoMore)
+    | WB.NotProvable _ -> NoMore
+    | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
 
   let goal_consistency t a sigma = match MDP.goal_consistency t a with
-    | None    -> NoMore
-    | Some a' -> Guard(a',sigma,fun _ -> NoMore)
+    | WB.NotProvable _ -> NoMore
+    | WB.Provable a'   -> Guard(a',sigma,fun _ -> NoMore)
 
 end
