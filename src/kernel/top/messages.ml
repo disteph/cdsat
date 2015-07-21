@@ -14,9 +14,11 @@ exception ModelError of string
 type 'a term = (IntSort.t,'a) Terms.term
 
 
-type (_,_) message =
-| ThProvable: 'sign*'tset                       -> ('sign,'tset) message
-| ThNotProvable: 'sign*'tset                    -> ('sign,'tset) message
-| ThStraight: 'sign*'tset*('tset->'tset)        -> ('sign,'tset) message
-| ThAnd : 'sign*'tset*'tset*('tset->'tset->'tset) -> ('sign,'tset) message
-| ThOr  : 'sign*'tset*'tset*(bool->'tset->'tset)  -> ('sign,'tset) message
+type (_,_) thdone =
+| ThProvable   : 'sign*'tset -> ('sign,'tset) thdone
+| ThNotProvable: 'sign*'tset -> ('sign,'tset) thdone
+
+type (_,_) thsays =
+| ThStraight: 'sign*'tset*('tset->'tset)        -> ('sign,'tset) thsays
+| ThAnd : 'sign*'tset*'tset*('tset->'tset->'tset) -> ('sign,'tset) thsays
+| ThOr  : 'sign*'tset*'tset*(bool->'tset->'tset)  -> ('sign,'tset) thsays

@@ -124,89 +124,77 @@ let make (type a)(type b)
 
     open DS
 
+    type hubsays = HubSays of TSet.t*(TSet.t->TSet.t)
+
     module type InsertCoin = sig
       type t
-      val take : 'a Register.t -> ('a,TSet.t) message -> t
+      val thdone : 'a Register.t -> ('a,TSet.t) thdone -> t
+      val thsays : 'a Register.t -> ('a,TSet.t) thsays -> hubsays*t
       (* val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t *)
     end
 
     type answer = Provable of TSet.t | NotProvable of TSet.t
     type output = Jackpot of answer | InsertCoin of (module InsertCoin with type t=output)
 
-    let rec search set m =
-      if HandlersMap.for_all (fun _ b -> b) m
-      then Jackpot(NotProvable set)
-      else InsertCoin(search_coin set m)
-    and search_coin set m:(module InsertCoin with type t=output)
+    let rec ou v1 v2 success1 success2 seq cont = 
+      let newcont1 = function
+	| Provable seq1    -> cont(success1 seq1)
+	| NotProvable seq1 ->
+	  let newcont2 = function
+	    | Provable seq2  -> cont(success2 seq2)
+	    | NotProvable _  -> cont(NotProvable seq)
+	  in
+	  v2 newcont2
+      in
+      v1 newcont1
+
+    let rec et v1 v2 success seq cont =
+      let newcont1 = function
+	| Provable seq1 ->
+	  let newcont2 = function
+	    | Provable seq2 -> cont(success seq1 seq2)
+	    | NotProvable _ -> cont(NotProvable seq)
+	  in
+	  v2 newcont2
+	| NotProvable _     -> cont(NotProvable seq)
+      in
+      v1 newcont1
+
+    let rec straight v success seq cont =
+      let newcont = function
+	| Provable seqrec -> cont(success seqrec)
+	| NotProvable _   -> cont(NotProvable seq)
+      in
+      v newcont
+
+
+    let rec search set m cont :(module InsertCoin with type t=output)
         = (module struct
 
           type t = output
 
-          let take hdl = function
-            | ThProvable(_,newset) -> Jackpot(Provable newset)
+          let thdone hdl = function
+            | ThProvable(_,newset)    -> cont (Jackpot(Provable newset))
             | ThNotProvable(_,newset) ->
               if TSet.subset set newset then 
-                search set (HandlersMap.add (Handlers.Handler hdl) true m)
+                let newmap = HandlersMap.add (Handlers.Handler hdl) true m in
+                if HandlersMap.for_all (fun _ b -> b) newmap
+                then cont(Jackpot(NotProvable set))
+                else InsertCoin(search set newmap cont)
               else failwith "ThPlugin is trying to cheat" 
-            | ThStraight(_,newset,justif) ->  failwith "Not Implemented"
-            | ThAnd(_,newset1,newset2,justif) -> failwith "Not Implemented"
-            | ThOr(_,newset1,newset2,justif) -> failwith "Not Implemented"
+
+          let thsays hdl = function
+            | ThStraight(_,newset,justif)     -> HubSays(newset,justif),InsertCoin(search (TSet.union set newset) init_map cont)
+
+            | ThAnd(_,newset1,newset2,justif) -> failwith "Not Implemented" 
+
+            | ThOr(_,newset1,newset2,justif)  -> failwith "Not Implemented"
 
         end)
         
-    let consistency atomN = search atomN init_map
+    let consistency atomN = InsertCoin(search atomN init_map (fun a->a))
 
-    let goal_consistency t atomN = search (TSet.add (Term.bC Symbol.Neg [t]) atomN) init_map
+    let goal_consistency t atomN = InsertCoin(search (TSet.add (Term.bC Symbol.Neg [t]) atomN) init_map (fun a->a))
         
   end)
-
-(*     module type InsertCoin = sig *)
-(*       type t *)
-(*       val unsat: int -> TSet.t -> t *)
-(*       val sat  : int -> TSet.t -> t *)
-(*       val write: int -> TSet.t -> t *)
-(*       val read : int -> TSet.t*t *)
-(*       val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t *)
-(*     end *)
-
-
-
-
-(* let rec treat world state buffer:(module InsertCoin with type t = output) = *)
-(*   (module struct *)
-
-(*     type t = output *)
-
-(*     let unsat i tset = Jackpot (Provable tset) *)
-
-(*     let sat i tset = *)
-(*       let newstate = IntMap.add i true state in *)
-(*       let happyNdone =  *)
-(*         (IntMap.for_all (fun _ b -> b) newstate) *)
-(*         && (IntMap.for_all (fun _ -> TSet.is_empty) buffer) *)
-(*       in *)
-(*       if happyNdone then Jackpot (NotProvable tset) *)
-(*       else InsertCoin(treat world newstate buffer) *)
-
-(*     let write i conclusions = *)
-(*       let newbuffer = *)
-(*         IntMap.map (fun buffer_i -> TSet.union conclusions buffer_i) buffer *)
-(*       in *)
-(*       InsertCoin(treat world state newbuffer) *)
-
-(*     let read i = *)
-(*       let newstate = IntMap.add i false state in *)
-(*       let todo = IntMap.find i buffer in *)
-(*       let newbuffer = *)
-(*         IntMap.add i TSet.empty buffer *)
-(*       in *)
-(*       todo,InsertCoin(treat world newstate newbuffer) *)
-
-(*     let gimmeFreshEigen sort = *)
-(*       let neweigen, newworld = World.liftE sort world in *)
-(*       neweigen,InsertCoin(treat newworld state buffer) *)
-
-(*   end) *)
-
-(* let newtreat world = treat world init *)
 

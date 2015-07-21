@@ -11,12 +11,13 @@ end
 module type WhiteBoard = sig
   module DS : GTheoryDSType
   open DS
+  type hubsays = HubSays of TSet.t*(TSet.t->TSet.t)
   module type InsertCoin = sig
     type t
-    val take : 'a Register.t -> ('a,TSet.t) message -> t
-    (* val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t *)
+    val thdone : 'a Register.t -> ('a,TSet.t) thdone -> t
+    val thsays : 'a Register.t -> ('a,TSet.t) thsays -> hubsays*t
   end
-  type answer = private Provable of TSet.t | NotProvable of TSet.t
+  type answer = Provable of TSet.t | NotProvable of TSet.t
   type output = Jackpot of answer | InsertCoin of (module InsertCoin with type t=output)
   val consistency     :           TSet.t -> output
   val goal_consistency: Term.t -> TSet.t -> output

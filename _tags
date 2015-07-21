@@ -41,3 +41,4 @@
 <src/*.{byte,native}>:                use_nums, use_str, use_unix
 <src/*/*.ml{,i,y}>: pkg_lwt
 
+true: annot, bin_annot
