@@ -48,11 +48,3 @@ module GTh2Th
     | WB.Provable a'   -> Guard(a',sigma,fun _ -> NoMore)
 
 end
-
-    (* let goal_consistency t atomN = if TSet.mem t atomN then Provable *)
-    (*   (TSet.add t TSet.empty) else NotProvable atomN *)
-        
-    (* let consistency atomN = TSet.fold (function l -> function | *)
-    (*   Provable set as ans -> ans | _ -> (match goal_consistency *)
-    (*   (Term.bC Symbol.Neg [l]) atomN with | Provable set -> Provable *)
-    (*   (TSet.add l set) | ans -> ans ) ) atomN (NotProvable atomN) *)

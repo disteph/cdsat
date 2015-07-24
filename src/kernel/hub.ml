@@ -117,12 +117,6 @@ let make (type a)(type b)
 
     end
 
-    let init_map =
-      HandlersMap.fold
-        (fun th () -> HandlersMap.add th false)
-        theories
-        HandlersMap.empty
-
     open DS
 
     type answer = Provable of TSet.t | NotProvable of TSet.t
@@ -143,7 +137,7 @@ let make (type a)(type b)
                then HandlersMap.remove (Handlers.Handler hdl) thok
                else failwith "Theories disagree on model")
              l
-             init_map)
+             theories)
         then NotProvable newset
         else failwith "Not all theories have stamped the model"
               

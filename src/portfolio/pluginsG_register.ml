@@ -1,8 +1,8 @@
 (* This is the register of all generic plugins in Psyche *)
 
-open Gplugins
+open PluginsG
 
-let bank:(module Plugin.Type)array= 
+let bank:(module PluginG.Type)array= 
   [|
     (module Naive.MyPlugin);
     (module DPLL_Pat.MyPlugin);

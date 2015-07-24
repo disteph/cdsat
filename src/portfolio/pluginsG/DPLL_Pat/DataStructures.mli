@@ -5,7 +5,7 @@ open Prop
 open Interfaces_theory
 open Formulae
 open Sums
-open Gplugins_tools.SetInterface
+open PluginsG_tools.SetInterface
 
 
 module UASet : sig

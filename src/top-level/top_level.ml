@@ -19,7 +19,7 @@ let init th =
     match !mygplugin with
     | Some a -> a
     | None   -> (Dump.msg (Some(fun p->p "No plugin specified, using DPLL_WL")) None None;
-                 Gplugins_register.bank.(2))
+                 PluginsG_register.bank.(2))
   in
   let module MyPlugin = (val plugin) in
   let module PS = Kernel.Prop.Search.ProofSearch(MyPlugin.DS) in
@@ -60,7 +60,7 @@ let init th =
 	  |Some false,Src.FE.NotProvable _    -> "Expected Unprovable (SAT), got it"
 	  );
 	  Some d
-        with Plugin.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None
+        with PluginG.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None
     in 
     match result with
     | None -> None

@@ -21,8 +21,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
-  include Gplugins_tools.Utils.FEext(FE)
-  module Me = Gplugins_tools.Memoisation.Make(FE)(UFSet)(UASet)
+  include PluginsG_tools.Utils.FEext(FE)
+  module Me = PluginsG_tools.Memoisation.Make(FE)(UFSet)(UASet)
 
   type data       = int
   let initial_data _ _ = 0

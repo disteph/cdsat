@@ -6,9 +6,9 @@ open Prop
 open Interfaces_theory
 open Formulae
 open Interfaces_plugin
-open Gplugins_tools.Addressing
+open PluginsG_tools.Addressing
 
-module DS = Gplugins_tools.ListDS.Generate
+module DS = PluginsG_tools.ListDS.Generate
 
 module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				and  type FSet.ps     = DS.UFSet.t
@@ -16,7 +16,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   open DS
   open FE
-  include Gplugins_tools.Utils.FEext(FE)
+  include PluginsG_tools.Utils.FEext(FE)
     (* The strategy provides the following function solve:
        In case the temporary answers happens to be a final
        answer, then the strategy returns that final answer.
@@ -73,7 +73,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     Format.printf "%a\n%!" print_in_fmtC sigma
 
   let parse_abort = function 
-    | "abort" | "Abort" -> raise (Plugin.PluginAbort "I abort")
+    | "abort" | "Abort" -> raise (PluginG.PluginAbort "I abort")
     | _ -> ()
 
   let rec ask_side () = 

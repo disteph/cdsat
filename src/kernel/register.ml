@@ -1,4 +1,4 @@
 type _ t = 
-| NoTheory: unit t
+| Empty: Empty.Mytheory.sign t
 
-let id (type a) (NoTheory: a t) = 0
+let id (type a) (Empty: a t) = 0

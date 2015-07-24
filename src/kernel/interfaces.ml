@@ -1,17 +1,9 @@
-open Top.Interfaces_basic
 open Top.Messages
 
-module type GTheoryDSType = sig
-  module Term : Top.Specs.Term
-  type formulaF
-  val asF : Term.datatype -> formulaF
-  module TSet : CollectTrusted with type e = Term.t
-end
-
 module type WhiteBoard = sig
-  module DS : GTheoryDSType
+  module DS : Top.Specs.GTheoryDSType
   open DS
-  type answer = Provable of TSet.t | NotProvable of TSet.t
+  type answer = private Provable of TSet.t | NotProvable of TSet.t
   type _ thanswer = ThAns : 'a Register.t * ('a,TSet.t,'b) thsays -> 'b thanswer
   type planswer = 
   | PlProvable    : thProvable thanswer -> planswer

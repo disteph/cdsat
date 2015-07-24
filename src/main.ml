@@ -39,8 +39,8 @@ let options =
 					 -> failwith msg)),"selects theory (among empty, lra)")::
     ("-gplugin",     String(fun s->
 			      mygplugin:=
-				Some(try Gplugins_register.getbyname s
-				     with Gplugins_register.NotFound msg
+				Some(try PluginsG_register.getbyname s
+				     with PluginsG_register.NotFound msg
 					 -> failwith msg)),"selects generic plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
     ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::

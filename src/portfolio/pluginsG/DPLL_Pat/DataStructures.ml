@@ -14,7 +14,7 @@ open Interfaces_theory
 open Formulae
 open Sums
 open SetConstructions
-open Gplugins_tools.SetInterface
+open PluginsG_tools.SetInterface
 
 (* **************************************** *)
 (* Implementation of sets of atoms for DPLL *)
@@ -28,7 +28,7 @@ module UT  = struct
 end
 
 module UASet = struct
-  include Gplugins_tools.Patricia_ext.MyPat(UT)
+  include PluginsG_tools.Patricia_ext.MyPat(UT)
   let negations s = fold (fun k accu -> add (LitF.negation k) accu) s empty
 end
 
@@ -75,7 +75,7 @@ module UFSet = struct
     let keyhash = FormulaF.id
   end
 
-  include Gplugins_tools.Patricia_ext.MyPat(UT)
+  include PluginsG_tools.Patricia_ext.MyPat(UT)
 
   let sous = UT.sub UASet.sub (fun _ _ _ _->Yes()) true
 

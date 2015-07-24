@@ -14,7 +14,7 @@ open Interfaces_theory
 open Formulae
 open Sums
 open SetConstructions
-open Gplugins_tools.SetInterface
+open PluginsG_tools.SetInterface
 
 
 (* **************************************** *)
@@ -30,7 +30,7 @@ end
 
 module UASet = struct
 
-  module AtSet = Gplugins_tools.Patricia_ext.MyPat(UT)
+  module AtSet = PluginsG_tools.Patricia_ext.MyPat(UT)
 
   type e              = LitF.t
   type t              = AtSet.t*(e option)
@@ -116,7 +116,7 @@ module UFSet = struct
     let keyhash = FormulaF.id
   end
 
-  include Gplugins_tools.Patricia_ext.MyPat(UT)
+  include PluginsG_tools.Patricia_ext.MyPat(UT)
 
   let byes j         = j
   let bempty         = None
