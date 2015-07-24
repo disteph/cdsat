@@ -31,6 +31,7 @@ module type CollectTrusted = sig
   include CollectExtra
   val is_empty : t -> bool
   val mem      : e -> t -> bool
+  val equal    : t -> t -> bool
   val subset   : t -> t -> bool
   val next     : t -> e*t
   val fold     : (e -> 'a -> 'a) -> t -> 'a -> 'a

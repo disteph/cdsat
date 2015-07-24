@@ -70,14 +70,15 @@ type b. b dataList -> (module DataType with type t = b) =
   | NoData -> noTheory
   | ConsData(th,l') -> (addTheory th (make_datastruct l'))
 
+
 module Handlers = struct
   type t = Handler: 'a Register.t -> t
-  let id _ = 0
+  let id (Handler hdl) = Register.id hdl
   let compare a b = Pervasives.compare (id a) (id b)
 end
 
 module HandlersMap = Map.Make(Handlers)
-    
+
 (* Now the initialisation of the theory manager, calls the above
    traversal function, and converts its result into the real module that
    we want, of the following module type *)
@@ -124,77 +125,27 @@ let make (type a)(type b)
 
     open DS
 
-    type hubsays = HubSays of TSet.t*(TSet.t->TSet.t)
-
-    module type InsertCoin = sig
-      type t
-      val thdone : 'a Register.t -> ('a,TSet.t) thdone -> t
-      val thsays : 'a Register.t -> ('a,TSet.t) thsays -> hubsays*t
-      (* val gimmeFreshEigen: Sorts.t -> World.FreeVar.t * t *)
-    end
-
     type answer = Provable of TSet.t | NotProvable of TSet.t
-    type output = Jackpot of answer | InsertCoin of (module InsertCoin with type t=output)
 
-    let rec ou v1 v2 success1 success2 seq cont = 
-      let newcont1 = function
-	| Provable seq1    -> cont(success1 seq1)
-	| NotProvable seq1 ->
-	  let newcont2 = function
-	    | Provable seq2  -> cont(success2 seq2)
-	    | NotProvable _  -> cont(NotProvable seq)
-	  in
-	  v2 newcont2
-      in
-      v1 newcont1
+    type _ thanswer = ThAns : 'a Register.t * ('a,TSet.t,'b) thsays -> 'b thanswer
 
-    let rec et v1 v2 success seq cont =
-      let newcont1 = function
-	| Provable seq1 ->
-	  let newcont2 = function
-	    | Provable seq2 -> cont(success seq1 seq2)
-	    | NotProvable _ -> cont(NotProvable seq)
-	  in
-	  v2 newcont2
-	| NotProvable _     -> cont(NotProvable seq)
-      in
-      v1 newcont1
+    type planswer = 
+    | PlProvable    : thProvable thanswer -> planswer
+    | PlNotProvable : TSet.t*(thNotProvable thanswer list) -> planswer
 
-    let rec straight v success seq cont =
-      let newcont = function
-	| Provable seqrec -> cont(success seqrec)
-	| NotProvable _   -> cont(NotProvable seq)
-      in
-      v newcont
-
-
-    let rec search set m cont :(module InsertCoin with type t=output)
-        = (module struct
-
-          type t = output
-
-          let thdone hdl = function
-            | ThProvable(_,newset)    -> cont (Jackpot(Provable newset))
-            | ThNotProvable(_,newset) ->
-              if TSet.subset set newset then 
-                let newmap = HandlersMap.add (Handlers.Handler hdl) true m in
-                if HandlersMap.for_all (fun _ b -> b) newmap
-                then cont(Jackpot(NotProvable set))
-                else InsertCoin(search set newmap cont)
-              else failwith "ThPlugin is trying to cheat" 
-
-          let thsays hdl = function
-            | ThStraight(_,newset,justif)     -> HubSays(newset,justif),InsertCoin(search (TSet.union set newset) init_map cont)
-
-            | ThAnd(_,newset1,newset2,justif) -> failwith "Not Implemented" 
-
-            | ThOr(_,newset1,newset2,justif)  -> failwith "Not Implemented"
-
-        end)
-        
-    let consistency atomN = InsertCoin(search atomN init_map (fun a->a))
-
-    let goal_consistency t atomN = InsertCoin(search (TSet.add (Term.bC Symbol.Neg [t]) atomN) init_map (fun a->a))
-        
+    let check = function
+      | PlProvable(ThAns(_,ThProvable thset)) -> Provable thset
+      | PlNotProvable(newset,l) -> 
+        if HandlersMap.is_empty
+          (List.fold_right
+             (fun (ThAns(hdl,ThNotProvable thset)) thok -> 
+               if TSet.equal newset thset
+               then HandlersMap.remove (Handlers.Handler hdl) thok
+               else failwith "Theories disagree on model")
+             l
+             init_map)
+        then NotProvable newset
+        else failwith "Not all theories have stamped the model"
+              
   end)
 

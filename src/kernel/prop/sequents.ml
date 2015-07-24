@@ -39,6 +39,7 @@ module DblSet(TrustedSet: CollectTrusted)(PluginSet: CollectExtra with type e = 
 
     let is_empty (t,_)         = TrustedSet.is_empty t
     let mem e (t,_)            = TrustedSet.mem e t
+    let equal (t1,_) (t2,_)    = TrustedSet.equal t1 t2
     let subset (t1,_) (t2,_)   = TrustedSet.subset t1 t2
     let print_in_fmt fmt (t,_) = TrustedSet.print_in_fmt fmt t
     let fold f (tt,_)          = TrustedSet.fold f tt

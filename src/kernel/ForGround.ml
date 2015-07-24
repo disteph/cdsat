@@ -4,8 +4,8 @@
 
 open Format
 
-open Kernel.Interfaces
-open Kernel.Prop.Interfaces_theory
+open Interfaces
+open Prop.Interfaces_theory
 
 (* Basic module for constraints, for ground theories *)
 
@@ -28,7 +28,7 @@ Cannot treat sequents with meta-variables, obviously *)
 module GTh2Th
   (WB: WhiteBoard)
   (MDP: sig
-    val solve : WB.output -> WB.answer
+    val solve : WB.DS.TSet.t -> WB.answer
   end) 
   : DecProc with type DS.formulaF = WB.DS.formulaF = struct
 
@@ -39,11 +39,11 @@ module GTh2Th
 
   open DS
 
-  let consistency a sigma = match MDP.solve(WB.consistency a) with
+  let consistency a sigma = match MDP.solve a with
     | WB.NotProvable _ -> NoMore
     | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
 
-  let goal_consistency t a sigma = match MDP.solve(WB.goal_consistency t a) with
+  let goal_consistency t a sigma = match MDP.solve a with
     | WB.NotProvable _ -> NoMore
     | WB.Provable a'   -> Guard(a',sigma,fun _ -> NoMore)
 

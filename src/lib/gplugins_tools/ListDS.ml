@@ -18,10 +18,7 @@ module type PrintableType = sig
   val print_in_fmt: formatter -> t -> unit
 end
 
-module MyCollectImplem (MyPType:PrintableType)
-  : (CollectTrusted with type e = MyPType.t
-                    and  type t = MyPType.t list) =
-struct
+module MyCollectImplem (MyPType:PrintableType) = struct
   type e = MyPType.t
   type t = e list
   let is_empty = function 
