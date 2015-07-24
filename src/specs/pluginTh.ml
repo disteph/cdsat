@@ -1,7 +1,7 @@
 open Kernel
 open Top.Messages
 open Interfaces
-open Hub
+open Combo
 
 type 'tset eat_this = EatThis: ('a,'tset,thStraight) thsays -> 'tset eat_this
 

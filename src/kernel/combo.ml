@@ -8,6 +8,7 @@ open Top
 open Basic
 open Interfaces_basic
 open Messages
+open Register
 
 open Prop.Formulae
 
@@ -70,15 +71,6 @@ type b. b dataList -> (module DataType with type t = b) =
   | NoData -> noTheory
   | ConsData(th,l') -> (addTheory th (make_datastruct l'))
 
-
-module Handlers = struct
-  type t = Handler: 'a Register.t -> t
-  let id (Handler hdl) = Register.id hdl
-  let compare a b = Pervasives.compare (id a) (id b)
-end
-
-module HandlersMap = Map.Make(Handlers)
-
 (* Now the initialisation of the theory manager, calls the above
    traversal function, and converts its result into the real module that
    we want, of the following module type *)
@@ -121,7 +113,7 @@ let make (type a)(type b)
 
     type answer = Provable of TSet.t | NotProvable of TSet.t
 
-    type _ thanswer = ThAns : 'a Register.t * ('a,TSet.t,'b) thsays -> 'b thanswer
+    type _ thanswer = ThAns : 'a Sig.t * ('a,TSet.t,'b) thsays -> 'b thanswer
 
     type planswer = 
     | PlProvable    : thProvable thanswer -> planswer

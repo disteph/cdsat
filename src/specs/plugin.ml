@@ -1,10 +1,10 @@
 open Kernel
 open Top.Messages
 open Interfaces
-open Hub
+open Combo
 
 module type Type = sig
-    
+
   type agglodata
   val datalist : agglodata dataList
 

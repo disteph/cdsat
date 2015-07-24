@@ -7,10 +7,10 @@ let bank:(module Parser.Type)array=
     (module DIMACS);
   |]
 
-module StringMaps = Map.Make(String)
-open StringMaps
+(* module StringMaps = Map.Make(String) *)
+(* open StringMaps *)
 
-let getbyname = 
-  let aux = ref empty in
-    aux:= add "smtlib2"  bank.(0) !aux;
-    !aux
+(* let get =  *)
+(*   let aux = ref empty in *)
+(*     aux:= add "smtlib2"  bank.(0) !aux; *)
+(*     !aux *)

@@ -32,16 +32,12 @@ open Top_level
 
 (* Deals with command line arguments *)
 let options =
-  ("-theory",        String(fun s->
-			      mytheory:=
-				Some(try Theories_register.getbyname s
-				     with Theories_register.NotFound msg
-					 -> failwith msg)),"selects theory (among empty, lra)")::
-    ("-gplugin",     String(fun s->
-			      mygplugin:=
-				Some(try PluginsG_register.getbyname s
-				     with PluginsG_register.NotFound msg
-					 -> failwith msg)),"selects generic plugin (among naive, hint, dpll_pat, dpll_wl)")::
+  ("-no",            String(fun s-> 
+                                   match !notheories with
+                                   | None   -> notheories:= Some [s]
+                                   | Some l -> notheories:= Some(s::l)), "XXX forbids theory XXX")::
+    ("-alltheories", Unit(fun ()-> notheories:= Some []), "forces all theories to be used (regardless of parsed input)")::
+    ("-pluginG",     String(fun s-> mypluginG:= s),   "XXX selects XXX as general plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
     ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
     ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::

@@ -122,8 +122,8 @@ let glance input =
 	  
 let guessThDecProc(theory,_,_,_,_) =  
   match theory with
-    | None   -> ""
-    | Some a -> a
+    | None   -> None
+    | Some a -> Some [a]
 
 let rec list_index a accu = function
   | [] -> None

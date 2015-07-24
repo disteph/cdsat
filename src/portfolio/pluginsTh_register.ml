@@ -12,6 +12,8 @@ let bank (type a) (ds:(module GTheoryDSType with type TSet.t = a))
 
 exception NotFound of string
 
-let getbyname = function
+let parse = function
   | _ -> 0
   (* | s -> raise (NotFound ("Generic plugin "^s^" does not exist; see -help")) *)
+
+let get s ds = (bank ds).(parse s)

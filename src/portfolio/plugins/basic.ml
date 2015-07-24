@@ -1,14 +1,20 @@
 open Kernel
 open Top
-open Hub
+open Register
+open Combo
 open PluginTh
-open PluginsTh_register
 
-type agglodata = unit
-let datalist = NoData
+let make (theories: unit HandlersMap.t)
+    :(module Plugin.Type) =
 
-module Strategy(WB: Interfaces.WhiteBoard)
-  = struct
-    let solve tset = WB.check(WB.PlNotProvable(tset,[]))
-  end
+  (module struct
 
+    type agglodata = unit
+    let datalist = NoData
+
+    module Strategy(WB: Interfaces.WhiteBoard)
+      = struct
+        let solve tset = WB.check(WB.PlNotProvable(tset,[]))
+      end
+
+  end)

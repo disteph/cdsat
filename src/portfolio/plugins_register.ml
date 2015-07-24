@@ -2,13 +2,15 @@
 
 open Plugins
 
-let bank:(module Plugin.Type)array= 
+let bank theories :(module Plugin.Type)array= 
   [|
-    (module Basic);
+    Basic.make theories;
   |]
 
 exception NotFound of string
 
-let getbyname = function
-  | _ -> bank.(0)
+let parse = function
+  | _ -> 0
   (* | s -> raise (NotFound ("Plugin "^s^" does not exist; see -help")) *)
+
+let get s theories = (bank theories).(parse s)

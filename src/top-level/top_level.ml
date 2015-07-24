@@ -3,39 +3,41 @@
 (************************************)
 
 open General.Sums
-
-(* Variables containing the Theory+DecProc (resp. generic plugin)
-forced by the user (from command-line) *)
-
-let mytheory  = ref None 
-let mygplugin = ref None
+open Kernel
 
 (* guessThPlug guesses the pair Theory+DecProc + Plugin, taking into
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
 let init th =
-  let plugin =
-    match !mygplugin with
-    | Some a -> a
-    | None   -> (Dump.msg (Some(fun p->p "No plugin specified, using DPLL_WL")) None None;
-                 PluginsG_register.bank.(2))
+  let theories =
+    match !Flags.notheories,th with
+    | Some l,_    -> Register.get_no l
+    | None,Some l -> Register.get l
+    | None,None   -> Register.get_no []
   in
-  let module MyPlugin = (val plugin) in
-  let module PS = Kernel.Prop.Search.ProofSearch(MyPlugin.DS) in
-  let propds = (module PS.Semantic: Kernel.Top.Specs.Semantic with type t = PS.Semantic.t) in
-  let theory = 
-    match !mytheory with
-      | Some a -> a
-      | None ->
-        try Theories_register.getbyname th
-        with Theories_register.NotFound _ 
-	    -> (Dump.msg (Some(fun p->p "Could not find theory %s in the theory signatures register, using Empty(Propositional)" th)) None None;
-		0)
+
+  let mypluginG = PluginsG_register.get !Flags.mypluginG in
+  let module MyPluginG = (val mypluginG) in
+
+  let myplugin = Plugins_register.get !Flags.myplugin theories in
+  let module MyPlugin = (val myplugin) in
+
+  let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
+  let propds = (module PS.Semantic: Top.Specs.Semantic with type t = PS.Semantic.t) in
+
+  let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulaF = PS.Semantic.t)
+      = if !Flags.mode
+        then
+          let module WB = (val Combo.make propds theories MyPlugin.datalist) in
+          (module ForGround.GTh2Th(WB)(MyPlugin.Strategy(WB)))
+        else (* FirstOrder.make propds; *)
+          failwith "First-Order not working at the minute, please try again in 6 months"
   in
-  let module MyTheory = (val (Theories_register.bank propds).(theory)) in
-  let module Src   = PS.Make(MyTheory) in
-  let module Strat = MyPlugin.Strategy(Src.FE) in
+  let module Mode  = (val mode) in
+
+  let module Src   = PS.Make(Mode) in
+  let module Strat = MyPluginG.Strategy(Src.FE) in
   let go f stringOrunit =
     let result = match f with 
       | None,_                                   -> print_endline("No formula to treat");None 
@@ -44,11 +46,11 @@ let init th =
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
       | Some parsed,c    ->
 	try 
-          let formula = Kernel.Prop.ForParsing.toForm parsed in
+          let formula = Prop.ForParsing.toForm parsed in
 	  let d =
 	    Dump.msg 
               (Some(fun p->p "I am now starting: %t" 
-                (if !Flags.printrhs then fun fmt -> Kernel.Prop.Formulae.FormulaB.print_in_fmt fmt formula else fun fmt -> ())))
+                (if !Flags.printrhs then fun fmt -> Prop.Formulae.FormulaB.print_in_fmt fmt formula else fun fmt -> ())))
               None None;
 	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
@@ -78,12 +80,11 @@ let parseNrun input =
       begin
 	try 
           let aft = MyParser.glance input in
-	  let th = MyParser.guessThDecProc aft in
-          let go = init th in
+          let go = init (MyParser.guessThDecProc aft) in
           let open Typing in
-	  let inter = (module ForParser(Kernel.Prop.ForParsing):InterpretType with type t = Kernel.Top.Sorts.t -> Kernel.Prop.ForParsing.t) in
+	  let inter = (module ForParser(Prop.ForParsing):InterpretType with type t = Top.Sorts.t -> Prop.ForParsing.t) in
           let pair = match MyParser.parse aft inter with
-            | Some parsable, b -> Some(parsable Kernel.Top.Sorts.Prop),b
+            | Some parsable, b -> Some(parsable Top.Sorts.Prop),b
             | None, b -> None, b
           in
           Dump.msg (Some (fun p->p "Successfully parsed by %s parser." MyParser.name)) None None;

@@ -55,7 +55,7 @@ type afterglance = ((bool*string) list) list
 let glance contents = 
   parse_cnf_file(list_from_string contents [] 0)
 
-let guessThDecProc _ = "empty"
+let guessThDecProc _ = Some ["empty"]
 
 let parse (type t) l i = 
 
