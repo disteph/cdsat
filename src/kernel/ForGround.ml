@@ -27,13 +27,18 @@ Cannot treat sequents with meta-variables, obviously *)
 
 module GTh2Th
   (WB: WhiteBoard)
+  (PProj: sig 
+    type formulae
+    val asF: WB.DS.Term.datatype -> formulae
+  end)
   (MDP: sig
     val solve : WB.DS.TSet.t -> WB.answer
   end) 
-  : DecProc with type DS.formulaF = WB.DS.formulaF = struct
+  : DecProc with type DS.formulae = PProj.formulae = struct
 
   module DS = struct
     include WB.DS
+    include PProj
     module Constraint = EmptyConstraint
   end
 

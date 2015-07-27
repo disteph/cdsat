@@ -60,47 +60,46 @@ let addTheory (type a)(type b)
   let module I = (val i) in
   (module Pairing(Sem)(I))
 
-
 type _ dataList =
 | NoData : unit dataList
 | ConsData: (module Specs.Semantic with type t = 'a) * 'b dataList -> ('a*'b) dataList
 
+type (-_,_) projList =
+| NoProj : (_,unit) projList
+| ConsProj: ('t -> 'a) * ('t,'b) projList -> ('t,'a*'b) projList
+
 let rec make_datastruct:
-type b. b dataList -> (module DataType with type t = b) = 
-  function
-  | NoData -> noTheory
-  | ConsData(th,l') -> (addTheory th (make_datastruct l'))
+type a b. a dataList -> (module DataType with type t = a) * ((b -> a) -> (b,a) projList) 
+  = function
+  | NoData          -> noTheory, fun _ -> NoProj
+  | ConsData(th,l') -> let i, make_pl = make_datastruct l' in
+                       addTheory th i, fun f -> ConsProj((fun x -> fst(f x)),make_pl (fun x -> snd(f x)))
 
 (* Now the initialisation of the theory manager, calls the above
    traversal function, and converts its result into the real module that
    we want, of the following module type *)
     
-let make (type a)(type b) 
-    (propds:(module Specs.Semantic with type t = a))
+let make (type a)
     (theories: unit HandlersMap.t)
-    (l: b dataList)
-    : (module Interfaces.WhiteBoard with type DS.formulaF = a and type DS.Term.datatype = a*b) =
+    (l: a dataList)
+    : (module Interfaces.WhiteBoard with type DS.Term.datatype = a)
+    * (a,a) projList
+    =
 
   (* First we do the traversal *)
 
-  let module M = (val make_datastruct l) in
-  let module PropDS = (val propds) in
-  let module Sem = Semantic2DataType(PropDS) in
+  let dt,pl = make_datastruct l in
+  let module DT = (val dt) in
 
   (module struct
 
     module DS = struct
 
-      module Builder = Pairing(Sem)(M)
-
-      module Term = Terms.Make(IntSort)(Builder)
-
-      type formulaF = PropDS.t
-      let asF = fst
+      module Term = Terms.Make(IntSort)(DT)
 
       module TSet = Prop.Sequents.MakeCollectTrusted(
         struct
-          type t       = Builder.t term
+          type t       = DT.t term
           let id       = Terms.id
           let compare  = Terms.compare
           let clear    = Term.clear
@@ -113,11 +112,9 @@ let make (type a)(type b)
 
     type answer = Provable of TSet.t | NotProvable of TSet.t
 
-    type _ thanswer = ThAns : 'a Sig.t * ('a,TSet.t,'b) thsays -> 'b thanswer
-
     type planswer = 
-    | PlProvable    : thProvable thanswer -> planswer
-    | PlNotProvable : TSet.t*(thNotProvable thanswer list) -> planswer
+    | PlProvable    : (TSet.t,thProvable) thanswer -> planswer
+    | PlNotProvable : TSet.t*((TSet.t,thNotProvable) thanswer list) -> planswer
 
     let check = function
       | PlProvable(ThAns(_,ThProvable thset)) -> Provable thset
@@ -133,5 +130,6 @@ let make (type a)(type b)
         then NotProvable newset
         else failwith "Not all theories have stamped the model"
               
-  end)
+  end),
+  pl (fun x -> x)
 

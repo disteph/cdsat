@@ -5,10 +5,9 @@ module type WhiteBoard = sig
   module DS : Top.Specs.GTheoryDSType
   open DS
   type answer = private Provable of TSet.t | NotProvable of TSet.t
-  type _ thanswer = ThAns : 'a Sig.t * ('a,TSet.t,'b) thsays -> 'b thanswer
   type planswer = 
-  | PlProvable    : thProvable thanswer -> planswer
-  | PlNotProvable : TSet.t*(thNotProvable thanswer list) -> planswer
+  | PlProvable    : (TSet.t,thProvable) thanswer -> planswer
+  | PlNotProvable : TSet.t*((TSet.t,thNotProvable) thanswer list) -> planswer
   val check : planswer -> answer
 end
 

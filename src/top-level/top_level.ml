@@ -26,11 +26,17 @@ let init th =
   let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
   let propds = (module PS.Semantic: Top.Specs.Semantic with type t = PS.Semantic.t) in
 
-  let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulaF = PS.Semantic.t)
+  let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
       = if !Flags.mode
         then
-          let module WB = (val Combo.make propds theories MyPlugin.datalist) in
-          (module ForGround.GTh2Th(WB)(MyPlugin.Strategy(WB)))
+          let datalistWprop = Combo.ConsData(propds,MyPlugin.dataList) in
+          let wb,Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
+          let module WB = (val wb) in
+          let module Res = ForGround.GTh2Th(WB)
+                (struct type formulae = PS.Semantic.t let asF = asForm end)
+                (MyPlugin.Strategy(struct include WB let projList = projlist end))
+          in
+          (module Res)
         else (* FirstOrder.make propds; *)
           failwith "First-Order not working at the minute, please try again in 6 months"
   in
@@ -38,7 +44,7 @@ let init th =
 
   let module Src   = PS.Make(Mode) in
   let module Strat = MyPluginG.Strategy(Src.FE) in
-  let go f stringOrunit =
+  fun f stringOrunit ->
     let result = match f with 
       | None,_                                   -> print_endline("No formula to treat");None 
       | Some _,None       when !Flags.skipunknown-> print_endline("Skipping problem with no expectation");None
@@ -55,11 +61,11 @@ let init th =
 	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
 	  print_endline(match c,d with
-	  |None ,_                 -> "Nothing expected"
-	  |Some true, Src.FE.Provable _ -> "Expected Provable (UNSAT), got it"
-	  |Some true, Src.FE.NotProvable _    -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
-	  |Some false,Src.FE.Provable _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
-	  |Some false,Src.FE.NotProvable _    -> "Expected Unprovable (SAT), got it"
+	  |None ,_                         -> "Nothing expected"
+	  |Some true, Src.FE.Provable _    -> "Expected Provable (UNSAT), got it"
+	  |Some true, Src.FE.NotProvable _ -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
+	  |Some false,Src.FE.Provable _    -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
+	  |Some false,Src.FE.NotProvable _ -> "Expected Unprovable (SAT), got it"
 	  );
 	  Some d
         with PluginG.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None
@@ -68,7 +74,6 @@ let init th =
     | None -> None
     | Some r when stringOrunit-> Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
     | Some r                  -> Some(F())
-  in go
 
 
 (* Now we run on a particular input, trying out various parsers *)
@@ -80,7 +85,6 @@ let parseNrun input =
       begin
 	try 
           let aft = MyParser.glance input in
-          let go = init (MyParser.guessThDecProc aft) in
           let open Typing in
 	  let inter = (module ForParser(Prop.ForParsing):InterpretType with type t = Top.Sorts.t -> Prop.ForParsing.t) in
           let pair = match MyParser.parse aft inter with
@@ -88,7 +92,7 @@ let parseNrun input =
             | None, b -> None, b
           in
           Dump.msg (Some (fun p->p "Successfully parsed by %s parser." MyParser.name)) None None;
-	  go pair
+	  init (MyParser.guessThDecProc aft) pair
 	with Parser.ParsingError s | Typing.TypingError s ->
           if !Flags.debug>0 
           then Dump.msg (Some (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s)) None None;

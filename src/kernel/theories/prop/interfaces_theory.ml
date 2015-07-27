@@ -27,10 +27,9 @@ end
 (* DataStructures that Theory must provide for Kernel *)
 
 module type TheoryDSType = sig
-  module Term : Specs.Term
-  type formulaF
-  val asF : Term.datatype -> formulaF
-  module TSet : CollectTrusted with type e = Term.t
+  include Specs.GTheoryDSType
+  type formulae
+  val asF: Term.datatype -> formulae
   module Constraint: ConstraintType
 end
 

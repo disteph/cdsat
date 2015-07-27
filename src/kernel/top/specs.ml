@@ -49,7 +49,5 @@ module type Term = Terms.S with type leaf := IntSort.t
 
 module type GTheoryDSType = sig
   module Term : Term
-  type formulaF
-  val asF : Term.datatype -> formulaF
   module TSet : CollectTrusted with type e = Term.t
 end

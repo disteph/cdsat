@@ -2,18 +2,21 @@
 
 open Kernel.Top.Specs
 open PluginsTh
+open Kernel.Register
 
-let bank (type a) (ds:(module GTheoryDSType with type TSet.t = a))
-    :(module PluginTh.Type with type tset = a) array= 
-  let module DS = (val ds) in
+let bank :(module PluginTh.Type) array= 
   [|
-    (module Empty_pl1.Make(DS));
+    (module Empty_pl1);
   |]
-
+    
 exception NotFound of string
 
 let parse = function
   | _ -> 0
   (* | s -> raise (NotFound ("Generic plugin "^s^" does not exist; see -help")) *)
 
-let get s ds = (bank ds).(parse s)
+let get s = bank.(parse s)
+
+let get_default : type a. a Sig.t -> (module PluginTh.Type)
+  = function
+  | Sig.Empty -> bank.(0)

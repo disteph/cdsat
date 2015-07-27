@@ -1,10 +1,10 @@
 (* This is the register of all generic plugins in Psyche *)
-
+open Kernel.Register
 open Plugins
 
-let bank theories :(module Plugin.Type)array= 
+let bank: ((unit HandlersMap.t)->(module Plugin.Type)) array= 
   [|
-    Basic.make theories;
+    Basic.make;
   |]
 
 exception NotFound of string
@@ -13,4 +13,4 @@ let parse = function
   | _ -> 0
   (* | s -> raise (NotFound ("Plugin "^s^" does not exist; see -help")) *)
 
-let get s theories = (bank theories).(parse s)
+let get s = bank.(parse s)

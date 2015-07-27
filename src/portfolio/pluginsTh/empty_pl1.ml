@@ -2,24 +2,30 @@ open Kernel
 open Top
 open Specs
 open Messages
+open Register
+open Types
+
 open Empty
-open PluginTh
 
-module Make(DS: GTheoryDSType) = struct 
+module ThDS = struct
+  type t = unit 
+  let semantic _ = None
+  let leaf _ = ()
+end
 
-  type sign = Mytheory.sign
-  type tset = DS.TSet.t
-  type slot_machine = SM:
-    (sign,tset,'msg) thsays option
-    *(tset eat_this option -> slot_machine)
-    -> slot_machine
+module Make(DS: sig 
+  include GTheoryDSType
+  val proj: Term.datatype -> ThDS.t
+end) = struct 
 
   module MyEmpty = Mytheory.Make(DS)
 
+  let sign msg = ThAns(Sig.Empty,msg)
+
   let rec search tset = match MyEmpty.consistency tset with
-    | MyEmpty.L(msg) -> SM(Some msg, fun _ -> failwith "Are you dumb? I already told you it was provable")
-    | MyEmpty.R(msg) -> SM(Some msg, function
+    | MyEmpty.L(msg) -> SM(Some(sign msg), fun _ -> failwith "Are you dumb? I already told you it was provable")
+    | MyEmpty.R(msg) -> SM(Some(sign msg), function
       | None -> search tset
-      | Some (EatThis(ThStraight(newtset,f))) -> search (DS.TSet.union newtset tset))
+      | Some (ThAns(_,ThStraight(newtset,f))) -> search (DS.TSet.union newtset tset))
 
 end

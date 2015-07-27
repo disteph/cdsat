@@ -58,7 +58,7 @@ module Make(PlDS: PlugDSType) = struct
 
   module Semantic = FormulaF.Make(PlDS.UF)
     
-  module FrontEnd(DS: TheoryDSType with type formulaF = PlDS.UF.t FormulaF.generic) = struct
+  module FrontEnd(DS: TheoryDSType with type formulae = PlDS.UF.t FormulaF.generic) = struct
 
     (* val makes_sense: IAtom.t -> World.t -> bool *)
 

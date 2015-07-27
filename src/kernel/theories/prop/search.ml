@@ -10,7 +10,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
   include Sequents.Make(PlDS)
 
-  module Make(MyTheory: DecProc with type DS.formulaF = PlDS.UF.t FormulaF.generic) = (struct
+  module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic) = (struct
 
     open MyTheory
     open DS
