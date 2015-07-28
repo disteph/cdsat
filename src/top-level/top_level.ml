@@ -85,7 +85,7 @@ let parseNrun input =
       begin
 	try 
           let aft = MyParser.glance input in
-          let open Typing in
+          let open Kernel.Typing in
 	  let inter = (module ForParser(Prop.ForParsing):InterpretType with type t = Top.Sorts.t -> Prop.ForParsing.t) in
           let pair = match MyParser.parse aft inter with
             | Some parsable, b -> Some(parsable Top.Sorts.Prop),b
@@ -93,7 +93,7 @@ let parseNrun input =
           in
           Dump.msg (Some (fun p->p "Successfully parsed by %s parser." MyParser.name)) None None;
 	  init (MyParser.guessThDecProc aft) pair
-	with Parser.ParsingError s | Typing.TypingError s ->
+	with Parser.ParsingError s | Kernel.Typing.TypingError s ->
           if !Flags.debug>0 
           then Dump.msg (Some (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s)) None None;
           trying (i+1)

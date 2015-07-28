@@ -1,6 +1,6 @@
-open Kernel.Top
-open Kernel.Prop.Formulae
-open General.Multiary
+open Top
+open Multiary
+open Prop.Formulae
 
 module type InterpretType = sig
   type t

@@ -3,6 +3,7 @@
 (***********************************************)
 
 open Format
+open Multiary
 
 type t =
 
@@ -36,12 +37,15 @@ let arity = function
   (* | _        -> raise (Match_failure("Could not find connective ",0,0)) *)
 
 
-  (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
-let multiary _ = None
+(* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
+let multiary = function
+  | And         -> Some r_assoc
+  | Or          -> Some r_assoc
+  | _ -> None
 
 (* Some General.Multiary.r_assoc *)
 (* let multiary = function *)
-  (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
+(*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
 
 let print_in_fmt fmt  = function
   | User(f,ar)  -> fprintf fmt "\\mbox{\\small %s}" f

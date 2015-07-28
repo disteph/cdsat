@@ -3,10 +3,11 @@ open Interfaces_basic
 open Interfaces_theory
 open Formulae
 open Interfaces_plugin
+open Messages
+
+type sign = unit
 
 module ProofSearch(PlDS: PlugDSType) = struct
-
-  let names = ["prop";"empty"]
 
   include Sequents.Make(PlDS)
 
@@ -18,6 +19,25 @@ module ProofSearch(PlDS: PlugDSType) = struct
     (* Loads the FrontEnd *)
     module FE = FrontEnd(DS)
     open FE
+
+    type final = 
+    | L of (sign,ASet.t,thProvable) thsays
+    | R of (sign,ASet.t,thNotProvable) thsays
+
+    let mygoal_consistency t atomN =
+      if ASet.mem t atomN
+      then L(thProvable () (ASet.add t ASet.empty))
+      else R(thNotProvable () atomN)
+
+    let myconsistency atomN = ASet.fold
+      (function l -> function
+      | L(ThProvable set) as ans -> ans
+      | _ -> (match mygoal_consistency (LitF.negation l) atomN with
+        | L(ThProvable set) -> L(thProvable () (ASet.add l set))
+        | ans -> ans ))
+      atomN
+      (R(thNotProvable () atomN))
+
     
     (* Chooses whether, when faking failure, the natural
        behaviour is to go right (true) or left (false) *)
@@ -262,17 +282,21 @@ module ProofSearch(PlDS: PlugDSType) = struct
             Dump.Kernel.toTheory();
             let oracle = f sigma in
             Dump.Kernel.fromTheory();
+            (* let myset = ASet.add (LitF.negation t) atomN in *)
+            let b = match mygoal_consistency t atomN with
+              | L _ -> true
+              | R _ -> false
+            in
             cont(throw(
               match oracle with
-	      | NoMore             -> fail seq (pythie f)
-	      | Guard(a,sigma',f') -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::[]))),sigma',
+	      | NoMore             when not b -> fail seq (pythie f)
+	      | Guard(a,sigma',f') when b
+                -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::[]))),sigma',
                                               fun b -> if b then pythie f' else pythie f)
+              | _ -> failwith "NOOO"
             ))
 	  in
-          let (b,a) = LitF.reveal t in
-          let atomterm = Term.bV a in
-          let litterm = if b then atomterm else Term.bC Symbol.Neg [atomterm] in
-          pythie (goal_consistency litterm (asTSet atomN)) sigma cont
+          pythie (goal_consistency (litF_as_term t) (asTSet atomN)) sigma cont
 
 	| _ -> failwith "All cases should have been covered!"
 	end
@@ -396,22 +420,8 @@ module ProofSearch(PlDS: PlugDSType) = struct
                   let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
                   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
 
-		(* | ACut(toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (\*atomic_cut*\) *)
-		(*   ->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed"); *)
                 (*     (\* if not (DS.makes_sense toCut ar) *\) *)
                 (*     (\* then raise (WrongInstructionException (Dump.toString(fun p-> p "Cut atom %a is not a prefix of current arity" IAtom.print_in_fmt toCut))); *\) *)
-                (*     let negtoCut = IAtom.negation toCut in *)
-		(*     Dump.Kernel.incr_count 5; *)
-                (*     let u1 = lk_solve  *)
-                (*       (ASet.mem toCut atomN) *)
-                (*       (Seq.EntUF (ASet.add toCut atomN,FSet.empty, formP, formPSaved, Pol.declarePos polar toCut,ar))  *)
-                (*       (bleft newdata1) in *)
-                (*     let u2 = lk_solve  *)
-                (*       (ASet.mem negtoCut atomN) *)
-                (*       (Seq.EntUF (ASet.add negtoCut atomN, FSet.empty, formP, formPSaved, Pol.declarePos polar negtoCut,ar))  *)
-                (*       (bright newdata1) in *)
-                (*     let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in *)
-                (*     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont *)
 
 	      | ConsistencyCheck(newdata,inter_fun,l) when not conschecked (*Checking consistency*)
 		  ->
@@ -419,11 +429,16 @@ module ProofSearch(PlDS: PlugDSType) = struct
                   Dump.Kernel.toTheory();
                   let oracle = f sigma in
                   Dump.Kernel.fromTheory();
+                  let b = match myconsistency atomN with
+                    | L _ -> true
+                    | R _ -> false
+                  in
                   cont(throw(
                     match oracle with
-	            | NoMore             -> fail seq (pythie f)
-	            | Guard(a,sigma',f') -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::FSet.empty::[]))),sigma',
+	            | NoMore  when not b     -> fail seq (pythie f)
+	            | Guard(a,sigma',f') when b -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::FSet.empty::[]))),sigma',
                                                     fun b -> if b then pythie f' else pythie f)
+                    | _ -> failwith "NOOOOO"
                   ))
                 in
                 let u2 = lk_solvef formPChoose true formP formPSaved l newdata in

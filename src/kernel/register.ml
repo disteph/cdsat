@@ -25,7 +25,7 @@ let all_theories = List.fold_right (fun hdl -> HandlersMap.add hdl ()) all_theor
 exception NotFound of string
 
 let parse = function
-  | "prop" | "bool"  -> Handlers.Handler Sig.Empty
+  | "empty" | "prop" | "bool"  -> Handlers.Handler Sig.Empty
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold_right (fun name -> HandlersMap.remove (parse name)) l all_theories

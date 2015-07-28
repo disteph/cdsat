@@ -1,7 +1,7 @@
 (********************************************************)
 (* Specifications and tools for theory-specific parsing *)
 (********************************************************)
-open Kernel.Top
+open Top
 open Basic
 
 (* Type of functions used to type-check and interpret an untyped AST.

@@ -100,9 +100,22 @@ module Make(PlDS: PlugDSType) = struct
       | ForAllB(so,f)  -> IForm.forall(so,f,d)
       | ExistsB(so,f)  -> IForm.exists(so,f,d)
 
+    let litF_as_term e =
+      let b,is = LitF.reveal e in
+      let atom = Term.bV is in
+      if b then atom else Term.bC Symbol.Neg [atom]
 
-    let asTSet: ASet.t -> TSet.t = failwith "TODO"
-    let asASet: TSet.t -> ASet.t = failwith "TODO"
+    let asTSet (aset: ASet.t) : TSet.t = 
+      ASet.fold (fun e -> TSet.add (litF_as_term e)) aset TSet.empty
+
+    let asASet (tset: TSet.t) : ASet.t =
+      TSet.fold
+        (fun e aset ->
+          match FormulaF.reveal(asF(Terms.data e)) with
+          | Lit l -> ASet.add l aset
+          | _ -> aset)
+        tset
+        ASet.empty
 
     (* Module of Polarities *)
 

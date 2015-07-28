@@ -132,7 +132,7 @@ let rec list_index a accu = function
 
 let parse (type t) (theory,satprov,status,declared,formulalist) i = 
 
-  let module I = (val i: Typing.InterpretType with type t=t) in
+  let module I = (val i: Kernel.Typing.InterpretType with type t=t) in
   
   let rec transformTermBase env boundvarlist s l =
     match list_index s 0 boundvarlist,l with

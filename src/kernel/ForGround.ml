@@ -44,12 +44,18 @@ module GTh2Th
 
   open DS
 
-  let consistency a sigma = match MDP.solve a with
-    | WB.NotProvable _ -> NoMore
-    | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
+  let consistency a sigma =
+    (* print_endline(Dump.stringOf TSet.print_in_fmt a); *)
+    match MDP.solve a with
+    | WB.NotProvable _ -> (* print_endline "Cons"; *) NoMore
+    | WB.Provable b    -> (* print_endline ("Prov"^Dump.stringOf TSet.print_in_fmt b); *) Guard(b,sigma,fun _ -> NoMore)
 
-  let goal_consistency t a sigma = match MDP.solve a with
-    | WB.NotProvable _ -> NoMore
-    | WB.Provable a'   -> Guard(a',sigma,fun _ -> NoMore)
+  let goal_consistency t a sigma =
+    (* print_endline("Goal "^Dump.stringOf TSet.print_in_fmt a); *)
+    let nont = DS.Term.bC Top.Symbol.Neg [t] in
+    match MDP.solve (TSet.add nont a) with
+    | WB.NotProvable _ -> (* print_endline "Cons"; *) NoMore
+    | WB.Provable a'   -> (* print_endline ("Prov"^Dump.stringOf TSet.print_in_fmt a'); *)
+      Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)
 
 end

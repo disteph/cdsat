@@ -10,8 +10,7 @@ module type GetPlugins = sig
   val make :
     (module Specs.GTheoryDSType with type Term.datatype = 't and type TSet.t = 'ts)
     -> ('t,agglo) projList
-    -> 'ts
-    -> 'ts slot_machine HandlersMap.t
+    -> ('ts -> 'ts slot_machine) HandlersMap.t
 end
 
 let make theories : (module GetPlugins) =
@@ -22,15 +21,15 @@ let make theories : (module GetPlugins) =
        (module struct
          type agglo = PluginTh.ThDS.t * GP.agglo
          let dataList = ConsData((module PluginTh.ThDS),GP.dataList)
-         let make (type t)(type ts) ds (ConsProj(g,projlist)) tset =
+         let make (type t)(type ts) ds (ConsProj(g,projlist)) =
            let module DS = (val ds: Specs.GTheoryDSType with type Term.datatype = t and type TSet.t = ts) in
            let module S = PluginTh.Make(struct include DS let proj = g end) in
-           HandlersMap.add hdl (S.search tset) (GP.make ds projlist tset)
+           HandlersMap.add hdl S.search (GP.make ds projlist)
        end: GetPlugins)
     )
     theories
     (module struct 
       type agglo = unit
       let dataList = NoData
-      let make _ NoProj _ = HandlersMap.empty
+      let make _ NoProj = HandlersMap.empty
     end:GetPlugins)

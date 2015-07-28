@@ -29,7 +29,7 @@ module IntSort
     let compare a b = Pervasives.compare (id a)(id b)
     let print_in_fmt fmt t =
       let (fv,b,so) = t.reveal in
-      if fv>=0 then Format.fprintf fmt "%s{%i}^{%a}" (if b then "" else "\\underline") fv Sorts.print_in_fmt so
+      if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "" (* \\underline *)) fv (* Sorts.print_in_fmt so *)
       else Format.fprintf fmt "?%i^{%a}" (-fv) Sorts.print_in_fmt so
     let isNeg fv = let (i,_,_) = fv.reveal in i<0
   end

@@ -44,7 +44,7 @@
 <src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
 <src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
 
-<src/*.{byte,native}>:                use_nums, use_str, use_unix
-<src/*/*.ml{,i,y}>: pkg_lwt
+<src/*.{byte,native}>:                use_nums, use_str, thread, pkg_async, pkg_async_parallel
+<src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async, pkg_async_parallel
 
 true: annot, bin_annot

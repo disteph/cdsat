@@ -59,7 +59,7 @@ let guessThDecProc _ = Some ["empty"]
 
 let parse (type t) l i = 
 
-  let module I = (val i: Typing.InterpretType with type t=t) in
+  let module I = (val i: Kernel.Typing.InterpretType with type t=t) in
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
