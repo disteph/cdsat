@@ -192,7 +192,7 @@ module Make(PlDS: PlugDSType) = struct
           FSet.print_in_fmt formuPSaved
 
       let print_in_fmt fmt seq =
-        if !Flags.printrhs = true then print_in_fmt_aux fmt seq
+        if !Flags.printrhs then print_in_fmt_aux fmt seq
         else match seq with
         | EntUF(atms,_,_,_,_,ar) -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms World.print_in_fmt ar
         | EntF(atms,_,_,_,_,ar)  -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms World.print_in_fmt ar

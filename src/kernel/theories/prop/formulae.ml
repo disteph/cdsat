@@ -16,7 +16,7 @@ module LitF = struct
   end)
   include Init
   let print_in_fmt fmt l =
-    let b,a = reveal l in 
+    let b,a = reveal l in
     fprintf fmt "%s{%a}" (if b then "" else "\\overline") IntSort.print_in_fmt a
   let negation l = 
     let b,a = reveal l in build(not b,a)
@@ -106,23 +106,23 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
-    | Lit  l       -> fprintf fmt "%a" LitF.print_in_fmt l                       
-    | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
-    | TrueP        -> fprintf fmt "%s" "\\trueP"
-    | TrueN        -> fprintf fmt "%s" "\\trueN"
-    | FalseP       -> fprintf fmt "%s" "\\falseP"
-    | FalseN       -> fprintf fmt "%s" "\\falseN"
-    | AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andN" f2
-    | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orN" f2
-    | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
-    | OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orP" f2
-    | ForAll(so,f,d)-> let FreeFunc pif = pSub in
-                       print_quantif_in_fmt fmt "\\forall" so (fun fmt t -> pif t fmt) f d
-    | Exists(so,f,d)-> let FreeFunc pif = pSub in
-                       print_quantif_in_fmt fmt "\\exists" so (fun fmt t -> pif t fmt) f d
-    | ForAllB(so, f)-> print_quantif_in_fmtB fmt "\\forall" so f
-    | ExistsB(so, f)-> print_quantif_in_fmtB fmt "\\exists" so f
-  in fun reveal fmt t -> aux fmt (reveal t)
+  | Lit  l       -> fprintf fmt "%a" LitF.print_in_fmt l
+  | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
+  | TrueP        -> fprintf fmt "%s" "\\trueP"
+  | TrueN        -> fprintf fmt "%s" "\\trueN"
+  | FalseP       -> fprintf fmt "%s" "\\falseP"
+  | FalseN       -> fprintf fmt "%s" "\\falseN"
+  | AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andN" f2
+  | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orN" f2
+  | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
+  | OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orP" f2
+  | ForAll(so,f,d)-> let FreeFunc pif = pSub in
+                     print_quantif_in_fmt fmt "\\forall" so (fun fmt t -> pif t fmt) f d
+  | Exists(so,f,d)-> let FreeFunc pif = pSub in
+                     print_quantif_in_fmt fmt "\\exists" so (fun fmt t -> pif t fmt) f d
+  | ForAllB(so, f)-> print_quantif_in_fmtB fmt "\\forall" so f
+  | ExistsB(so, f)-> print_quantif_in_fmtB fmt "\\exists" so f
+     in fun reveal fmt t -> aux fmt (reveal t)
 
 
 (* Negates a formula *)

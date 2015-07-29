@@ -4,7 +4,7 @@ open Plugins
 
 let bank: ((unit HandlersMap.t)->(module Plugin.Type)) array= 
   [|
-    Basic.make;
+    Concur.make;
   |]
 
 exception NotFound of string

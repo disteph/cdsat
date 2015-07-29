@@ -9,7 +9,7 @@ module IntSort : sig
   val reveal : t -> int*Sorts.t
   val build  : int*Sorts.t -> t
   val buildH : int*Sorts.t -> t
-  val isNeg  : t -> bool
+  (* val isNeg  : t -> bool *)
 end
 
 module IntMap : Map.S with type key = int

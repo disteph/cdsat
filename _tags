@@ -3,7 +3,7 @@
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
-# true: annot, bin_annot
+true: annot, bin_annot
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
 ".bzr": -traverse
@@ -44,7 +44,7 @@
 <src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
 <src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
 
-<src/*.{byte,native}>:                use_nums, use_str, thread, pkg_async, pkg_async_parallel
-<src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async, pkg_async_parallel
+<src/*.{byte,native}>:                use_nums, use_str, thread, pkg_async
+<src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async
 
-true: annot, bin_annot
+true: debug

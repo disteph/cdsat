@@ -24,8 +24,12 @@ The source can be compiled with OCaml 4.00* (with ocamlbuild) and findlib
 
   ocaml setup.ml -configure
   
-  which outputs the current configuration on the standard
-  output. Edit setup.data to modify the settings.
+  The configuration will also be displayed on the standard
+  output. The default configuration is set to native compilation, you can use
+  ocaml setup.ml -configure --override is_native false
+  or
+  ocaml setup.ml -configure --override is_native true
+  to switch. You can also edit setup.data to modify the settings.
 
 - Compilation: run
 

@@ -1,6 +1,5 @@
 open Core.Std
 open Async.Std
-open Async_parallel.Std
 
 open Kernel
 open Top
@@ -22,11 +21,7 @@ let make theories : (module Plugin.Type) =
       val projList: (DS.Term.datatype,agglo) projList
     end) = struct
 
-      exception Finished of WB.answer
-
       let m_init = make (module WB.DS) WB.projList
-
-      let answer = ref None
 
       let broadcast f m =
         Deferred.all_unit (HandlersMap.fold

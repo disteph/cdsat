@@ -1,6 +1,5 @@
 open Core.Std
 open Async.Std
-open Async_parallel.Std
 
 open Kernel
 open Top

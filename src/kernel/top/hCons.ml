@@ -54,8 +54,8 @@ module MakePoly
           let hash a    = M.hash Hashtbl.hash Par.hash a.reveal
         end
 
-        module H = Weak.Make(Arg)
-        (* module H = Hashtbl.Make(Arg) *)
+        (* module H = Weak.Make(Arg) *)
+        module H = Hashtbl.Make(Arg)
 
         let table   = H.create 5003
         let unique  = ref 0
@@ -65,8 +65,8 @@ module MakePoly
           with Not_found -> 
             let newf = {reveal =  a; id = !unique; data = Some(Data.build !unique a)} in
             incr unique;
-            (* H.add table newf newf; *)
-            H.add table newf;
+            H.add table newf newf;
+            (* H.add table newf; *)
             newf
 
         let clear() = unique := 0; H.clear table

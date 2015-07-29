@@ -57,22 +57,21 @@ struct
     let hash _ = failwith "hash function on type (Leaf.t,Data.t) prod should not exist"
   end)
 
-  let reveal a = match H.reveal a with
-    | M.AtomCons(b,p,tl) -> (b,p,tl)
-  let id = H.id
-  let compare = H.compare
+  let reveal a = let M.AtomCons(b,p,tl) = H.reveal a in (b,p,tl)
+  let id       = H.id
+  let compare  = H.compare
 
   let build(b,p,tl) = I.build(M.AtomCons(b,p,tl))
-  let clear () = Term.clear(); I.clear()
+  let clear ()      = Term.clear(); I.clear()
 
   let print_in_fmt fmt t =
     match reveal t with
     | true, s, tl ->
-      if tl<>[] 
-      then fprintf fmt "{%a%a}" Symbol.print_in_fmt s Term.printtl_in_fmt tl
-      else fprintf fmt "{%a}" Symbol.print_in_fmt s
+      if tl<>[]
+      then fprintf fmt "%a%a" Symbol.print_in_fmt s Term.printtl_in_fmt tl
+      else fprintf fmt "%a" Symbol.print_in_fmt s
     | false, s, tl ->
-      if tl<>[] 
+      if tl<>[]
       then fprintf fmt "\\overline {%a}%a" Symbol.print_in_fmt s Term.printtl_in_fmt tl
       else fprintf fmt "\\overline {%a}" Symbol.print_in_fmt s
 

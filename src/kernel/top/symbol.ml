@@ -41,13 +41,10 @@ let arity = function
 let multiary = function
   | And         -> Some r_assoc
   | Or          -> Some r_assoc
+(*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
   | _ -> None
 
-(* Some General.Multiary.r_assoc *)
-(* let multiary = function *)
-(*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
-
-let print_in_fmt fmt  = function
+let print_in_fmt fmt = function
   | User(f,ar)  -> fprintf fmt "\\mbox{\\small %s}" f
   | True        -> fprintf fmt "\\top"
   | False       -> fprintf fmt "\\bot"
@@ -72,7 +69,6 @@ let print_in_fmt fmt  = function
   | Gt          -> fprintf fmt ">"
   | Le          -> fprintf fmt "\\leq"
   | Lt          -> fprintf fmt "<"
-  (* | _        -> raise (Match_failure("Could not find connective ",0,0)) *)
 
 
 let parse = function
@@ -97,4 +93,3 @@ let parse = function
   | "<=" ->[Le]
     (* | "ite"->[ITERat] *)
   | s    -> (try [CstRat(Num.num_of_string s)] with _ -> [])
-

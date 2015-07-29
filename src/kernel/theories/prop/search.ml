@@ -5,7 +5,7 @@ open Formulae
 open Interfaces_plugin
 open Messages
 
-type sign = unit
+(* type sign = unit *)
 
 module ProofSearch(PlDS: PlugDSType) = struct
 
@@ -13,30 +13,29 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
   module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic) = (struct
 
-    open MyTheory
-    open DS
+    open MyTheory.DS
 
     (* Loads the FrontEnd *)
-    module FE = FrontEnd(DS)
+    module FE = FrontEnd(MyTheory.DS)
     open FE
 
-    type final = 
-    | L of (sign,ASet.t,thProvable) thsays
-    | R of (sign,ASet.t,thNotProvable) thsays
+    (* type final =  *)
+    (* | L of (sign,ASet.t,thProvable) thsays *)
+    (* | R of (sign,ASet.t,thNotProvable) thsays *)
 
-    let mygoal_consistency t atomN =
-      if ASet.mem t atomN
-      then L(thProvable () (ASet.add t ASet.empty))
-      else R(thNotProvable () atomN)
+    (* let mygoal_consistency t atomN = *)
+    (*   if ASet.mem t atomN *)
+    (*   then L(thProvable () (ASet.add t ASet.empty)) *)
+    (*   else R(thNotProvable () atomN) *)
 
-    let myconsistency atomN = ASet.fold
-      (function l -> function
-      | L(ThProvable set) as ans -> ans
-      | _ -> (match mygoal_consistency (LitF.negation l) atomN with
-        | L(ThProvable set) -> L(thProvable () (ASet.add l set))
-        | ans -> ans ))
-      atomN
-      (R(thNotProvable () atomN))
+    (* let myconsistency atomN = ASet.fold *)
+    (*   (function l -> function *)
+    (*   | L(ThProvable set) as ans -> ans *)
+    (*   | _ -> (match mygoal_consistency (LitF.negation l) atomN with *)
+    (*     | L(ThProvable set) -> L(thProvable () (ASet.add l set)) *)
+    (*     | ans -> ans )) *)
+    (*   atomN *)
+    (*   (R(thNotProvable () atomN)) *)
 
     
     (* Chooses whether, when faking failure, the natural
@@ -282,21 +281,15 @@ module ProofSearch(PlDS: PlugDSType) = struct
             Dump.Kernel.toTheory();
             let oracle = f sigma in
             Dump.Kernel.fromTheory();
-            (* let myset = ASet.add (LitF.negation t) atomN in *)
-            let b = match mygoal_consistency t atomN with
-              | L _ -> true
-              | R _ -> false
-            in
             cont(throw(
               match oracle with
-	      | NoMore             when not b -> fail seq (pythie f)
-	      | Guard(a,sigma',f') when b
-                -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::[]))),sigma',
+	      | NoMore             -> fail seq (pythie f)
+	      | Guard(a,sigma',f') -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::[]))),sigma',
                                               fun b -> if b then pythie f' else pythie f)
-              | _ -> failwith "NOOO"
             ))
 	  in
-          pythie (goal_consistency (litF_as_term t) (asTSet atomN)) sigma cont
+          pythie (MyTheory.goal_consistency (litF_as_term t) (asTSet atomN)) sigma cont
+          (* pythie (fun _ -> mygoal_consistency t atomN) sigma cont *)
 
 	| _ -> failwith "All cases should have been covered!"
 	end
@@ -429,20 +422,16 @@ module ProofSearch(PlDS: PlugDSType) = struct
                   Dump.Kernel.toTheory();
                   let oracle = f sigma in
                   Dump.Kernel.fromTheory();
-                  let b = match myconsistency atomN with
-                    | L _ -> true
-                    | R _ -> false
-                  in
                   cont(throw(
                     match oracle with
-	            | NoMore  when not b     -> fail seq (pythie f)
-	            | Guard(a,sigma',f') when b -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::FSet.empty::[]))),sigma',
+	            | NoMore             -> fail seq (pythie f)
+	            | Guard(a,sigma',f') -> Success(std0(relevant(seq,(asASet a,FSet.empty::FSet.empty::FSet.empty::[]))),sigma',
                                                     fun b -> if b then pythie f' else pythie f)
-                    | _ -> failwith "NOOOOO"
                   ))
                 in
                 let u2 = lk_solvef formPChoose true formP formPSaved l newdata in
-                ou (pythie (consistency (asTSet atomN))) u2 (fun a->a) (fun a->a) seq sigma cont
+                ou (pythie (MyTheory.consistency (asTSet atomN))) u2 (fun a->a) (fun a->a) seq sigma cont
+                (* ou (pythie (fun _ -> myconsistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont *)
 
 	      | Polarise(l,newdata, inter_fun) when (Pol.iatom polar l = Und)
                   ->let u = lk_solve false (Seq.EntUF(atomN, FSet.empty, formP, formPSaved, Pol.declarePos polar l, ar)) newdata in

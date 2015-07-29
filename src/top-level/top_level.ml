@@ -54,8 +54,8 @@ let init th =
 	try 
           let formula = Prop.ForParsing.toForm parsed in
 	  let d =
-	    Dump.msg 
-              (Some(fun p->p "I am now starting: %t" 
+	    Dump.msg
+              (Some(fun p->p "I am now starting: %t"
                 (if !Flags.printrhs then fun fmt -> Prop.Formulae.FormulaB.print_in_fmt fmt formula else fun fmt -> ())))
               None None;
 	    Strat.solve(Src.machine formula Strat.initial_data)

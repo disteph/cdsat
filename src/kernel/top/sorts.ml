@@ -14,7 +14,7 @@ let rec print_in_fmt fmt = function
   | Prop -> fprintf fmt "{\\sf prop}"
   | Rat  -> fprintf fmt "{\\mathbb Q}"
   | Term -> fprintf fmt "{\\sf term}"
-  | Fun(o,i) -> 
+  | Fun(o,i) ->
     fprintf fmt "(%a\rightarrow %a)"
       print_in_fmt o
       print_in_fmt_list i

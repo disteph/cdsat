@@ -4,11 +4,13 @@
 (* printed.                                             *)
 (********************************************************)
 
-let toString a = let buf = Buffer.create 255 in
-                 let fmt = Format.formatter_of_buffer buf in
-                 a (Format.fprintf fmt);
-                 Format.fprintf fmt "%!";
-                 Buffer.contents buf
+let toString a = "" (* let buf = Buffer.create 255 in *)
+                 (* let fmt = Format.formatter_of_buffer buf in *)
+                 (* let fmt = Format.str_formatter in *)
+                 (* a (Format.fprintf fmt); *)
+                 (* Format.flush_str_formatter () *)
+                 (* Format.fprintf fmt "%!"; *)
+                 (* Buffer.contents buf *)
 
 let stringOf f a = toString (fun p->p "%a" f a)
                 
