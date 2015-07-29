@@ -1,23 +1,14 @@
-open Core.Std
 open Async.Std
 
 open Kernel
-open Top
-open Messages
+open Top.Messages
 open Register
-open Combo
 open Types
 
 type _ msg = Msg: ('tset,'msg) thanswer -> 'tset msg
 
-
-let make (type tset)
-    (from_pl : tset msg Pipe.Reader.t)
-    (to_pl : tset msg Pipe.Writer.t)
-    : tset slot_machine -> unit Deferred.t
-    =
-  let rec aux (sm: tset slot_machine) =
-    let SM(msg,cont) = sm in
+let make from_pl to_pl =
+  let rec aux (SM(msg,cont)) =
     match msg with
     | None -> return (cont None) >>= aux
     | Some msg ->

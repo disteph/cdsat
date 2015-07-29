@@ -1,12 +1,9 @@
-open Core.Std
 open Async.Std
 
 open Kernel
-open Top
-open Messages
+open Top.Messages
 open Register
 open Combo
-open Types
 
 let make theories : (module Plugin.Type) =
   (module struct
@@ -23,11 +20,8 @@ let make theories : (module Plugin.Type) =
 
       let m_init = make (module WB.DS) WB.projList
 
-      let broadcast f m =
-        Deferred.all_unit (HandlersMap.fold
-                             (fun _ to_worker distrib_list -> (f to_worker::distrib_list))
-                             m
-                             [])
+      let broadcast f m = Deferred.all_unit 
+        (HandlersMap.fold (fun _ to_worker distrib_list -> (f to_worker::distrib_list)) m [])
 
       let mysolve tset =
 
@@ -61,7 +55,7 @@ let make theories : (module Plugin.Type) =
                | ThNotProvable newtset -> 
                  if WB.DS.TSet.equal newtset consset
                  then main_worker consset (HandlersMap.remove (Handlers.Handler hdl) thok) (thans::l)
-                 else main_worker newtset cons_answers [thans]
+                 else main_worker newtset (HandlersMap.remove (Handlers.Handler hdl) cons_answers) [thans]
                | _ ->
                  broadcast (fun to_worker -> Pipe.write to_worker msg) pipe_map
                  >>= fun () -> main_worker consset thok l
@@ -72,9 +66,7 @@ let make theories : (module Plugin.Type) =
         Pipe.close to_pl;
         WB.check a
 
-      let solve tset =
-        let a = Thread_safe.block_on_async_exn (fun () -> mysolve tset) in
-        a
+      let solve tset = Thread_safe.block_on_async_exn (fun () -> mysolve tset)
 
     end
 
