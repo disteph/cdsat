@@ -1,12 +1,11 @@
-(****************)
-(* Open Modules *)
-(****************)
+(******************)
+(* Specifications *)
+(******************)
 
 open Format
 
 open Interfaces_basic
 open Basic
-open Messages
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -36,14 +35,13 @@ module type ForParsing = sig
   val leaf     : IntSort.t -> t
 end
 
-(* Useful abbreviations for module types *)
-
 module type Semantic = sig
   type t
   val semantic : Symbol.t  -> (t list -> t) option
   val leaf     : IntSort.t -> t
 end
 
+(* Useful abbreviations for module types *)
 
 module type Term = Terms.S with type leaf := IntSort.t
 

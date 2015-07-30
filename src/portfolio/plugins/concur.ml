@@ -2,7 +2,7 @@ open Async.Std
 
 open Kernel
 open Top.Messages
-open Register
+open Theories_register
 open Combo
 
 let make theories : (module Plugin.Type) =
@@ -14,7 +14,7 @@ let make theories : (module Plugin.Type) =
       HandlersMap.map (fun () -> None) theories
 
     module Strategy(WB: sig
-      include Interfaces.WhiteBoard
+      include WhiteBoard
       val projList: (DS.Term.datatype,agglo) projList
     end) = struct
 

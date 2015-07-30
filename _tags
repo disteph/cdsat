@@ -27,6 +27,9 @@ true: annot, bin_annot
 <src/kernel/*.cmx>               : for-pack(Kernel)
 <src/kernel/theories/*.cmx>      : for-pack(Kernel)
 
+<src/kernel/parsers/*.cmx>       : for-pack(Kernel.Parsers)
+<src/kernel/parsers/SMTLib2_tools/*>: for-pack(Kernel.Parsers.SMTLib2_tools)
+
 <src/lib/general/*.cmx>:              for-pack(General)
 <src/lib/pluginsG_tools/*.cmx>:       for-pack(PluginsG_tools)
 
@@ -40,9 +43,6 @@ true: annot, bin_annot
 <src/portfolio/pluginsG/Hint/*.cmx>:            for-pack(PluginsG.Hint)
 
 <src/portfolio/pluginsTh/*.cmx>:      for-pack(PluginsTh)
-
-<src/portfolio/parsers/*.cmx>:        for-pack(Parsers)
-<src/portfolio/parsers/SMTLib2_tools/*>:        for-pack(Parsers.SMTLib2_tools)
 
 <src/*.{byte,native}>:                use_nums, use_str, thread, pkg_async
 <src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async

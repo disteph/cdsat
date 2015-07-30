@@ -1,6 +1,6 @@
 open Kernel
 open Top.Messages
-open Register
+open Theories_register
 open Combo
 
 type _ slot_machine = SM:

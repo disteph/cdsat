@@ -1,5 +1,5 @@
 (* This is the register of all generic plugins in Psyche *)
-open Kernel.Register
+open Kernel.Theories_register
 open Plugins
 
 let bank: ((unit HandlersMap.t)->(module Plugin.Type)) array= 

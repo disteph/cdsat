@@ -3,6 +3,7 @@
 (***********************************************)
 
 open Format
+open Parser
 open Multiary
 
 type t =
@@ -10,16 +11,16 @@ type t =
 | User of string*(Sorts.t*(Sorts.t list))
 
 (* Prop *)
-| True | False | Neg | And | Or | Imp | Xor  (* | ITEProp *)
+| True | False | Neg | And | Or | Imp | Xor
 | Forall of Sorts.t | Exists of Sorts.t
 
 (* General *)
-| Eq of Sorts.t | NEq of Sorts.t
+| Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
 
 (* LRA *)
 | CstRat of Num.num
 | Ge | Le | Gt | Lt
-| Plus | Minus | Times | Divide | Op (* | ITERat *)
+| Plus | Minus | Times | Divide | Op
 
 
 let arity = function
@@ -27,14 +28,12 @@ let arity = function
   | True | False                      -> (Sorts.Prop, [])
   | Neg | Forall _ | Exists _         -> (Sorts.Prop, [Sorts.Prop])
   | And | Or | Imp | Xor              -> (Sorts.Prop, [Sorts.Prop;Sorts.Prop])
-  (* | ITEProp -> (Sorts.Prop, [Sorts.Prop;Sorts.Prop;Sorts.Prop]) *)
+  | ITE so                            -> (so, [Sorts.Prop;so;so])
   | Eq so | NEq so                    -> (Sorts.Prop, [so;so])
   | CstRat i                          -> (Sorts.Rat, [])
   | Plus | Minus | Times | Divide     -> (Sorts.Rat, [Sorts.Rat;Sorts.Rat])
   | Op                                -> (Sorts.Rat, [Sorts.Rat])
-  (* | ITERat-> (Sorts.Rat, [Sorts.Prop;Sorts.Rat;Sorts.Rat]) *)
   | Ge | Gt | Le | Lt                 -> (Sorts.Prop, [Sorts.Rat;Sorts.Rat])  
-  (* | _        -> raise (Match_failure("Could not find connective ",0,0)) *)
 
 
 (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
@@ -55,7 +54,7 @@ let print_in_fmt fmt = function
   | Or          -> fprintf fmt "\\vee"
   | Imp         -> fprintf fmt "\\Rightarrow"
   | Xor         -> fprintf fmt "\\oplus"
-  (* | ITEProp -> (Prop, [Prop;Prop;Prop]) *)
+  | ITE so      -> fprintf fmt "\\mbox{if}"
   | Eq so       -> fprintf fmt "=_{%a}" Sorts.print_in_fmt so
   | NEq so      -> fprintf fmt "\\neq_{%a}" Sorts.print_in_fmt so
   | CstRat i    -> fprintf fmt "%s" (Num.string_of_num i)
@@ -64,32 +63,31 @@ let print_in_fmt fmt = function
   | Times       -> fprintf fmt "\\times"
   | Divide      -> fprintf fmt "\\div"
   | Op          -> fprintf fmt "-"
-    (* | ITERat-> (Rat, [Prop;Rat;Rat]) *)
   | Ge          -> fprintf fmt "\\geq"
   | Gt          -> fprintf fmt ">"
   | Le          -> fprintf fmt "\\leq"
   | Lt          -> fprintf fmt "<"
 
 
-let parse = function
-  | "true"  -> [True]
-  | "false" -> [False]
-  | "not"   -> [Neg]
-  | "and"   -> [And]
-  | "or"    -> [Or]
-  | "imp" | "=>" -> [Imp]
-  | "xor"   -> [Xor]
-  | "<=>"   -> [Eq Sorts.Prop]
-  | "=" | "==" | "eq" ->[Eq Sorts.Prop;Eq Sorts.Rat; Eq (Sorts.User "")]
-  | "!=" | "<>" | "neq" | "distinct" ->[NEq Sorts.Prop;NEq Sorts.Rat; NEq (Sorts.User "")]
-    (* | "ite"   -> [ITEProp] *)
-  | "+" -> [Plus]
-  | "-" -> [Minus;Op]
-  | "*" -> [Times]
-  | "/" -> [Divide]
-  | ">" -> [Gt]
-  | "<" -> [Lt]
-  | ">=" ->[Ge]
-  | "<=" ->[Le]
-    (* | "ite"->[ITERat] *)
-  | s    -> (try [CstRat(Num.num_of_string s)] with _ -> [])
+let parse decsorts = 
+  let allsorts = Sorts.allsorts decsorts in function
+    | "true"  -> [True]
+    | "false" -> [False]
+    | "not"   -> [Neg]
+    | "and"   -> [And]
+    | "or"    -> [Or]
+    | "imp" | "=>" -> [Imp]
+    | "xor"   -> [Xor]
+    | "<=>"   -> [Eq Sorts.Prop]
+    | "=" | "==" | "eq"                -> List.map (fun so -> Eq so) allsorts
+    | "!=" | "<>" | "neq" | "distinct" -> List.map (fun so -> NEq so) allsorts
+    | "ite"                            -> List.map (fun so -> ITE so) allsorts
+    | "+" -> [Plus]
+    | "-" -> [Minus;Op]
+    | "*" -> [Times]
+    | "/" -> [Divide]
+    | ">" -> [Gt]
+    | "<" -> [Lt]
+    | ">=" ->[Ge]
+    | "<=" ->[Le]
+    | s    -> try [CstRat(Num.num_of_string s)] with _ -> []

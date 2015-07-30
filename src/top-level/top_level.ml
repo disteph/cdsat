@@ -12,9 +12,9 @@ as possibly indicated by the parser when glancing at the input *)
 let init th =
   let theories =
     match !Flags.notheories,th with
-    | Some l,_    -> Register.get_no l
-    | None,Some l -> Register.get l
-    | None,None   -> Register.get_no []
+    | Some l,_    -> Theories_register.get_no l
+    | None,Some l -> Theories_register.get l
+    | None,None   -> Theories_register.get_no []
   in
 
   let mypluginG = PluginsG_register.get !Flags.mypluginG in
@@ -81,21 +81,19 @@ let init th =
 let parseNrun input =
   let rec trying = function
     | i when i < Array.length Parsers_register.bank ->
-      let module MyParser = (val Parsers_register.bank.(i):Parser.Type) in
+      let module MyParser = (val Parsers_register.bank.(i):Top.Parser.ParserType) in
       begin
 	try 
           let aft = MyParser.glance input in
-          let open Kernel.Typing in
-	  let inter = (module ForParser(Prop.ForParsing):InterpretType with type t = Top.Sorts.t -> Prop.ForParsing.t) in
-          let pair = match MyParser.parse aft inter with
+          let prop4parsing = (module Prop.ForParsing : Top.Specs.ForParsing with type t = Prop.ForParsing.t) in
+          let pair = match MyParser.parse aft (Typing.forParser prop4parsing) with
             | Some parsable, b -> Some(parsable Top.Sorts.Prop),b
             | None, b -> None, b
           in
-          Dump.msg (Some (fun p->p "Successfully parsed by %s parser." MyParser.name)) None None;
+          print_endline(Dump.toString (fun p->p "Successfully parsed by %s parser." MyParser.name));
 	  init (MyParser.guessThDecProc aft) pair
-	with Parser.ParsingError s | Kernel.Typing.TypingError s ->
-          if !Flags.debug>0 
-          then Dump.msg (Some (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s)) None None;
+	with Top.Parser.ParsingError s | Typing.TypingError s ->
+          print_endline(Dump.toString (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s));
           trying (i+1)
       end
     | _ -> print_endline "No parser seems to work for this input."; function _ -> None

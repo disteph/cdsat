@@ -1,6 +1,6 @@
 open Kernel
 open Top
-open Register
+open Theories_register
 open Combo
 open Types
 open PluginsTh_register

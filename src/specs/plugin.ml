@@ -1,5 +1,4 @@
 open Kernel
-open Interfaces
 open Combo
 open Types
 

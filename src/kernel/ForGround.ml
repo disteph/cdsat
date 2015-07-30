@@ -4,7 +4,6 @@
 
 open Format
 
-open Interfaces
 open Prop.Interfaces_theory
 
 (* Basic module for constraints, for ground theories *)
@@ -26,7 +25,7 @@ end
 Cannot treat sequents with meta-variables, obviously *)
 
 module GTh2Th
-  (WB: WhiteBoard)
+  (WB: Combo.WhiteBoard)
   (PProj: sig 
     type formulae
     val asF: WB.DS.Term.datatype -> formulae

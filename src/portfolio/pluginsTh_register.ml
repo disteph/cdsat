@@ -2,7 +2,7 @@
 
 open Kernel.Top.Specs
 open PluginsTh
-open Kernel.Register
+open Kernel.Theories_register
 
 let bank :(module PluginTh.Type) array= 
   [|

@@ -2,7 +2,7 @@ open Kernel
 open Top
 open Specs
 open Messages
-open Register
+open Theories_register
 open Types
 
 open Empty

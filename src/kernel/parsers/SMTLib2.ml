@@ -2,7 +2,7 @@
 
 open SMTLib2_tools
 open Smtlib2_ast
-open Parser
+open Top.Parser
 
 let name = "SMTLib2"
 
@@ -16,22 +16,22 @@ let rec search symb = function
   | ConsEnv(_,_,l)                 -> search symb l
 
 let getconst = function
-  | SpecConstsDec   (_,s) -> s
-  | SpecConstNum    (_,s) -> s
-  | SpecConstString (_,s) -> s
-  | SpecConstsHex   (_,s) -> s
+  | SpecConstsDec   (_,s)
+  | SpecConstNum    (_,s)
+  | SpecConstString (_,s)
+  | SpecConstsHex   (_,s)
   | SpecConstsBinary(_,s) -> s
 
 let getsymbSymbol = function
-  | Symbol(_,symb)      -> symb 
+  | Symbol(_,symb)
   | SymbolWithOr(_,symb)-> symb
 
 let getsort = function
   | SortIdentifier(_,IdSymbol(_,symb)) -> getsymbSymbol symb
-  | _ -> failwith("Could not parse sort")
+  | _ -> raise (ParsingError "Could not parse sort")
 
-let getsortedvar = function
-  | SortedVarSymSort(_,symb,sort) -> (getsymbSymbol symb,getsort sort)
+let getsortedvar (SortedVarSymSort(_,symb,sort)) =
+  getsymbSymbol symb, getsort sort
 
 type 'a getsymbType =
 | AppliedSymbol of string*(term list)*('a environment)
@@ -64,9 +64,9 @@ and getsymbIdSymbol env tl = function
 	match search s env,tl with
 	  | None,_       -> AppliedSymbol(s,tl,env)
 	  | Some(t,e),[] -> getsymb e t
-	  | _,_          -> raise (ParsingError "Higher-order definition")
+	  | _,_          -> raise (ParsingError("Higher-order definition for "^s))
       end
-  | IdUnderscoreSymNum(_,symb,_)-> raise (ParsingError "Not sure")
+  | IdUnderscoreSymNum(_,symb,_)-> raise (ParsingError("Not sure about "^getsymbSymbol symb))
 
 
 let getStatus = function
@@ -78,35 +78,62 @@ let getStatus = function
 	  | "provable"   -> Some true
 	  | "unprovable" -> Some false 
 	  | "unknown"    -> None
-	  | _            -> print_endline("Status could not be parsed");None
+	  | _            -> print_endline("Status could not be parsed:"^getsymbSymbol s);None
       end
-  | _ -> print_endline("Status could not be parsed");None
+  | _ -> print_endline "Status could not be parsed"; None
+
+let string_of_stat = function
+  | Some true  -> "provable/unsat"
+  | Some false -> "unprovable/sat"
+  | None       -> "unknown"
 
 module SM = Map.Make(String)
 
-type afterglance = (string option)*bool*(bool option)*((string * (string list)) SM.t)*(Smtlib2_ast.term list)
+type afterglance = 
+  (string option)                   (* Theory, if specified *)
+  *bool                             (* Whether we prove (true) or refute (false) *)
+  *(bool option)                    (* The status of the problem (Some true) if provable/unsat, (Some false) if counter-model/sat *)
+  *(unit SM.t)                      (* Declared sorts: set of strings *)
+  *((string * (string list)) SM.t)  (* Declared symbols: strings mapped to their arity:
+                                       a pair whose first component is the output sort, second component is the list of arguments' sorts *)
+  *(Smtlib2_ast.term list)          (* The problem instance *)
 
-let transformCommand (theory,satprov,status,declared,formula) = function
-  | CAssert(_,t)                 -> (theory,satprov,status,declared,t::formula)
+let transformCommand (theory,satprov,status,decso,decsym,formula) = function
+  | CAssert(_,t)                 -> theory,satprov,status,decso,decsym,t::formula
   | CSetLogic(_,symbol)          ->
-      begin
-	match theory with
-	  | Some _ -> print_endline("Trying to declare theory twice");(theory,satprov,status,declared,formula)
-	  | None   ->(Some(getsymbSymbol symbol),satprov,status,declared,formula)
-      end
+    begin
+      match theory with
+      | Some prevtheory -> 
+        begin
+          print_endline("Trying to declare theory twice: was "^prevtheory
+                        ^", now declared as "^getsymbSymbol symbol^". Keeping "^prevtheory);
+          (theory,satprov,status,decso,decsym,formula)
+        end
+      | None   -> Some(getsymbSymbol symbol),satprov,status,decso,decsym,formula
+    end
   | CSetInfo(_,AttributeKeywordValue(_,":status",attribute)) ->
-      begin
-	match status with
-	  | Some _ -> print_endline("Trying to declare status twice");(theory,satprov,None,SM.empty,[])
-	  | None   ->(theory,satprov,getStatus attribute,declared,formula)
-      end
-  | CCheckSat _                  -> (theory,false,status,declared,formula)
+    begin
+      match status with
+      | Some prevstatus -> 
+        begin
+          print_endline("Trying to declare status twice: was "^string_of_stat status
+                        ^", now declared as "^string_of_stat (getStatus attribute)^". Keeping "^string_of_stat status);
+          (theory,satprov,status,decso,decsym,formula)
+        end
+      | None  -> theory,satprov,getStatus attribute,decso,decsym,formula
+    end
+  | CCheckSat _                      -> theory,false,status,decso,decsym,formula
+  | CDeclareSort(_,symbol,arity)     ->
+    if int_of_string arity != 0
+    then raise (ParsingError ("Trying to declare sort "^getsymbSymbol symbol^" with arity "^arity
+                              ^", but Psyche can only handle sorts of arity 0"))
+    else theory,satprov,status,SM.add (getsymbSymbol symbol) () decso,decsym,formula
   | CDeclareFun(_,symbol,(_,l),sort) ->
-      (theory,satprov,status,SM.add (getsymbSymbol symbol) (getsort sort,List.map (fun s -> getsort s) l) declared,formula)
-  | _                            -> (theory,satprov,status,declared,formula)
+      theory,satprov,status,decso,SM.add (getsymbSymbol symbol) (getsort sort,List.map getsort l) decsym,formula
+  | _                                -> theory,satprov,status,decso,decsym,formula
 
 let transformCommands (Commands(_,(_,li))) =
-  List.fold_left transformCommand (None,true,None,SM.empty,[]) li
+  List.fold_left transformCommand (None,true,None,SM.empty,SM.empty,[]) li
 
 let glance input =
   let lexbuf = Lexing.from_string input in
@@ -120,7 +147,7 @@ let glance input =
       | None    -> raise (ParsingError "Alt-Ergo's parser could not parse input (returned None)")
       | Some ast-> transformCommands ast
 	  
-let guessThDecProc(theory,_,_,_,_) =  
+let guessThDecProc(theory,_,_,_,_,_) =  
   match theory with
     | None   -> None
     | Some a -> Some [a]
@@ -130,9 +157,9 @@ let rec list_index a accu = function
   | (b,so)::l when a=b -> Some (accu,so)
   | _::l -> list_index a (accu+1) l
 
-let parse (type t) (theory,satprov,status,declared,formulalist) i = 
+let parse (type t) (theory,satprov,status,decso,decsym,formulalist) i =
 
-  let module I = (val i: Kernel.Typing.InterpretType with type t=t) in
+  let module I = (val i (SM.fold (fun s () l -> s::l) decso []): InterpretType with type t=t) in
   
   let rec transformTermBase env boundvarlist s l =
     match list_index s 0 boundvarlist,l with
@@ -140,8 +167,8 @@ let parse (type t) (theory,satprov,status,declared,formulalist) i =
     | Some(_,_) , _   -> raise (ParsingError "Higher-order quantification")
     | None,_          ->
       let l' = List.map (transformTerm env boundvarlist) l in
-      if SM.mem s declared
-      then I.decsymb s (SM.find s declared) l'
+      if SM.mem s decsym
+      then I.decsymb s (SM.find s decsym) l'
       else I.sigsymb s l'
       
   and transformTerm env boundvarlist t =

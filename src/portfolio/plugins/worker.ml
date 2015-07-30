@@ -2,7 +2,7 @@ open Async.Std
 
 open Kernel
 open Top.Messages
-open Register
+open Theories_register
 open Types
 
 type _ msg = Msg: ('tset,'msg) thanswer -> 'tset msg

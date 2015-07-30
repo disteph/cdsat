@@ -4,13 +4,11 @@
 (* printed.                                             *)
 (********************************************************)
 
-let toString a = "" (* let buf = Buffer.create 255 in *)
-                 (* let fmt = Format.formatter_of_buffer buf in *)
-                 (* let fmt = Format.str_formatter in *)
-                 (* a (Format.fprintf fmt); *)
-                 (* Format.flush_str_formatter () *)
-                 (* Format.fprintf fmt "%!"; *)
-                 (* Buffer.contents buf *)
+let toString a = let buf = Buffer.create 255 in
+                 let fmt = Format.formatter_of_buffer buf in
+                 a (Format.fprintf fmt);
+                 Format.fprintf fmt "%!";
+                 Buffer.contents buf
 
 let stringOf f a = toString (fun p->p "%a" f a)
                 
@@ -35,15 +33,14 @@ let every
       0
     |] 
 
-let msg un deux = function
-  | Some i (* when Flags.every.(i)==0||((every.(i) mod Flags.every.(i)) !=0) *)
-      -> ()
-  | _ when !Flags.debug>0
-      -> (match deux,un with
+let msg un deux _ =
+  (* | Some i (\* when Flags.every.(i)==0||((every.(i) mod Flags.every.(i)) !=0) *\) *)
+  (*     -> () *)
+  if !Flags.debug>0
+  then match deux,un with
       | Some a,_ when !Flags.debug>1 -> print_endline(toString a)
       | _ , Some a                   -> print_endline(toString a)
-      | _ , None   -> ())
-  | _ -> ()
+      | _ , None   -> ()
         
 
 (**********)

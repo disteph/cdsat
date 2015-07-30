@@ -3,17 +3,16 @@
 (*****************************************)
 
 open Format
+open Parser
 
 type t = | Prop
-         | Rat 
-         | Term
+         | Rat
          | Fun  of t*(t list)
          | User of string
 
 let rec print_in_fmt fmt = function
   | Prop -> fprintf fmt "{\\sf prop}"
   | Rat  -> fprintf fmt "{\\mathbb Q}"
-  | Term -> fprintf fmt "{\\sf term}"
   | Fun(o,i) ->
     fprintf fmt "(%a\rightarrow %a)"
       print_in_fmt o
@@ -25,10 +24,10 @@ and print_in_fmt_list fmt = function
   | so::l-> fprintf fmt "%a,%a" print_in_fmt so print_in_fmt_list l
 
 
-let parse = function
+let parse declared = function
   | "Bool" | "bool" | "Prop" | "prop" -> Prop
-  | "Rat"  -> Rat
-  | "Real" -> Rat
-  | "Int"  -> Rat
-  | s      -> User s
+  | "Rat"  | "Real" | "Int"           -> Rat
+  | s when List.mem s declared -> User s
+  | s -> raise (ParsingError("Cannot understand "^s^" as a sort: not declared"))
 
+let allsorts declared = Prop :: Rat :: List.map (fun s-> User s) declared
