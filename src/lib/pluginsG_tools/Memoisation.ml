@@ -15,10 +15,15 @@
 (*******************************************************************)
 
 
-open Kernel.Top.Interfaces_basic
-open Kernel.Prop.Interfaces_theory
-open Kernel.Prop.Formulae
-open Kernel.Prop.Interfaces_plugin
+open Kernel
+
+open Top.Interfaces_basic
+open Prop
+
+open Interfaces_theory
+open Literals
+open Formulae
+open Interfaces_plugin
 
 open General
 open Sums

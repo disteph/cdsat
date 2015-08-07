@@ -7,18 +7,8 @@ open Format
 open Top
 open Interfaces_basic
 open Basic
-
+open Literals
 open Interfaces_theory
-
-module LitF: sig
-  include PHCons
-  val build: bool*IntSort.t -> t
-  val reveal: t -> bool*IntSort.t
-  val negation: t -> t
-end
-
-module LitB: Atoms.S with type leaf := IntSort.t
-                     and  type Term.datatype = unit
 
 type 'a free = private Free
 type bound = private Bound
@@ -44,7 +34,7 @@ module FormulaB : sig
   include PHCons
   val reveal: t -> (t,bound) form
   val negation : t -> t
-  val lit    : bool * Symbol.t * LitB.Term.t list -> t
+  val lit    : bool * TermB.t -> t
   val trueN  : t
   val trueP  : t
   val falseN : t

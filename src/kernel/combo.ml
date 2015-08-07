@@ -9,13 +9,12 @@ open Basic
 open Interfaces_basic
 open Messages
 open Theories_register
-
-open Prop.Formulae
+open Specs
 
 (* This is the module type that we are going to produce at the end of this file *)
 
 module type WhiteBoard = sig
-  module DS : Top.Specs.GTheoryDSType
+  module DS : GTheoryDSType
   open DS
   type answer = private Provable of TSet.t | NotProvable of TSet.t
   type planswer = 
@@ -40,7 +39,7 @@ end
 
 module type DataType = Terms.DataType with type leaf := IntSort.t
 
-module Semantic2DataType(Sem:Specs.Semantic) = struct
+module Semantic2DataType(Sem:Semantic) = struct
   type t = Sem.t
   let bC tag symb args = 
     match Sem.semantic symb with
@@ -74,7 +73,7 @@ module Pairing(B1: DataType)(B2: DataType) = struct
   end
 
 let addTheory (type a)(type b)
-    (th:(module Specs.Semantic with type t = a))
+    (th:(module Semantic with type t = a))
     (i :(module DataType with type t = b)) 
     :(module DataType with type t = a*b) =
   let module Th = (val th) in
@@ -88,7 +87,7 @@ let addTheory (type a)(type b)
 
 type _ dataList =
 | NoData : unit dataList
-| ConsData: (module Specs.Semantic with type t = 'a) * 'b dataList -> ('a*'b) dataList
+| ConsData: (module Semantic with type t = 'a) * 'b dataList -> ('a*'b) dataList
 
 (* Now, we shall be given a list of the above form, which we shall
    aggregate into datatype, but we shall also have to provide a list
@@ -133,7 +132,7 @@ let make (type a)
 
       module Term = Terms.Make(IntSort)(DT)
 
-      module TSet = Prop.Sequents.MakeCollectTrusted(
+      module TSet = MakeCollection(
         struct
           type t       = DT.t term
           let id       = Terms.id

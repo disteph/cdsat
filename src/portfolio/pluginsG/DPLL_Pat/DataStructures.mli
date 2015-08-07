@@ -3,6 +3,7 @@ open Kernel
 open Prop
 
 open Interfaces_theory
+open Literals
 open Formulae
 open Sums
 open PluginsG_tools.SetInterface

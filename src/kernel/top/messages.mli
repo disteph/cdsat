@@ -7,12 +7,6 @@ open Format
 open Interfaces_basic
 open Basic
 
-exception ModelError of string
-
-(* Useful abbreviation for term type *)
-
-type 'a term = (IntSort.t,'a) Terms.term
-
 type thProvable = private TProvable
 type thNotProvable = private TNotProvable
 type thStraight = private TStraight

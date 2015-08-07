@@ -6,23 +6,40 @@
 open Top
 open Basic
 open Interfaces_basic
+open Specs
+
 open Formulae
+open Literals
 
 exception WrongInstructionException of string
 
-module type ProofType = sig
+(* Collection Interface that Plugin needs to provide for Kernel *)
+
+module type CollectExtra = sig
+  type e
   type t
-  type seq
-  val zero : seq->t
-  val one  : seq->t->t
-  val two  : seq->t->t->t
-  val print_in_fmt: Format.formatter -> t -> unit
+  val empty: t
+  val add  : e -> t -> t
+  val remove: e -> t -> t
+  val union: t -> t -> t
+  val inter: t -> t -> t
 end
 
 module type PlugDSType = sig
   module UF   : FormulaF.Extra
   module UFSet: CollectExtra with type e = UF.t FormulaF.generic
   module UASet: CollectExtra with type e = LitF.t
+end
+
+(* Collection Interface that Kernel manipulates *)
+
+module type CollectKernel = sig
+  type ts
+  type ps
+  include Collection
+  val forTrusted: t -> ts
+  val forPlugin : t -> ps
+  val recons : ts -> t
 end
 
 type polarity = Pos | Neg | Und

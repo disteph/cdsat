@@ -13,9 +13,9 @@ module type PHCons = sig
   val compare : t -> t -> int
 end
 
-(* Collection Interface that Plugin needs to provide for Kernel *)
+(* Collection Interface that Theory needs to provide for Kernel *)
 
-module type CollectExtra = sig
+module type Collection = sig
   type e
   type t
   val empty: t
@@ -23,12 +23,6 @@ module type CollectExtra = sig
   val remove: e -> t -> t
   val union: t -> t -> t
   val inter: t -> t -> t
-end
-
-(* Collection Interface that Theory needs to provide for Kernel *)
-
-module type CollectTrusted = sig
-  include CollectExtra
   val is_empty : t -> bool
   val mem      : e -> t -> bool
   val equal    : t -> t -> bool
@@ -36,17 +30,6 @@ module type CollectTrusted = sig
   val next     : t -> e*t
   val fold     : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val print_in_fmt: Format.formatter -> t -> unit
-end
-
-(* Collection Interface that Kernel manipulates *)
-
-module type CollectKernel = sig
-  type ts
-  type ps
-  include CollectTrusted
-  val forTrusted: t -> ts
-  val forPlugin : t -> ps
-  val recons : ts -> t
 end
 
 (* Type of Monads *)

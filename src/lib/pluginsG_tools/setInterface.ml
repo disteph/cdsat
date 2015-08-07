@@ -1,10 +1,11 @@
 (* Interface for the input of the Memoisation module and output of
 myPatAset *)
 
+open Kernel.Prop.Interfaces_plugin
 open General.Sums
 
 module type CollectImplemExt = sig
-  include Kernel.Top.Interfaces_basic.CollectExtra
+  include CollectExtra
 
   val mem    : e -> t -> bool
   val is_empty : t -> bool
@@ -35,8 +36,7 @@ module type CollectImplemExt = sig
 
 end
 
-module type MyPatCollect =
-sig
+module type MyPatCollect = sig
 
   type e
   type t

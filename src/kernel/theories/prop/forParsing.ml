@@ -4,17 +4,18 @@ open Top
 open Symbol
 open Interfaces_basic
 open Basic
-open Messages
+open Specs
 
+open Literals
 open Formulae
 
 type t =
-| TermI : LitB.Term.t -> t
+| TermI : TermB.t -> t
 | PropI : FormulaB.t -> t
 
 open FormulaB
 
-let leaf v = TermI(LitB.Term.bV v)
+let leaf v = TermI(TermB.bV v)
 
 let toForm = function
   | PropI f -> f
@@ -37,18 +38,15 @@ let semantic_aux symb l =
   | NEq Sorts.Prop,[a;b] -> orN(andP(a,negation b),andP(b,negation a))
   | Forall so,[a]  -> forall(so,a)
   | Exists so,[a]  -> exists(so,a)
-    (* | ITEProp,[a;b;c] -> bool_simpl(INode(a,Leaf b,Leaf c)) *)
+  | ITE Sorts.Prop,[a;b;c] -> orN(andP(a,b),andP(negation a,c))
   | _             -> raise (ModelError "ModelError: semantic_aux does not know symbol")
 
 
-let semantic symb =
-  let (o,_) = Symbol.arity symb in
-  match o with
-  | Sorts.Prop -> fun l -> 
-    PropI (
-      try semantic_aux symb (List.map toForm l)
-      with ModelError _
-        -> lit(true,symb,List.map toTerm l)
-    )
-  | _ -> fun l -> 
-    TermI (LitB.Term.bC symb (List.map toTerm l))
+let semantic symb l =
+  try PropI(semantic_aux symb (List.map toForm l))
+  with ModelError _
+    -> let term = TermB.bC symb (List.map toTerm l) in
+       let (o,_) = Symbol.arity symb in
+       match o with
+       | Sorts.Prop -> PropI(lit(true,term))
+       | _          -> TermI(term)

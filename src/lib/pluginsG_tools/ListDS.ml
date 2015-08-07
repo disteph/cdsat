@@ -10,8 +10,10 @@ open General
 open Kernel
 
 open Top.Interfaces_basic
-open Prop.Interfaces_theory
-open Prop.Formulae
+open Prop
+open Literals
+open Formulae
+open Interfaces_theory
 
 module type PrintableType = sig 
   type t 

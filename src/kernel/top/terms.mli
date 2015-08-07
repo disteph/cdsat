@@ -9,8 +9,10 @@ val data   : ('leaf,'datatype) term -> 'datatype
 val id     : ('leaf,'datatype) term -> int
 val compare: ('leaf,'datatype) term -> ('leaf,'datatype) term -> int
 
+val equal : ('leaf,'datatype) term -> ('leaf,'datatype) term -> bool
+val equaltl : ('leaf,'datatype) term list -> ('leaf,'datatype) term list -> bool
+val hash  : ('leaf,'datatype) term -> int
 val hashtl  : ('leaf,'datatype) term list -> int
-val equaltl : (('leaf,'datatype) term list * ('leaf,'datatype) term list) -> bool
 
 module type DataType = sig
   type t
@@ -23,6 +25,7 @@ module type S = sig
   type leaf
   type datatype
   type t = (leaf,datatype) term
+  val term_of_id: int -> t
   val bV : leaf -> t
   val bC : Symbol.t -> t list -> t
   val clear : unit -> unit

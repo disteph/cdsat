@@ -7,6 +7,16 @@ open Format
 open Interfaces_basic
 open Basic
 
+exception ModelError of string
+
+(* Useful abbreviations for module types *)
+
+module type Term = Terms.S with type leaf := IntSort.t
+
+(* Useful abbreviation for term type *)
+
+type 'a term = (IntSort.t,'a) Terms.term
+
 (* Internal representation of objects in the theory module, used
    during parsing. 
    Similar to the definition of a model structure in logic:
@@ -41,11 +51,16 @@ module type Semantic = sig
   val leaf     : IntSort.t -> t
 end
 
-(* Useful abbreviations for module types *)
-
-module type Term = Terms.S with type leaf := IntSort.t
-
 module type GTheoryDSType = sig
   module Term : Term
-  module TSet : CollectTrusted with type e = Term.t
+  module TSet : Collection with type e = Term.t
+end
+
+module type ProofType = sig
+  type t
+  type seq
+  val zero : seq->t
+  val one  : seq->t->t
+  val two  : seq->t->t->t
+  val print_in_fmt: formatter -> t -> unit
 end

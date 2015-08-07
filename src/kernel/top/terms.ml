@@ -11,15 +11,16 @@ module M = struct
 
   type ('t,'a) t = ('a,'t) xterm
 
-  let rec equaltl eqRec = function
+  let rec equaltl eqRec tl1 tl2 =
+    match tl1,tl2 with
     | ([], []) -> true
-    | ((t :: l), (t' :: l')) -> eqRec t t' && equaltl eqRec (l, l')
+    | ((t :: l), (t' :: l')) -> eqRec t t' && equaltl eqRec l l'
     | ([], (_ :: _)) | ((_ :: _), []) -> false 
 
   let equal eqRec eqL t1 t2 =
     match t1, t2 with
     | V(a), V(a')        -> eqL a a'
-    | C(a,tl), C(a',tl') -> a = a' && equaltl eqRec (tl,tl')
+    | C(a,tl), C(a',tl') -> a = a' && equaltl eqRec tl tl'
     | V _, C(_, _) 
     | C(_, _), V _  -> false 
 
@@ -27,8 +28,7 @@ module M = struct
     | [] -> 1
     | t :: l -> hRec t + 2 * hashtl hRec l 
 
-  let hash hRec hL t1 =
-    match t1 with
+  let hash hRec hL = function
     | V a    -> 1 + 2 * hL a
     | C(a,l) -> 3 * Hashtbl.hash a + 7 * hashtl hRec l
 end
@@ -38,8 +38,10 @@ include HCons.MakePoly(M)
 
 type ('leaf,'datatype) term = ('leaf,'datatype) generic
 
-let equaltl (tl1,tl2) = M.equaltl (fun t1 t2 -> compare t1 t2 ==0) (tl1,tl2)
-let hashtl tl  = M.hashtl id tl
+let equal t1 t2 = compare t1 t2 ==0
+let equaltl tl1 tl2 = M.equaltl equal tl1 tl2
+let hash  = id
+let hashtl tl = M.hashtl hash tl
 
 module type DataType = sig
   type t
@@ -52,6 +54,7 @@ module type S = sig
   type leaf
   type datatype
   type t = (leaf,datatype) term
+  val term_of_id: int -> t
   val bV : leaf -> t
   val bC : Symbol.t -> t list -> t
   val clear : unit -> unit
@@ -71,7 +74,7 @@ module Make
   (Data : DataType with type leaf := Leaf.t) =
 struct
 
-  include InitData
+  include InitData(HCons.BackIndex)
     (Basic.HashedTypeFromHCons(Leaf))
     (struct 
       type t = Data.t
@@ -82,6 +85,8 @@ struct
 
   type datatype = Data.t
   type leaf = Leaf.t
+
+  let HCons.SomeGADT term_of_id = backindex
 
   let bV i   = build(V i)
   let bC f l = build(C(f,l))

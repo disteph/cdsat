@@ -4,26 +4,14 @@ open Format
 open Top
 open Interfaces_basic
 open Basic
+open Specs
 
 open Interfaces_theory
+open Literals
 open Formulae
 open Interfaces_plugin
 
-module MakeCollectTrusted
-  (OT: sig
-    include Set.OrderedType
-    val print_in_fmt: Format.formatter -> t -> unit
-  end) =
-  (struct
-    include Set.Make(OT)
-    type e    = elt
-    let next t = let e = choose t in (e,remove e t)
-    let print_in_fmt fmt = fprintf fmt "%a "
-      (fun fmt -> iter (fprintf fmt "%a, " OT.print_in_fmt))
-   end: CollectTrusted with type e = OT.t)
-
-
-module DblSet(TrustedSet: CollectTrusted)(PluginSet: CollectExtra with type e = TrustedSet.e)
+module DblSet(TrustedSet: Collection)(PluginSet: CollectExtra with type e = TrustedSet.e)
   = (struct
 
     type e = TrustedSet.e
@@ -71,20 +59,19 @@ module Make(PlDS: PlugDSType) = struct
     let print_in_fmtC = Constraint.print_in_fmt
 
     module IForm = Semantic
-    module FSet = DblSet(MakeCollectTrusted(IForm))(PlDS.UFSet)
-    module ASet = DblSet(MakeCollectTrusted(LitF))(PlDS.UASet)
+    module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
+    module ASet = DblSet(MakeCollection(LitF))(PlDS.UASet)
 
     let iatom_build d l =
-      let b,symb,tl = LitB.reveal l in
+      let b,atom = LitB.reveal l in
       let module M = Term.Homo(IdMon) in
       let get_in_subst intso = 
         let k,_   = IntSort.reveal intso in
         let fv,_ = DSubst.get k d in
         World.asIntSort fv
       in
-      let newtl = M.lifttl get_in_subst tl in
-      let atom = Term.bC symb newtl in
-      if b then atom else Term.bC Symbol.Neg [atom]
+      let newatom = M.lift get_in_subst atom in
+      if b then newatom else Term.bC Symbol.Neg [newatom]
  
     let rec propagate d f =
       match FormulaB.reveal f with
@@ -102,7 +89,11 @@ module Make(PlDS: PlugDSType) = struct
 
     let litF_as_term e =
       let b,is = LitF.reveal e in
-      let atom = Term.bV is in
+      let atom =
+        if IntSort.isDefined is
+        then let (i,_) = IntSort.reveal is in Term.term_of_id i
+        else Term.bV is
+      in
       if b then atom else Term.bC Symbol.Neg [atom]
 
     let asTSet (aset: ASet.t) : TSet.t = 

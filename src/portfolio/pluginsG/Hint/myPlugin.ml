@@ -4,6 +4,7 @@ open Kernel
 open Prop
 
 open Interfaces_theory
+open Literals
 open Formulae
 open Interfaces_plugin
 open PluginsG_tools.Addressing

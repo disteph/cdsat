@@ -4,27 +4,8 @@ open Top
 open Symbol
 open Interfaces_basic
 open Basic
-open Messages
-
-module IntSortHashed = HashedTypeFromHCons(IntSort)
-
-module LitF = struct
-  include HCons.Make(struct
-    type _ t = bool*IntSort.t
-    let equal _ (b,a) (b',a') = b=b' && IntSortHashed.equal a a'
-    let hash _ (b,a) = (if b then 2 else -3) * IntSortHashed.hash a
-  end)
-  include Init
-  let print_in_fmt fmt l =
-    let b,a = reveal l in
-    fprintf fmt "%s{%a}" (if b then "" else "\\overline") IntSort.print_in_fmt a
-  let negation l = 
-    let b,a = reveal l in build(not b,a)
-end
-
-module LitB = Atoms.Lit
-
-
+open Literals
+open Specs
 
 type 'a free = private Free
 type bound = private Bound
@@ -177,7 +158,7 @@ end
 module FormulaB = struct
 
   include HCons.Make(B)
-  include Init
+  include Init(HCons.NoBackIndex)
 
   let print_in_fmt =
     let rec aux fmt t = print_in_fmt BoundFunc aux reveal fmt t
@@ -193,9 +174,9 @@ module FormulaB = struct
     let build = build
   end)
 
-  let lit (b, f, tl) = build(LitB(LitB.build(b, f, tl)))
-  let forall(so,a)   = build(ForAllB(so,a))
-  let exists(so,a)   = build(ExistsB(so,a))
+  let lit (b,term) = build(LitB(LitB.build(b,term)))
+  let forall(so,a) = build(ForAllB(so,a))
+  let exists(so,a) = build(ExistsB(so,a))
 
 end
 
@@ -250,7 +231,7 @@ module FormulaF = struct
   module Make(Fdata: Extra)
     = (struct
 
-      include InitData(struct type t = Fdata.t let build _ = Fdata.build end)
+      include InitData(HCons.NoBackIndex)(struct type t = Fdata.t let build _ = Fdata.build end)
 
       type datatype = Fdata.t
 

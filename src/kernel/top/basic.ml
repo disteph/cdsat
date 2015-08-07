@@ -2,6 +2,8 @@
 (* Basic modules *)
 (*****************)
 
+open Format
+
 open Interfaces_basic
 
 module IntSort = struct
@@ -13,21 +15,23 @@ module IntSort = struct
   end
 
   module H = HCons.Make(M)
+  module HMade = H.Init(HCons.NoBackIndex)
 
-  type t = H.Init.t
+  type t = HMade.t
 
   let compare = H.compare
   let id = H.id
   let reveal t = let i,b,s = H.reveal t in i,s 
-  let build (i,s)  = H.Init.build(i,true,s)
-  let buildH (i,s) = H.Init.build(i,false,s)
-  let clear = H.Init.clear
+  let build (i,s)  = HMade.build(i,true,s)
+  let buildH (i,s) = HMade.build(i,false,s)
+  let clear = HMade.clear
 
   let print_in_fmt fmt t =
     let (fv,b,so) = H.reveal t in
     if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "" (* \\underline *)) fv (* Sorts.print_in_fmt so *)
     else Format.fprintf fmt "?%i^{%a}" (-fv) Sorts.print_in_fmt so
 
+  let isDefined fv = let (_,b,_) = H.reveal fv in b
   let isNeg fv = let (i,_,_) = H.reveal fv in i<0
 
 end
@@ -50,4 +54,15 @@ module IdMon = struct
   type 'a t = 'a
   let return a = a
   let bind (f: 'a -> 'b t) a = f a
+end
+
+module MakeCollection(OT: sig
+  include Set.OrderedType
+  val print_in_fmt: Format.formatter -> t -> unit
+end) = struct
+  include Set.Make(OT)
+  type e    = elt
+  let next t = let e = choose t in (e,remove e t)
+  let print_in_fmt fmt = fprintf fmt "%a "
+    (fun fmt -> iter (fprintf fmt "%a, " OT.print_in_fmt))
 end

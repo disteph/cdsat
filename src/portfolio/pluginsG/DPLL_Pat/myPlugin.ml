@@ -2,6 +2,7 @@ open General
 open Kernel
 open Prop
 
+open Literals
 open Interfaces_theory
 open Interfaces_plugin
 open Sums
@@ -87,7 +88,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
     | Jackpot ans                    ->
       Me.report(); Me.clear(); print_endline("   Plugin's report (DPLL_Pat):"); print_endline(print_state 0); print_endline "";
-      UASet.clear(); UFSet.clear();Formulae.LitF.clear(); address:=No;
+      UASet.clear(); UFSet.clear();LitF.clear(); address:=No;
       for i=0 to Array.length count-1 do count.(i) <- 0 done;
       ans
 

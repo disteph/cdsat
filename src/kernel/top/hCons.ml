@@ -2,6 +2,19 @@
 (* This file contains the implementation of HConsed types *)
 (**********************************************************)
 
+type some = private S
+type none = private N
+
+type (_,_) optionGADT = 
+| SomeGADT: 'a -> ('a,some) optionGADT
+| NoneGADT: ('a,none) optionGADT
+
+module type OptionValue = sig
+  type t
+  type index
+  val value: (t,index) optionGADT
+end
+
 module EmptyData = struct 
   type t = unit
   let build _ _ = ()
@@ -38,6 +51,7 @@ module MakePoly
     let compare a1 a2 = Pervasives.compare a1.id a2.id
 
     module InitData
+      (B: OptionValue)
       (Par: Hashtbl.HashedType)
       (Data: sig
         type t
@@ -56,9 +70,24 @@ module MakePoly
 
         (* module H = Weak.Make(Arg) *)
         module H = Hashtbl.Make(Arg)
-
         let table   = H.create 5003
         let unique  = ref 0
+
+        module BackIndex = Hashtbl.Make(struct
+          type t = int
+          let equal = (=)
+          let hash = Hashtbl.hash 
+        end)
+          
+        let record, backindex =
+          let aux : type a index. (a,index)optionGADT -> (int->t->unit)*((int->t,index)optionGADT) = function
+            | SomeGADT _ -> 
+              let backtable = BackIndex.create 5003 in
+              BackIndex.add backtable,
+              SomeGADT(BackIndex.find backtable)
+            | NoneGADT -> (fun _ _ -> ()),NoneGADT
+          in aux B.value
+
         let build a =
           let f = {reveal =  a; id = !unique; data = None} in
           try H.find table f
@@ -67,13 +96,14 @@ module MakePoly
             incr unique;
             H.add table newf newf;
             (* H.add table newf; *)
+            record newf.id newf;
             newf
 
         let clear() = unique := 0; H.clear table
 
       end
 
-    module Init(Par: Hashtbl.HashedType) = InitData(Par)(EmptyData)
+    module Init(B: OptionValue)(Par: Hashtbl.HashedType) = InitData(B)(Par)(EmptyData)
 
   end
 
@@ -104,36 +134,49 @@ module Make
     type 't t
     val equal: ('t->'t->bool) -> 't t -> 't t -> bool
     val hash: ('t->int) -> 't t -> int
-  end) = struct
+  end) = 
+struct
 
-    module N = struct
-      type ('t,'a) t = 't M.t
-      let equal eq _ = M.equal eq
-      let hash h _ = M.hash h
-    end
-    module TMP = MakePoly(N)
-
-    type 't initial = 't M.t
-    type 'data generic  = (unit,'data) TMP.generic
-    type 'data g_revealed = (unit,'data) TMP.g_revealed
-
-    let reveal f = f.TMP.reveal
-    let id f     = f.TMP.id
-    let data f   = TMP.data f
-    let compare a1 a2 = Pervasives.compare a1.TMP.id a2.TMP.id
-
-    module InitData
-      (Data: sig
-        type t
-        val build : int -> t g_revealed -> t
-      end)
-      = TMP.InitData(struct
-        type t = unit
-        let equal _ _ = true
-        let hash _ = 1
-      end)
-      (Data)
-      
-    module Init = InitData(EmptyData)
-
+  module N = struct
+    type ('t,'a) t = 't M.t
+    let equal eq _ = M.equal eq
+    let hash h _ = M.hash h
   end
+  module TMP = MakePoly(N)
+
+  type 't initial = 't M.t
+  type 'data generic  = (unit,'data) TMP.generic
+  type 'data g_revealed = (unit,'data) TMP.g_revealed
+
+  let reveal f = f.TMP.reveal
+  let id f     = f.TMP.id
+  let data f   = TMP.data f
+  let compare a1 a2 = Pervasives.compare a1.TMP.id a2.TMP.id
+
+  module InitData(B: OptionValue)
+    (Data: sig
+      type t
+      val build : int -> t g_revealed -> t
+    end)
+    = TMP.InitData(B)(struct
+      type t = unit
+      let equal _ _ = failwith "HConsing: parameter equal was called, but HConsed type not polymorphic"
+      let hash _ = failwith "HConsing: parameter hash was called, but HConsed type not polymorphic"
+    end)
+    (Data)
+    
+  module Init(B: OptionValue) = InitData(B)(EmptyData)
+
+end
+
+module BackIndex = struct
+  type t = unit
+  type index = some
+  let value = SomeGADT ()
+end
+
+module NoBackIndex = struct
+  type t = unit
+  type index = none
+  let value = NoneGADT
+end

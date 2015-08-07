@@ -2,6 +2,22 @@
 (* This file contains the implementation of HConsed types *)
 (**********************************************************)
 
+type some = private S
+type none = private N
+
+type (_,_) optionGADT = 
+| SomeGADT: 'a -> ('a,some) optionGADT
+| NoneGADT: ('a,none) optionGADT
+
+module type OptionValue = sig
+  type t
+  type index
+  val value: (t,index) optionGADT
+end
+
+module BackIndex: OptionValue with type index = some
+module NoBackIndex: OptionValue with type index = none
+
 module EmptyData : sig
   type t
   val build : int -> 'a -> t
@@ -26,7 +42,7 @@ module MakePoly
 
     include PolyS with type ('t,'a) initial = ('t,'a) M.t
 
-    module InitData
+    module InitData(B:OptionValue)
       (Par: Hashtbl.HashedType)
       (Data: sig
         type t
@@ -37,14 +53,16 @@ module MakePoly
         type revealed = (Par.t,Data.t) g_revealed
         val build : revealed -> t
         val clear : unit -> unit
+        val backindex: (int -> t,B.index) optionGADT
       end
 
-    module Init(Par: Hashtbl.HashedType)
+    module Init(B:OptionValue)(Par: Hashtbl.HashedType)
       : sig
         type t = (Par.t,unit) generic
         type revealed = (Par.t,unit) g_revealed
         val build : revealed -> t
         val clear : unit -> unit
+        val backindex: (int -> t,B.index) optionGADT
       end
 
   end
@@ -68,7 +86,7 @@ module Make
 
     include S with type 't initial = 't M.t
 
-    module InitData
+    module InitData(B:OptionValue)
       (Data: sig
         type t
         val build : int -> t g_revealed -> t
@@ -78,13 +96,15 @@ module Make
         type revealed = Data.t g_revealed
         val build : revealed -> t
         val clear : unit -> unit
+        val backindex: (int -> t,B.index) optionGADT
       end
       
-    module Init : sig
+    module Init(B:OptionValue) : sig
       type t = unit generic
       type revealed = unit g_revealed
       val build : revealed -> t
       val clear : unit -> unit
+      val backindex: (int -> t,B.index) optionGADT
     end
 
   end

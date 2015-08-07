@@ -1,9 +1,9 @@
 open Top
 open Interfaces_basic
 open Interfaces_theory
+open Literals
 open Formulae
 open Interfaces_plugin
-open Messages
 
 (* type sign = unit *)
 
@@ -11,7 +11,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
   include Sequents.Make(PlDS)
 
-  module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic) = (struct
+  module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic) = struct
 
     open MyTheory.DS
 
@@ -523,12 +523,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	Seq.EntUF(ASet.empty,FSet.add (propagate DSubst.init formula) FSet.empty, FSet.empty, FSet.empty,Pol.empty,World.init)
       in machine_seq seq (init_data seq)
 
-  end: sig
-    module FE : (FrontEndType  with type IForm.datatype = PlDS.UF.t
-			       and  type FSet.ps     = PlDS.UFSet.t
-			       and  type ASet.ps     = PlDS.UASet.t)
-    val machine : FormulaB.t -> (FE.Seq.t -> 'a FE.address) -> 'a FE.output
-  end)
-
   end
+
+end
                                                                                          
