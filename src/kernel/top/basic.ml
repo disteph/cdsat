@@ -21,15 +21,15 @@ module IntSort = struct
 
   let compare = H.compare
   let id = H.id
-  let reveal t = let i,b,s = H.reveal t in i,s 
+  let reveal t = let i,_,s = H.reveal t in i,s 
   let build (i,s)  = HMade.build(i,true,s)
   let buildH (i,s) = HMade.build(i,false,s)
   let clear = HMade.clear
 
   let print_in_fmt fmt t =
     let (fv,b,so) = H.reveal t in
-    if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "" (* \\underline *)) fv (* Sorts.print_in_fmt so *)
-    else Format.fprintf fmt "?%i^{%a}" (-fv) Sorts.print_in_fmt so
+    if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "\\underline") fv (* Sorts.print_in_fmt so *)
+    else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
 
   let isDefined fv = let (_,b,_) = H.reveal fv in not b
   let isNeg fv = let (i,_,_) = H.reveal fv in i<0

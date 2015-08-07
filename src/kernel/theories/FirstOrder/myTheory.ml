@@ -34,11 +34,10 @@ module Make(PropDS:DataType) = struct
       | PropI : LitF.t IJMon.t -> t
 
       let bV is =
-        if IntSort.isDefined is 
-        then TermI((),0,-1,IntSortSet.add is IntSortSet.empty)
-        else let i,_ = IntSort.reveal is in
-             if i<0 then TermI((),0,i,IntSortSet.empty)
-             else TermI((),i,-1,IntSortSet.empty)
+        match IntSort.reveal is with
+        | _,Sorts.Prop -> PropI(LitF.build(true,is),0,-1,IntSortSet.add is IntSortSet.empty)
+        | i,_ when i<0 -> TermI((),0,i,IntSortSet.empty)
+        | i,_          -> TermI((),i,-1,IntSortSet.empty)
 
       let toLit = function
         | PropI f -> f
@@ -59,13 +58,14 @@ module Make(PropDS:DataType) = struct
         | Neg,[l] -> negation l
         | _ -> raise (ModelError "ModelError: semantic_aux does not know symbol")
 
-      let bC i symb l =
+      let bC id symb l =
+        (* print_endline(string_of_int id); *)
         try PropI(bC_aux symb (List.map toLit l))
         with ModelError _
           -> let ((),i,j,s) as domain = list_collect l in
              let (o,_) = Symbol.arity symb in
              match o with
-             | Sorts.Prop -> PropI(LitF.build(true,IntSort.buildH(i,o)),i,j,s)
+             | Sorts.Prop -> PropI(LitF.build(true,IntSort.buildH(id,o)),i,j,s)
              | _          -> TermI domain
     end
 
@@ -77,9 +77,15 @@ module Make(PropDS:DataType) = struct
     let asF = fst
 
     let asL term = match snd(Terms.data term) with
-      | PropI (l,i,j,s)  -> let b,is = LitF.reveal l in
-                            let (id,_) = IntSort.reveal is in
-                            let atom = Term.term_of_id id in
+      | PropI (l,i,j,s)  -> (* print_endline (Dump.toString (fun p -> p "Lit: %a" LitF.print_in_fmt l)); *)
+        let b,is = LitF.reveal l in
+                            let atom = 
+                              if IntSort.isDefined is
+                              then let (id,_) = IntSort.reveal is in
+                                   Term.term_of_id id
+                              else Term.bV is
+                            in
+                            (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
                             Some(b,atom),i,j,s
       | TermI ((),i,j,s) -> None,i,j,s
 
@@ -97,7 +103,7 @@ module Make(PropDS:DataType) = struct
         | Some(b,atom) -> fprintf fmt "%s%a" (if b then "" else "-") Term.print_in_fmt atom
     end
 
-    module TSet = MakeCollection(OT)
+    module TSet = MakeCollection(struct include Term let compare = Terms.compare end)
 
     (* let iatom_build (a,d) = *)
     (*   let module M = LitB.Homo(IJMon) in *)
@@ -127,12 +133,13 @@ module Make(PropDS:DataType) = struct
   let aux aset compare cont t atomN sigma = 
     TSet.fold
       (fun a alias -> 
-        Dump.msg(Some(fun p -> p "Unifying atoms %a and %a" Term.print_in_fmt a Term.print_in_fmt t))None None;
+        Dump.msg(Some(fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t))None None;
         let newalias = TSet.remove a alias in
         (match asL a, asL t with
         | (Some(b1,l1),_,_,_), (Some(b2,l2),_,_,_)
           when b1 = b2 ->
           (Dump.msg (Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
+           Dump.msg(Some(fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2))None None;
            let internalise = IU.internalise (MKcorr.get_key sigma.Constraint.mk) in
            match Constraint.unif sigma [internalise l1] [internalise l2] with
            | Some newsigma -> 

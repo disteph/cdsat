@@ -275,7 +275,7 @@ module FormulaF = struct
         | Eq Sorts.Prop  -> bi (fun(a,b) -> andP(orN(negation a,b),orN(negation b,a)))
         | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
         | f          -> let (so,_) = Symbol.arity f in
-                        fun _ -> bV (IntSort.buildH(i,so))
+                        fun _ -> bV(IntSort.buildH(i,so))
 
     end:S with type datatype = Fdata.t)
 
