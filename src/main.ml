@@ -37,6 +37,7 @@ let options =
                                    | None   -> notheories:= Some [s]
                                    | Some l -> notheories:= Some(s::l)), "XXX forbids theory XXX")::
     ("-alltheories", Unit(fun ()-> notheories:= Some []), "forces all theories to be used (regardless of parsed input)")::
+    ("-fo",          Unit(fun ()-> mode:= false),     "selects the pure first-order mode")::
     ("-plugin",      String(fun s-> myplugin:= s),    "XXX selects XXX as the main plugin (among async)")::
     ("-pluginG",     String(fun s-> mypluginG:= s),   "XXX selects XXX as the pure logic plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::

@@ -1,4 +1,5 @@
 open Top
+open Basic
 open Parser
 open Multiary
 open Prop.Formulae
@@ -42,7 +43,7 @@ let forParser (type a) i =
               (try symb 
                      (Symbol.arity sym)
                      (Symbol.multiary sym)
-                     (I.semantic sym)
+                     (I.bC sym)
                      l expsort
 	       with MultiaryError msg | TypingError msg -> 
                  if !Flags.debug>0
@@ -53,10 +54,10 @@ let forParser (type a) i =
 
       let decsymb s (decsort,decarg) =
         let arit = (parseSort decsort, List.map parseSort decarg) in
-        symb arit None (I.semantic(Symbol.User(s,arit)))
+        symb arit None (I.bC(Symbol.User(s,arit)))
 
       let boundsymb db decsort expsort =
-        if expsort = parseSort decsort then I.leaf (Basic.IntSort.build(db,expsort))
+        if expsort = parseSort decsort then I.bV (IntSort.build(db,expsort))
         else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^decsort
                                  ^" but expecting sort"^Dump.stringOf Sorts.print_in_fmt expsort))
 
@@ -66,7 +67,7 @@ let forParser (type a) i =
           | []     -> sfc
           | so::l' -> let s = parseSort so in
                       let sym = (if b then Symbol.Forall s else Symbol.Exists s) in
-                      I.semantic sym [aux l']
+                      I.bC sym [aux l']
         in
         function expsort ->
           if expsort= Sorts.Prop then aux l

@@ -4,6 +4,7 @@ Parsers_register
 Typing
 Empty
 Prop
+FirstOrder
 Theories_register
 Combo
 ForGround

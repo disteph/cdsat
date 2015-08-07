@@ -28,7 +28,7 @@ end
    datatypes for representing terms, into one big datatype.
 
    What we call "a plugin's datatype" is given by the module type
-   Top.Specs.Semantic
+   Top.Specs.DataType
    in which some symbols might not have any interpretation for the
    plugin. 
 
@@ -37,20 +37,9 @@ end
    where all symbols and all terms can be represented *)
 (*********************************************************************)
 
-module type DataType = Terms.DataType with type leaf := IntSort.t
-
-module Semantic2DataType(Sem:Semantic) = struct
-  type t = Sem.t
-  let bC tag symb args = 
-    match Sem.semantic symb with
-    | Some f -> f args
-    | None   -> let (so,_) = Symbol.arity symb in
-                Sem.leaf(IntSort.buildH(tag,so))
-  let bV = Sem.leaf
-end
 
 (* Now we shall organise a traversal of a given list of
-   Top.Specs.Semantic modules, aggregated all of the datatypes into
+   Top.Specs.DataType modules, aggregated all of the datatypes into
    one *)
 
 (* Base case in the traversal *)
@@ -64,30 +53,21 @@ let noTheory: (module DataType with type t = unit) =
 
 (* Incremental case in the traversal *)
 
-module Pairing(B1: DataType)(B2: DataType) = struct
-    type t = B1.t*B2.t
-    let bC tag symb args = 
-      (B1.bC tag symb (List.map fst args),
-       B2.bC tag symb (List.map snd args))
-    let bV v = (B1.bV v, B2.bV v)
-  end
-
 let addTheory (type a)(type b)
-    (th:(module Semantic with type t = a))
+    (th:(module DataType with type t = a))
     (i :(module DataType with type t = b)) 
     :(module DataType with type t = a*b) =
   let module Th = (val th) in
-  let module Sem = Semantic2DataType(Th) in
   let module I = (val i) in
-  (module Pairing(Sem)(I))
+  (module Pairing(Th)(I))
 
-(* Now, this is what we mean by "a list of Top.Specs.Semantic
+(* Now, this is what we mean by "a list of Top.Specs.DataType
    modules": it's a list, except it's indexed by the aggregated type
    itself, as a product: *)
 
 type _ dataList =
 | NoData : unit dataList
-| ConsData: (module Semantic with type t = 'a) * 'b dataList -> ('a*'b) dataList
+| ConsData: (module DataType with type t = 'a) * 'b dataList -> ('a*'b) dataList
 
 (* Now, we shall be given a list of the above form, which we shall
    aggregate into datatype, but we shall also have to provide a list

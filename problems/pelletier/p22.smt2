@@ -1,4 +1,5 @@
 (set-logic FO)
+(declare-sort Term 0)
 (declare-fun p () Bool)
 (declare-fun f (Term) Bool)
 (set-info :status unsat)

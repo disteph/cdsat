@@ -41,14 +41,20 @@ type 'a term = (IntSort.t,'a) Terms.term
 
 module type ForParsing = sig
   type t
-  val semantic : Symbol.t  -> t list -> t
-  val leaf     : IntSort.t -> t
+  val bC: Symbol.t -> t list -> t
+  val bV: IntSort.t -> t
 end
 
-module type Semantic = sig
-  type t
-  val semantic : Symbol.t  -> (t list -> t) option
-  val leaf     : IntSort.t -> t
+module type DataType = Terms.DataType with type leaf := IntSort.t
+
+module Pairing(B1: DataType)(B2: DataType)
+  : (DataType with type t = B1.t*B2.t) =
+struct
+  type t = B1.t*B2.t
+  let bC tag symb args = 
+    (B1.bC tag symb (List.map fst args),
+     B2.bC tag symb (List.map snd args))
+  let bV v = (B1.bV v, B2.bV v)
 end
 
 module type GTheoryDSType = sig

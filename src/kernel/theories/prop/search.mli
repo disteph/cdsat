@@ -6,7 +6,7 @@ open Interfaces_plugin
 
 module ProofSearch(PlDS: PlugDSType) : sig
 
-  module Semantic : Specs.Semantic with type t = PlDS.UF.t FormulaF.generic
+  module Semantic : Specs.DataType with type t = PlDS.UF.t FormulaF.generic
 
   module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic)
     : sig

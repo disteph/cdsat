@@ -31,7 +31,7 @@ module IntSort = struct
     if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "" (* \\underline *)) fv (* Sorts.print_in_fmt so *)
     else Format.fprintf fmt "?%i^{%a}" (-fv) Sorts.print_in_fmt so
 
-  let isDefined fv = let (_,b,_) = H.reveal fv in b
+  let isDefined fv = let (_,b,_) = H.reveal fv in not b
   let isNeg fv = let (i,_,_) = H.reveal fv in i<0
 
 end

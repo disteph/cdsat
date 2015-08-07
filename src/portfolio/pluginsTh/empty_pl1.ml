@@ -9,8 +9,8 @@ open Empty
 
 module ThDS = struct
   type t = unit 
-  let semantic _ = None
-  let leaf _ = ()
+  let bC _ _ _ = ()
+  let bV _ = ()
 end
 
 module Make(DS: sig 

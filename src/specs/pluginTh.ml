@@ -5,7 +5,7 @@ open Types
 
 module type Type = sig
 
-  module ThDS: Semantic
+  module ThDS: DataType
 
   module Make(DS: sig
     include GTheoryDSType

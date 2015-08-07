@@ -15,7 +15,7 @@ type t =
 
 open FormulaB
 
-let leaf v = TermI(TermB.bV v)
+let bV v = TermI(TermB.bV v)
 
 let toForm = function
   | PropI f -> f
@@ -25,7 +25,7 @@ let toTerm = function
   | TermI t -> t
   | _       -> raise (ModelError "ModelError: trying to convert into a term an expression that clearly is not one")
 
-let semantic_aux symb l =
+let bC_aux symb l =
   match symb, l with
   | True,[]       -> trueN
   | False,[]      -> falseN
@@ -42,8 +42,8 @@ let semantic_aux symb l =
   | _             -> raise (ModelError "ModelError: semantic_aux does not know symbol")
 
 
-let semantic symb l =
-  try PropI(semantic_aux symb (List.map toForm l))
+let bC symb l =
+  try PropI(bC_aux symb (List.map toForm l))
   with ModelError _
     -> let term = TermB.bC symb (List.map toTerm l) in
        let (o,_) = Symbol.arity symb in

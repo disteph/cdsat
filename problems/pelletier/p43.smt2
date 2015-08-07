@@ -1,5 +1,6 @@
 (set-logic FO)
 (set-info :status unsat)
+(declare-sort Term 0)
 (declare-fun q (Term Term) Bool)
 (declare-fun f (Term Term) Bool)
 (assert (forall ((x Term) (y Term)) (<=> (q x y) (forall ((z Term)) (<=> (f z x) (f z y))))))

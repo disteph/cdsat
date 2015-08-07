@@ -79,8 +79,8 @@ module FormulaF : sig
     val forall : Sorts.t * FormulaB.t * DSubst.t -> t
     val exists : Sorts.t * FormulaB.t * DSubst.t -> t
 
-    val semantic : Symbol.t  -> (t list -> t) option
-    val leaf     : IntSort.t -> t
+    val bC : int -> Symbol.t  -> t list -> t
+    val bV : IntSort.t -> t
   end
 
   module Make(Fdata: Extra) : S with type datatype = Fdata.t

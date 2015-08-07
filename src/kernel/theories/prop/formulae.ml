@@ -224,8 +224,8 @@ module FormulaF = struct
     val forall : Sorts.t * FormulaB.t * DSubst.t -> t
     val exists : Sorts.t * FormulaB.t * DSubst.t -> t
 
-    val semantic : Symbol.t  -> (t list -> t) option
-    val leaf     : IntSort.t -> t
+    val bC : int -> Symbol.t  -> t list -> t
+    val bV : IntSort.t -> t
   end
 
   module Make(Fdata: Extra)
@@ -252,18 +252,18 @@ module FormulaF = struct
       let forall(so,f,d)  = build(ForAll(so,f,d))
       let exists(so,f,d)  = build(Exists(so,f,d))
 
-      let leaf is = lit(LitF.build(true,is))
+      let bV is = lit(LitF.build(true,is))
 
-      let semantic =
-        let const c = Some(function
+      let bC i =
+        let const c = function
           | [] -> c
-          | _  -> raise(ModelError "ModelError_Formulae.ml: Expected 0 arguments"))
-        and mono f = Some(function
+          | _  -> raise(ModelError "ModelError_Formulae.ml: Expected 0 arguments")
+        and mono f = function
           | [a] -> f a
-          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 1 arguments"))
-        and bi f = Some(function
+          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 1 arguments")
+        and bi f = function
           | [a;b] -> f(a,b)
-          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 2 arguments"))
+          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 2 arguments")
         in function
         | True       -> const trueP
         | False      -> const falseN
@@ -274,7 +274,8 @@ module FormulaF = struct
         | Xor        -> bi (fun(a,b) -> andP(orN(a,b),orN(negation a,negation b)))
         | Eq Sorts.Prop  -> bi (fun(a,b) -> andP(orN(negation a,b),orN(negation b,a)))
         | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
-        | _             -> None
+        | f          -> let (so,_) = Symbol.arity f in
+                        fun _ -> bV (IntSort.buildH(i,so))
 
     end:S with type datatype = Fdata.t)
 

@@ -12,9 +12,9 @@ as possibly indicated by the parser when glancing at the input *)
 let init th =
   let theories =
     match !Flags.notheories,th with
-    | Some l,_    -> Theories_register.get_no l
-    | None,Some l -> Theories_register.get l
-    | None,None   -> Theories_register.get_no []
+    | Some l,_    when !Flags.mode -> Theories_register.get_no l
+    | None,Some l when !Flags.mode -> Theories_register.get l
+    | _,_                          -> Theories_register.get_no []
   in
 
   let mypluginG = PluginsG_register.get !Flags.mypluginG in
@@ -24,7 +24,7 @@ let init th =
   let module MyPlugin = (val myplugin) in
 
   let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
-  let propds = (module PS.Semantic: Top.Specs.Semantic with type t = PS.Semantic.t) in
+  let propds = (module PS.Semantic: Top.Specs.DataType with type t = PS.Semantic.t) in
 
   let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
       = if !Flags.mode
@@ -37,8 +37,9 @@ let init th =
                 (MyPlugin.Strategy(struct include WB let projList = projlist end))
           in
           (module Res)
-        else (* FirstOrder.make propds; *)
-          failwith "First-Order not working at the minute, please try again in 6 months"
+        else
+          let module FO = FirstOrder.MyTheory.Make(PS.Semantic) in
+          (module FO)
   in
   let module Mode  = (val mode) in
 

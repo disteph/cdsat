@@ -618,10 +618,17 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
 let mydispatch r = match r with
   | After_rules ->
-    Pathname.define_context "src/kernel" ["src/kernel"; "src/kernel/theories"];
-    Pathname.define_context "src/kernel/parsers" ["src/kernel"; "src/kernel/parsers"];
-    Pathname.define_context "src/kernel/theories/prop" ["src/kernel/"; "src/kernel/theories/prop"];
-    Pathname.define_context "src/kernel/theories/empty" ["src/kernel/"; "src/kernel/theories/empty"];
+    Pathname.define_context "src/kernel" ["src/kernel";
+                                          "src/kernel/theories"];
+    Pathname.define_context "src/kernel/parsers" ["src/kernel";
+                                                  "src/kernel/parsers"];
+    Pathname.define_context "src/kernel/theories/prop" ["src/kernel/";
+                                                        "src/kernel/theories/prop"];
+    Pathname.define_context "src/kernel/theories/empty" ["src/kernel/"; 
+                                                         "src/kernel/theories/empty"];
+    Pathname.define_context "src/kernel/theories/FirstOrder" ["src/kernel/";
+                                                              "src/kernel/theories/";
+                                                              "src/kernel/theories/FirstOrder"];
     dispatch_default r
   | _ -> dispatch_default r;;
 
