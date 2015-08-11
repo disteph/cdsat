@@ -381,28 +381,24 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
               | _ -> ());
             out
           in
-                (* try *)
-	  solve_rec (machine (true,
-			      el_wrap adOr,
-			      Me.tomem,
-			      match action with
-			      | Some action as saction -> (* print_endline "Found an action!" *)(fun()->saction)
-			      | None        -> 
-                                      (* (match !stack with *)
-                                      (* | [] ->print_endline "Looking for action with empty stack!"; *)
-                                      (* | _ -> print_endline "Looking for action with non-empty stack!"); *)
-                                findaction atms adOr alternative_restart
-	  )
-	  )
-            (* with *)
-            (*   WrongInstructionException _ -> *)
-            (*     Dump.Kernel.toPlugin(); *)
-	    (*     solve_rec (machine (true, *)
-	    (*   	              el_wrap adOr, *)
-	    (*   	              Me.tomem, *)
-            (*                         fNone *)
-	    (*     ) *)
-	    (*     ) *)
+          try
+	    solve_rec (machine (true,
+			        el_wrap adOr,
+			        Me.tomem,
+			        match action with
+			        | Some action as saction -> (* print_endline "Found an action!" *)(fun()->saction)
+			        | None        -> 
+                                (* (match !stack with *)
+                                (* | [] ->print_endline "Looking for action with empty stack!"; *)
+                                (* | _ -> print_endline "Looking for action with non-empty stack!"); *)
+                                  findaction atms adOr alternative_restart))
+          with
+            WrongInstructionException _ ->
+              Dump.Kernel.toPlugin();
+	      solve_rec (machine (true,
+	      	                  el_wrap adOr,
+	      	                  Me.tomem,
+                                  fNone)      )
 
 	)
 	  

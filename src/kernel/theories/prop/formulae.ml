@@ -1,9 +1,11 @@
 open Format
 
 open Top
-open Symbol
+open Symbols
 open Interfaces_basic
 open Basic
+
+open Variables
 open Literals
 open Specs
 
@@ -224,8 +226,8 @@ module FormulaF = struct
     val forall : Sorts.t * FormulaB.t * DSubst.t -> t
     val exists : Sorts.t * FormulaB.t * DSubst.t -> t
 
-    val bC : int -> Symbol.t  -> t list -> t
-    val bV : IntSort.t -> t
+    val bV : int -> FreeVar.t -> t
+    val bC : int -> Symbols.t  -> t list -> t
   end
 
   module Make(Fdata: Extra)
@@ -252,9 +254,9 @@ module FormulaF = struct
       let forall(so,f,d)  = build(ForAll(so,f,d))
       let exists(so,f,d)  = build(Exists(so,f,d))
 
-      let bV is = lit(LitF.build(true,is))
+      let bV tag _ = lit(LitF.build(true,tag))
 
-      let bC i =
+      let bC tag =
         let const c = function
           | [] -> c
           | _  -> raise(ModelError "ModelError_Formulae.ml: Expected 0 arguments")
@@ -274,8 +276,7 @@ module FormulaF = struct
         | Xor        -> bi (fun(a,b) -> andP(orN(a,b),orN(negation a,negation b)))
         | Eq Sorts.Prop  -> bi (fun(a,b) -> andP(orN(negation a,b),orN(negation b,a)))
         | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
-        | f          -> let (so,_) = Symbol.arity f in
-                        fun _ -> bV(IntSort.buildH(i,so))
+        | _          -> bV tag
 
     end:S with type datatype = Fdata.t)
 

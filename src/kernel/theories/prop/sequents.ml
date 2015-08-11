@@ -5,6 +5,7 @@ open Top
 open Interfaces_basic
 open Basic
 open Specs
+open Variables
 
 open Interfaces_theory
 open Literals
@@ -48,8 +49,6 @@ module Make(PlDS: PlugDSType) = struct
     
   module FrontEnd(DS: TheoryDSType with type formulae = PlDS.UF.t FormulaF.generic) = struct
 
-    (* val makes_sense: IAtom.t -> World.t -> bool *)
-
     (* Abbreviations for Kernel *)
     open DS
 
@@ -68,10 +67,10 @@ module Make(PlDS: PlugDSType) = struct
       let get_in_subst intso = 
         let k,_   = IntSort.reveal intso in
         let fv,_ = DSubst.get k d in
-        World.asIntSort fv
+        fv
       in
       let newatom = M.lift get_in_subst atom in
-      if b then newatom else Term.bC Symbol.Neg [newatom]
+      if b then newatom else Term.bC Symbols.Neg [newatom]
  
     let rec propagate d f =
       match FormulaB.reveal f with
@@ -88,13 +87,20 @@ module Make(PlDS: PlugDSType) = struct
       | ExistsB(so,f)  -> IForm.exists(so,f,d)
 
     let litF_as_term e =
-      let b,is = LitF.reveal e in
-      let atom =
-        if IntSort.isDefined is
-        then let (i,_) = IntSort.reveal is in Term.term_of_id i
-        else Term.bV is
-      in
-      if b then atom else Term.bC Symbol.Neg [atom]
+      let b,index = LitF.reveal e in
+      let atom = Term.term_of_id index in
+      if b then atom else Term.bC Symbols.Neg [atom]
+
+    let rec makes_senseF f w =
+      match FormulaF.reveal f with
+      | Lit l  -> makes_sense (litF_as_term l) w
+      | TrueP | TrueN | FalseP | FalseN
+        -> true
+      | AndN(f1, f2) | OrN(f1, f2) | AndP(f1, f2) | OrP(f1, f2)
+        -> makes_senseF f1 w && makes_senseF f1 w 
+      | ForAll(_,_,d) | Exists(_,_,d)
+        -> let dw = DSubst.get_arity d in
+           World.prefix dw w
 
     let asTSet (aset: ASet.t) : TSet.t = 
       ASet.fold (fun e -> TSet.add (litF_as_term e)) aset TSet.empty

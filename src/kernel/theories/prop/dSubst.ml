@@ -5,10 +5,11 @@
 open Format
 
 open Top
+open Variables
 
 exception DSubst of string
 
-type aux = EmptySubst | ConsSubst of World.FreeVar.t*World.t*t
+type aux = EmptySubst | ConsSubst of FreeVar.t*World.t*t
 and t    = {reveal : aux; id : int}
 
 let id s = s.id
@@ -23,7 +24,7 @@ let equal s1 s2 = match s1, s2 with
 let hash s =
   match s with
   | EmptySubst -> 0
-  | ConsSubst(fv,ar,s') -> 2 * (World.FreeVar.id fv) + 7 * id s'
+  | ConsSubst(fv,ar,s') -> 2 * (FreeVar.id fv) + 7 * id s'
 
 module H = Hashtbl.Make(struct
   type t = aux
@@ -51,8 +52,8 @@ let print_in_fmt fmt t =
       | EmptySubst -> failwith "Should not happen"
       | ConsSubst(fv,ar,s') ->
         begin match s'.reveal with
-        | EmptySubst -> fprintf fmt "%a" World.FreeVar.print_in_fmt fv
-        | _ -> fprintf fmt "%a;%a" World.FreeVar.print_in_fmt fv aux s'
+        | EmptySubst -> fprintf fmt "%a" FreeVar.print_in_fmt fv
+        | _ -> fprintf fmt "%a;%a" FreeVar.print_in_fmt fv aux s'
         end
     in fprintf fmt "[%a]" aux t
 

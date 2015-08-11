@@ -20,7 +20,7 @@ module Make(DS: GTheoryDSType) = struct
   let consistency atomN = TSet.fold
     (function l -> function
     | L(ThProvable set) as ans -> ans
-    | _ -> (match goal_consistency (Term.bC Symbol.Neg [l]) atomN with
+    | _ -> (match goal_consistency (Term.bC Symbols.Neg [l]) atomN with
       | L(ThProvable set) -> L(thProvable () (TSet.add l set))
       | ans -> ans ))
     atomN

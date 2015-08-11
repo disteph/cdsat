@@ -4,34 +4,42 @@ open Top
 open Interfaces_basic
 open Basic
 open Specs
-
-module IntSortHashed = HashedTypeFromHCons(IntSort)
+open Variables
 
 module LitF = struct
 
   include HCons.Make(struct
-    type _ t = bool*IntSort.t
-    let equal _ (b,a) (b',a') = b=b' && IntSortHashed.equal a a'
-    let hash _ (b,a) = (if b then 2 else -3) * IntSortHashed.hash a
+    type _ t = bool*int
+    let equal _ (b,a) (b',a') = b=b' && a=a'
+    let hash _ (b,a) = (if b then 2 else -3) * a
   end)
 
   include Init(HCons.NoBackIndex)
 
   let print_in_fmt fmt l =
     let b,a = reveal l in
-    fprintf fmt "%s{%a}" (if b then "" else "\\overline") IntSort.print_in_fmt a
+    fprintf fmt "%s{%i}" (if b then "" else "\\overline") a
 
   let negation l = 
     let b,a = reveal l in build(not b,a)
 
 end
 
-module TermB = Terms.Make(IntSort)(Terms.EmptyData(IntSort))
+
+module BoundVar = struct
+  include IntSort
+  let get_sort db = let (_,so) = reveal db in so
+  let get_from_context db context = let (i,_) = reveal db in context i
+end
+
+module TermB = Terms.Make(BoundVar)(Terms.EmptyData(BoundVar))
+
+type termB = (BoundVar.t,unit) Terms.term
 
 module LitB = struct
 
   module LF = struct
-    type _ t = bool*(unit term)
+    type _ t = bool*termB
     let equal _ (b,a) (b',a') = b=b' && Terms.equal a a'
     let hash _ (b,a) = (if b then 2 else -3) * Terms.hash a
   end

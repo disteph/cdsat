@@ -3,8 +3,9 @@ open Format
 open Top
 open Interfaces_basic
 open Basic
-open Symbol
+open Symbols
 open Specs
+open Variables
 
 open Prop
 open Literals
@@ -13,15 +14,7 @@ open Interfaces_theory
 
 module IntSortSet = Set.Make(IntSort)
 
-module IJMon = (struct
-  type 'a t = 'a*int*int*IntSortSet.t
-  let return a = (a,0,-1,IntSortSet.empty)
-  let bind (f: 'a -> 'b t) (a,i,j,s)
-      = let (b,i',j',s') = f a in
-        (b,Pervasives.max i i',Pervasives.min j j',IntSortSet.union s s')
-end : MonadType with type 'a t = 'a*int*int*IntSortSet.t)
-
-let proj (a,_,_,_) = a
+let proj (a,_) = a
 
 module Make(PropDS:DataType) = struct
 
@@ -29,96 +22,61 @@ module Make(PropDS:DataType) = struct
 
     module DT = struct
 
-      type t =
-      | TermI : unit IJMon.t -> t
-      | PropI : LitF.t IJMon.t -> t
+      type t = LitF.t*MakesSense.t
 
-      let bV is =
-        match IntSort.reveal is with
-        | _,Sorts.Prop -> PropI(LitF.build(true,is),0,-1,IntSortSet.add is IntSortSet.empty)
-        | i,_ when i<0 -> TermI((),0,i,IntSortSet.empty)
-        | i,_          -> TermI((),i,-1,IntSortSet.empty)
+      let bV tag fv = LitF.build(true,tag), MakesSense.fv fv
 
-      let toLit = function
-        | PropI f -> f
-        | _       -> raise (ModelError "ModelError: trying to convert into a formula an expression that clearly is not one")
+      let rec list_collect = 
+        List.fold_left (fun sofar (_,ms) -> MakesSense.combine sofar ms) MakesSense.init
 
-      let toTerm = function
-        | TermI t -> t
-        | _       -> raise (ModelError "ModelError: trying to convert into a term an expression that clearly is not one")
-
-      let rec list_collect = function
-        | []   -> IJMon.return ()
-        | a::l -> IJMon.bind (fun () -> list_collect l) (toTerm a)
-
-      let negation (a,i,j,s) = (LitF.negation a,i,j,s)
+      let negation (a,ms) = LitF.negation a,ms
 
       let bC_aux symb l =
         match symb, l with
-        | Neg,[l] -> negation l
+        | Neg,[ams] -> negation ams
         | _ -> raise (ModelError "ModelError: semantic_aux does not know symbol")
 
-      let bC id symb l =
+      let bC tag symb l =
         (* print_endline(string_of_int id); *)
-        try PropI(bC_aux symb (List.map toLit l))
+        try bC_aux symb l
         with ModelError _
-          -> let ((),i,j,s) as domain = list_collect l in
-             let (o,_) = Symbol.arity symb in
-             match o with
-             | Sorts.Prop -> PropI(LitF.build(true,IntSort.buildH(id,o)),i,j,s)
-             | _          -> TermI domain
+          -> LitF.build(true,tag), list_collect l
     end
 
     open DT
 
-    module Term = Terms.Make(IntSort)(Pairing(PropDS)(DT))
+    module Term = Terms.Make(FreeVar)(Pairing(PropDS)(DT))
 
     type formulae = PropDS.t
     let asF = fst
 
-    let asL term = match snd(Terms.data term) with
-      | PropI (l,i,j,s)  -> (* print_endline (Dump.toString (fun p -> p "Lit: %a" LitF.print_in_fmt l)); *)
-        let b,is = LitF.reveal l in
-                            let atom = 
-                              if IntSort.isDefined is
-                              then let (id,_) = IntSort.reveal is in
-                                   Term.term_of_id id
-                              else Term.bV is
-                            in
-                            (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
-                            Some(b,atom),i,j,s
-      | TermI ((),i,j,s) -> None,i,j,s
+    let asL term = let l,ms = snd(Terms.data term) in
+                   (* print_endline (Dump.toString (fun p -> p "Lit: %a" LitF.print_in_fmt l)); *)
+                   let b,id = LitF.reveal l in
+                   let atom = Term.term_of_id id in
+                   (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
+                   b,atom,ms
 
-    module OT = struct
-      type t = Term.t
-      let compare t1 t2 = match snd(Terms.data t1), snd(Terms.data t2) with
-        | PropI l1, PropI l2 -> LitF.compare (proj l1) (proj l2)
-        | PropI _, TermI _ -> 1
-        | TermI _, PropI _ -> -1
-        | TermI _, TermI _ -> 0
-      let print_in_fmt fmt term =
-        let res,i,j,s = asL term in
-        match res with
-        | None -> fprintf fmt "%a" Term.print_in_fmt term
-        | Some(b,atom) -> fprintf fmt "%s%a" (if b then "" else "-") Term.print_in_fmt atom
-    end
+    (* module OT = struct *)
+    (*   type t = Term.t *)
+    (*   let compare t1 t2 = match snd(Terms.data t1), snd(Terms.data t2) with *)
+    (*     | PropI l1, PropI l2 -> LitF.compare (proj l1) (proj l2) *)
+    (*     | PropI _, TermI _ -> 1 *)
+    (*     | TermI _, PropI _ -> -1 *)
+    (*     | TermI _, TermI _ -> 0 *)
+    (*   let print_in_fmt fmt term = *)
+    (*     let res,i,j,s = asL term in *)
+    (*     match res with *)
+    (*     | None -> fprintf fmt "%a" Term.print_in_fmt term *)
+    (*     | Some(b,atom) -> fprintf fmt "%s%a" (if b then "" else "-") Term.print_in_fmt atom *)
+    (* end *)
 
     module TSet = MakeCollection(struct include Term let compare = Terms.compare end)
 
-    (* let iatom_build (a,d) = *)
-    (*   let module M = LitB.Homo(IJMon) in *)
-    (*   let get_ij iso =  *)
-    (*     let k,_   = IntSort.reveal iso in *)
-    (*     let fv,ar = Prop.DSubst.get k d in *)
-    (*     (World.asIntSort fv, ar.World.next_eigen, ar.World.next_meta) *)
-    (*   in *)
-    (*   M.lift get_ij a, *)
-    (*   M.lift get_ij (LitB.negation a) *)
+    let makes_sense term = MakesSense.check (snd(snd(Terms.data term)))
 
-    (* let makes_sense ((_,i,j),_) ar =  *)
-    (*   (i <= ar.World.next_eigen) && (j >= ar.World.next_meta) *)
-
-    include Unification.Make(Term)
+    include Unification
+    module Constraint = Constraint
 
   end
 
@@ -136,9 +94,8 @@ module Make(PropDS:DataType) = struct
         Dump.msg(Some(fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t))None None;
         let newalias = TSet.remove a alias in
         (match asL a, asL t with
-        | (Some(b1,l1),_,_,_), (Some(b2,l2),_,_,_)
-          when b1 = b2 ->
-          (Dump.msg (Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
+        | (b1,l1,_), (b2,l2,_) when b1 = b2 ->
+          (Dump.msg(Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
            Dump.msg(Some(fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2))None None;
            let internalise = IU.internalise (MKcorr.get_key sigma.Constraint.mk) in
            match Constraint.unif sigma [internalise l1] [internalise l2] with

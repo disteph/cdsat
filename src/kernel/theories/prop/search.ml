@@ -1,6 +1,7 @@
 open Top
 open Interfaces_basic
 open Interfaces_theory
+open Variables
 open Literals
 open Formulae
 open Interfaces_plugin
@@ -274,7 +275,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
           let (_,newar) as c = World.liftM so ar in
           let d = DSubst.bind2FV c tl in
 	  let u = lk_solve inloop (Seq.EntF (atomN, propagate d a, formP, formPSaved, polar, newar)) data in
-	  straight u (std1 None seq) (Constraint.liftM so) Constraint.projM seq sigma cont
+	  straight u (std1 None seq) (Constraint.lift newar) Constraint.proj seq sigma cont
             
 	| Lit t -> 
           let rec pythie f sigma cont =
@@ -353,7 +354,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
           let (_,newar) as c = World.liftE so ar in
           let d = DSubst.bind2FV c tl in
 	  let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add (propagate d a) newdelta, formP, formPSaved, polar,newar)) data in
-	  straight u (std1 (Some toDecompose) seq) (Constraint.liftE so) Constraint.projE seq sigma cont
+	  straight u (std1 (Some toDecompose) seq) (Constraint.lift newar) Constraint.proj seq sigma cont
 
 	| _ -> failwith "All cases should have been covered!"
 
@@ -392,9 +393,8 @@ module ProofSearch(PlDS: PlugDSType) = struct
 		      
 	      | Cut(3,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*Focused Cut*)
 		->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
-                    (* let (_,ds) = toCut in *)
-                    (* if not (World.prefix (DSubst.get_arity ds) ar) *)
-                    (* then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity"); *)
+                  if not (makes_senseF toCut ar)
+                  then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		  Dump.Kernel.incr_count 5;
                   Dump.msg None (Some (fun p->p "Cut3 on %a" IForm.print_in_fmt toCut)) (Some 5);
                   let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) (bleft newdata1) in
@@ -404,17 +404,13 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     
 	      | Cut(7,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*Unfocused Cut*)
 		->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
-                    (* let (_,ds) = toCut in *)
-                    (* if not (World.prefix (DSubst.get_arity ds) ar) *)
-                    (* then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity"); *)
+                  if not (makes_senseF toCut ar)
+                  then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		  Dump.Kernel.incr_count 5;
                   let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) (bleft newdata1) in
                   let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                   let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
                   ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
-
-                (*     (\* if not (DS.makes_sense toCut ar) *\) *)
-                (*     (\* then raise (WrongInstructionException (Dump.toString(fun p-> p "Cut atom %a is not a prefix of current arity" IAtom.print_in_fmt toCut))); *\) *)
 
 	      | ConsistencyCheck(newdata,inter_fun,l) when not conschecked (*Checking consistency*)
 		  ->

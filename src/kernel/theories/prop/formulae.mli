@@ -5,8 +5,11 @@
 open Format
 
 open Top
+open Symbols
 open Interfaces_basic
 open Basic
+open Variables
+
 open Literals
 open Interfaces_theory
 
@@ -79,8 +82,8 @@ module FormulaF : sig
     val forall : Sorts.t * FormulaB.t * DSubst.t -> t
     val exists : Sorts.t * FormulaB.t * DSubst.t -> t
 
-    val bC : int -> Symbol.t  -> t list -> t
-    val bV : IntSort.t -> t
+    val bV : int -> FreeVar.t -> t
+    val bC : int -> Symbols.t  -> t list -> t
   end
 
   module Make(Fdata: Extra) : S with type datatype = Fdata.t

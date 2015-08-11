@@ -31,7 +31,7 @@ let forParser (type a) i =
   let module I = (val i: Specs.ForParsing with type t = a) in
   function decsorts ->
     let parseSort = Sorts.parse decsorts in
-    let parseSymb = Symbol.parse decsorts in
+    let parseSymb = Symbols.parse decsorts in
     (module struct
         
       type t = Sorts.t -> I.t
@@ -41,8 +41,8 @@ let forParser (type a) i =
           | sym::k ->
             fun l expsort ->
               (try symb 
-                     (Symbol.arity sym)
-                     (Symbol.multiary sym)
+                     (Symbols.arity sym)
+                     (Symbols.multiary sym)
                      (I.bC sym)
                      l expsort
 	       with MultiaryError msg | TypingError msg -> 
@@ -54,7 +54,7 @@ let forParser (type a) i =
 
       let decsymb s (decsort,decarg) =
         let arit = (parseSort decsort, List.map parseSort decarg) in
-        symb arit None (I.bC(Symbol.User(s,arit)))
+        symb arit None (I.bC(Symbols.User(s,arit)))
 
       let boundsymb db decsort expsort =
         if expsort = parseSort decsort then I.bV (IntSort.build(db,expsort))
@@ -66,7 +66,7 @@ let forParser (type a) i =
         let rec aux = function
           | []     -> sfc
           | so::l' -> let s = parseSort so in
-                      let sym = (if b then Symbol.Forall s else Symbol.Exists s) in
+                      let sym = (if b then Symbols.Forall s else Symbols.Exists s) in
                       I.bC sym [aux l']
         in
         function expsort ->

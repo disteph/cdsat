@@ -10,7 +10,7 @@ module IntSort : sig
   include PHCons
   val reveal : t -> int*Sorts.t
   val build  : int*Sorts.t -> t
-  val buildH : int*Sorts.t -> t
+  (* val buildH : int*Sorts.t -> t *)
   val isDefined  : t -> bool
   (* val isNeg  : t -> bool *)
 end

@@ -5,7 +5,7 @@ open Interfaces_basic
 (* A term is either a variable or a function symbol applied to
    arguments *)
 
-type ('a,'b) xterm = V of 'a | C of Symbol.t * ('b list)
+type ('a,'b) xterm = V of 'a | C of Symbols.t * ('b list)
 
 module M = struct
 
@@ -46,8 +46,8 @@ let hashtl tl = M.hashtl hash tl
 module type DataType = sig
   type t
   type leaf
-  val bV : leaf -> t
-  val bC : int -> Symbol.t -> t list -> t
+  val bV : int -> leaf -> t
+  val bC : int -> Symbols.t -> t list -> t
 end
 
 module type S = sig
@@ -56,7 +56,7 @@ module type S = sig
   type t = (leaf,datatype) term
   val term_of_id: int -> t
   val bV : leaf -> t
-  val bC : Symbol.t -> t list -> t
+  val bC : Symbols.t -> t list -> t
   val clear : unit -> unit
   val print_in_fmt: Format.formatter -> t -> unit
   val printtl_in_fmt: Format.formatter -> t list -> unit
@@ -79,7 +79,7 @@ struct
     (struct 
       type t = Data.t
       let build tag = function
-        | V v    -> Data.bV v
+        | V v    -> Data.bV tag v
         | C(f,l) -> Data.bC tag f (List.map data l)
      end)
 
@@ -94,7 +94,7 @@ struct
   let rec print_in_fmt fmt t =
     match reveal t with
     | V a -> fprintf fmt "%a" Leaf.print_in_fmt a
-    | C(f, newtl) -> fprintf fmt "%a%a" Symbol.print_in_fmt f printtl_in_fmt newtl
+    | C(f, newtl) -> fprintf fmt "%a%a" Symbols.print_in_fmt f printtl_in_fmt newtl
   and printtl_in_fmt fmt tl =
     if tl <> [] then fprintf fmt "(%a)" printrtl_in_fmt tl
   and printrtl_in_fmt fmt tl =
@@ -126,5 +126,5 @@ module EmptyData(Leaf : PHCons) =
 struct
   type t = unit
   let bC _ _ _ = ()
-  let bV     _ = ()
+  let bV _ _   = ()
 end

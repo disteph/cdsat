@@ -6,16 +6,17 @@ open Format
 
 open Interfaces_basic
 open Basic
+open Variables
 
 exception ModelError of string
 
 (* Useful abbreviations for module types *)
 
-module type Term = Terms.S with type leaf := IntSort.t
+module type TermF = Terms.S with type leaf := FreeVar.t
 
 (* Useful abbreviation for term type *)
 
-type 'a term = (IntSort.t,'a) Terms.term
+type 'a termF = (FreeVar.t,'a) Terms.term
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -41,11 +42,11 @@ type 'a term = (IntSort.t,'a) Terms.term
 
 module type ForParsing = sig
   type t
-  val bC: Symbol.t -> t list -> t
+  val bC: Symbols.t -> t list -> t
   val bV: IntSort.t -> t
 end
 
-module type DataType = Terms.DataType with type leaf := IntSort.t
+module type DataType = Terms.DataType with type leaf := FreeVar.t
 
 module Pairing(B1: DataType)(B2: DataType)
   : (DataType with type t = B1.t*B2.t) =
@@ -54,11 +55,11 @@ struct
   let bC tag symb args = 
     (B1.bC tag symb (List.map fst args),
      B2.bC tag symb (List.map snd args))
-  let bV v = (B1.bV v, B2.bV v)
+  let bV tag v = (B1.bV tag v, B2.bV tag v)
 end
 
 module type GTheoryDSType = sig
-  module Term : Term
+  module Term : TermF
   module TSet : Collection with type e = Term.t
 end
 

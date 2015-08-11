@@ -15,6 +15,7 @@
 *)
 
 open Top
+open Variables
 
 type t
 val id: t -> int
@@ -23,6 +24,6 @@ val clear: unit->unit
 val compare : t -> t -> int
 
 val init      : t
-val bind2FV: (World.FreeVar.t*World.t) -> t -> t
+val bind2FV: (FreeVar.t*World.t) -> t -> t
 val get_arity : t -> World.t
-val get: int -> t -> World.FreeVar.t*World.t
+val get: int -> t -> FreeVar.t*World.t

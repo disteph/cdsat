@@ -7,9 +7,10 @@ open Top
 open Basic
 open Interfaces_basic
 open Specs
+open Variables
 
-open Formulae
 open Literals
+open Formulae
 
 exception WrongInstructionException of string
 

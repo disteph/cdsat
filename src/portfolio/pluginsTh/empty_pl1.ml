@@ -10,7 +10,7 @@ open Empty
 module ThDS = struct
   type t = unit 
   let bC _ _ _ = ()
-  let bV _ = ()
+  let bV _ _   = ()
 end
 
 module Make(DS: sig 

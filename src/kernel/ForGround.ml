@@ -12,10 +12,8 @@ module EmptyConstraint : ConstraintType = struct
   type t = unit
   let topconstraint = ()
   let print_in_fmt fmt () = ()
-  let projE a = a
-  let liftE _ a = a
-  let projM a = a
-  let liftM _ a = a
+  let proj a = a
+  let lift _ a = a
   let compare a b = 0
   let meet a b = Some ()
 end
@@ -38,6 +36,7 @@ module GTh2Th
   module DS = struct
     include WB.DS
     include PProj
+    let makes_sense _ _ = true
     module Constraint = EmptyConstraint
   end
 
@@ -49,7 +48,7 @@ module GTh2Th
     | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
 
   let goal_consistency t a sigma =
-    let nont = DS.Term.bC Top.Symbol.Neg [t] in
+    let nont = DS.Term.bC Top.Symbols.Neg [t] in
     match MDP.solve (TSet.add nont a) with
     | WB.NotProvable _ -> NoMore
     | WB.Provable a'   -> Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)

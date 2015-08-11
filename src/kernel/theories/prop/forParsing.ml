@@ -1,7 +1,7 @@
 open Format
 
 open Top
-open Symbol
+open Symbols
 open Interfaces_basic
 open Basic
 open Specs
@@ -46,7 +46,7 @@ let bC symb l =
   try PropI(bC_aux symb (List.map toForm l))
   with ModelError _
     -> let term = TermB.bC symb (List.map toTerm l) in
-       let (o,_) = Symbol.arity symb in
+       let (o,_) = arity symb in
        match o with
        | Sorts.Prop -> PropI(lit(true,term))
        | _          -> TermI(term)

@@ -7,6 +7,7 @@ open Format
 open Top
 open Basic
 open Interfaces_basic
+open Variables
 open Messages
 open Theories_register
 open Specs
@@ -48,7 +49,7 @@ let noTheory: (module DataType with type t = unit) =
   (module struct
     type t = unit
     let bC _ _ _ = ()
-    let bV _ = ()
+    let bV _ _   = ()
   end)
 
 (* Incremental case in the traversal *)
@@ -76,7 +77,7 @@ type _ dataList =
    list) is again an indexed list, of the type below: *)
 
 type (_,_) projList =
-| NoProj : (_,unit) projList
+| NoProj  : (_,unit) projList
 | ConsProj: ('t -> 'a) * ('t,'b) projList -> ('t,'a*'b) projList
 
 (* Now we finally organise the traversal: *)
@@ -110,11 +111,11 @@ let make (type a)
 
     module DS = struct
 
-      module Term = Terms.Make(IntSort)(DT)
+      module Term = Terms.Make(FreeVar)(DT)
 
       module TSet = MakeCollection(
         struct
-          type t       = DT.t term
+          type t       = DT.t termF
           let id       = Terms.id
           let compare  = Terms.compare
           let clear    = Term.clear

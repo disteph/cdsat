@@ -4,8 +4,9 @@ interacts with Theory *)
 (******************************************************************)
 
 open Top
-open Basic
 open Interfaces_basic
+open Basic
+open Variables
 
 (* Module of constraints that meta-variables may be subject
    to. Constraints are produced when closing a branch, and are
@@ -15,10 +16,8 @@ open Interfaces_basic
 module type ConstraintType = sig
   type t
   val topconstraint:t
-  val projE : t -> t
-  val liftE : Sorts.t -> t -> t
-  val projM : t -> t
-  val liftM : Sorts.t -> t -> t
+  val proj : t -> t
+  val lift : World.t -> t -> t
   val meet : t -> t -> t option
   val compare : t -> t -> int
   val print_in_fmt : Format.formatter -> t -> unit
@@ -28,6 +27,7 @@ end
 
 module type TheoryDSType = sig
   include Specs.GTheoryDSType
+  val makes_sense: Term.t -> World.t -> bool
   type formulae
   val asF: Term.datatype -> formulae
   module Constraint: ConstraintType

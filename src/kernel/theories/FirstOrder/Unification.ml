@@ -6,629 +6,350 @@ open Format
 
 open Top
 open Basic
+open Variables
 
-open General.Patricia
-open General.SetConstructions
+module IU = Unifier
 
-module Make(Term: Terms.S with type leaf := IntSort.t) =
-struct
+(* This module is the datastructure establishing the correspondence
+   between meta-variables and their keys.
+   Some keys do not correspond to metas (as indicated by function is_meta.
+   We call them "wild keys".
+*)
 
-  (* Internal representation of a Unifier *)
+module MKcorr = (struct
 
-  module IU = (struct
+  type t    = {get_key: IU.MMap.t; get_meta: IU.KMap.t}
+  let empty = {get_key = IU.MMap.empty; get_meta = IU.KMap.empty}
 
-    exception AlreadyConstrained
+  let get_key  f mv  = IU.MMap.find mv f.get_key
+  let get_meta f key = IU.KMap.find key f.get_meta
+  let is_meta  f key = IU.KMap.mem key f.get_meta
 
-    (* IntSort (an int together with a sort) are used to represent
-       eigenvariables and meta-variables (or abstract keys).
+  let add f mv key = {get_key  = IU.MMap.add mv (function None -> key | _ -> failwith "meta already mapped") f.get_key;
+                      get_meta = IU.KMap.add key (function None -> mv | _ -> failwith "key already mapped") f.get_meta}
 
-       IMPORTANT: The convention is that all metas (and keys) are <0.
-       Positives are eigen. *)
+  let remove f mv = let key = get_key f mv in
+                    {get_key  = IU.MMap.remove mv  f.get_key;
+                     get_meta = IU.KMap.remove key f.get_meta}
 
-    type meta  = IntSort.t
-    type eigen = IntSort.t
-    let as_meta wfv = let fv = World.asIntSort wfv in
-                      let (i,_) = IntSort.reveal fv in
-                      if i<0 then fv else failwith ("Metas are supposed to be < 0 but I got "^string_of_int i)
+  let fold f mk = IU.MMap.fold f mk.get_key
+  let print_in_fmt fmt mk = 
+    IU.MMap.fold (fun mv key () -> Format.fprintf fmt "%a -> k%a; " Meta.print_in_fmt mv IU.print_in_fmtK key) mk.get_key ()
 
-    (* A unifier is a map from keys to values = "key terms",
-       i.e. terms whose leaves are either eigen or keys.
-
-       IMPORTANT: The convention is that all keys are <0, just
-       like all metas are <0.
-
-       The unifier is implemented as a record, with field next_key
-       satisfying the following invariant: any key below next_key
-       (included) is fresh for the map (not only is it not in its
-       domain, but it does not appear within the terms in the range of
-       the map)
-    *)
-
-    module TermDest = struct
-      type keys = IntSort.t (* Supposed to be <0 *)
-      let kcompare = IntSort.compare
-      type values = Term.t
-      type infos = keys m_infos
-      let info_build = m_info_build kcompare
-      let treeHCons = Some((fun x y -> Terms.id x = Terms.id y),IntSort.id,Terms.id)
-    end
-
-    module TMap = PATMap.Make(TermDest)(TypesFromHConsed(IntSort))
-
-    type t = {next_key:int; map:TMap.t}
-
-    include TermDest
-
-    let empty = {next_key = -1; map = TMap.empty}
-
-    let add key t u =
-      match Terms.reveal t with
-      | Terms.V k when kcompare key k == 0 -> u
-      | _ ->  {
-        next_key = u.next_key;
-        map = TMap.add key (function None -> t | Some _ -> raise AlreadyConstrained) u.map
-      }
-
-    let add_new so u =
-      (IntSort.build(u.next_key,so), {next_key = u.next_key-1; map = u.map})
-
-    let rec normalise ((t,u) as c) = 
-      let aux2 = function
-        | (Terms.V fv,u) when TMap.mem fv u.map -> 
-          let (t,new_u) = normalise (TMap.find fv u.map,u) in
-          (t, {next_key = new_u.next_key; map = TMap.add fv (fun _ -> t) new_u.map})
-        | _ -> c
-      in aux2 (Terms.reveal t,u)
-
-    type exposed = Eigen of eigen | Key of keys | C of Symbol.t*(Term.t list)
-
-    let expose c0 = 
-      let (t,new_u) = normalise c0 in
-      (match Terms.reveal t with
-      | Terms.V fv -> let (i,_) = IntSort.reveal fv in
-                        if i>=0 then Eigen fv else Key fv
-      | Terms.C(f,l) -> C(f,l)
-      ),
-      new_u
-        
-    let get key u =
-      if TMap.mem key u.map
-      then Some(normalise(TMap.find key u.map,u))
-      else None
-
-    let ecompare = IntSort.compare
-    let get_sort k = let (_,so) = IntSort.reveal k in so
-    let key2val k   = Term.bV k
-    let eigen2val e = Term.bV e
-    let bC = Term.bC
-    let internalise update =
-      Term.subst 
-        (fun fv ->
-          let (i,_) = IntSort.reveal fv in
-          if i<0 then update fv else fv)
-    let print_in_fmtV = Term.print_in_fmt
-    let print_in_fmtE = IntSort.print_in_fmt
-    let print_in_fmtM = IntSort.print_in_fmt
-    let print_in_fmtK = IntSort.print_in_fmt
-
-    let print_in_fmt fmt u =
-      let aux fmt =
-        TMap.fold
-          (fun key term () -> fprintf fmt "k%a -> %a; " print_in_fmtK key print_in_fmtV term)
-          u.map
-          ()
-      in
-      fprintf fmt "{next=%i; map = %t}" u.next_key aux
+end: sig
+  type t
+  val empty: t
+  val get_key : t -> Meta.t -> IU.keys
+  val get_meta: t -> IU.keys -> Meta.t
+  val is_meta : t -> IU.keys -> bool
+  val add   : t -> Meta.t -> IU.keys -> t
+  val remove: t -> Meta.t -> t
+  val fold: (Meta.t -> IU.keys -> 'b -> 'b) -> t -> 'b -> 'b
+  val print_in_fmt: Format.formatter -> t -> unit
+end)
 
 
-    (* We are going to construct maps whose entries are keys and whose
-       values are "key terms" *)
-    module IntSortDest = struct
-      type keys = IntSort.t
-      let kcompare = IntSort.compare
-      type values = IntSort.t
-      type infos = keys m_infos
-      let info_build = m_info_build kcompare
-      let treeHCons = Some((fun x y -> IntSort.id x = IntSort.id y),IntSort.id,IntSort.id)
-    end
+(* This module is the datastructure establishing the correspondence
+   between the two sides of unification problems
+   mk1: correspondence between meta and keys for side 1
+   mk2: reverse map
+   loc12: map from side1 wild keys to side2 wild keys
+   loc21: reverse map
+*)
 
-    module KMap = PATMap.Make(IntSortDest)(TypesFromHConsed(IntSort))
-    module MMap = KMap
-    module KKMap = KMap
+module KKcorr = (struct
 
-    let fold ar ei f =
-      let (i,_) = IntSort.reveal ei in
-      let bound = IntMap.find i ar.World.dependencies in 
-      let rec aux j u = 
-        if j == bound then u
-        else
-          aux (j-1) (f (as_meta(IntMap.find j ar.World.ith)) u)
-      in aux (-1)
+  type t = {mk1: MKcorr.t;
+            mk2: MKcorr.t;
+            loc12: IU.KKMap.t;
+            loc21: IU.KKMap.t}
 
-  end : sig
+  let init f1 f2 = {mk1 = f1;
+                    mk2 = f2;
+                    loc12 = IU.KKMap.empty; 
+                    loc21 = IU.KKMap.empty}
 
-    exception AlreadyConstrained
+  let swap f = {mk1 = f.mk2;
+                mk2 = f.mk1;
+                loc12 = f.loc21; 
+                loc21 = f.loc12}
 
-    type meta
-    type eigen
-    type keys
-    type values
-    val ecompare     : eigen -> eigen -> int
-    val kcompare     : keys -> keys -> int
-    val as_meta      : World.FreeVar.t -> meta
-    val get_sort     : keys  -> Sorts.t
-    val key2val      : keys  -> values
-    val eigen2val    : eigen -> values
-    val bC           : Symbol.t -> values list -> values
-    val internalise  : (meta -> keys) -> Term.t -> values
+  let get12 f key1 = 
+    if MKcorr.is_meta f.mk1 key1
+    then Some(MKcorr.get_key f.mk2 (MKcorr.get_meta f.mk1 key1))
+    else if IU.KKMap.mem key1 f.loc12
+    then Some(IU.KKMap.find key1 f.loc12)
+    else None
 
-    type t
-    val empty:t
-    val add          : keys -> values -> t -> t
-    val add_new      : Sorts.t -> t -> keys*t
-    val get          : keys -> t -> (values * t) option
+  let get21 f key2 = 
+    let f' = swap f in
+    get12 f' key2
 
-    type exposed = Eigen of eigen | Key of keys | C of Symbol.t*(values list)
-    val expose       : values*t -> exposed*t
-
-    val print_in_fmt : Format.formatter -> t      -> unit
-    val print_in_fmtV: Format.formatter -> values -> unit
-    val print_in_fmtE: Format.formatter -> eigen  -> unit
-    val print_in_fmtM: Format.formatter -> meta   -> unit
-    val print_in_fmtK: Format.formatter -> keys   -> unit
-
-    module KMap  : PATMap.S with type keys = keys and type values = meta
-    module MMap  : PATMap.S with type keys = meta and type values = keys
-    module KKMap : PATMap.S with type keys = keys and type values = keys
-
-    val fold: World.t -> eigen -> (meta -> 'a -> 'a) -> 'a -> 'a
-  end)
-
-  (* This module is the datastructure establishing the correspondence
-     between meta-variables and their keys.
-     Some keys do not correspond to metas (as indicated by function is_meta.
-     We call them "wild keys".
-  *)
-
-  module MKcorr = (struct
-
-    type t    = {get_key: IU.MMap.t; get_meta: IU.KMap.t}
-    let empty = {get_key = IU.MMap.empty; get_meta = IU.KMap.empty}
-
-    let get_key  f mv  = IU.MMap.find mv f.get_key
-    let get_meta f key = IU.KMap.find key f.get_meta
-    let is_meta  f key = IU.KMap.mem key f.get_meta
-
-    let add f mv key = {get_key  = IU.MMap.add mv (function None -> key | _ -> failwith "meta already mapped") f.get_key;
-                        get_meta = IU.KMap.add key (function None -> mv | _ -> failwith "key already mapped") f.get_meta}
-
-    let remove f mv = let key = get_key f mv in
-                      {get_key  = IU.MMap.remove mv  f.get_key;
-                       get_meta = IU.KMap.remove key f.get_meta}
-
-    let fold f mk = IU.MMap.fold f mk.get_key
-    let print_in_fmt fmt mk = 
-      IU.MMap.fold (fun mv key () -> Format.fprintf fmt "%a -> k%a; " IU.print_in_fmtM mv IU.print_in_fmtK key) mk.get_key ()
-
-  end: sig
-    type t
-    val empty: t
-    val get_key : t -> IU.meta -> IU.keys
-    val get_meta: t -> IU.keys -> IU.meta
-    val is_meta : t -> IU.keys -> bool
-    val add   : t -> IU.meta -> IU.keys -> t
-    val remove: t -> IU.meta -> t
-    val fold: (IU.meta -> IU.keys -> 'b -> 'b) -> t -> 'b -> 'b
-    val print_in_fmt: Format.formatter -> t -> unit
-  end)
-
-
-  (* This module is the datastructure establishing the correspondence
-  between the two sides of unification problems
-     mk1: correspondence between meta and keys for side 1
-     mk2: reverse map
-     loc12: map from side1 wild keys to side2 wild keys
-     loc21: reverse map
-  *)
-
-  module KKcorr = (struct
-
-    type t = {mk1: MKcorr.t;
-              mk2: MKcorr.t;
-              loc12: IU.KKMap.t;
-              loc21: IU.KKMap.t}
-
-    let init f1 f2 = {mk1 = f1;
-                      mk2 = f2;
-                      loc12 = IU.KKMap.empty; 
-                      loc21 = IU.KKMap.empty}
-
-    let swap f = {mk1 = f.mk2;
-                  mk2 = f.mk1;
-                  loc12 = f.loc21; 
-                  loc21 = f.loc12}
-
-    let get12 f key1 = 
-      if MKcorr.is_meta f.mk1 key1
-      then Some(MKcorr.get_key f.mk2 (MKcorr.get_meta f.mk1 key1))
-      else if IU.KKMap.mem key1 f.loc12
-      then Some(IU.KKMap.find key1 f.loc12)
-      else None
-
-    let get21 f key2 = 
-      let f' = swap f in
-      get12 f' key2
-
-    let add f key1 key2 =
-      {mk1 = f.mk1;
-       mk2 = f.mk2;
-       loc12 = IU.KKMap.add key1 (function None -> key2 | _ -> failwith "key already mapped in loc12") f.loc12; 
-       loc21 = IU.KKMap.add key2 (function None -> key1 | _ -> failwith "key already mapped in loc21") f.loc12}
-        
-  end: sig
-    type t
-    val init: MKcorr.t -> MKcorr.t -> t
-    val swap: t -> t
-    val get12: t -> IU.keys -> IU.keys option
-    val get21: t -> IU.keys -> IU.keys option
-    val add: t -> IU.keys -> IU.keys -> t
-  end
-  )
-
-
-  module Unification = (struct
+  let add f key1 key2 =
+    {mk1 = f.mk1;
+     mk2 = f.mk2;
+     loc12 = IU.KKMap.add key1 (function None -> key2 | _ -> failwith "key already mapped in loc12") f.loc12; 
+     loc21 = IU.KKMap.add key2 (function None -> key1 | _ -> failwith "key already mapped in loc21") f.loc12}
       
-    exception WrongArgumentNumber
-    exception NonUnifiable
+end: sig
+  type t
+  val init: MKcorr.t -> MKcorr.t -> t
+  val swap: t -> t
+  val get12: t -> IU.keys -> IU.keys option
+  val get21: t -> IU.keys -> IU.keys option
+  val add: t -> IU.keys -> IU.keys -> t
+end)
 
-    open Term 
 
-    (* Implementation of occurs_check
+module Unification = (struct
+    
+  exception WrongArgumentNumber
+  exception NonUnifiable
 
-       We are about to assign a value to key0. We want to check that
-       the value does not depend on key0. We recursively go down into
-       the value (and then, recursively, into a key, an eigen) in
-       order to check this. By calling these functions with lax =
-       true, we accept the case where the value is key0 itself.
-       
-       fold is into a function which, given an eigen, provides an
-       iterator over all the keys upon which this eigen depends.  *)
+  (* Implementation of occurs_check
 
-    let rec occurs_check_v lax fold key0 c =
-      let (t,u) = IU.expose c in
-      match t with
-      | IU.Eigen ei    -> occurs_check_ei fold key0 u ei
-      | IU.Key  key    -> occurs_check_k  lax fold key0 u key
-      | IU.C(_,l)      -> 
-        List.fold_left 
-          (fun u' t -> occurs_check_v false fold key0 (t,u'))
-          u l
+     We are about to assign a value to key0. We want to check that
+     the value does not depend on key0. We recursively go down into
+     the value (and then, recursively, into a key, an eigen) in
+     order to check this. By calling these functions with lax =
+     true, we accept the case where the value is key0 itself.
+     
+     fold is into a function which, given an eigen, provides an
+     iterator over all the keys upon which this eigen depends.  *)
 
-    and occurs_check_k lax fold key0 u key =
-      if (not lax)&&(IU.kcompare key key0 ==0) then raise NonUnifiable
-      else
-        match IU.get key u with
-        | None   -> u
-        | Some c -> occurs_check_v lax fold key0 c
+  let rec occurs_check_v lax fold key0 c =
+    let (t,u) = IU.expose c in
+    match t with
+    | IU.Eigen ei    -> occurs_check_ei fold key0 u ei
+    | IU.Key  key    -> occurs_check_k  lax fold key0 u key
+    | IU.C(_,l)      -> 
+      List.fold_left 
+        (fun u' t -> occurs_check_v false fold key0 (t,u'))
+        u l
 
-    and occurs_check_ei fold key0 u ei =
-      fold ei (fun key u'' -> occurs_check_k false fold key0 u'' key) u
+  and occurs_check_k lax fold key0 u key =
+    if (not lax)&&(IU.kcompare key key0 ==0) then raise NonUnifiable
+    else
+      match IU.get key u with
+      | None   -> u
+      | Some c -> occurs_check_v lax fold key0 c
 
-    (* In function translate, we are trying to assign, to the side1
-       key key0, a side1 value, which reflects the side2 value t2 in
-       its enviroment u2.
+  and occurs_check_ei fold key0 u ei =
+    fold ei (fun key u'' -> occurs_check_k false fold key0 u'' key) u
 
-       fold is a function which, given an eigen, provides an iterator
-       over all the side1 keys representing those metas upon which
-       this eigen depends.
+  (* In function translate, we are trying to assign, to the side1
+     key key0, a side1 value, which reflects the side2 value t2 in
+     its enviroment u2.
 
-       b is a boolean saying...
+     fold is a function which, given an eigen, provides an iterator
+     over all the side1 keys representing those metas upon which
+     this eigen depends.
 
-       We work in CPS, so cont is a continuation of type
+     b is a boolean saying...
+
+     We work in CPS, so cont is a continuation of type
+  *)
+
+  let translate b fold key0 u2 t2 cont =
+    Dump.msg (Some(fun p->p "translate k%a -> %a in %a" IU.print_in_fmtK key0 IU.print_in_fmtV t2 IU.print_in_fmt u2)) None None;
+
+    (* In the recursive auxiliary function aux,
+       - lax says whether we accept key0 to be mapped to itself.
+       - cont is the continuation that takes the side1 value to be
+       assigned to key0, the current side1 environment, the
+       current side2 environment, and outputs in the return type
+       'a
+       - t2, its environment u2, is the side2 value to be mimicked
+       in side1
+       - the side1 environment u1, in which we want to construct the
+       side1 value for key0, is taken as the next argument, in
+       each branch of the pattern-matching
     *)
 
-    let translate b fold key0 u2 t2 cont =
-      Dump.msg (Some(fun p->p "translate k%a -> %a in %a" IU.print_in_fmtK key0 IU.print_in_fmtV t2 IU.print_in_fmt u2)) None None;
+    let rec aux lax cont t2 u2 =
+      let (t2',u2') = IU.expose(t2,u2) in
+      match t2' with
 
-      (* In the recursive auxiliary function aux,
-         - lax says whether we accept key0 to be mapped to itself.
-         - cont is the continuation that takes the side1 value to be
-           assigned to key0, the current side1 environment, the
-           current side2 environment, and outputs in the return type
-           'a
-         - t2, its environment u2, is the side2 value to be mimicked
-           in side1
-         - the side1 environment u1, in which we want to construct the
-           side1 value for key0, is taken as the next argument, in
-           each branch of the pattern-matching
-      *)
+      | IU.Eigen ei when b -> 
+        fun u1 ->
+          (* Here, we want to map key0 to ei, we just run occurs
+             check to verify that this assignment respects
+             dependencie *)
+          let u1' = 
+            Dump.msg (Some(fun p->p "occurs_check_ei on k%a -> %a" IU.print_in_fmtK key0 Eigen.print_in_fmt ei)) None None;
+            occurs_check_ei fold key0 u1 ei in
+          cont (IU.eigen2val ei) u1' u2'
 
-      let rec aux lax cont t2 u2 =
-        let (t2',u2') = IU.expose(t2,u2) in
-        match t2' with
+      | IU.C(a,l) when b -> 
+        fun u1 ->
+          (* Here, we want to map key0 to C(a,l'), where l' is the
+             translation in side1 of l. We do this in CPS with
+             auxiliary function aux_tl. Function aux_tl expects a
+             continuation working just like those continuations
+             accepted by aux, except the first argument is a list of
+             side1 values instead of a side1 value. *)
+          let rec aux_tl cont = function
+            | []   -> cont []
+            | h::l -> let newcont1 h' =
+                        let newcont2 l' =
+                          cont (h'::l')
+                        in aux_tl newcont2 l
+                      in aux false newcont1 h
+          in aux_tl (fun l' -> cont(IU.bC a l')) l u1 u2'
 
-        | IU.Eigen ei when b -> 
-          fun u1 ->
-            (* Here, we want to map key0 to ei, we just run occurs
-            check to verify that this assignment respects
-            dependencie *)
-            let u1' = 
-              Dump.msg (Some(fun p->p "occurs_check_ei on k%a -> %a" IU.print_in_fmtK key0 IU.print_in_fmtE ei)) None None;
-              occurs_check_ei fold key0 u1 ei in
-            cont (IU.eigen2val ei) u1' u2'
+      | IU.Key i2 -> 
+        fun u1 kk_corr ->
+          begin
+            match KKcorr.get21 kk_corr i2 with
+            | None ->  
+              let newkey,u1' = IU.new_key (IU.get_sort i2) u1 in
+              let kk_corr' = KKcorr.add kk_corr newkey i2 in
+              cont (IU.key2val newkey) u1' u2' kk_corr'
+            | Some key1 when b && (lax||(key1!=key0)) -> 
+              let (t0,u1') = 
+                match IU.get key1 u1 with
+                | None             -> (IU.key2val key1,u1)
+                | Some((t,_) as c) -> (t,occurs_check_v lax fold key0 c)
+              in cont t0 u1' u2' kk_corr
+            | Some key1 -> 
+              Dump.msg (Some(fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.print_in_fmtK key0 IU.print_in_fmtK i2 IU.print_in_fmtK key1)) None None;
+              raise NonUnifiable
+          end
 
-        | IU.C(a,l) when b -> 
-          fun u1 ->
-            (* Here, we want to map key0 to C(a,l'), where l' is the
-            translation in side1 of l. We do this in CPS with
-            auxiliary function aux_tl. Function aux_tl expects a
-            continuation working just like those continuations
-            accepted by aux, except the first argument is a list of
-            side1 values instead of a side1 value. *)
-            let rec aux_tl cont = function
-              | []   -> cont []
-              | h::l -> let newcont1 h' =
-                          let newcont2 l' =
-                            cont (h'::l')
-                          in aux_tl newcont2 l
-                        in aux false newcont1 h
-            in aux_tl (fun l' -> cont(IU.bC a l')) l u1 u2'
+      | _ -> raise NonUnifiable
 
-        | IU.Key i2 -> 
-          fun u1 kk_corr ->
-            begin
-              match KKcorr.get21 kk_corr i2 with
-              | None ->  
-                let (newkey,u1') = IU.add_new (IU.get_sort i2) u1 in
-                let kk_corr' = KKcorr.add kk_corr newkey i2 in
-                cont (IU.key2val newkey) u1' u2' kk_corr'
-              | Some key1 when b && (lax||(key1!=key0)) -> 
-                let (t0,u1') = 
-                  match IU.get key1 u1 with
-                  | None             -> (IU.key2val key1,u1)
-                  | Some((t,_) as c) -> (t,occurs_check_v lax fold key0 c)
-                in cont t0 u1' u2' kk_corr
-              | Some key1 -> 
-                Dump.msg (Some(fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.print_in_fmtK key0 IU.print_in_fmtK i2 IU.print_in_fmtK key1)) None None;
-                raise NonUnifiable
-            end
+    in
+    let newcont t1 u1 = 
+      let u1' = IU.add key0 t1 u1 in
+      cont u1'
+    in
+    aux true newcont t2 u2
 
-        | _ -> raise NonUnifiable
+  (* combine takes a list l of unification constraints, and a pair
+     of lists of terms of the same length. The function generates new
+     unification constraints by the pairwise analysis of the two term
+     lists *)
 
-      in
-      let newcont t1 u1 = 
-        let u1' = IU.add key0 t1 u1 in
-        cont u1'
-      in
-      aux true newcont t2 u2
-
-    (* combine takes a list l of unification constraints, and a pair
-    of lists of terms of the same length. The function generates new
-    unification constraints by the pairwise analysis of the two term
-    lists *)
-
-    let rec combine l = function
-      | [],[]             -> l
-      | (a1::l1),(a2::l2) -> combine ((a1,a2)::l) (l1,l2)
-      | _,_               -> raise WrongArgumentNumber
+  let rec combine l = function
+    | [],[]             -> l
+    | (a1::l1),(a2::l2) -> combine ((a1,a2)::l) (l1,l2)
+    | _,_               -> raise WrongArgumentNumber
 
 
-    (* Main unification function!!!
-       - l is the list of unification constraints to solve
-       - u1 is the current substitution for side 1 (type IU.t)
-       - u2 is the current substitution for side 2 (type IU.t)
-       - mk1 is the input meta-key correspondence for side 1 (type MKcorr.t)
-       - mk2 is the input meta-key correspondence for side 2 (type MKcorr.t)
-       - fold contains the dependency constraints between eigen and meta
-    (/ keys), and is used for occurs_check 
-       - b is a boolean that is passed to the sub-routines
-    *)
+  (* Main unification function!!!
+     - l is the list of unification constraints to solve
+     - u1 is the current substitution for side 1 (type IU.t)
+     - u2 is the current substitution for side 2 (type IU.t)
+     - mk1 is the input meta-key correspondence for side 1 (type MKcorr.t)
+     - mk2 is the input meta-key correspondence for side 2 (type MKcorr.t)
+     - fold contains the dependency constraints between eigen and meta
+     (/ keys), and is used for occurs_check 
+     - b is a boolean that is passed to the sub-routines
+  *)
 
-    let unif b w mk1 mk2 u1 u2 l =
+  let unif b w mk1 mk2 u1 u2 l =
 
-      (* We start by creating 2 functions to check the dependencies
-      for occurs_check, for side 1 and side 2 *)
+    (* We start by creating 2 functions to check the dependencies
+       for occurs_check, for side 1 and side 2 *)
 
-      let fold1 ei f = IU.fold w ei (fun k -> f (MKcorr.get_key mk1 k)) in
-      let fold2 ei f = IU.fold w ei (fun k -> f (MKcorr.get_key mk2 k)) in
+    let fold1 ei f = World.fold w ei (fun k -> f (MKcorr.get_key mk1 k)) in
+    let fold2 ei f = World.fold w ei (fun k -> f (MKcorr.get_key mk2 k)) in
 
-      (* The unification function is recursive, with the arguments u1,
-         u2, and l that may change along the recursive calls.
-         A new argument, kkcorr, will also change along the recursive
-         calls: a correspondence between the keys of side 1 and the
-         keys of side 2.
-         At the beginning, this correspondence is limited to "being
-         the key for the same meta-variable", which we compute as
-         follows: *)
+    (* The unification function is recursive, with the arguments u1,
+       u2, and l that may change along the recursive calls.
+       A new argument, kkcorr, will also change along the recursive
+       calls: a correspondence between the keys of side 1 and the
+       keys of side 2.
+       At the beginning, this correspondence is limited to "being
+       the key for the same meta-variable", which we compute as
+       follows: *)
 
-      let kkcorr_init = KKcorr.init mk1 mk2 in
+    let kkcorr_init = KKcorr.init mk1 mk2 in
 
-      (* Now we can forget about fold, mk1 and mk2. We come to the
-         recursive unification function: *)
+    (* Now we can forget about fold, mk1 and mk2. We come to the
+       recursive unification function: *)
 
-      let rec aux l u1 u2 kkcorr = match l with
+    let rec aux l u1 u2 kkcorr = match l with
 
-        (* We have solved all unification constraints, we output the 2
-        unifiers constructed so far (one for side 1, one for side 2 *)
+      (* We have solved all unification constraints, we output the 2
+         unifiers constructed so far (one for side 1, one for side 2 *)
 
-        | []         -> Some(u1,u2)
+      | []         -> Some(u1,u2)
 
-        (* We find a unification constraint between 2 terms *)
+      (* We find a unification constraint between 2 terms *)
 
-        | (t1,t2)::l -> 
-          Dump.msg(Some(fun p->p "unifying %a in %a to %a in %a" IU.print_in_fmtV t1 IU.print_in_fmt u1 IU.print_in_fmtV t2 IU.print_in_fmt u2))None None; 
+      | (t1,t2)::l -> 
+        Dump.msg(Some(fun p->p "unifying %a in %a to %a in %a" IU.print_in_fmtV t1 IU.print_in_fmt u1 IU.print_in_fmtV t2 IU.print_in_fmt u2))None None; 
 
-          (* We expose the head shape of the 2 terms, and match them *)
+        (* We expose the head shape of the 2 terms, and match them *)
 
-          let (t1',u1') = IU.expose (t1, u1) in
-          let (t2',u2') = IU.expose (t2, u2) in
-          try match t1', t2' with
+        let (t1',u1') = IU.expose (t1, u1) in
+        let (t2',u2') = IU.expose (t2, u2) in
+        try match t1', t2' with
 
-          (* Same eigenvariable on both side -> we dismiss the
-          constraint and continue *)
+        (* Same eigenvariable on both side -> we dismiss the
+           constraint and continue *)
 
-          | IU.Eigen i1, IU.Eigen i2 when IU.ecompare i1 i2 ==0  -> aux l u1' u2' kkcorr
+        | IU.Eigen i1, IU.Eigen i2 when Eigen.compare i1 i2 ==0  -> aux l u1' u2' kkcorr
 
-          (* Same function symbol on both side -> we add the
-          unification constraints on the arguments (pairwise) and
-          continue *)
+        (* Same function symbol on both side -> we add the
+           unification constraints on the arguments (pairwise) and
+           continue *)
 
-          | IU.C(a1,l1), IU.C(a2,l2) when a1 = a2 -> aux (combine l (l1,l2)) u1' u2' kkcorr
+        | IU.C(a1,l1), IU.C(a2,l2) when a1 = a2 -> aux (combine l (l1,l2)) u1' u2' kkcorr
 
-          (* Two keys: we look at whether they correspond to each
-             other according to kkcorr. If they do, we dismiss the
-             constraint and continue, otherwise see the next
-             pattern-matching cases *)
+        (* Two keys: we look at whether they correspond to each
+           other according to kkcorr. If they do, we dismiss the
+           constraint and continue, otherwise see the next
+           pattern-matching cases *)
 
-          | IU.Key key1, IU.Key key2 when 
-              (match KKcorr.get21 kkcorr key2 with
-              | Some i -> IU.kcompare i key1 ==0
-              | None   -> false)
-              -> aux l u1' u2' kkcorr
+        | IU.Key key1, IU.Key key2 when 
+            (match KKcorr.get21 kkcorr key2 with
+            | Some i -> IU.kcompare i key1 ==0
+            | None   -> false)
+            -> aux l u1' u2' kkcorr
 
-          (* Key on the left (key1): we try to see if we can map it to
-             the term on the right (t2). For this we need to
-             *translate* the term t2 into the left-hand
-             world. Occurs_check will be done during that translation.
+        (* Key on the left (key1): we try to see if we can map it to
+           the term on the right (t2). For this we need to
+           *translate* the term t2 into the left-hand
+           world. Occurs_check will be done during that translation.
 
-             Also, if the term on the right t2 is itself a key key2,
-             we also need to edit the right-hand side to map that key
-             to (the translation in the right-hand world of) the key
-             on the left.
-             
-             The combination of both editions is done in
-             continuation-passing style *)
-            
-          | IU.Key key1, _  ->
-            let cont u1' u2' kkcorr = match t2' with
-              | IU.Key key2 ->
-                translate b fold2 key2 u1' t1 (fun u2'' u1'' kkcorr'' -> aux l u1'' u2'' (KKcorr.swap kkcorr'')) u2' (KKcorr.swap kkcorr)
-              | _ -> aux l u1' u2' kkcorr
-            in
-            translate b fold1 key1 u2' t2 cont u1' kkcorr
+           Also, if the term on the right t2 is itself a key key2,
+           we also need to edit the right-hand side to map that key
+           to (the translation in the right-hand world of) the key
+           on the left.
+           
+           The combination of both editions is done in
+           continuation-passing style *)
+          
+        | IU.Key key1, _  ->
+          let cont u1' u2' kkcorr = match t2' with
+            | IU.Key key2 ->
+              translate b fold2 key2 u1' t1 (fun u2'' u1'' kkcorr'' -> aux l u1'' u2'' (KKcorr.swap kkcorr'')) u2' (KKcorr.swap kkcorr)
+            | _ -> aux l u1' u2' kkcorr
+          in
+          translate b fold1 key1 u2' t2 cont u1' kkcorr
 
-          (* Key on the right (key2): as above, swapping left and right.
+        (* Key on the right (key2): as above, swapping left and right.
 
-             Except that now we know that the left-hand term is not a
-             key, so there is no need to edit the left-hand side *)
+           Except that now we know that the left-hand term is not a
+           key, so there is no need to edit the left-hand side *)
 
-          | _, IU.Key key2  ->
-            translate b fold2 key2 u1' t1 (fun u2'' u1'' kkcorr'' -> aux l u1'' u2'' (KKcorr.swap kkcorr'')) u2' (KKcorr.swap kkcorr)
+        | _, IU.Key key2  ->
+          translate b fold2 key2 u1' t1 (fun u2'' u1'' kkcorr'' -> aux l u1'' u2'' (KKcorr.swap kkcorr'')) u2' (KKcorr.swap kkcorr)
 
-          (* All other cases are non-unifiable problems *)
+        (* All other cases are non-unifiable problems *)
 
-          | _, _            -> raise NonUnifiable
+        | _, _            -> raise NonUnifiable
 
-          with NonUnifiable -> None
-      in
+        with NonUnifiable -> None
+    in
 
-      (* Finally, we initialise a call to the recursive function *)
+    (* Finally, we initialise a call to the recursive function *)
 
-      aux l u1 u2 kkcorr_init
+    aux l u1 u2 kkcorr_init
 
-  end: sig
-
-    val combine: ('l * 'm) list -> 'l list * 'm list -> ('l * 'm) list
-    val unif: bool -> World.t -> MKcorr.t -> MKcorr.t -> IU.t -> IU.t -> (IU.values * IU.values) list 
-      -> (IU.t * IU.t) option
-
-  end)
-
-
-  module Constraint = struct
-
-    type t = { ar : World.t;
-               mk : MKcorr.t;
-               unifier : IU.t}
-
-    let topconstraint = { ar  = World.init;
-                          mk  = MKcorr.empty;
-                          unifier = IU.empty}
-
-    let print_in_fmt fmt sigma = 
-      Format.fprintf fmt "{ar = {%a} || mk = {%a} || u = {%a}}" World.print_in_fmtEM sigma.ar MKcorr.print_in_fmt sigma.mk IU.print_in_fmt sigma.unifier
-
-    let liftE so sigma =
-      let (_,newar) = World.liftE so sigma.ar in
-      {  ar      = newar;
-         mk      = sigma.mk;
-         unifier = sigma.unifier }
-
-    let projE sigma =
-      let (_,newar) = World.projE sigma.ar in
-      { ar      = newar;
-        mk      = sigma.mk;
-        unifier = sigma.unifier }
-        
-    let liftM so sigma =
-      let (newmeta,newar) = World.liftM so sigma.ar in
-      let (newkey,newu) = IU.add_new so sigma.unifier in
-      {
-        ar      = newar;
-        mk      = MKcorr.add sigma.mk (IU.as_meta newmeta) newkey;
-        unifier = newu
-      }
-
-    let projM sigma =
-      let (oldmeta,newar) = World.projM sigma.ar in
-      {
-        ar      = newar;
-        mk      = MKcorr.remove sigma.mk (IU.as_meta oldmeta);
-        unifier = sigma.unifier
-      }
-
-    let liftAr sigma ar =
-      let rec liftN ui = function
-        | n when n == ar.World.next_meta -> ui
-        | n ->
-          let fv = IntMap.find n ar.World.ith in
-          let (_,so) = IntSort.reveal(World.asIntSort fv) in
-          liftN (liftM so ui) (n-1)
-      in
-      let tmp = liftN sigma sigma.ar.World.next_meta in
-      { ar      = ar;
-        mk      = tmp.mk;
-        unifier = tmp.unifier}
-
-
-    let unif_aux b sigma1 sigma2 l1 l2 =
-      match Unification.unif b sigma2.ar sigma1.mk sigma2.mk sigma1.unifier sigma2.unifier (Unification.combine [] (l1,l2)) with
-      | None        -> None
-      | Some(u1,u2) -> Some({ar = sigma1.ar; mk = sigma1.mk; unifier = u1},{ar = sigma2.ar; mk = sigma2.mk; unifier = u2})
-
-
-    let meet_aux b sigma1 sigma2 = 
-      if not(World.prefix sigma1.ar sigma2.ar)
-      then None
-      else
-        let sigma1 = liftAr sigma1 sigma2.ar in
-        let l1 = 
-          MKcorr.fold
-            (fun _ key l -> (IU.key2val key)::l)
-            sigma1.mk
-            []
-        in
-        let l2 = 
-          MKcorr.fold
-            (fun _ key l -> (IU.key2val key)::l)
-            sigma2.mk
-            []
-        in
-        match unif_aux b sigma1 sigma2 l1 l2 with
-        | None -> None
-        | Some(res,_) -> Some res
-
-    let meet = meet_aux true
-
-    let unif sigma l1 l2 = 
-      match unif_aux true sigma sigma l1 l2 with
-      | None                -> None
-      | Some(sigma1,sigma2) -> meet sigma1 sigma2
-
-    let compare sigma1 sigma2 =
-      match meet_aux false sigma1 sigma2 with 
-      | Some _ -> 0
-      | None   -> 1
-
-  end
-end
+end: sig
+  val combine: ('l * 'm) list -> 'l list * 'm list -> ('l * 'm) list
+  val unif: bool -> World.t -> MKcorr.t -> MKcorr.t -> IU.t -> IU.t -> (IU.values * IU.values) list -> (IU.t * IU.t) option
+end)
