@@ -75,7 +75,6 @@ module Make(PropDS:DataType) = struct
 
     let makes_sense term = MakesSense.check (snd(snd(Terms.data term)))
 
-    include Unification
     module Constraint = Constraint
 
   end
@@ -94,11 +93,10 @@ module Make(PropDS:DataType) = struct
         Dump.msg(Some(fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t))None None;
         let newalias = TSet.remove a alias in
         (match asL a, asL t with
-        | (b1,l1,_), (b2,l2,_) when b1 = b2 ->
+        | (b1,l1,_), (b2,l2,_) when compare b1 b2 ->
           (Dump.msg(Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
            Dump.msg(Some(fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2))None None;
-           let internalise = IU.internalise (MKcorr.get_key sigma.Constraint.mk) in
-           match Constraint.unif sigma [internalise l1] [internalise l2] with
+           match Constraint.unif sigma l1 l2 with
            | Some newsigma -> 
              raise (FoundIt(TSet.add a aset,newsigma, cont newalias))
            | None -> ())

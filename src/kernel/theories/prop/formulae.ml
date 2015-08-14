@@ -10,7 +10,7 @@ open Literals
 open Specs
 
 type 'a free = private Free
-type bound = private Bound
+type bound   = private Bound
 
 type (_,_) form =
 | Lit  : LitF.t -> (_,_ free) form
@@ -96,8 +96,10 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   | FalseP       -> fprintf fmt "%s" "\\falseP"
   | FalseN       -> fprintf fmt "%s" "\\falseN"
   | AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andN" f2
-  | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orN" f2
-  | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2
+  | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\vee" f2
+  (* | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orN" f2 *)
+  | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\wedge" f2
+  (* | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2 *)
   | OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orP" f2
   | ForAll(so,f,d)-> let FreeFunc pif = pSub in
                      print_quantif_in_fmt fmt "\\forall" so (fun fmt t -> pif t fmt) f d

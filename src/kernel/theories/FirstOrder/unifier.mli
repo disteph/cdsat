@@ -7,6 +7,7 @@ open Format
 open Top
 open Basic
 open Variables
+open Specs
 
 open General.Patricia
 open General.SetConstructions
@@ -27,7 +28,7 @@ val key2val      : keys    -> values
 val eigen2val    : Eigen.t -> values
 val bC           : Symbols.t -> values list -> values
 
-val internalise  : (Meta.t -> keys) -> (FreeVar.t,_) Terms.term -> values
+val internalise  : (Meta.t -> keys) -> _ termF -> values
 
 (* Actual unifiers *)
 

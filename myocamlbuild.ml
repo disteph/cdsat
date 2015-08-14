@@ -626,6 +626,8 @@ let mydispatch r = match r with
                                                         "src/kernel/theories/prop"];
     Pathname.define_context "src/kernel/theories/empty" ["src/kernel/"; 
                                                          "src/kernel/theories/empty"];
+    Pathname.define_context "src/kernel/theories/CC" ["src/kernel/";
+                                                      "src/kernel/theories/CC"];
     Pathname.define_context "src/kernel/theories/FirstOrder" ["src/kernel/";
                                                               "src/kernel/theories/";
                                                               "src/kernel/theories/FirstOrder"];

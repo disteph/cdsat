@@ -63,6 +63,7 @@ end) = struct
   include Set.Make(OT)
   type e    = elt
   let next t = let e = choose t in (e,remove e t)
-  let print_in_fmt fmt = fprintf fmt "%a "
-    (fun fmt -> iter (fprintf fmt "%a, " OT.print_in_fmt))
+  let print_in_fmt fmt s =
+    let _ = fold (fun a b -> fprintf fmt "%s%a" (if b then ", " else "") OT.print_in_fmt a; true) s false in
+    ()
 end

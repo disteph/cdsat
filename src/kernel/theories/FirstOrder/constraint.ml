@@ -81,8 +81,9 @@ let meet_aux b sigma1 sigma2 =
 
 let meet = meet_aux true
 
-let unif sigma l1 l2 = 
-  match unif_aux true sigma sigma l1 l2 with
+let unif sigma t1 t2 = 
+  let internalise = IU.internalise (MKcorr.get_key sigma.mk) in
+  match unif_aux true sigma sigma [internalise t1] [internalise t2] with
   | None                -> None
   | Some(sigma1,sigma2) -> meet sigma1 sigma2
 
