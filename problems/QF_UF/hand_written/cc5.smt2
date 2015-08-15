@@ -1,5 +1,6 @@
-(set-logic emptyCC)
+(set-logic QF_UF)
 (set-info :status unsat)
+(declare-sort Term 0)
 (declare-fun f (Term) Term)
 (declare-fun a () Term)
 (declare-fun p (Term Term) Bool)

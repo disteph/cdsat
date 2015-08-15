@@ -78,7 +78,7 @@ struct
 	        | Some l -> r:=false; ans := l
 	      done;
 	      if !r then None else
-	        let lis = (List.map X.itoA !ans) in
+	        let lis = List.map X.itoA !ans in
 	        Some(List.fold_left (fun e a -> TSet.add a e) TSet.empty ((List.hd !li)::lis))
             end
           | _ -> failwith "CC(X) can only understand = and <> as predicate symbols"
