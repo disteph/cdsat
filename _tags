@@ -23,6 +23,7 @@ true: annot, bin_annot
 
 <src/kernel/theories/prop/*>     : for-pack(Kernel.Prop)
 <src/kernel/theories/empty/*>    : for-pack(Kernel.Empty)
+<src/kernel/theories/CC/*>       : for-pack(Kernel.CC)
 <src/kernel/theories/FirstOrder/*>    : for-pack(Kernel.FirstOrder)
 
 <src/kernel/*.cmx>               : for-pack(Kernel)
