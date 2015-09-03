@@ -27,10 +27,15 @@ end) = struct
 
   let sign msg = ThAns(Sig.CC,msg)
 
-  let rec search tset = match MyCC.consistency tset with
-    | MyCC.L(msg) -> SM(Some(sign msg), fun _ -> failwith "Are you dumb? I already told you it was provable")
-    | MyCC.R(msg) -> SM(Some(sign msg), function
-      | None -> search tset
-      | Some (ThAns(_,ThStraight(newtset,f))) -> search (DS.TSet.union newtset tset))
+  let rec search_rec next tset = 
+    let module Next = (val next: MyCC.State with type t = MyCC.state) in
+    match Next.add tset with
+    | MyCC.UNSAT(msg)    -> SM(Some(sign msg), fun _ -> failwith "Are you dumb? I already told you it was provable")
+    | MyCC.SAT(msg,cont) -> SM(Some(sign msg), aux cont)
+  and aux cont = function
+    | None -> SM(None, aux cont)
+    | Some(ThAns(_,ThStraight(newtset,f))) -> search_rec cont newtset
 
+  let search = search_rec MyCC.init
+      
 end

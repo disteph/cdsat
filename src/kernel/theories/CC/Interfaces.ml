@@ -5,8 +5,7 @@
 
 open Top
 open Basic
-open Prop
-open Literals
+open Specs
 
 module type MapImplem = sig
   type e
@@ -35,8 +34,6 @@ end
 type 'a input = 
 | Eq of 'a*'a
 | NEq of 'a*'a
-| IsEq of 'a*'a
-| IsNEq of 'a*'a
 | Congr of 'a*'a
 
 (* signature of the theory X in input for CC(X) *)
@@ -45,21 +42,13 @@ module type SolvableTheory = sig
 
   type t (* terms *)
 
-  (* sets of terms *)
-  module TSet : SetImplem with type e = t
-
-  val directSubterms : t -> t list
-
-  (* highest symbol in a term *)
-  val root : t -> Symbols.t option
-
   type v (* semantic values *)
 
   (* sets of semantic values *)
   module VSet : SetImplem with type e = v
 
   (* Maps from semantic values to term sets *)
-  module VtoTSet : MapImplem with type e = v and type v = TSet.t
+  module VtoTSet : MapImplem with type e = v
 
   (* maps from semantic values to semantic values *)
   module VtoV : MapImplem with type e = v and type v = v
@@ -77,12 +66,6 @@ module type SolvableTheory = sig
 
   (* try to find a substitution to unify the two values in input *)
   val solve : v -> v -> res
-
-  (* compute the input form of an atom *)
-  val atoI : t -> t input option
-
-  (* complementary transformation *)
-  val itoA : t input -> t
 
 end
 

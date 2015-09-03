@@ -10,10 +10,7 @@ open MyPUF
 
 (* the UnionFind module for CC(Empty) *)
 
-module Make(Term: sig 
-  include TermF
-  val proj: datatype -> LitF.t
-end)
+module Make(Term: TermF)
   = struct
 
     module Ord = struct

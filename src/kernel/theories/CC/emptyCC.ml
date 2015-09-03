@@ -7,21 +7,32 @@ open Basic
 open Interfaces_basic
 open Specs
 
-open Prop
-open Literals
-
 open General
 open SetConstructions
 open Patricia
 
 open Interfaces
 
-module Make(Term: sig 
-  include TermF
-  val proj: datatype -> LitF.t
-end) = struct
+module Make(DS: GTheoryDSType) = struct
+
+  open DS
 
   type t = Term.t
+
+(* the semantic values are terms: 
+   there is no interpreted symbol for this theory *)
+  type v = Term.t
+
+  module VSet = TSet
+
+  module DVtoTSet = struct
+    type keys = Term.t
+    let kcompare = compare
+    type values = TSet.t
+    type infos = unit
+    let info_build = empty_info_build
+    let treeHCons = None (* Some((fun ts1 ts2 -> TSet.compare ts1 ts2 == 0),Terms.id,TSet.id) *)
+  end
 
   module F = struct
     type t = Term.t
@@ -30,48 +41,10 @@ end) = struct
 
   module I = TypesFromHConsed (F)
 
-  let compare f1 f2 = Pervasives.compare (F.id f1) (F.id f2)
-
-  module DTSet = struct
-    type keys = t
-    let kcompare = compare
-    type values = unit
-    type infos = unit
-    let info_build = empty_info_build
-    let treeHCons = Some Terms.id
-  end
-
-  module TSet = PATSet.Make (DTSet) (I)
-
-  let directSubterms t = 
-    match Terms.reveal t with
-    | Terms.V x    -> []
-    | Terms.C(f,l) -> l
-
-  let root t = 
-    match Terms.reveal t with
-    | Terms.V x    -> None
-    | Terms.C(f,l) -> Some f
-
-(* the semantic values are terms: 
-   there is no interpreted symbol for this theory *)
-  type v = t
-
-  module VSet = TSet
-
-  module DVtoTSet = struct
-    type keys = t
-    let kcompare = compare
-    type values = TSet.t
-    type infos = unit
-    let info_build = empty_info_build
-    let treeHCons = Some((fun ts1 ts2 -> TSet.compare ts1 ts2 =0),Terms.id,TSet.id)
-  end
-
   module MVtoTSet = PATMap.Make (DVtoTSet) (I)
 
   module VtoTSet = struct
-    type e = t
+    type e = Term.t
     type v = TSet.t
     type t = MVtoTSet.t
     let find = MVtoTSet.find
@@ -88,19 +61,19 @@ end) = struct
   end
 
   module DVtoV = struct
-    type keys = t
+    type keys = Term.t
     let kcompare = compare
-    type values = t
+    type values = Term.t
     type infos = unit
     let info_build = empty_info_build
-    let treeHCons = Some((fun t1 t2 -> compare t1 t2 =0),Terms.id,Terms.id)
+    let treeHCons = Some((fun t1 t2 -> Terms.compare t1 t2 =0),Terms.id,Terms.id)
   end
 
   module MVtoV = PATMap.Make (DVtoV) (I)
 
   module VtoV = struct
-    type e = t
-    type v = t
+    type e = Term.t
+    type v = Term.t
     type t = MVtoV.t
     let find = MVtoV.find
     let empty = MVtoV.empty
@@ -115,7 +88,7 @@ end) = struct
 
   let make t = t
 
-  let leaves r = VSet.add r VSet.empty
+  let leaves r = TSet.add r TSet.empty
 
   let rec subst p q r =
     if compare p r = 0 then q else r
@@ -125,20 +98,5 @@ end) = struct
   let solve r r' =
     if compare r r' = 0 then Top
     else Sol(r,r')
-
-  let atoI a = 
-    let b,t = LitF.reveal(Term.proj(Terms.data a)) in
-    match Terms.reveal(Term.term_of_id t) with
-    | Terms.C(Symbols.Eq _,[a1;a2]) when b -> Some(Eq(a1,a2))
-    | Terms.C(Symbols.Eq _,[a1;a2])        -> Some(NEq(a1,a2))
-    | Terms.C(Symbols.NEq _,[a1;a2]) when b-> Some(NEq(a1,a2))
-    | Terms.C(Symbols.NEq _,[a1;a2])       -> Some(Eq(a1,a2))
-    | _ -> None
-
-  let itoA = function
-    | Eq(a,b)  -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
-    | NEq(a,b) -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
-    | _ -> assert false
-
 
 end

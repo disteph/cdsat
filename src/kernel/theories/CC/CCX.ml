@@ -21,22 +21,37 @@ module Make
     include GTheoryDSType
     val proj: Term.datatype -> LitF.t
   end)
-  (X : SolvableTheory with type t = DS.Term.t)
+  (X : SolvableTheory with type VtoTSet.v = DS.TSet.t
+                      and  type t = DS.Term.t)
   (U : PersistentUnionFind with type e = X.v 
-                           and  type d = X.t input) 
+                           and  type d = DS.Term.t input) 
   = 
 struct
 
   open DS
 
-  module Alg = Algo (X) (U)
+  module Alg = Algo (DS) (X) (U)
+
+  let atoI a = 
+    let b,t = LitF.reveal(proj(Terms.data a)) in
+    match Terms.reveal(Term.term_of_id t) with
+    | Terms.C(Symbols.Eq _,[a1;a2]) when b -> Some(Eq(a1,a2))
+    | Terms.C(Symbols.Eq _,[a1;a2])        -> Some(NEq(a1,a2))
+    | Terms.C(Symbols.NEq _,[a1;a2]) when b-> Some(NEq(a1,a2))
+    | Terms.C(Symbols.NEq _,[a1;a2])       -> Some(Eq(a1,a2))
+    | _ -> None
+
+  let itoA = function
+    | Eq(a,b)  -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
+    | NEq(a,b) -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
+    | _ -> assert false
 
   let toTSet = 
-    List.fold_left (fun e a -> TSet.add (X.itoA a) e) TSet.empty
+    List.fold_left (fun e a -> TSet.add (itoA a) e) TSet.empty
 
   let fromTSet tset = 
     TSet.fold 
-      (fun t l -> match X.atoI t with 
+      (fun t l -> match atoI t with 
       | None -> l
       | Some e -> e::l)
       tset
@@ -44,38 +59,32 @@ struct
 
   module type State = sig
     type t
+    val treated  : TSet.t
     val add      : TSet.t -> t
     val normalise: Term.t -> Term.t
   end
 
-  type state = | UNSAT of TSet.t
-               | SAT of (module State with type t = state)
+  type state = | UNSAT of (sign,TSet.t,thProvable) thsays
+               | SAT of (sign,TSet.t,thNotProvable) thsays * (module State with type t = state)
 
-  let rec getModule s =
+  let rec getModule treated s =
     (module struct
 
       type t = state
 
+      let treated = treated
+
       let add tset = 
+        let newtreated = TSet.union treated tset in
         try 
-          SAT(getModule(Alg.algo {s with Alg.phi = fromTSet tset}))
+          SAT(thNotProvable () newtreated, getModule newtreated (Alg.algo s (fromTSet tset)))
         with
-          Alg.Inconsistency l -> UNSAT(toTSet l)
+          Alg.Inconsistency l -> UNSAT(thProvable () (toTSet l))
 
       let normalise t = failwith "TODO" (* Alg.normalise s t *)
 
     end: State with type t = state)
 
-  let init = getModule Alg.init
+  let init = getModule TSet.empty Alg.init
 
-  let consistency atomN = 
-    Dump.msg (Some(fun p->p "Procedure called on\n%a" TSet.print_in_fmt atomN)) None None;
-    let module Init = (val init) in
-    match Init.add atomN with
-    | UNSAT l -> 
-      Dump.msg (Some(fun p->p "Procedure finished with INCONSISTENT with hypotheses\n %a" TSet.print_in_fmt l)) None None; 
-      Some l
-    | SAT _ -> 
-      Dump.msg (Some(fun p->p "Procedure finished with CONSISTENT with hypotheses.")) None None;
-      None
 end
