@@ -18,11 +18,15 @@ module Make(DS: GTheoryDSType) = struct
     else R(thNotProvable () atomN)
 
   let consistency atomN = TSet.fold
-    (function l -> function
+    (fun l -> function
     | L(ThProvable set) as ans -> ans
-    | _ -> (match goal_consistency (Term.bC Symbols.Neg [l]) atomN with
-      | L(ThProvable set) -> L(thProvable () (TSet.add l set))
-      | ans -> ans ))
+    | _ ->
+      begin
+        match goal_consistency (Term.bC Symbols.Neg [l]) atomN with
+        | L(ThProvable set) -> L(thProvable () (TSet.add l set))
+        | ans -> ans 
+      end
+    )
     atomN
     (R(thNotProvable () atomN))
 
