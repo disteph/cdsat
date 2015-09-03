@@ -22,7 +22,8 @@ module Make
     val proj: Term.datatype -> LitF.t
   end)
   (X : SolvableTheory with type VtoTSet.v = DS.TSet.t
-                      and  type t = DS.Term.t)
+                      and  type t = DS.Term.t
+                      and  type v = DS.Term.t)
   (U : PersistentUnionFind with type e = X.v 
                            and  type d = DS.Term.t input) 
   = 
@@ -61,7 +62,7 @@ struct
     type t
     val treated  : TSet.t
     val add      : TSet.t -> t
-    val normalise: Term.t -> Term.t
+    val normalise: Term.t -> (sign,TSet.t,thStraight) thsays
   end
 
   type state = | UNSAT of (sign,TSet.t,thProvable) thsays
@@ -81,7 +82,17 @@ struct
         with
           Alg.Inconsistency l -> UNSAT(thProvable () (toTSet l))
 
-      let normalise t = failwith "TODO" (* Alg.normalise s t *)
+      let normalise t = 
+        let t' = Alg.normalise s t in
+        let l = Eq(t,t') in
+        let l' = itoA l in
+        let justif = Alg.explain s.Alg.u l in
+        thStraight () 
+          (TSet.add l' TSet.empty) 
+          (fun tset ->
+            if TSet.mem l' tset
+            then List.fold_left (fun e a -> TSet.add (itoA a) e) (TSet.remove l' tset) justif
+            else tset)
 
     end: State with type t = state)
 

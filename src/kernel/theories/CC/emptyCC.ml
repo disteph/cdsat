@@ -26,8 +26,8 @@ module Make(DS: GTheoryDSType) = struct
   module VSet = TSet
 
   module DVtoTSet = struct
-    type keys = Term.t
-    let kcompare = compare
+    type keys = v
+    let kcompare = Terms.compare
     type values = TSet.t
     type infos = unit
     let info_build = empty_info_build
@@ -49,11 +49,7 @@ module Make(DS: GTheoryDSType) = struct
     type t = MVtoTSet.t
     let find = MVtoTSet.find
     let empty = MVtoTSet.empty
-    let add i s t = MVtoTSet.add i 
-      (function
-      | None   -> s
-      | Some r -> s)
-      t
+    let add i s t  = MVtoTSet.add i (function _ -> s) t
     let union t t' = MVtoTSet.union (fun s s' -> TSet.union s s') t t'
     let remove i t = MVtoTSet.remove i t
     let map f t = MVtoTSet.map (fun x y -> f y) t
@@ -62,7 +58,7 @@ module Make(DS: GTheoryDSType) = struct
 
   module DVtoV = struct
     type keys = Term.t
-    let kcompare = compare
+    let kcompare = Terms.compare
     type values = Term.t
     type infos = unit
     let info_build = empty_info_build
@@ -77,9 +73,7 @@ module Make(DS: GTheoryDSType) = struct
     type t = MVtoV.t
     let find = MVtoV.find
     let empty = MVtoV.empty
-    let add i s t = MVtoV.add i (fun f -> match f with
-      | None -> s
-      | (Some r) -> s) t
+    let add i s t = MVtoV.add i (function _ -> s) t
     let union t t' = MVtoV.union (fun s s' -> s) t t'
     let remove i t = MVtoV.remove i t
     let map f t = MVtoV.map (fun x y -> f y) t
