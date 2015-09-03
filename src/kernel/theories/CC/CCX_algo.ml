@@ -392,25 +392,28 @@ apply the substituions met since the beginning *)
       end
     | _ -> assert false
 
+
+  let normalise s t = VtoV.find (make t) s.delta
+
+  let init =
+    {theta = TSet.empty ;
+     gamma = VtoTSet.empty ; 
+     delta = VtoV.empty ;
+     n   = [] ;
+     phi = [];
+     sub = [];
+     u   = U.create }
+
 (* the function to call to solve a problem :
    given a list of atoms (in their input form) and an optional atom,
    check if the atom is entailed by the list, 
    or if the list is consistent with the theory *)
-  let solve phi =
-    let s = {theta = TSet.empty ;
-             gamma = VtoTSet.empty ; 
-	     delta = VtoV.empty ;
-             n   = [] ;
-             phi = phi;
-             sub = [];
-             u   = U.create }
-    in
-    function
+  let solve phi = function
     | None -> (*print_string "\nConsistency\n";*)
       (*print_inputlist phi; print_newline();*)
       begin
 	try
-	  let _ = algo s in
+	  let _ = algo {init with phi = phi} in
 	  U.clear();
 	  None
 	with 
@@ -424,7 +427,7 @@ apply the substituions met since the beginning *)
       (*print_inputlist phi; print_newline();*)
       begin
 	try
-	  let s' = algo { s with phi = List.append s.phi q } in
+	  let s' = algo { init with phi = List.append phi q } in
 	  let l = List.fold_left 
             (fun l e -> union l (analyse s' (fromQuery e)))
             []

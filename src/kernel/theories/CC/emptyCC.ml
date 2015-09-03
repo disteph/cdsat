@@ -76,9 +76,11 @@ end) = struct
     type t = MVtoTSet.t
     let find = MVtoTSet.find
     let empty = MVtoTSet.empty
-    let add i s t = MVtoTSet.add i (fun f -> match f with
-      | None -> s
-      | (Some r) -> s) t
+    let add i s t = MVtoTSet.add i 
+      (function
+      | None   -> s
+      | Some r -> s)
+      t
     let union t t' = MVtoTSet.union (fun s s' -> TSet.union s s') t t'
     let remove i t = MVtoTSet.remove i t
     let map f t = MVtoTSet.map (fun x y -> f y) t
@@ -113,28 +115,25 @@ end) = struct
 
   let make t = t
 
-  let leaves r = (VSet.add r VSet.empty)
+  let leaves r = VSet.add r VSet.empty
 
   let rec subst p q r =
-    if (compare p r) = 0 then q else r
+    if compare p r = 0 then q else r
 
   type res = Sol of v*v | Bot | Top
 
   let solve r r' =
-    if (compare r r') = 0 then Top
+    if compare r r' = 0 then Top
     else Sol(r,r')
 
-  let predicate a =
-    let b,i = LitF.reveal(Term.proj(Terms.data a)) in
-    b,Term.term_of_id i
-
   let atoI a = 
-    let b,t = predicate a in
-    match Terms.reveal t with
-    | Terms.C(Symbols.Eq _,l) -> 
-      if b then (Eq(List.hd l,List.hd (List.tl l)))
-      else (NEq(List.hd l,List.hd (List.tl l)))
-    | _ -> assert false
+    let b,t = LitF.reveal(Term.proj(Terms.data a)) in
+    match Terms.reveal(Term.term_of_id t) with
+    | Terms.C(Symbols.Eq _,[a1;a2]) when b -> Some(Eq(a1,a2))
+    | Terms.C(Symbols.Eq _,[a1;a2])        -> Some(NEq(a1,a2))
+    | Terms.C(Symbols.NEq _,[a1;a2]) when b-> Some(NEq(a1,a2))
+    | Terms.C(Symbols.NEq _,[a1;a2])       -> Some(Eq(a1,a2))
+    | _ -> None
 
   let itoA = function
     | Eq(a,b)  -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]

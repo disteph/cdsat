@@ -53,8 +53,6 @@ module type SolvableTheory = sig
   (* highest symbol in a term *)
   val root : t -> Symbols.t option
 
-  val predicate: t -> bool*t
-
   type v (* semantic values *)
 
   (* sets of semantic values *)
@@ -81,7 +79,7 @@ module type SolvableTheory = sig
   val solve : v -> v -> res
 
   (* compute the input form of an atom *)
-  val atoI : t -> t input
+  val atoI : t -> t input option
 
   (* complementary transformation *)
   val itoA : t input -> t
