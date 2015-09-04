@@ -6,9 +6,11 @@ open Format
 open Parser
 open Multiary
 
+type arity = Sorts.t*(Sorts.t list)
+
 type t =
 
-| User of string*(Sorts.t*(Sorts.t list))
+| User of string*arity
 
 (* Prop *)
 | True | False | Neg | And | Or | Imp | Xor

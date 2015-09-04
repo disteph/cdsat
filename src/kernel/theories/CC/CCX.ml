@@ -36,16 +36,16 @@ struct
   let atoI a = 
     let b,t = LitF.reveal(proj(Terms.data a)) in
     match Terms.reveal(Term.term_of_id t) with
-    | Terms.C(Symbols.Eq _,[a1;a2]) when b -> Some(Eq(a1,a2))
-    | Terms.C(Symbols.Eq _,[a1;a2])        -> Some(NEq(a1,a2))
-    | Terms.C(Symbols.NEq _,[a1;a2]) when b-> Some(NEq(a1,a2))
-    | Terms.C(Symbols.NEq _,[a1;a2])       -> Some(Eq(a1,a2))
+    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Some(Eq(so,a1,a2))
+    | Terms.C(Symbols.Eq so,[a1;a2])        -> Some(NEq(so,a1,a2))
+    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> Some(NEq(so,a1,a2))
+    | Terms.C(Symbols.NEq so,[a1;a2])       -> Some(Eq(so,a1,a2))
     | _ -> None
 
   let itoA = function
-    | Eq(a,b)  -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
-    | NEq(a,b) -> Term.bC (Symbols.Eq (Sorts.User "")) [a;b]
-    | _ -> assert false
+    | Eq(so,a,b)  -> Term.bC (Symbols.Eq so) [a;b]
+    | NEq(so,a,b) -> Term.bC (Symbols.NEq so) [a;b]
+    | Congr(_,_)  -> assert false
 
   let toTSet = 
     List.fold_left (fun e a -> TSet.add (itoA a) e) TSet.empty
@@ -84,14 +84,14 @@ struct
 
       let normalise t = 
         let t' = Alg.normalise s t in
-        let l = Eq(t,t') in
-        let l' = itoA l in
-        let justif = Alg.explain s.Alg.u l in
+        let so = get_sort t in
+        let l = itoA(Eq(so,t,t')) in
+        let justif = Alg.explain s.Alg.u t t' in
         thStraight () 
-          (TSet.add l' TSet.empty) 
+          (TSet.add l TSet.empty) 
           (fun tset ->
-            if TSet.mem l' tset
-            then List.fold_left (fun e a -> TSet.add (itoA a) e) (TSet.remove l' tset) justif
+            if TSet.mem l tset
+            then List.fold_left (fun e a -> TSet.add (itoA a) e) (TSet.remove l tset) justif
             else tset)
 
     end: State with type t = state)

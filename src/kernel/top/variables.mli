@@ -23,6 +23,7 @@ end
 
 module FreeVar : sig
   include PHCons
+  val get_sort: t -> Sorts.t
   type freeVarExposed = Meta of Meta.t | Eigen of Eigen.t
   val reveal : t -> freeVarExposed
 end

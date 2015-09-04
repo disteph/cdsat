@@ -41,7 +41,7 @@ struct
   type state = {theta : TSet.t;
                 gamma : VtoTSet.t;
                 delta : VtoV.t; 
-                n     : Term.t input list;
+                n     : (Sorts.t*Term.t*Term.t) list;
                 sub   : ((X.v * X.v) * U.d) list;
                 u     : U.t
                }
@@ -52,13 +52,9 @@ struct
    if not : output the 'bad' disequality *)
   let rec coherent delta = function 
     | [] -> None
-    | i::t -> begin match i with
-      | NEq(a,b) ->
-        if VtoV.find (make a) delta = VtoV.find (make b) delta
-        then Some(NEq(a,b))
-	else coherent delta t
-      | _ -> assert false
-    end
+    | ((_,a,b) as h)::t when VtoV.find (make a) delta = VtoV.find (make b) delta
+                        -> Some h
+    | _::t -> coherent delta t
 
 (* verify if the terms are in the same equivalence class 2 by 2 *)
   let rec equal l l' delta =
@@ -79,8 +75,8 @@ struct
       
 (* negation of an atom *)
   let neg = function
-    | Eq(a,b)  -> NEq(a,b)
-    | NEq(a,b) -> Eq(a,b)
+    | Eq(so,a,b)  -> NEq(so,a,b)
+    | NEq(so,a,b) -> Eq(so,a,b)
     | _ -> assert false
 
 (* add a value to the equivalence classes (map) and 
@@ -129,42 +125,38 @@ apply the substituions met since the beginning *)
 
   let union l l' = noDbl (List.append l l')
 
-  (* explain an atom (equality), given the equivalence trees *)
-  let rec explain u = function
-    (*print_string "explain "; print_input t; print_string ": ";*)
-    | Eq(a,b) -> let ra = make a in
-		 let rb = make b in
-		   (* we compute the first common ancestor *)
-		 let r = U.fca u ra rb in 
-		   (* and the explaination on the paths to it *)
-		   (*print_value ra; print_value rb; print_value r;*)
-		 let pa = U.pathTo u ra r in
-		 let pb = U.pathTo u rb r in
-		   (* and we have to explain the congruences on these paths *)
-		 let l = explPath (union pa pb) u in
-		   (*print_inputlist l; print_newline();*)
-		 l
-    (* if we have a congruence, we need to explain the equalities of the direct subterms 2 by 2 *)
-    | Congr(a,b) ->
-      let rec aux l = function
-        | [],[] -> l
-        | ah::atl, bh::btl -> aux (union l (explain u (Eq(ah,bh)))) (atl,btl)
-        | _,_ -> assert false
-      in
-      aux [] (directSubterms a, directSubterms b)
+  (* explain an equality a=b, given the equivalence trees *)
+  let rec explain u a b =
+    let ra = make a in
+    let rb = make b in
+    (* we compute the first common ancestor *)
+    let r = U.fca u ra rb in 
+    (* and the explaination on the paths to it *)
+    (*print_value ra; print_value rb; print_value r;*)
+    let pa = U.pathTo u ra r in
+    let pb = U.pathTo u rb r in
+    (* and we have to explain the congruences on these paths *)
+    let l = explPath u (union pa pb) in
+    (*print_inputlist l; print_newline();*)
+    l
 
-    | NEq(_,_) -> assert false
-      
-(* get the explaination of the congruences on the path *)
-  and explPath l u =
+  and explCongr u a b = 
+    let rec aux l = function
+      | [],[] -> l
+      | ah::atl, bh::btl -> aux (union l (explain u ah bh)) (atl,btl)
+      | _,_ -> assert false
+    in
+    aux [] (directSubterms a, directSubterms b)
+
+  (* get the explaination of the congruences on the path *)
+  and explPath u l =
     let rec aux r = function
       | []    -> r
-      | Eq(a,b)::tl when List.mem (Eq(a,b)) r -> aux r tl
-      | Eq(a,b)::tl    -> aux ((Eq(a,b))::r) tl
-      | Congr(a,b)::tl -> aux (union r (explain u (Congr(a,b)))) tl
-      | NEq(_,_)::_ -> assert false
+      | (Eq(_,a,b) as h)::tl when List.mem h r -> aux r tl
+      | (Eq(_,a,b) as h)::tl                   -> aux (h::r) tl
+      | Congr(a,b)::tl -> aux (union r (explCongr u a b)) tl
+      | NEq(_,_,_)::_ -> assert false
     in aux [] l
-
 
   let normalise s t = VtoV.find (make t) s.delta
 
@@ -173,7 +165,7 @@ apply the substituions met since the beginning *)
 (* compute a step of the algorithm *)
   let rec step s phi i =
     match i with
-    | Eq(a,b) | Congr(a,b) when 
+    | Eq(_,a,b) | Congr(a,b) when 
 	(TSet.mem a s.theta)
         &&(TSet.mem b s.theta)
         &&( VtoV.find (make a) s.delta <> VtoV.find (make b) s.delta) -> 
@@ -182,7 +174,7 @@ apply the substituions met since the beginning *)
 	  (* rule UNSOLV : the explainations are those of all the modifications of the value of the representatives of a and b, plus a=b *)
 	| Bot -> (*print_string "unsolv "; (*print_term a; print_term b;*) print_newline();*)
 	  let l  = union (U.path s.u (make a)) (U.path s.u (make b)) in
-	  let l' = explPath l s.u in 
+	  let l' = explPath s.u l in 
 	  raise (Inconsistency l')
 	| Top -> assert false
 	| Sol(p,q) ->
@@ -227,8 +219,8 @@ apply the substituions met since the beginning *)
 	    match coherent delta' s.n with
 	      (* if the substitution isn't coherent with the disequalities
 		 we apply the rule INCOHEQ *)
-	    | Some t -> (*print_string "incoheq "; (*print_term a; print_term b;*) print_newline();*)
-	      raise (Inconsistency(t::(explain u' (neg t))))
+	    | Some(so,a,b) -> (*print_string "incoheq "; (*print_term a; print_term b;*) print_newline();*)
+	      raise (Inconsistency(NEq(so,a,b)::(explain u' a b)))
 	    (* else this is the rule CONGR *)
 	    | None -> (*print_string "congr "; (*print_term a; print_term b;*) print_newline();*)
 	      (* we compute the new gamma *)
@@ -277,22 +269,22 @@ apply the substituions met since the beginning *)
 	  end
       end
 	(* rule REMOVE *)
-    | Eq(a,b) | Congr(a,b) when 
+    | Eq(_,a,b) | Congr(a,b) when 
 	(TSet.mem a s.theta)&&(TSet.mem b s.theta)&&
 	  (VtoV.find (make a) s.delta = VtoV.find (make b) s.delta) -> 
       (*print_string "remove "; (*print_term a; print_term b;*) print_newline();*)
       s,phi
-    | NEq(a,b) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
+    | NEq(so,a,b) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
       if VtoV.find (make a) s.delta = VtoV.find (make b) s.delta then
 	(* rule INCOHDIFF *)
 	(*print_string "incohdiff "; (*print_term a; print_term b;*) print_newline();*)
-	raise (Inconsistency((NEq(a,b))::(explain s.u (Eq(a,b)))))
+	raise (Inconsistency(i::(explain s.u a b)))
       else 
 	(* rule DIFF *)
 	(*print_string "diff "; (*print_term a; print_term b;*) print_newline();*)
-        {s with n = (NEq(a,b))::(NEq(b,a))::s.n}, phi
+        {s with n = (so,a,b)::s.n}, phi
 	(* rule ADD *)
-    | Eq(a,b) | NEq(a,b) | Congr(a,b) ->
+    | Eq(_,a,b) | NEq(_,a,b) | Congr(a,b) ->
       (* we find a good subterm to add *)
       let fs = findSterm (if not (TSet.mem a s.theta) then a else b) s.theta in
       (*print_string "add "; (*print_term fs*); print_newline();*)

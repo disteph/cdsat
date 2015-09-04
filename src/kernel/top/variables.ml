@@ -34,6 +34,10 @@ module FreeVar = struct
   include HCons.Make(Arg)
   include Init(HCons.NoBackIndex)
 
+  let get_sort fv = match reveal fv with
+    | Meta mv  -> Meta.get_sort mv
+    | Eigen ei -> Eigen.get_sort ei
+
   let print_in_fmt fmt t = match reveal t with
     | Meta mv  -> fprintf fmt "?%a" Meta.print_in_fmt mv
     | Eigen ei -> fprintf fmt "%a" Eigen.print_in_fmt ei
