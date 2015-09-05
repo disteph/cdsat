@@ -35,12 +35,14 @@ struct
 
   let atoI a = 
     let b,t = LitF.reveal(proj(Terms.data a)) in
-    match Terms.reveal(Term.term_of_id t) with
-    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Some(Eq(so,a1,a2))
-    | Terms.C(Symbols.Eq so,[a1;a2])        -> Some(NEq(so,a1,a2))
-    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> Some(NEq(so,a1,a2))
-    | Terms.C(Symbols.NEq so,[a1;a2])       -> Some(Eq(so,a1,a2))
-    | _ -> None
+    let a = Term.term_of_id t in
+    match Terms.reveal a with
+    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Eq(so,a1,a2)
+    | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2)
+    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2)
+    | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2)
+    | _ when get_sort a = Sorts.Prop -> Eq(Sorts.Prop, a, Term.bC (if b then Symbols.True else Symbols.False) [])
+    | _ -> assert false
 
   let itoA = function
     | Eq(so,a,b)  -> Term.bC (Symbols.Eq so) [a;b]
@@ -51,12 +53,8 @@ struct
     List.fold_left (fun e a -> TSet.add (itoA a) e) TSet.empty
 
   let fromTSet tset = 
-    TSet.fold 
-      (fun t l -> match atoI t with 
-      | None -> l
-      | Some e -> e::l)
-      tset
-      []
+    let tNeqf = NEq(Sorts.Prop, Term.bC Symbols.True [], Term.bC Symbols.False []) in
+    tNeqf::(TSet.fold (fun t l -> (atoI t)::l) tset [])
 
   module type State = sig
     type t
