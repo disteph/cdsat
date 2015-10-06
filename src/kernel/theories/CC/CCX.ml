@@ -78,7 +78,7 @@ struct
         try 
           SAT(thNotProvable () newtreated, getModule newtreated (Alg.algo s (fromTSet tset)))
         with
-          Alg.Inconsistency l -> UNSAT(thProvable () (toTSet l))
+          Alg.Inconsistency l -> U.clear (); UNSAT(thProvable () (toTSet l))
 
       let normalise t = 
         let t' = Alg.normalise s t in
