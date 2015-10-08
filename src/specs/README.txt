@@ -2,19 +2,27 @@
 Writing a new plugin.
 ---------------------
 
-A plugin should implement Plugin.Type as defined in the file plugin.ml
+There are three kinds of plugins:
 
-To be usable with a theory, the type literals of the plugin should be the same as the type Atom.t of the theory
+- "theory plugins", that control the strategies of each theory-specific procedure
+- "logic plugins", that control the strategies of proof-search in pure logic
+- "combination plugins", that control the strategies for theory combinations
 
-There are therefore two kinds of plugins:
-- theory-specific plugins, which will be placed in the directory containing that theory, re-using its datatypes
-- theory-generic plugins, which are functors taking as input a theory, and producing as output a module implementing Plugin.Type (with a type literals directly and blindly taken from the input theory)
+Theory plugins are to be placed in portfolio/pluginsTh
+They should provide a module whose signature is the module type defined in spec/pluginTh.ml
+That module should be made visible to the rest of Psyche by adding it to portfolio/pluginsTh.mlpack
+It should also be listed in the bank of theory plugins in portfolio/pluginsTh_register.ml
+...and in that file, get_default should select it when the appropriate theory handler is given 
 
+Logic plugins are to be placed in portfolio/pluginsG
+They should provide a module whose signature is the module type defined in spec/pluginG.ml
+That module should be made visible to the rest of Psyche by adding it to portfolio/pluginsG.mlpack
+It should also be listed in the bank of logic plugins in portfolio/pluginsG_register.ml
+...and in that file, parse should select it when the appropriate string is given 
 
-The latter plugins will be placed in the present directory /generic-plugins, with the following hygiene policy:
-- Write your generic plugin in a subdirectory XXX of the present directory
-- It should contain a module MyPlugin (e.g. a file myPlugin.ml), with a functor GenPlugin of type
-  functor (MyTheory: Theory.Type) -> (Plugin.Type with type literals = MyTheory.Atom.t)
-- Add an mlpack file to package the directory into a module XXX
-- Edit the main file main.ml to add your plugin in the collection of known plugins
-- To compile, do not forget to add to the top-level _tag file an entry to include your directory src/plugins/XXX for pack XXX
+Combination plugins are to be placed in portfolio/plugins
+They should provide a module whose signature is the module type defined in spec/plugin.ml
+That module should be made visible to the rest of Psyche by adding it to portfolio/plugins.mlpack
+It should also be listed in the bank of logic plugins in portfolio/plugins_register.ml
+...and in that file, parse should select it when the appropriate string is given 
+

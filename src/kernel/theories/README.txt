@@ -65,7 +65,7 @@ Hygiene policy:
   select or unselect your theory in order to treat a problem, and in
   that case you can warn the user of this possibility by editing the
   the main file main.ml to add your theory to the list of known
-  theory name
+  theory names
 
 - To compile, do not forget to add to the top-level _tag file an entry
   to include your directory src/theories/XXX for pack XXX
