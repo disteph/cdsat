@@ -18,10 +18,9 @@ module type WhiteBoard = sig
   module DS : GTheoryDSType
   open DS
   type answer = private Provable of TSet.t | NotProvable of TSet.t
-  type planswer = 
-  | PlProvable    : (TSet.t,thProvable) thanswer -> planswer
-  | PlNotProvable : TSet.t*((TSet.t,thNotProvable) thanswer list) -> planswer
-  val check : planswer -> answer
+  val provable : (TSet.t,thProvable) thanswer -> answer
+  val notprovable : TSet.t -> ((TSet.t,thNotProvable) thanswer list) -> answer
+  val straight: (TSet.t,thStraight) thanswer -> answer -> answer
 end
 
 (*********************************************************************)
@@ -128,23 +127,33 @@ let make (type a)
 
     type answer = Provable of TSet.t | NotProvable of TSet.t
 
-    type planswer = 
-    | PlProvable    : (TSet.t,thProvable) thanswer -> planswer
-    | PlNotProvable : TSet.t*((TSet.t,thNotProvable) thanswer list) -> planswer
+    let provable (ThAns(hdl,ThProvable thset)) =
+      if HandlersMap.mem (Handlers.Handler hdl) theories
+      then Provable thset
+      else failwith "Using a theory that is not allowed"
 
-    let check = function
-      | PlProvable(ThAns(_,ThProvable thset)) -> Provable thset
-      | PlNotProvable(newset,l) -> 
-        if HandlersMap.is_empty
-          (List.fold_right
-             (fun (ThAns(hdl,ThNotProvable thset)) thok -> 
-               if TSet.equal newset thset
-               then HandlersMap.remove (Handlers.Handler hdl) thok
-               else failwith "Theories disagree on model")
-             l
-             theories)
-        then NotProvable newset
-        else failwith "Not all theories have stamped the model"
+    let notprovable newset l = 
+      if HandlersMap.is_empty
+        (List.fold_right
+           (fun (ThAns(hdl,ThNotProvable thset)) thok -> 
+             if TSet.equal newset thset
+             then HandlersMap.remove (Handlers.Handler hdl) thok
+             else failwith "Theories disagree on model")
+           l
+           theories)
+      then NotProvable newset
+      else failwith "Not all theories have stamped the model"
+
+    let straight (ThAns(hdl,ThStraight(newset,oldset))) = function
+      | Provable thset ->
+         if HandlersMap.mem (Handlers.Handler hdl) theories
+         then
+           let inter = TSet.inter thset newset in
+           if TSet.is_empty inter then failwith "Resolve: irrelevant"
+           else Provable(TSet.union (TSet.diff thset newset) oldset)
+         else
+           failwith "Using a theory that is not allowed"
+      | NotProvable _ -> failwith "Should apply straight on Provable"
               
   end),
   pl (fun x -> x)

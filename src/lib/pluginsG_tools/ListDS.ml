@@ -37,6 +37,10 @@ module MyCollectImplem (MyPType:PrintableType) = struct
     | [] -> []
     | a::gamma2 -> let gamma3 = inter gamma1 gamma2 in
 	           if mem a gamma1 then a::gamma3 else gamma3
+  let rec diff gamma1 gamma = match gamma1 with
+    | [] -> []
+    | a::gamma2 -> let gamma3 = diff gamma2 gamma in
+	           if mem a gamma then gamma3 else a::gamma3
   let rec remove x = function
     | [] -> failwith(Dump.toString (fun p->p "%a is not in list!" MyPType.print_in_fmt x))
     | y::l when y=x -> l

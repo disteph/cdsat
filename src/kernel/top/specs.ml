@@ -20,7 +20,7 @@ type 'a termF = (FreeVar.t,'a) Terms.term
 
 let get_sort t = match Terms.reveal t with
   | Terms.V fv      -> FreeVar.get_sort fv
-  | Terms.C(symb,_) -> let (so,_) = Symbols.arity symb in so
+  | Terms.C(symb,_) -> let so,_ = Symbols.arity symb in so
 
 (* Internal representation of objects in the theory module, used
    during parsing. 

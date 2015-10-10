@@ -24,6 +24,7 @@ module type CollectExtra = sig
   val remove: e -> t -> t
   val union: t -> t -> t
   val inter: t -> t -> t
+  val diff : t -> t -> t
 end
 
 module type PlugDSType = sig

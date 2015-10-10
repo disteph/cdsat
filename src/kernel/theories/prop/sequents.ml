@@ -25,6 +25,7 @@ module DblSet(TrustedSet: Collection)(PluginSet: CollectExtra with type e = Trus
     let remove e (tt,pt)         = (TrustedSet.remove e tt, PluginSet.remove e pt)
     let union (tt1,pt1)(tt2,pt2) = (TrustedSet.union tt1 tt2, PluginSet.union pt1 pt2)
     let inter (tt1,pt1)(tt2,pt2) = (TrustedSet.inter tt1 tt2, PluginSet.inter pt1 pt2)
+    let diff (tt1,pt1)(tt2,pt2)  = (TrustedSet.diff tt1 tt2, PluginSet.diff pt1 pt2)
 
     let is_empty (t,_)         = TrustedSet.is_empty t
     let mem e (t,_)            = TrustedSet.mem e t

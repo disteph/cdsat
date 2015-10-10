@@ -42,7 +42,7 @@ let make theories : (module Plugin.Type) =
           if HandlersMap.is_empty thok
           then
             broadcast (fun w -> return(Pipe.close w)) pipe_map
-             >>| fun () -> WB.PlNotProvable(consset,l)
+             >>| fun () -> WB.notprovable consset l
           else
             Pipe.read from_workers
              >>= function
@@ -50,8 +50,7 @@ let make theories : (module Plugin.Type) =
              | `Ok(Worker.Msg(ThAns(hdl,m) as thans) as msg) -> match m with
                | ThProvable _ -> 
                  broadcast (fun w -> return(Pipe.close w)) pipe_map
-                 >>| fun() -> 
-                 WB.PlProvable thans
+                 >>| fun() -> WB.provable thans
                | ThNotProvable newtset -> 
                  if WB.DS.TSet.equal newtset consset
                  then main_worker consset (HandlersMap.remove (Handlers.Handler hdl) thok) (thans::l)
@@ -64,7 +63,7 @@ let make theories : (module Plugin.Type) =
         Deferred.both (Deferred.all_unit workers_list) (main_worker tset cons_answers [])
         >>| fun ((),a) -> 
         Pipe.close to_pl;
-        WB.check a
+        a
 
       let solve tset = Thread_safe.block_on_async_exn (fun () -> mysolve tset)
 

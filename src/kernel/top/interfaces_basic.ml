@@ -23,6 +23,7 @@ module type Collection = sig
   val remove: e -> t -> t
   val union: t -> t -> t
   val inter: t -> t -> t
+  val diff: t -> t -> t
   val is_empty : t -> bool
   val mem      : e -> t -> bool
   val equal    : t -> t -> bool

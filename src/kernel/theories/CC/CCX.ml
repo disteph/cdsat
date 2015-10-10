@@ -87,10 +87,7 @@ struct
         let justif = Alg.explain s.Alg.u t t' in
         thStraight () 
           (TSet.add l TSet.empty) 
-          (fun tset ->
-            if TSet.mem l tset
-            then List.fold_left (fun e a -> TSet.add (itoA a) e) (TSet.remove l tset) justif
-            else tset)
+          (List.fold_left (fun e a -> TSet.add (itoA a) e) TSet.empty justif)
 
     end: State with type t = state)
 
