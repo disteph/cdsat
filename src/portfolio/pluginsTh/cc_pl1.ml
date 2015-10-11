@@ -3,12 +3,14 @@ open Top
 open Specs
 open Messages
 open Theories_register
-open Types
 
 open Prop
 open Literals
 
 open CC
+
+type sign = CC.MyTheory.sign
+let hdl = Sig.CC
 
 module ThDS = struct
   type t = LitF.t 
@@ -25,17 +27,24 @@ end) = struct
 
   module MyCC = MyTheory.Make(DS)
 
-  let sign msg = ThAns(Sig.CC,msg)
-
-  let rec search_rec next tset = 
+  let rec init_rec next = 
     let module Next = (val next: MyCC.State with type t = MyCC.state) in
-    match Next.add tset with
-    | MyCC.UNSAT(msg)    -> SM(Some(sign msg), fun _ -> failwith "Are you dumb? I already told you it was provable")
-    | MyCC.SAT(msg,cont) -> SM(Some(sign msg), aux cont)
-  and aux cont = function
-    | None -> SM(None, aux cont)
-    | Some(ThAns(_,ThStraight(newtset,f))) -> search_rec cont newtset
+    let rec state : (sign,DS.TSet.t) slot_machine = (module struct 
+      type newoutput = (sign,DS.TSet.t) output
+      type tset = DS.TSet.t
+      let treated () = failwith "Not implemented"
+      let add = function
+        | None -> Output(None,state)
+        | Some tset -> 
+           match Next.add tset with
+           | MyCC.UNSAT(msg)    -> Output(Some msg, fail_state)
+           | MyCC.SAT(msg,cont) -> Output(Some msg, init_rec cont)
+      let normalise _ = failwith "Not a theory with normaliser"
+      let clone () = Output(None,state)
+    end)
+    in
+    state
 
-  let search = search_rec MyCC.init
+  let init = init_rec MyCC.init
       
 end

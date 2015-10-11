@@ -1,7 +1,7 @@
 module Sig = struct
 
   type _ t = 
-  | Empty: Empty.Mytheory.sign t
+  | Empty: Empty.MyTheory.sign t
   | CC   : CC.MyTheory.sign t
 
   let id: type a.a t -> int = function

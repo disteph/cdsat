@@ -1,9 +1,11 @@
 open Kernel
 open Top.Specs
 open Theories_register
-open Types
 
 module type Type = sig
+
+  type sign
+  val hdl: sign Sig.t
 
   module ThDS: DataType
 
@@ -11,7 +13,7 @@ module type Type = sig
     include GTheoryDSType
     val proj: Term.datatype -> ThDS.t
   end) : sig
-    val search: DS.TSet.t -> DS.TSet.t slot_machine
+    val init: (sign,DS.TSet.t) slot_machine
   end
     
 end

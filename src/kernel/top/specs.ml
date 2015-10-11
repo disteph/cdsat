@@ -7,6 +7,7 @@ open Format
 open Interfaces_basic
 open Basic
 open Variables
+open Messages
 
 exception ModelError of string
 
@@ -75,3 +76,29 @@ module type ProofType = sig
   val two  : seq->t->t->t
   val print_in_fmt: formatter -> t -> unit
 end
+
+module type SlotMachine = sig
+  type newoutput
+  type tset
+  val treated  : unit -> tset
+  val add      : tset option -> newoutput
+  val normalise: tset -> newoutput
+  val clone    : unit -> newoutput
+end
+
+type ('sign,'tset) slot_machine
+    = (module SlotMachine with type newoutput = ('sign,'tset) output and type tset = 'tset)
+
+and (_,_) output = Output:
+  ('sign,'tset,'msg) thsays option
+  * ('sign,'tset) slot_machine
+  -> ('sign,'tset) output
+
+let fail_state (type sign) (type ts) : (sign,ts) slot_machine = (module struct 
+  type newoutput = (sign,ts) output
+  type tset = ts
+  let treated _ = failwith "Are you dumb? I already told you it was provable"
+  let add     _ = failwith "Are you dumb? I already told you it was provable"
+  let normalise _ = failwith "Are you dumb? I already told you it was provable"
+  let clone   _ = failwith "Are you dumb? I already told you it was provable"
+end)

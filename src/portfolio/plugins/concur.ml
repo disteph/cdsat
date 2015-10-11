@@ -30,7 +30,7 @@ let make theories : (module Plugin.Type) =
         let workers_list,pipe_map = HandlersMap.fold
           (fun hdl a (workers_list,pipe_map) ->
             let from_pl,to_worker = Pipe.create () in
-            let worker = Worker.make from_pl to_pl (a tset) in
+            let worker = Worker.make from_pl to_pl a (Some tset) in
             (worker::workers_list,
              HandlersMap.add hdl to_worker pipe_map)
           )
