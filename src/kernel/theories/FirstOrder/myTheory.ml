@@ -12,10 +12,6 @@ open Literals
 open Formulae
 open Interfaces_theory
 
-module IntSortSet = Set.Make(IntSort)
-
-let proj (a,_) = a
-
 module Make(PropDS:DataType) = struct
 
   module DS = struct
@@ -56,20 +52,6 @@ module Make(PropDS:DataType) = struct
                    let atom = Term.term_of_id id in
                    (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
                    b,atom,ms
-
-    (* module OT = struct *)
-    (*   type t = Term.t *)
-    (*   let compare t1 t2 = match snd(Terms.data t1), snd(Terms.data t2) with *)
-    (*     | PropI l1, PropI l2 -> LitF.compare (proj l1) (proj l2) *)
-    (*     | PropI _, TermI _ -> 1 *)
-    (*     | TermI _, PropI _ -> -1 *)
-    (*     | TermI _, TermI _ -> 0 *)
-    (*   let print_in_fmt fmt term = *)
-    (*     let res,i,j,s = asL term in *)
-    (*     match res with *)
-    (*     | None -> fprintf fmt "%a" Term.print_in_fmt term *)
-    (*     | Some(b,atom) -> fprintf fmt "%s%a" (if b then "" else "-") Term.print_in_fmt atom *)
-    (* end *)
 
     module TSet = MakeCollection(struct include Term let compare = Terms.compare end)
 

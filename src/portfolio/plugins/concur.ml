@@ -10,13 +10,12 @@ let make theories : (module Plugin.Type) =
 
     include (val LoadPluginsTh.make theories)
 
-    let cons_answers =
-      HandlersMap.map (fun () -> None) theories
-
     module Strategy(WB: sig
       include WhiteBoard
       val projList: (DS.Term.datatype,agglo) projList
     end) = struct
+
+      module W = Worker.Make(WB)
 
       let m_init = make (module WB.DS) WB.projList
 
@@ -30,7 +29,7 @@ let make theories : (module Plugin.Type) =
         let workers_list,pipe_map = HandlersMap.fold
           (fun hdl a (workers_list,pipe_map) ->
             let from_pl,to_worker = Pipe.create () in
-            let worker = Worker.make from_pl to_pl a (Some tset) in
+            let worker = W.make from_pl to_pl a (Some tset) in
             (worker::workers_list,
              HandlersMap.add hdl to_worker pipe_map)
           )
@@ -38,29 +37,32 @@ let make theories : (module Plugin.Type) =
           ([],HandlersMap.empty)
         in
 
-        let rec main_worker consset thok l =
-          if HandlersMap.is_empty thok
-          then
-            broadcast (fun w -> return(Pipe.close w)) pipe_map
-             >>| fun () -> WB.notprovable consset l
-          else
+        let rec main_worker = function
+          | WB.NotProvable(rest,consset) as current ->
+             if HandlersMap.is_empty rest
+             then broadcast (fun w -> return(Pipe.close w)) pipe_map
+                >>| fun () -> current
+             else
+               begin
             Pipe.read from_workers
              >>= function
              | `Eof -> failwith "Eof"
-             | `Ok(Worker.Msg(ThAns(hdl,m) as thans) as msg) -> match m with
+             | `Ok(W.Msg(hdl,m) as msg) -> match m with
                | ThProvable _ -> 
                  broadcast (fun w -> return(Pipe.close w)) pipe_map
-                 >>| fun() -> WB.provable thans
+                 >>| fun() -> WB.provable hdl m
                | ThNotProvable newtset -> 
                  if WB.DS.TSet.equal newtset consset
-                 then main_worker consset (HandlersMap.remove (Handlers.Handler hdl) thok) (thans::l)
-                 else main_worker newtset (HandlersMap.remove (Handlers.Handler hdl) cons_answers) [thans]
+                 then main_worker (WB.notprovable hdl m current)
+                 else main_worker (WB.notprovable_init newtset)
                | _ ->
                  broadcast (fun to_worker -> Pipe.write to_worker msg) pipe_map
-                 >>= fun () -> main_worker consset thok l
+                 >>= fun () -> main_worker current
+               end
+          | _ -> failwith "Concur.ml: current should be of the form WB.NotProvable(_,_), but found WB.Provable(_,_)"
         in
 
-        Deferred.both (Deferred.all_unit workers_list) (main_worker tset cons_answers [])
+        Deferred.both (Deferred.all_unit workers_list) (main_worker (WB.notprovable_init tset))
         >>| fun ((),a) -> 
         Pipe.close to_pl;
         a

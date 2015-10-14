@@ -17,10 +17,13 @@ open Specs
 module type WhiteBoard = sig
   module DS : GTheoryDSType
   open DS
-  type answer = private Provable of TSet.t | NotProvable of TSet.t
-  val provable : (TSet.t,thProvable) thanswer -> answer
-  val notprovable : TSet.t -> ((TSet.t,thNotProvable) thanswer list) -> answer
-  val straight: (TSet.t,thStraight) thanswer -> answer -> answer
+  type answer = private
+                | Provable of unit HandlersMap.t*TSet.t
+                | NotProvable of unit HandlersMap.t*TSet.t
+  val provable    : 'a Sig.t -> ('a,TSet.t,thProvable) thsays -> answer
+  val notprovable_init: TSet.t -> answer
+  val notprovable : 'a Sig.t -> ('a,TSet.t,thNotProvable) thsays -> answer -> answer
+  val straight: 'a Sig.t -> ('a,TSet.t,thStraight) thsays -> answer -> answer
 end
 
 (*********************************************************************)
@@ -124,36 +127,38 @@ let make (type a)
     end
 
     open DS
+    type answer =
+      | Provable of unit HandlersMap.t*TSet.t
+      | NotProvable of unit HandlersMap.t*TSet.t
 
-    type answer = Provable of TSet.t | NotProvable of TSet.t
-
-    let provable (ThAns(hdl,ThProvable thset)) =
-      if HandlersMap.mem (Handlers.Handler hdl) theories
-      then Provable thset
+    let provable hdl (ThProvable thset) =
+      let hhdl = Handlers.Handler hdl in
+      if HandlersMap.mem hhdl theories
+      then Provable(HandlersMap.add hhdl () HandlersMap.empty,
+                    thset)
       else failwith "Using a theory that is not allowed"
 
-    let notprovable newset l = 
-      if HandlersMap.is_empty
-        (List.fold_right
-           (fun (ThAns(hdl,ThNotProvable thset)) thok -> 
-             if TSet.equal newset thset
-             then HandlersMap.remove (Handlers.Handler hdl) thok
-             else failwith "Theories disagree on model")
-           l
-           theories)
-      then NotProvable newset
-      else failwith "Not all theories have stamped the model"
+    let notprovable_init tset = NotProvable(theories,tset)
 
-    let straight (ThAns(hdl,ThStraight(newset,oldset))) = function
-      | Provable thset ->
-         if HandlersMap.mem (Handlers.Handler hdl) theories
-         then
-           let inter = TSet.inter thset newset in
-           if TSet.is_empty inter then failwith "Resolve: irrelevant"
-           else Provable(TSet.union (TSet.diff thset newset) oldset)
-         else
-           failwith "Using a theory that is not allowed"
-      | NotProvable _ -> failwith "Should apply straight on Provable"
+    let notprovable hdl (ThNotProvable newtset) = function
+        | NotProvable(rest,tset)
+            when TSet.equal newtset tset
+              -> NotProvable(HandlersMap.remove (Handlers.Handler hdl) rest,
+                             tset)
+        | _ -> failwith "Theories disagree on model"
+
+    let straight hdl (ThStraight(newset,oldset)) = function
+        | Provable (hdls,thset) ->
+           let hhdl = Handlers.Handler hdl in
+           if HandlersMap.mem hhdl theories
+           then
+             let inter = TSet.inter thset newset in
+             if TSet.is_empty inter then failwith "Resolve: irrelevant"
+             else Provable(HandlersMap.add hhdl () hdls,
+                           TSet.union (TSet.diff thset newset) oldset)
+           else
+             failwith "Using a theory that is not allowed"
+        | NotProvable _ -> failwith "Should apply straight on Provable"
               
   end),
   pl (fun x -> x)

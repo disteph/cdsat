@@ -5,6 +5,7 @@
 open Format
 
 open Prop.Interfaces_theory
+open Theories_register
 
 (* Basic module for constraints, for ground theories *)
 
@@ -44,13 +45,15 @@ module GTh2Th
 
   let consistency a sigma =
     match MDP.solve a with
-    | WB.NotProvable _ -> NoMore
-    | WB.Provable b    -> Guard(b,sigma,fun _ -> NoMore)
+    | WB.Provable(_,b)    -> Guard(b,sigma,fun _ -> NoMore)
+    | WB.NotProvable(rest,_) when HandlersMap.is_empty rest -> NoMore
+    | _ -> failwith "Not all theories have had their say"
 
   let goal_consistency t a sigma =
     let nont = DS.Term.bC Top.Symbols.Neg [t] in
     match MDP.solve (TSet.add nont a) with
-    | WB.NotProvable _ -> NoMore
-    | WB.Provable a'   -> Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)
+    | WB.Provable(_,a')   -> Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)
+    | WB.NotProvable(rest,_) when HandlersMap.is_empty rest -> NoMore
+    | _ -> failwith "Not all theories have had their say"
 
 end

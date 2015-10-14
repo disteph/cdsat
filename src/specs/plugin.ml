@@ -1,6 +1,4 @@
-open Kernel
-open Combo
-open Types
+open Kernel.Combo
 
 module type DataList = sig
   type agglo

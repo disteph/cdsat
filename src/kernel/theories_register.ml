@@ -10,8 +10,6 @@ module Sig = struct
 
 end
 
-type (_,_) thanswer = ThAns : 'a Sig.t * ('a,'tset,'b) Top.Messages.thsays -> ('tset,'b) thanswer
-
 module Handlers = struct
   type t = Handler: 'a Sig.t -> t
   let id (Handler hdl) = Sig.id hdl
