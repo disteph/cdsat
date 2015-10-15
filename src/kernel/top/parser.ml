@@ -12,12 +12,14 @@ should specify the full arity, with the sorts of arguments.
 - For quantifiers, the string list is for binding several variables at the same time,
 the strings being their sorts. *)
 
+type sortType = Sort of string*(sortType list)
+
 module type InterpretType = sig
   type t
   val sigsymb : string                             -> t list -> t
-  val decsymb : string -> (string * (string list)) -> t list -> t
-  val boundsymb : int -> string                              -> t
-  val quantif : bool -> string list                -> t      -> t
+  val decsymb : string->(sortType*(sortType list)) -> t list -> t
+  val boundsymb : int -> sortType                            -> t
+  val quantif : bool -> sortType list              -> t      -> t
 end
 
 module type ParserType = sig

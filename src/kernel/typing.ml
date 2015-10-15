@@ -52,13 +52,14 @@ let forParser (type a) i =
           | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
         in aux (parseSymb s)
 
-      let decsymb s (decsort,decarg) =
+      let decsymb s ((decsort:sortType),(decarg:sortType list)) =
         let arit = (parseSort decsort, List.map parseSort decarg) in
         symb arit None (I.bC(Symbols.User(s,arit)))
 
       let boundsymb db decsort expsort =
-        if expsort = parseSort decsort then I.bV (IntSort.build(db,expsort))
-        else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^decsort
+        let pdecsort = parseSort decsort in
+        if expsort = pdecsort then I.bV (IntSort.build(db,expsort))
+        else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.print_in_fmt pdecsort
                                  ^" but expecting sort"^Dump.stringOf Sorts.print_in_fmt expsort))
 
       let quantif b l sf =
