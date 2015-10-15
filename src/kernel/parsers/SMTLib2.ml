@@ -57,7 +57,7 @@ let rec getsymb env = function
       
 and getsymbQualId env tl = function
   | QualIdentifierId(_,symb)   -> getsymbIdSymbol env tl symb 
-      (*	| QualIdentifierAs(_,symb,_) -> getsymbIdSymbol env tl symb *)
+  (*	| QualIdentifierAs(_,symb,_) -> getsymbIdSymbol env tl symb *)
   | _ -> raise (ParsingError "Symbol was in fact sorted")
 
 and getsymbIdSymbol env tl = function
@@ -170,7 +170,7 @@ let rec list_index a accu = function
   | (b,so)::l when a=b -> Some (accu,so)
   | _::l -> list_index a (accu+1) l
 
-let parse (type t) aft (* (theory,satprov,status,decso,decsym,formulalist)  *)i =
+let parse (type t) aft i =
 
   let module I = (val i (SM.fold (fun s () l -> s::l) aft.decso []): InterpretType with type t=t) in
   

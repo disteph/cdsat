@@ -1,12 +1,16 @@
 module Sig = struct
 
   type _ t = 
-  | Empty: Empty.MyTheory.sign t
-  | CC   : CC.MyTheory.sign t
+  | Empty : Empty.MyTheory.sign t
+  | CC    : CC.MyTheory.sign t
+  | Arrays: Arrays.MyTheory.sign t
+  | Dejan : Dejan.MyTheory.sign t
 
   let id: type a.a t -> int = function
     | Empty -> 0
-    | CC -> 1
+    | CC    -> 1
+    | Arrays -> 2
+    | Dejan -> 3
 
 end
 
@@ -19,6 +23,9 @@ end
 let all_theories_list = 
   [ Handlers.Handler Sig.Empty;
     Handlers.Handler Sig.CC;
+  (* To be commented out when they are implemented: *)
+  (* Handlers.Handler Sig.Arrays; *)
+  (* Handlers.Handler Sig.Dejan; *)
   ]
 
 module HandlersMap = Map.Make(Handlers)
