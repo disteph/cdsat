@@ -41,7 +41,7 @@ module UF = struct
   type t = UASet.t
 
   let build = function
-    | Lit l        -> UASet.add l UASet.empty
+    | LitF l       -> UASet.add l UASet.empty
     | AndP (x1,x2) -> UASet.union (FormulaF.data x1) (FormulaF.data x2)
     | _            -> UASet.empty
 

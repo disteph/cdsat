@@ -39,7 +39,7 @@ let bC_aux symb l =
   | Forall so,[a]  -> forall(so,a)
   | Exists so,[a]  -> exists(so,a)
   | ITE Sorts.Prop,[a;b;c] -> orN(andP(a,b),andP(negation a,c))
-  | _             -> raise (ModelError "ModelError: semantic_aux does not know symbol")
+  | _             -> raise (ModelError "ModelError: bc_aux does not know symbol")
 
 
 let bC symb l =

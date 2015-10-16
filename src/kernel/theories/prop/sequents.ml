@@ -94,12 +94,12 @@ module Make(PlDS: PlugDSType) = struct
 
     let rec makes_senseF f w =
       match FormulaF.reveal f with
-      | Lit l  -> makes_sense (litF_as_term l) w
+      | LitF l  -> makes_sense (litF_as_term l) w
       | TrueP | TrueN | FalseP | FalseN
         -> true
       | AndN(f1, f2) | OrN(f1, f2) | AndP(f1, f2) | OrP(f1, f2)
         -> makes_senseF f1 w && makes_senseF f1 w 
-      | ForAll(_,_,d) | Exists(_,_,d)
+      | ForAllF(_,_,d) | ExistsF(_,_,d)
         -> let dw = DSubst.get_arity d in
            World.prefix dw w
 
@@ -110,7 +110,7 @@ module Make(PlDS: PlugDSType) = struct
       TSet.fold
         (fun e aset ->
           match FormulaF.reveal(asF(Terms.data e)) with
-          | Lit l -> ASet.add l aset
+          | LitF l -> ASet.add l aset
           | _ -> aset)
         tset
         ASet.empty
@@ -146,9 +146,9 @@ module Make(PlDS: PlugDSType) = struct
         | OrN(f1,f2)  -> Neg
         | AndP(f1,f2) -> Pos
         | OrP(f1,f2)  -> Pos
-        | ForAll(so,f,d)-> Neg
-        | Exists(so,f,d)-> Pos
-        | Lit t  -> iatom polar t
+        | ForAllF(so,f,d)-> Neg
+        | ExistsF(so,f,d)-> Pos
+        | LitF t  -> iatom polar t
     end
 
     (* Module of Sequents *)

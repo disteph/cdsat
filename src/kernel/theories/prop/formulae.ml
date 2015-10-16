@@ -13,7 +13,7 @@ type 'a free = private Free
 type bound   = private Bound
 
 type (_,_) form =
-| Lit  : LitF.t -> (_,_ free) form
+| LitF : LitF.t -> (_,_ free) form
 | LitB : LitB.t -> (_,bound) form
 | TrueP: (_,_) form
 | TrueN: (_,_) form
@@ -23,8 +23,8 @@ type (_,_) form =
 | OrP   : 'a * 'a -> ('a,_) form
 | AndN  : 'a * 'a -> ('a,_) form
 | OrN   : 'a * 'a -> ('a,_) form
-| ForAll: Sorts.t * 'a * DSubst.t -> (_,'a free) form
-| Exists: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ForAllF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ExistsF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
 | ForAllB: Sorts.t * 'a -> ('a,bound) form
 | ExistsB: Sorts.t * 'a -> ('a,bound) form
 
@@ -42,18 +42,20 @@ module DSubstHashed  = HashedTypeFromHCons(DSubst)
 
 let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2:(a,b)form) =
   match t1,t2 with
-  | Lit l1, Lit l2             -> LitFHashed.equal l1 l2
+  | LitF l1, LitF l2             -> LitFHashed.equal l1 l2
   | LitB l1, LitB l2           -> LitBHashed.equal l1 l2
   | AndP (x1,x2), AndP (y1,y2) 
   | OrP (x1,x2), OrP (y1,y2)   
   | AndN (x1,x2), AndN (y1,y2) 
   | OrN (x1,x2), OrN (y1,y2)   -> eqRec x1 y1 && eqRec x2 y2
-  | ForAll(so,x,d), ForAll(so',y,d')-> let FreeFunc eqSub1 = eqSub in
-                                       let FreeFunc eqSub2 = eqSub1 x in
-                                       eqSub2 y && DSubstHashed.equal d d' && so=so'
-  | Exists(so,x,d), Exists(so',y,d')-> let FreeFunc eqSub1 = eqSub in
-                                       let FreeFunc eqSub2 = eqSub1 x in
-                                       eqSub2 y && DSubstHashed.equal d d' && so=so'
+  | ForAllF(so,x,d), ForAllF(so',y,d')
+    -> let FreeFunc eqSub1 = eqSub in
+       let FreeFunc eqSub2 = eqSub1 x in
+       eqSub2 y && DSubstHashed.equal d d' && so=so'
+  | ExistsF(so,x,d), ExistsF(so',y,d')
+    -> let FreeFunc eqSub1 = eqSub in
+       let FreeFunc eqSub2 = eqSub1 x in
+       eqSub2 y && DSubstHashed.equal d d' && so=so'
   | ForAllB(so,x), ForAllB(so',y)-> eqRec x y && so=so'
   | ExistsB(so,x), ExistsB(so',y)-> eqRec x y && so=so'
   | TrueP, TrueP | TrueN, TrueN
@@ -62,7 +64,7 @@ let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2
 
 
 let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
-  | Lit l        -> LitFHashed.hash l
+  | LitF l       -> LitFHashed.hash l
   | LitB l       -> LitBHashed.hash l
   | TrueP        -> 1
   | TrueN        -> 2
@@ -72,10 +74,10 @@ let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
   | OrP (x1,x2)  -> 7*(hRec x1)+19*(hRec x2)
   | AndN (x1,x2) -> 11*(hRec x1)+23*(hRec x2)
   | OrN (x1,x2)  -> 13*(hRec x1)+29*(hRec x2)
-  | ForAll(so,x,d) -> let FreeFunc hSub1 = hSub in
-                      31*(hSub1 x)*(DSubstHashed.hash d)
-  | Exists(so,x,d) -> let FreeFunc hSub1 = hSub in
-                      37*(hSub1 x)*(DSubstHashed.hash d)
+  | ForAllF(so,x,d) -> let FreeFunc hSub1 = hSub in
+                       31*(hSub1 x)*(DSubstHashed.hash d)
+  | ExistsF(so,x,d) -> let FreeFunc hSub1 = hSub in
+                       37*(hSub1 x)*(DSubstHashed.hash d)
   | ForAllB(so,x) -> 31*(hRec x)
   | ExistsB(so,x) -> 37*(hRec x)
 
@@ -89,7 +91,7 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
-  | Lit  l       -> fprintf fmt "%a" LitF.print_in_fmt l
+  | LitF l       -> fprintf fmt "%a" LitF.print_in_fmt l
   | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
   | TrueP        -> fprintf fmt "%s" "\\trueP"
   | TrueN        -> fprintf fmt "%s" "\\trueN"
@@ -101,10 +103,10 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\wedge" f2
   (* | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "\\andP" f2 *)
   | OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "\\orP" f2
-  | ForAll(so,f,d)-> let FreeFunc pif = pSub in
-                     print_quantif_in_fmt fmt "\\forall" so (fun fmt t -> pif t fmt) f d
-  | Exists(so,f,d)-> let FreeFunc pif = pSub in
-                     print_quantif_in_fmt fmt "\\exists" so (fun fmt t -> pif t fmt) f d
+  | ForAllF(so,f,d)-> let FreeFunc pif = pSub in
+                      print_quantif_in_fmt fmt "\\forall" so (fun fmt t -> pif t fmt) f d
+  | ExistsF(so,f,d)-> let FreeFunc pif = pSub in
+                      print_quantif_in_fmt fmt "\\exists" so (fun fmt t -> pif t fmt) f d
   | ForAllB(so, f)-> print_quantif_in_fmtB fmt "\\forall" so f
   | ExistsB(so, f)-> print_quantif_in_fmtB fmt "\\exists" so f
      in fun reveal fmt t -> aux fmt (reveal t)
@@ -113,7 +115,7 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
 (* Negates a formula *)
 let negation (type a)(type b) (nSub:(b,b)func_prim) nRec reveal build =
   let aux : (a,b)form -> (a,b)form = function
-    | Lit  l  -> Lit(LitF.negation l)
+    | LitF l  -> LitF(LitF.negation l)
     | LitB l  -> LitB(LitB.negation l)
     | TrueP   -> FalseN
     | TrueN   -> FalseP
@@ -123,10 +125,10 @@ let negation (type a)(type b) (nSub:(b,b)func_prim) nRec reveal build =
     | OrN(f1, f2)    -> AndP(nRec f1, nRec f2)
     | AndP(f1, f2)   -> OrN(nRec f1, nRec f2)
     | OrP(f1, f2)    -> AndN(nRec f1, nRec f2) 
-    | ForAll(so,f,d) -> let FreeFunc negB = nSub in
-                        Exists(so,negB f,d) 
-    | Exists(so,f,d) -> let FreeFunc negB = nSub in
-                        ForAll(so,negB f,d) 
+    | ForAllF(so,f,d)-> let FreeFunc negB = nSub in
+                        ExistsF(so,negB f,d) 
+    | ExistsF(so,f,d)-> let FreeFunc negB = nSub in
+                        ForAllF(so,negB f,d) 
     | ForAllB(so,f)  -> ExistsB(so,nRec f)
     | ExistsB(so,f)  -> ForAllB(so,nRec f)
   in fun t -> build(aux(reveal t))
@@ -252,9 +254,9 @@ module FormulaF = struct
         type b = FormulaB.t free
         let build = build
       end)
-      let lit l        = build(Lit l)
-      let forall(so,f,d)  = build(ForAll(so,f,d))
-      let exists(so,f,d)  = build(Exists(so,f,d))
+      let lit l        = build(LitF l)
+      let forall(so,f,d)  = build(ForAllF(so,f,d))
+      let exists(so,f,d)  = build(ExistsF(so,f,d))
 
       let bV tag _ = lit(LitF.build(true,tag))
 

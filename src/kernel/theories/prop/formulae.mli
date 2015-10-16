@@ -17,7 +17,7 @@ type 'a free = private Free
 type bound = private Bound
 
 type (_,_) form =
-| Lit  : LitF.t -> (_,_ free) form
+| LitF : LitF.t -> (_,_ free) form
 | LitB : LitB.t -> (_,bound) form
 | TrueP: (_,_) form
 | TrueN: (_,_) form
@@ -27,8 +27,8 @@ type (_,_) form =
 | OrP   : 'a * 'a -> ('a,_) form
 | AndN  : 'a * 'a -> ('a,_) form
 | OrN   : 'a * 'a -> ('a,_) form
-| ForAll: Sorts.t * 'a * DSubst.t -> (_,'a free) form
-| Exists: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ForAllF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ExistsF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
 | ForAllB: Sorts.t * 'a -> ('a,bound) form
 | ExistsB: Sorts.t * 'a -> ('a,bound) form
 

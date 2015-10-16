@@ -271,13 +271,13 @@ module ProofSearch(PlDS: PlugDSType) = struct
           Dump.Kernel.toPlugin();
 	  InsertCoin(AskSide(seq,sigma,side_pick,data))
 
-	| Exists(so,a,tl) ->
+	| ExistsF(so,a,tl) ->
           let (_,newar) as c = World.liftM so ar in
           let d = DSubst.bind2FV c tl in
 	  let u = lk_solve inloop (Seq.EntF (atomN, propagate d a, formP, formPSaved, polar, newar)) data in
 	  straight u (std1 None seq) (Constraint.lift newar) Constraint.proj seq sigma cont
             
-	| Lit t -> 
+	| LitF t -> 
           let rec pythie f sigma cont =
             Dump.Kernel.toTheory();
             let oracle = f sigma in
@@ -320,7 +320,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	| FalseN -> let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
 		    straight u (std1 (Some toDecompose) seq) (fun a->a) (fun a->a) seq sigma cont
 
-	| Lit t when (Pol.form polar toDecompose) = Neg 
+	| LitF t when (Pol.form polar toDecompose) = Neg 
                 ->  let t' = LitF.negation t in
 		    if ASet.mem t' atomN
 		    then let u = lk_solve inloop (Seq.EntUF (atomN,newdelta, formP, formPSaved, polar,ar)) data in
@@ -334,7 +334,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 			   | _ -> (seqrec,pt))
                            (fun a->a) (fun a->a) seq sigma cont
 
-	| Lit t when (Pol.form polar toDecompose) = Und
+	| LitF t when (Pol.form polar toDecompose) = Und
                 -> let newpolar = Pol.declarePos polar (LitF.negation t) in
                    straight 
 		     (lk_solve false (Seq.EntUF (atomN, delta, formP, formPSaved, newpolar,ar)) data)
@@ -350,7 +350,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	    (lk_solve inloop (Seq.EntUF (atomN, FSet.add a1 (FSet.add a2 newdelta), formP, formPSaved, polar,ar)) data)
 	    (std1 (Some toDecompose) seq) (fun a->a)(fun a->a) seq sigma cont
 
-	| ForAll(so,a,tl) ->
+	| ForAllF(so,a,tl) ->
           let (_,newar) as c = World.liftE so ar in
           let d = DSubst.bind2FV c tl in
 	  let u = lk_solve inloop (Seq.EntUF (atomN, FSet.add (propagate d a) newdelta, formP, formPSaved, polar,newar)) data in
