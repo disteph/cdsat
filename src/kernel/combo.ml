@@ -24,6 +24,8 @@ module type WhiteBoard = sig
   val notprovable_init: TSet.t -> answer
   val notprovable : 'a Sig.t -> ('a,TSet.t,thNotProvable) thsays -> answer -> answer
   val straight: 'a Sig.t -> ('a,TSet.t,thStraight) thsays -> answer -> answer
+  val andBranch: 'a Sig.t -> ('a,TSet.t,thAnd) thsays -> answer -> answer -> answer
+  val orBranch: 'a Sig.t -> ('a,TSet.t,thOr) thsays -> bool -> answer -> answer
 end
 
 (*********************************************************************)
@@ -131,35 +133,49 @@ let make (type a)
       | Provable of unit HandlersMap.t*TSet.t
       | NotProvable of unit HandlersMap.t*TSet.t
 
-    let provable hdl (ThProvable thset) =
-      let hhdl = Handlers.Handler hdl in
-      if HandlersMap.mem hhdl theories
-      then Provable(HandlersMap.add hhdl () HandlersMap.empty,
-                    thset)
+    let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
       else failwith "Using a theory that is not allowed"
+
+    let provable hdl (ThProvable thset) =
+      check hdl;
+      Provable(HandlersMap.add (Handlers.Handler hdl) () HandlersMap.empty,
+               thset)
 
     let notprovable_init tset = NotProvable(theories,tset)
 
     let notprovable hdl (ThNotProvable newtset) = function
-        | NotProvable(rest,tset)
-            when TSet.equal newtset tset
-              -> NotProvable(HandlersMap.remove (Handlers.Handler hdl) rest,
-                             tset)
-        | _ -> failwith "Theories disagree on model"
+      | NotProvable(rest,tset) ->
+         if TSet.equal newtset tset
+         then NotProvable(HandlersMap.remove (Handlers.Handler hdl) rest,
+                          tset)
+         else failwith "Theories disagree on model"
+      | _ -> failwith "Should apply WB.straight on NotProvable"
 
     let straight hdl (ThStraight(newset,oldset)) = function
-        | Provable (hdls,thset) ->
-           let hhdl = Handlers.Handler hdl in
-           if HandlersMap.mem hhdl theories
-           then
-             let inter = TSet.inter thset newset in
-             if TSet.is_empty inter then failwith "Resolve: irrelevant"
-             else Provable(HandlersMap.add hhdl () hdls,
-                           TSet.union (TSet.diff thset newset) oldset)
-           else
-             failwith "Using a theory that is not allowed"
-        | NotProvable _ -> failwith "Should apply straight on Provable"
-              
+      | Provable(hdls,thset) ->
+         check hdl;
+        Provable(HandlersMap.add (Handlers.Handler hdl) () hdls,
+                 TSet.union (TSet.diff thset newset) oldset)
+      | NotProvable _ -> failwith "Should apply WB.straight on Provable"
+
+    let andBranch hdl (ThAnd(new1,new2,oldset)) ans1 ans2 =
+      match ans1,ans2 with 
+      | Provable(hdls1,thset1), Provable(hdls2,thset2) ->
+         check hdl;
+        Provable(HandlersMap.add (Handlers.Handler hdl) () 
+                   (HandlersMap.merge (fun _ _ _ -> Some()) hdls1 hdls2),
+                 TSet.union (TSet.diff thset1 new1) 
+                   (TSet.union (TSet.diff thset2 new2) oldset))
+      | _ -> failwith "Should apply WB.andBranch on two Provable"
+
+    let orBranch hdl (ThOr(new1,new2,oldset)) side = function
+      | Provable(hdls,thset) ->
+         check hdl;
+        let newset = if side then new1 else new2 in
+        Provable(HandlersMap.add (Handlers.Handler hdl) () hdls,
+                 TSet.union (TSet.diff thset newset) oldset)
+      | NotProvable _ -> failwith "Should apply WB.orBranch on Provable"
+         
   end),
   pl (fun x -> x)
 
