@@ -5,14 +5,11 @@ type 'a t = { nodes : 'a array;
 
 let idr = ref 0
 
-let create a =
-  let l = (Array.length a) in
-  let t = (Array.make l []) in
-  for i = 0 to l-1 do
-    t.(i) <- []
-  done;
+let create list =
+  let a = Array.of_list list in
+  let l = Array.length a in
   incr idr;
-  {nodes = a; father = (Array.make l 0); sons = t; id = !idr}
+  {nodes = a; father = Array.make l 0; sons = Array.make l []; id = !idr}
 
 let add i f s t =
   let fa = t.father in
