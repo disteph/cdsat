@@ -1,19 +1,10 @@
 (* An implementation of Persistent Union Find *)
 
-open Interfaces
+module Make(Ord: Map.OrderedType) = struct
 
-module Ord = struct
-    
-  type t = int
+  module M = Map.Make(Ord)
 
-  let compare = Pervasives.compare
-
-end
-
-module M = Map.Make(Ord)
-
-module PUnionFind = struct
-  type e = int
+  type e = Ord.t
 
   type 'a t = {father : ((e option)*int*('a option)) M.t;
                sons   : (e list) M.t}
@@ -68,7 +59,7 @@ module PUnionFind = struct
     in
     aux i (fun m -> m)
 
-  let addLink m i j d =
+  let addLink_aux m i j d =
   (* print_string ("addLink "^(string_of_int i)^"->"^(string_of_int j)^"\n");*)
     if i = j then m else
       try 
@@ -92,6 +83,8 @@ module PUnionFind = struct
 		        let _,k',_ = M.find j m''.father in
 		        {father = M.add i (Some j,(max k k'),d) m''.father;
 		         sons = M.add j (i::(M.find j m''.sons)) m''.sons}
+
+  let addLink m i j d = addLink_aux m i j (Some d)
 
   let union m i j =
   (* print_string "union\n";*)
@@ -123,7 +116,7 @@ module PUnionFind = struct
         print_newline();*)
     if i = j then [] else
       match M.find i m.father with
-      | None,_,_ -> failwith ("the third argument "^(string_of_int j)^" isn't an ancestor of the second one "^(string_of_int i))
+      | None,_,_ -> failwith ("the third argument isn't an ancestor of the second one ")
       | Some k,_,None when k = j -> []
       | Some k,_,Some d when k = j -> [d]
       | Some k,_,None -> pathTo m k j

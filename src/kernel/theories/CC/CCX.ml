@@ -24,9 +24,7 @@ module Make
   (X : SolvableTheory with type VtoTSet.v = DS.TSet.t
                       and  type t = DS.Term.t
                       and  type v = DS.Term.t)
-  (U : PersistentUnionFind with type e = X.v 
-                           and  type d = DS.Term.t input) 
-  = 
+  (U : PersistentUnionFind with type e = X.v) = 
 struct
 
   open DS

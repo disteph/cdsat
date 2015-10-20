@@ -9,7 +9,7 @@ module Algo
   (DS: GTheoryDSType)
   (X:SolvableTheory with type VtoTSet.v = DS.TSet.t
                     and  type t = DS.Term.t)
-  (U:PersistentUnionFind with type e = X.v and type d = DS.Term.t input) = 
+  (U:PersistentUnionFind with type e = X.v) = 
 struct
 
   let directSubterms t = 
@@ -42,8 +42,8 @@ struct
                 gamma : VtoTSet.t;
                 delta : VtoV.t; 
                 n     : (Sorts.t*Term.t*Term.t) list;
-                sub   : ((X.v * X.v) * U.d) list;
-                u     : U.t
+                sub   : ((X.v * X.v) * Term.t input) list;
+                u     : Term.t input U.t
                }
 
   exception Inconsistency of Term.t input list
@@ -162,8 +162,8 @@ apply the substituions met since the beginning *)
 
   let get r g = try VtoTSet.find r g with Not_found -> TSet.empty
 
-(* compute a step of the algorithm *)
-  let rec step s phi i =
+  (* compute a step of the algorithm *)
+  let step s phi i =
     match i with
     | Eq(_,a,b) | Congr(a,b) when 
 	(TSet.mem a s.theta)
@@ -327,7 +327,7 @@ apply the substituions met since the beginning *)
       List.append phi' (i::phi)
         
   (* the main algorithm *)
-  and algo arg = function
+  let rec algo arg = function
     | []     -> arg
     | a::phi -> let s,newphi = step arg phi a in algo s newphi
       

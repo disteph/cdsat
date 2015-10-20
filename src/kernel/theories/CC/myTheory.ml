@@ -11,4 +11,7 @@ module Make(DS: sig
   include GTheoryDSType
   val proj: Term.datatype -> LitF.t
 end) 
-  = CCX.Make(DS)(EmptyCC.Make(DS))(EmptyU.Make(DS.Term))
+  = CCX.Make
+  (DS)
+  (EmptyCC.Make(DS))
+  (MyPUF.Make(struct include DS.Term let compare = Terms.compare end))

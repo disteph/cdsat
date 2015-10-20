@@ -27,11 +27,11 @@ let ind i j t =
     if t.nodes.(k) = j then (j' := k; bj := false);
   done;
   if !bi then
-    failwith ("the first argument "^(string_of_int i)^" isn't in the tree")
+    failwith ("the first argument isn't in the tree")
   else if !bj then
-    failwith ("the second argument "^(string_of_int j)^" isn't in the tree")
+    failwith ("the second argument isn't in the tree")
   else 
-    (!i',!j')
+    !i',!j'
 
 let root t = 
   let x = ref t.father.(0) in
