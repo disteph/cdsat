@@ -127,18 +127,7 @@ apply the substituions met since the beginning *)
 
   (* explain an equality a=b, given the equivalence trees *)
   let rec explain u a b =
-    let ra = make a in
-    let rb = make b in
-    (* we compute the first common ancestor *)
-    let r = U.fca u ra rb in 
-    (* and the explaination on the paths to it *)
-    (*print_value ra; print_value rb; print_value r;*)
-    let pa = U.pathTo u ra r in
-    let pb = U.pathTo u rb r in
-    (* and we have to explain the congruences on these paths *)
-    let l = explPath u (union pa pb) in
-    (*print_inputlist l; print_newline();*)
-    l
+    explPath u (U.explain u (make a) (make b))
 
   and explCongr u a b = 
     let rec aux l = function
@@ -165,56 +154,59 @@ apply the substituions met since the beginning *)
   (* compute a step of the algorithm *)
   let step s phi i =
     match i with
-    | Eq(_,a,b) | Congr(a,b) when 
-	(TSet.mem a s.theta)
-        &&(TSet.mem b s.theta)
-        &&( VtoV.find (make a) s.delta <> VtoV.find (make b) s.delta) -> 
-      begin
-	match solve (VtoV.find (make a) s.delta) (VtoV.find (make b) s.delta) with
-	  (* rule UNSOLV : the explainations are those of all the modifications of the value of the representatives of a and b, plus a=b *)
+    | Eq(_,a,b) | Congr(a,b) when (TSet.mem a s.theta) && (TSet.mem b s.theta) -> begin
+      let ra = VtoV.find (make a) s.delta in
+      let rb = VtoV.find (make b) s.delta in
+      if ra = rb
+      then (* rule REMOVE *)
+      (*print_string "remove "; (*print_term a; print_term b;*) print_newline();*)
+        s,phi
+      else
+	match solve ra rb with
+	(* rule UNSOLV : the explanations are those of all the modifications of the value of the representatives of a and b, plus a=b *)
 	| Bot -> (*print_string "unsolv "; (*print_term a; print_term b;*) print_newline();*)
-	  let l  = union (U.path s.u (make a)) (U.path s.u (make b)) in
-	  let l' = explPath s.u l in 
-	  raise (Inconsistency l')
+	   let l  = union (U.explain s.u ra (make a)) (U.explain s.u rb (make b)) in
+	   let l' = i::(explPath s.u l) in 
+	   raise (Inconsistency l')
 	| Top -> assert false
 	| Sol(p,q) ->
-	  (*print_value p; print_value q; print_newline();*)
-	  (* we get a substitution and apply it on the equivalence classes *)
-	  let delta0 = VtoV.map (subst p q) s.delta in 
-	  let delta' = VtoV.fold 
-            (fun r d -> 
-	      let r' = VtoV.find r delta0 in 
-              begin try 
-	              let _ = VtoV.find r' d
-                      in d 
-	        with Not_found -> add r' d (((p,q),i)::s.sub)
-	      end)
-            delta0
-            delta0
-          in
-	  let u0 = U.addLink s.u (make a) (make b) i in
-	  let u' = VtoV.fold 
-            (fun r uf ->
-	      begin try 
-		      let r'  = VtoV.find r s.delta in
-		      let r'' = VtoV.find r delta' in
-		      if r'<>r'' then
-		      try
-			if U.find uf r' <> U.find uf r''
-                        then
+	   (*print_value p; print_value q; print_newline();*)
+	   (* we get a substitution and apply it on the equivalence classes *)
+	   let delta0 = VtoV.map (subst p q) s.delta in 
+	   let delta' = VtoV.fold 
+             (fun r d -> 
+	       let r' = VtoV.find r delta0 in 
+               begin try 
+	               let _ = VtoV.find r' d
+                       in d 
+	         with Not_found -> add r' d (((p,q),i)::s.sub)
+	       end)
+             delta0
+             delta0
+           in
+	   let u0 = U.addLink s.u (make a) (make b) i in
+	   let u' = VtoV.fold 
+             (fun r uf ->
+	       begin try 
+		       let r'  = VtoV.find r s.delta in
+		       let r'' = VtoV.find r delta' in
+		       if r'<>r'' then
+		         try
+			   if U.find uf r' <> U.find uf r''
+                           then
 		          (*print_value r; print_value r'; print_value r''; print_newline();*)
-			  U.addLink uf r' r'' i
-			else uf
-		      with Not_found -> (* r'' unknown in uf *)
-			let uf' = addUF r'' uf (((p,q),i)::s.sub) in
-			U.addLink uf' r' r'' i
-		      else uf
-	        with Not_found -> (* r unknown in s.delta *)
-		  addUF r uf (((p,q),i)::s.sub)
-	      end)
-            delta'
-            u0
-          in
+			     U.addLink uf r' r'' i
+			   else uf
+		         with Not_found -> (* r'' unknown in uf *)
+			   let uf' = addUF r'' uf (((p,q),i)::s.sub) in
+			   U.addLink uf' r' r'' i
+		       else uf
+	         with Not_found -> (* r unknown in s.delta *)
+		   addUF r uf (((p,q),i)::s.sub)
+	       end)
+             delta'
+             u0
+           in
 	  begin
 	    match coherent delta' s.n with
 	      (* if the substitution isn't coherent with the disequalities
@@ -267,13 +259,7 @@ apply the substituions met since the beginning *)
                u   = u'},
               List.append phi' phi
 	  end
-      end
-	(* rule REMOVE *)
-    | Eq(_,a,b) | Congr(a,b) when 
-	(TSet.mem a s.theta)&&(TSet.mem b s.theta)&&
-	  (VtoV.find (make a) s.delta = VtoV.find (make b) s.delta) -> 
-      (*print_string "remove "; (*print_term a; print_term b;*) print_newline();*)
-      s,phi
+    end
     | NEq(so,a,b) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
       if VtoV.find (make a) s.delta = VtoV.find (make b) s.delta then
 	(* rule INCOHDIFF *)

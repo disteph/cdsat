@@ -1,16 +1,18 @@
 (* An implementation of Persistent Union Find *)
 
-module Make(Ord: Map.OrderedType) = struct
+module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e = Ord.t) = struct
 
   module M = Map.Make(Ord)
 
   type e = Ord.t
 
   type 'a t = {father : ((e option)*int*('a option)) M.t;
-               sons   : (e list) M.t}
+               sons   : e list M.t;
+               memo   : e MyFCA.t M.t ref}
 
   let create = {father = M.empty;
-                sons = M.empty}
+                sons = M.empty;
+                memo = ref M.empty }
 
   let add m i = 
     try 
@@ -18,7 +20,8 @@ module Make(Ord: Map.OrderedType) = struct
       m
     with Not_found ->
       {father = M.add i (None,0,None) m.father; 
-       sons = M.add i [] m.sons}
+       sons = M.add i [] m.sons;
+       memo = ref M.empty}
 
   let rec print_list = function
     | []    -> print_newline();
@@ -28,7 +31,7 @@ module Make(Ord: Map.OrderedType) = struct
   (* print_string "find_aux\n";*)
     match M.find i m.father with
     | None,j,_   -> i,j
-    | Some k,j,_ -> find_aux m k
+    | Some k,_,_ -> find_aux m k
 
   let find m i = fst (find_aux m i)
 
@@ -36,7 +39,7 @@ module Make(Ord: Map.OrderedType) = struct
    suppose that it appears only once *)
   let rec remove i = function
     | [] -> []
-    | a::ta when a = i -> ta
+    | a::ta when Ord.compare a i ==0 -> ta
     | a::ta -> a::(remove i ta)
 
 (* revert an arc i->j with the label d 
@@ -45,8 +48,8 @@ module Make(Ord: Map.OrderedType) = struct
   (* print_string ("revert "^(string_of_int i)^"->"^(string_of_int j)^"\n");*)
     let _,k',_ = M.find j m.father in
     {father = M.add i (None,k+k',None) (M.add j (Some i,k',d) m.father);
-     sons = M.add i (j::(M.find i m.sons)) 
-        (M.add j (remove i (M.find j m.sons)) m.sons)}
+     sons = M.add i (j::(M.find i m.sons)) (M.add j (remove i (M.find j m.sons)) m.sons);
+     memo = ref M.empty}
 
 (* make i the root of its class by reverting the arcs on the path 
    from i to its representative *)
@@ -60,21 +63,22 @@ module Make(Ord: Map.OrderedType) = struct
     aux i (fun m -> m)
 
   let addLink_aux m i j d =
-  (* print_string ("addLink "^(string_of_int i)^"->"^(string_of_int j)^"\n");*)
-    if i = j then m else
+    (* print_string ("addLink "^(string_of_int i)^"->"^(string_of_int j)^"\n");*)
+    if Ord.compare i j ==0 then m else
       try 
         begin match M.find j m.father with
-        | Some k,_,_ when k = i -> m
-        | _ -> if find m i = find m j then m else
+        | Some k,_,_ when Ord.compare k i ==0 -> m
+        | _ -> if Ord.compare (find m i) (find m j) ==0 then m else
 	    begin
 	      match M.find i m.father with
-	      | Some k,_,_ when k = j -> m
+	      | Some k,_,_ when Ord.compare k j ==0 -> m
 	      | _ -> let m' = reroot i m in
 		     let m'' = reroot j m' in
 		     let _,k,_ = M.find i m''.father in
 		     let _,k',_ = M.find j m''.father in
 		     {father = M.add i (Some j,(max k k'),d) m''.father;
-		      sons = M.add j (i::(M.find j m''.sons)) m''.sons}
+		      sons = M.add j (i::(M.find j m''.sons)) m''.sons;
+                      memo = ref M.empty}
 	    end
         end 
       with Not_found -> let m' = reroot i m in
@@ -82,7 +86,8 @@ module Make(Ord: Map.OrderedType) = struct
 		        let _,k,_ = M.find i m''.father in
 		        let _,k',_ = M.find j m''.father in
 		        {father = M.add i (Some j,(max k k'),d) m''.father;
-		         sons = M.add j (i::(M.find j m''.sons)) m''.sons}
+		         sons = M.add j (i::(M.find j m''.sons)) m''.sons;
+                         memo = ref M.empty}
 
   let addLink m i j d = addLink_aux m i j (Some d)
 
@@ -90,16 +95,19 @@ module Make(Ord: Map.OrderedType) = struct
   (* print_string "union\n";*)
     let ci, ri = find_aux m i in
     let cj, rj = find_aux m j in
-    if ci = cj then m
+    if Ord.compare ci cj ==0 then m
     else if ri < rj then 
       {father = M.add ci (Some cj,rj,None) m.father;
-       sons = M.add cj (ci::(M.find cj m.sons)) m.sons}
+       sons = M.add cj (ci::(M.find cj m.sons)) m.sons;
+       memo = ref M.empty}
     else if rj < ri then 
       {father = M.add cj (Some ci,ri,None) m.father;
-       sons = M.add ci (cj::(M.find ci m.sons)) m.sons}
+       sons = M.add ci (cj::(M.find ci m.sons)) m.sons;
+       memo = ref M.empty}
     else 
       {father = M.add ci (Some cj,rj+1,None) m.father;
-       sons = M.add cj (ci::(M.find cj m.sons)) m.sons}
+       sons = M.add cj (ci::(M.find cj m.sons)) m.sons;
+       memo = ref M.empty}
 
   let rec path m i =
   (* print_string "path\n";*)
@@ -114,11 +122,11 @@ module Make(Ord: Map.OrderedType) = struct
         M.iter (fun k (x,y,z) -> match x with Some p -> print_string ("("^(string_of_int k)^","^(string_of_int p)^") ")
 	| None -> print_string ("("^(string_of_int k)^","^(string_of_int k)^") ")) m.father ;
         print_newline();*)
-    if i = j then [] else
+    if Ord.compare i j ==0 then [] else
       match M.find i m.father with
       | None,_,_ -> failwith ("the third argument isn't an ancestor of the second one ")
-      | Some k,_,None when k = j -> []
-      | Some k,_,Some d when k = j -> [d]
+      | Some k,_,None when Ord.compare k j ==0 -> []
+      | Some k,_,Some d when Ord.compare k j ==0 -> [d]
       | Some k,_,None -> pathTo m k j
       | Some k,_,Some d -> d::(pathTo m k j)
 
@@ -127,8 +135,6 @@ module Make(Ord: Map.OrderedType) = struct
     List.map
       (fun e -> M.find e map)
       (M.find i m.sons)
-
-  let tmap = ref M.empty
 
 (* build the tree for the class of the representative r *)
   let build r m =
@@ -165,13 +171,13 @@ module Make(Ord: Map.OrderedType) = struct
         list
     in
     (* Memoising in tmap the construction, for future re-use *)
-    List.iter (fun n -> tmap := M.add n t !tmap) list;
+    m.memo := List.fold_left (fun tmap n -> M.add n t tmap) !(m.memo) list;
     t
 
   let fca m i j = 
   (* print_string "fca\n";*)
     try
-      let t = M.find i !tmap in
+      let t = M.find i !(m.memo) in
       let i',j' = MyFCA.ind i j t in
     (* print_int i; print_int j; print_int (MyFCA.fca t i' j'); print_newline();*)
       MyFCA.fca t i' j'
@@ -179,9 +185,16 @@ module Make(Ord: Map.OrderedType) = struct
       let r = find m i in
       let t = build r m in
       let i',j' = MyFCA.ind i j t in
-    (* print_int i; print_int j; print_int (MyFCA.fca t i' j'); print_newline();*)
+      (* print_int i; print_int j; print_int (MyFCA.fca t i' j'); print_newline();*)
       MyFCA.fca t i' j'
 
-  let clear () = tmap := M.empty; MyFCA.clear ()
+  let rec explain u a b =
+    (* we compute the first common ancestor *)
+    let r = fca u a b in 
+    (* and the explaination on the paths to it *)
+    (*print_value ra; print_value rb; print_value r;*)
+    let pa = pathTo u a r in
+    let pb = pathTo u b r in
+    List.append pa pb
 
 end

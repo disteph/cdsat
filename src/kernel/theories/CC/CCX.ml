@@ -72,7 +72,6 @@ struct
       let treated = treated
 
       let add tset = 
-        U.clear ();
         let newtreated = TSet.union treated tset in
         try 
           SAT(thNotProvable () newtreated, getModule newtreated (Alg.algo s (fromTSet tset)))

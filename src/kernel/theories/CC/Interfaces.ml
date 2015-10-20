@@ -91,14 +91,7 @@ module type PersistentUnionFind = sig
   val find : 'a t -> e -> e
   (* merge the classes of the 2 elements *)
   val union : 'a t -> e -> e -> 'a t
-  (* give the list of the labels on the path from the element to
-     its representative *)
-  val path : 'a t -> e -> 'a list
-  (* give the list of the labels on the path from the first element to
-     the second element *)
-  val pathTo : 'a t -> e -> e -> 'a list
-  (* give the first common ancestor of 2 elements of the same class *)
-  val fca : 'a t -> e -> e -> e
-  (* clean the structures used for memoisation *)
-  val clear : unit -> unit
+  (* gives the list of labels on the path between 2 elements of the same class *)
+  val explain : 'a t -> e -> e -> 'a list
+
 end
