@@ -166,7 +166,7 @@ apply the substituions met since the beginning *)
 	(* rule UNSOLV : the explanations are those of all the modifications of the value of the representatives of a and b, plus a=b *)
 	| Bot -> (*print_string "unsolv "; (*print_term a; print_term b;*) print_newline();*)
 	   let l  = union (U.explain s.u ra (make a)) (U.explain s.u rb (make b)) in
-	   let l' = i::(explPath s.u l) in 
+	   let l' = explPath s.u (i::l) in 
 	   raise (Inconsistency l')
 	| Top -> assert false
 	| Sol(p,q) ->

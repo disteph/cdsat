@@ -89,8 +89,6 @@ module type PersistentUnionFind = sig
   val addLink : 'a t -> e -> e -> 'a -> 'a t
   (* give the representative *)
   val find : 'a t -> e -> e
-  (* merge the classes of the 2 elements *)
-  val union : 'a t -> e -> e -> 'a t
   (* gives the list of labels on the path between 2 elements of the same class *)
   val explain : 'a t -> e -> e -> 'a list
 
