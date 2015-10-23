@@ -24,6 +24,8 @@ type t =
 | Ge | Le | Gt | Lt
 | Plus | Minus | Times | Divide | Op
 
+(* Arrays *)
+| Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
 
 let arity = function
   | User(_,ar)                        -> ar
@@ -36,7 +38,8 @@ let arity = function
   | Plus | Minus | Times | Divide     -> (Sorts.Rat, [Sorts.Rat;Sorts.Rat])
   | Op                                -> (Sorts.Rat, [Sorts.Rat])
   | Ge | Gt | Le | Lt                 -> (Sorts.Prop, [Sorts.Rat;Sorts.Rat])  
-
+  | Select(indices,values)            -> (values, [Sorts.Array(indices,values);indices])
+  | Store(indices,values)             -> (Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values])
 
 (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
 let multiary = function
@@ -69,6 +72,8 @@ let print_in_fmt fmt = function
   | Gt          -> fprintf fmt ">"
   | Le          -> fprintf fmt "\\leq"
   | Lt          -> fprintf fmt "<"
+  | Select(_,_) -> fprintf fmt "\\mbox{\\small select}"
+  | Store(_,_)  -> fprintf fmt "\\mbox{\\small store}"
 
 
 let parse decsorts = 
