@@ -52,7 +52,8 @@ let addDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=eq.previous@ll}
 
 let getPreviousEqs eqs =
-  List.fold_left (fun l eq -> eq.previous@l) [] eqs
+  let res = List.fold_left (fun l eq -> eq.previous@l) [] eqs in
+  if res == [] then eqs else res
 
 (* Affect in the equation an unaffected variable *)
 let affectVar eq var value =

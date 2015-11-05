@@ -1,4 +1,5 @@
 include Num
+include Equation
 
 (* eliminates a variable from a set of inequations.
 Allows to compute the general FM resolution*)
@@ -41,7 +42,7 @@ let eliminate var eqs =
 (* remove the trivial inequalities (no variable)*)
 let rec remove_trivial = function
     | [] -> []
-    | t::q when istrivial t -> remove_trivial q
+    | t::q when isTrivial t -> remove_trivial q
     | t::q -> t::(remove_trivial q)
 
 exception FM_Failure

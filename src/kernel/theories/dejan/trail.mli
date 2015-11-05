@@ -15,20 +15,22 @@ Contraintes atomiques : tables variables -> intervale ??
 vers les inégalités dont elles proviennente
 *)
 
-  type t
-  (*The state equation list itself*)
-  type c
-  (* the constraints *)
-  val create : equation list -> t
-  val createConstraints : t -> c
-  val checkConstraints : c -> (equation * equation) option
-  val chooseValue : c -> variable -> value
+type var = string
+type value = Num.num
+type trail
+(*The state equation list itself*)
+type c
+(* the constraints *)
+val create : Equation.equation list -> trail
+val createConstraints : trail -> c
+val checkConstraints : c -> (Equation.equation * Equation.equation) option
+val chooseValue : c -> var -> value
 
-  (* assign a value to a variale and add a new state to the stack*)
-  val assignValue : t -> variable -> value -> t
-  (* suppresses the current state, applies FM on the terms, adds the
-  new term to the state, raises unsatFailure exception if we go back to the first state*)
-  val addEq : t -> equation -> t (* To do*)
+(* assign a value to a variale and add a new state to the stack*)
+val assignValue : trail -> var -> value -> trail
+(* suppresses the current state, applies FM on the terms, adds the
+new term to the state, raises unsatFailure exception if we go back to the first state*)
+val addEq : trail -> Equation.equation -> trail
 
-  val getCurrentModel : t -> (variable * value) list
-  val chooseUnassignedVariable : t -> variable Option
+val getCurrentModel : trail -> (var * value) list
+val chooseUnassignedVariable : trail -> var option

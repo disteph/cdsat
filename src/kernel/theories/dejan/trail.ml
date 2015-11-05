@@ -11,10 +11,10 @@ include Hashtbl
 
 open Num
 
-type var = string
-type value = num
+(*type variable = string*)
+(*type value = Num.num*)
 
-type t = {eqs : equation list;
+type trail = {eqs : equation list;
           affect : (var * value) list}
 
 (*The state equation list itself*)
@@ -24,7 +24,7 @@ type bornes = interval * equation option * equation option
 type c = (var, bornes) Hashtbl.t
 
 (* Create an initial Trail from a list of equations *)
-let createStack eqList =
+let create eqList =
   {eqs = eqList; affect = []}
 
 (* Check the equation of the trail to detect atomic constraint on varaibles *)
@@ -37,7 +37,7 @@ let createConstraints trail =
     let i, eqC1, eqC2 = c in
     if coef </ (num_of_int 0) then
       begin
-        if b > Interval.getInf i || (b =/ Interval.getInf i && isStrict) then 
+        if b > Interval.getInf i || (b =/ Interval.getInf i && isStrict) then
           (Interval.create b isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
         else c
       end
@@ -68,10 +68,9 @@ let checkConstraints constraints =
 
 exception Val_found of num
 
-let chooseValue constraints =
-  let choose _ c =
-    let i, _, _ = c in if not (Interval.isEmpty i) then raise (Val_found (Interval.chooseValue i))
-  in try Hashtbl.iter choose constraints; raise Not_found with Val_found v -> v
+let chooseValue constraints var =
+  let i, _, _ = (try Hashtbl.find constraints var with Not_found -> Interval.real, None, None) in
+    (Interval.chooseValue i)
 
 (* assign a value to a variale and add a new state to the stack*)
 let assignValue trail var value =
@@ -81,11 +80,15 @@ let assignValue trail var value =
 
 exception Var_found of var
 
-let chooseUnasignedVariable trail =
+let chooseUnassignedVariable trail =
   let f eq = if not (isTrivial eq) then raise (Var_found (getActiveVar eq))
-  in try (List.iter f trail.eqs; raise Not_found)
-  with Var_found v -> v
+  in try (List.iter f trail.eqs; None)
+  with Var_found v -> Some v
 
 
 let getCurrentModel trail =
   trail.affect
+
+let addEq trail eq =
+  {eqs= eq::trail.eqs; affect = trail.affect}
+
