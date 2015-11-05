@@ -34,8 +34,8 @@ let eliminate var eqs =
     | (t1::q1), l2 ->
         complete_result q1 l2
         (List.fold_left (fun acc eq ->
-          (add (multiply (Num.num_of_int 1  // (getCoeff t1 var)) t1)
-               (multiply (Num.num_of_int 1 // (getCoeff eq var)) eq) )::acc) accu l2)
+            (combine (Num.num_of_int 1  // (getCoeff t1 var)) t1
+                     (Num.num_of_int 1 // (getCoeff eq var)) eq)::acc) accu l2)
     in
     complete_result pos neg nul
 
@@ -50,7 +50,7 @@ exception FM_Failure
 (* a failure is exceptional. It can happen if the elimination
 is not suited. Nevertheless, we will never encounter it
 while using properly FM resolution in dejean's algorithm*)
-let rec fourierMotzkin var eqs =
+let rec fourierMotzkinRec var eqs =
     (*print_eqs eqs;*)
     match remove_trivial eqs with
     | [] -> raise FM_Failure
@@ -58,7 +58,10 @@ let rec fourierMotzkin var eqs =
     | (t::q) ->
       try
         let vv = getAnotherActiveVar t var in
-        fourierMotzkin var (eliminate vv eqs)
+        fourierMotzkinRec var (eliminate vv eqs)
       (* we did not find another active variable. This is a
       unitary constraint on "var"... return it, then.*)
       with Not_found -> t
+
+      (* TODO : ajouter les equations vers lesquelles doit pointer la nouvelle *)
+let fourierMotzkin var eqs = fourierMotzkinRec var eqs
