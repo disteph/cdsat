@@ -13,15 +13,17 @@ let rec dejeanAlgoRec stack =
   | [] -> failwith "Unknown"
   | (head::tail) ->
     (* recalculate the constraints each time... *)
+    (*print_string "Calculating constraints\n";*)
     let cons = Trail.createConstraints head in
     (* here we have : either an empty list which means OK,
        either two contradicting equations *)
     match  Trail.checkConstraints cons with
     | Some(v,t1,t2) ->(
+      (*print_string "Failure in constraints\n";*)
       (* damned, there is a failure, let's go back*)
       let previous = Equation.getPreviousEqs [t1; t2] in
       (* WARNING : if there is no previous equation, previous should return
-         the equation itself*)
+         the equation itself *)
       (* WARNING : those previous equations could be either in
          the preceding state in the stack (if they came
          from an assignment of a variable), or in the current state

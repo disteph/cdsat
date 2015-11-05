@@ -9,10 +9,10 @@ let eliminate var eqs =
     match eqs with
     | [] -> [], [], []
     | (t::q) -> let pos,neg,nul = separate q in
-                if getCoeff t var >/ Num.num_of_int 0 then
+                if getCoeff t var >/ (Num.num_of_int 0) then
                     (t::pos, neg, nul)
                 else begin
-                    if getCoeff t var </ Num.num_of_int 0 then
+                    if getCoeff t var </ (Num.num_of_int 0) then
                       (pos, t::neg, nul)
                     else (pos, neg, t::nul)
                 end
@@ -63,5 +63,9 @@ let rec fourierMotzkinRec var eqs =
       unitary constraint on "var"... return it, then.*)
       with Not_found -> t
 
-      (* TODO : ajouter les equations vers lesquelles doit pointer la nouvelle *)
-let fourierMotzkin var eqs = fourierMotzkinRec var eqs
+
+let fourierMotzkin var eqs =
+    let eq = fourierMotzkinRec var eqs in
+    (* return the equation obtained, which dependencies are
+    all the equations used for Fm resolution *)
+    setDependance eq eqs

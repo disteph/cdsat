@@ -6,15 +6,16 @@ open Num
 type var = string
 type value = num
 
-(* Represent an ineqation *)
+(* Represents an inequation *)
 type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
                  sup : value;           (* Sup value *)
+                 (* TODO WARNING : in fact, isStrict means is NOT strict ... *)
                  isStrict : bool;              (* Is the inequality <= ? *)
                  nVar : int;                 (* Number of active variables *)
                  previous : equation list
                 }
 
-(* Creatte an equation from it's subparts *)
+(* Creates an equation from its subparts *)
 let create coeffs sup isStrict previous =
   let count _ v acc =
     if v <>/ Num.num_of_int 0 then acc+1 else acc
@@ -50,6 +51,10 @@ let getPrevious eq =
 
 let addDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=eq.previous@ll}
+
+let setDependance eq ll =
+  {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=ll}
+
 
 let getPreviousEqs eqs =
   let res = List.fold_left (fun l eq -> eq.previous@l) [] eqs in

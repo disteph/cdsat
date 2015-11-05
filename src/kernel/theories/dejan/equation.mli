@@ -18,6 +18,7 @@ val getPreviousEqs : equation list -> equation list
 
 val affectVar : equation -> var -> value -> equation
 val addDependance : equation -> equation list -> equation
+val setDependance : equation -> equation list -> equation
 
 val multiply : equation -> value -> equation
 val add : equation -> equation -> equation
