@@ -9,7 +9,6 @@ type value = num
 (* Represents an inequation *)
 type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
                  sup : value;           (* Sup value *)
-                 (* TODO WARNING : in fact, isStrict means is NOT strict ... *)
                  isStrict : bool;              (* Is the inequality <= ? *)
                  nVar : int;                 (* Number of active variables *)
                  previous : equation list
@@ -119,7 +118,7 @@ let add eq1 eq2 =
   Hashtbl.iter f eq2.coeffs;
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
-   isStrict = eq1.isStrict || eq2.isStrict;
+   isStrict = eq1.isStrict && eq2.isStrict;
    nVar = !n;
    previous = eq1.previous @ eq2.previous (* Previous of eq1 and eq2 can't overlapse in Dejan algo *)
   }
@@ -132,12 +131,12 @@ let combine c1 eq1 c2 eq2 =
 (* Pretty print an equation *)
 let print eq =
   Hashtbl.iter (fun k v -> Printf.printf "%f%s + " (float_of_num v) k) eq.coeffs;
-  if eq.isStrict then Printf.printf " <= %f"(float_of_num eq.sup) else
-    Printf.printf " < %f" (float_of_num eq.sup)
+  if eq.isStrict then Printf.printf " < %f"(float_of_num eq.sup) else
+    Printf.printf " <= %f" (float_of_num eq.sup)
 
 (* Pretty print a list of equations *)
 let rec print_eqs eqs =
   match eqs with
   | [] -> ()
   | [eq] -> print eq; print_string "\n"
-  | (t::q) -> print t; print_string " AND "; print_eqs q
+  | (t::q) -> print t; print_string " /\\ "; print_eqs q
