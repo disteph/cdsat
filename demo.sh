@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 function pause(){
    read -p "$*"
@@ -8,49 +8,33 @@ function lat(){
     cd latex
     pdflatex Main.tex
     cd ..
-    evince latex/Main.pdf &
+    xdg-open latex/Main.pdf &
     pause ""
 }
 
-echo "psyche -theory empty -examples -gplugin naive -latex"
-pause ""
-./main.native -gplugin naive -theory empty -examples -latex
-pause ""
-lat
-echo "psyche -theory empty -examples -latex"
-pause ""
-./main.native -theory empty -examples -latex
-pause ""
-lat
-emacs demo/UNSAT-test.cnf
-echo "psyche -gplugin dpll_wl -latex demo/UNSAT-test.cnf"
-pause ""
-./main.native -gplugin dpll_wl -latex demo/UNSAT-test.cnf
-pause "finished saving"
-cd latex
-pdflatex Main.tex
-pause ""
-cd ..
-emacs latex/output.tex
-pause ""
-emacs demo/hole7.cnf
-echo "psyche -gplugin dpll_wl demo/hole7.cnf"
-pause ""
-./main.native -gplugin dpll_wl demo/hole7.cnf
-pause ""
-emacs demo/LRA-test.smt2
-echo "psyche -gplugin dpll_wl -latex demo/LRA-test.smt2"
-pause ""
-./main.native -gplugin dpll_wl -latex demo/LRA-test.smt2
-pause ""
-lat
-emacs demo/cc2.smt2
-echo "psyche -latex demo/cc2.smt2"
-pause ""
-./main.native -latex demo/cc2.smt2
-pause ""
-echo "psyche  -gplugin hint -latex problems/pelletier/p36.smt2  "
-pause ""
-./main.native -gplugin hint -latex problems/pelletier/p36.smt2  
-pause ""
-lat
+function green () {
+    echo -e "\033[1;32m$1\033[0m"
+}
+
+function test_psyche () {
+    TEST_FILE=$1
+    PSYCHE_PARAMS="-latex ${@:2} $TEST_FILE"
+    $PAGER $TEST_FILE
+    echo -e "  $(green "[") running \033[34m psyche $PSYCHE_PARAMS \033[1;32m]\033[0m"
+    # ./main.native $PSYCHE_PARAMS
+    echo "Finished computing. Converting proof to pdf."
+    cd latex
+    pdflatex Main.tex 2>&1 > /dev/null | sed "s/^/$(green [pdflatex])  /"
+    PDFRETURNCODE=${PIPESTATUS[0]}
+    cd ..
+    echo ""
+    [[ PDFRETURNCODE -eq 0 ]] && echo "You can see a pdf summary of the proof at ./latex/Main.pdf." || echo "Pdf compilation failed. You still can see the latex file at ./latex/Main.tex"
+    echo ""
+    pause "Press enter to continue."
+}
+
+test_psyche problems/DIMACS/UNSAT/test.cnf -pluginG dpll_wl
+test_psyche problems/DIMACS/SatlibBench/hole7.cnf -pluginG dpll_wl
+# test_psyche demo/LRA-test.smt2 -pluginG dpll_wl
+test_psyche problems/QF_UF/hand_written/cc2.smt2 -pluginG dpll_wl
+test_psyche problems/pelletier/p36.smt2 -pluginG hint
