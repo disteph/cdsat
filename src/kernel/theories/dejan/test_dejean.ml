@@ -30,3 +30,4 @@ let () =
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
     (*print_string "created equations OK\n";*)
     (*test_dejan [e1]*)
+    print_string "ok";

@@ -30,7 +30,7 @@ let chooseValue i =
     let inf, iStrict, sup, sStrict = i in
     if not iStrict && inf <>/ infinity then inf
     else if not sStrict && sup <>/ (infinity) then sup
-    else if inf <>/ (infinity) && sup <>/ (infinity) then sup -/ inf // (num_of_int 2)
+    else if inf <>/ (infinity) && sup <>/ (infinity) then (sup -/ inf) // (num_of_int 2)
     else if inf =/ infinity && sup =/ infinity then num_of_int 0
     else if inf =/ infinity then sup -/ num_of_int 1
     else (*if sup =/ infinity then*) inf +/ num_of_int 1
