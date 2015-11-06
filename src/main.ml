@@ -42,7 +42,7 @@ let options =
     ("-pluginG",     String(fun s-> mypluginG:= s),   "XXX selects XXX as the pure logic plugin (among naive, hint, dpll_pat, dpll_wl)")::
     ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
     ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
-    ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::
+    ("-examples",    Unit(fun()-> ()),    "Depreciated. For backward compatibility only.")::
     ("-skipsat",     Unit(fun()->skipsat:=true),      "skips instances expected to be sat")::
     ("-skipunsat",   Unit(fun()->skipunsat:=true),    "skips instances expected to be unsat")::
     ("-skipunprovable",Unit(fun()->skipsat:=true),    "skips instances expected to be unprovable")::
@@ -86,12 +86,11 @@ Available options are:";;
 *)
 
 Arg.parse options (fun a->fname:= a::!fname) description;
-let (trname(* ,trexamples *),trstdin)=treatprimitives() in
+let (trname, trstdin)=treatprimitives() in
 let rec treat = function
   | []      -> ()
   | name::l -> trname name; treat l
 in
   match !fname with
-    (* | [] when !texamples-> trexamples () *)
     | []                -> trstdin    ()
     | l                 -> treat (collect_sort l)

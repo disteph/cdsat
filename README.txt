@@ -93,7 +93,7 @@ Available options are:
   -gplugin selects generic plugin (among naive, dpll_pat, dpll_wl; default is dpll_wl)
   -latex allows latex output
   -alphasort treats input files in alphabetical order (default is from smaller to bigger)
-  -examples treats theory examples instead of standard input
+  -examples Depreciated. For backward compatibility only
   -noweakenings disallows conflict analysis
   -debug decides level of debug printing (0,1,2); 0 is no debug
   -printrhs when debug printing allowed, prints right-hand sides of sequents

@@ -4,7 +4,6 @@
 
 let sizesort  = ref true   (* Sorts input files by size *)
 let latex     = ref false  (* Activates latex output *)
-let texamples = ref false  (* Treats examples, rather than standard input *)
 let fname                  (* List of files or directories to treat *)
     = ref ([]:string list)
 

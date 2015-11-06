@@ -177,28 +177,7 @@ let treatname pack name =
   then treatdir pack name
   else treatfile pack name
 
-
-
-(* treatexamples treats the examples provided by the theory *)
-
-(* let treatexamples pack () = *)
-(*   let mythplug = guessThPlug("") in *)
-(*   let module MyThPlug    = (val mythplug:ThPlug) in *)
-(*   let module R           = Run(MyThPlug) in *)
-(*   let module MyStructure = MyThPlug.MyTheory.ForParsing(R.FE.Form) in *)
-(*   let examples = MyStructure.examples: ((unit->F.t)*bool) list *)
-(*   in *)
-(*   let rec aux acc = function *)
-(*     | []            -> pack.final acc *)
-(*     | (a,expect)::l ->  *)
-(* 	let formulastring = Dump.stringOf R.FE.Form.print_in_fmt (a()) in *)
-(*         print_endline ("---\n"^formulastring); *)
-(*         let newacc = pack.accu acc ("$"^formulastring^"$") (R.go(Some a,Some expect)) in *)
-(*         aux newacc l *)
-(*   in *)
-(*   aux pack.init examples *)
-
 let treatprimitives () =
   if !Flags.latex
-  then (treatname latex_wrap, (* treatexamples latex_wrap, *) treatstdin latex_wrap)
-  else (treatname empty_wrap, (* treatexamples empty_wrap, *) treatstdin empty_wrap)
+  then (treatname latex_wrap, treatstdin latex_wrap)
+  else (treatname empty_wrap, treatstdin empty_wrap)
