@@ -37,15 +37,19 @@ let createConstraints trail =
     let i, eqC1, eqC2 = c in
     if coef </ (num_of_int 0) then
       begin
-        if b > Interval.getInf i || (b =/ Interval.getInf i && isStrict) then
-          (Interval.create b isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
-        else c
+        match Interval.getInf i with
+        | INFINITY -> (Interval.create (NUM b) isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
+        | NUM(inf) when (b > inf || (b =/ inf && isStrict)) ->
+          (Interval.create (NUM b) isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
+        | _ -> c
       end
     else
       begin
-        if b < Interval.getSup i || (b =/ Interval.getSup i && isStrict) then
-          (Interval.create (Interval.getInf i) (Interval.isInfStrict i) b isStrict), eqC1, (Some eq)
-        else c
+        match Interval.getSup i with
+        | INFINITY -> (Interval.create (Interval.getInf i) (Interval.isInfStrict i) (NUM b) isStrict), eqC1, (Some eq)
+        | NUM(sup) when (b < sup || (b =/ sup && isStrict)) ->
+          (Interval.create (Interval.getInf i) (Interval.isInfStrict i) (NUM b) isStrict), eqC1, (Some eq)
+        | _ -> c
       end
   in
   let searchAtomic eq =

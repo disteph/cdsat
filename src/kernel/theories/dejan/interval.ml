@@ -2,10 +2,10 @@
 include Num
 open Num
 
-type interval = num * bool * num * bool
+type extNum = INFINITY | NUM of num
+type interval = extNum * bool * extNum * bool
 
-let infinity = num_of_int 1 // num_of_int 0
-let real = infinity, false, infinity, false
+let real = INFINITY, false, INFINITY, false
 
 let create inf isInfStrict sup isSupStrict =
     (inf,isInfStrict,sup,isSupStrict)
@@ -23,14 +23,15 @@ let isSupStrict i =
     let _, _, _, b = i in b
 
 let isEmpty i =
-    let inf, iStrict, sup, sStrict = i in
-    inf >/ sup || (inf =/ sup && (iStrict || sStrict))
+    let binf, iStrict, bsup, sStrict = i in match binf, bsup with
+    | NUM(inf), NUM(sup) -> inf >/ sup || (inf =/ sup && (iStrict || sStrict))
+    | _, _ -> false
 
 let chooseValue i =
-    let inf, iStrict, sup, sStrict = i in
-    if not iStrict && inf <>/ infinity then inf
-    else if not sStrict && sup <>/ (infinity) then sup
-    else if inf <>/ (infinity) && sup <>/ (infinity) then (sup -/ inf) // (num_of_int 2)
-    else if inf =/ infinity && sup =/ infinity then num_of_int 0
-    else if inf =/ infinity then sup -/ num_of_int 1
-    else (*if sup =/ infinity then*) inf +/ num_of_int 1
+    let binf, iStrict, bsup, sStrict = i in match binf, bsup  with
+    | NUM(inf), _ when not iStrict -> inf
+    | _, NUM(sup) when not sStrict -> sup
+    | NUM(inf), NUM(sup) -> (sup -/ inf) // (num_of_int 2)
+    | INFINITY, INFINITY -> num_of_int 0
+    | INFINITY, NUM(sup) -> sup -/ num_of_int 1
+    | NUM(inf), INFINITY -> inf +/ num_of_int 1

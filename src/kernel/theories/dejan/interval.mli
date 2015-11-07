@@ -1,10 +1,11 @@
 
 type interval
+type extNum = INFINITY | NUM of Num.num
 val real : interval
-val create : Num.num -> bool -> Num.num -> bool -> interval
+val create : extNum -> bool -> extNum -> bool -> interval
 
-val getInf : interval -> Num.num
-val getSup : interval -> Num.num
+val getInf : interval -> extNum
+val getSup : interval -> extNum
 val isInfStrict : interval -> bool
 val isSupStrict : interval -> bool
 val isEmpty : interval -> bool
