@@ -156,7 +156,20 @@ let combine c1 eq1 c2 eq2 =
 
 (* Pretty print an equation *)
 let print eq =
-  Hashtbl.iter (fun k v -> Printf.printf "%s%s + " (string_of_num v) k) eq.coeffs;
+  Hashtbl.iter (fun k v ->
+    if (not(v =/ num_of_int 0)) then
+      begin
+      if (v =/ num_of_int 1) then
+          Printf.printf "%s + " k
+        else begin
+          if (v =/ num_of_int (-1)) then
+            Printf.printf "-%s + " k
+          else
+            Printf.printf "%s%s + " (string_of_num v) k;
+        end;
+      end;
+    )
+    eq.coeffs;
   if eq.isStrict then Printf.printf " < %s" (string_of_num eq.sup) else
     Printf.printf " <= %s" (string_of_num eq.sup)
 
