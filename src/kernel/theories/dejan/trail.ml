@@ -65,12 +65,12 @@ let createConstraints trail =
     end
   in List.iter searchAtomic trail.eqs; constraints
 
-exception Eq_found of (var * equation * equation) option
+exception Eq_found of (equation * equation) option
 
 let checkConstraints constraints =
   let check v c =
     match c with
-    | i, Some(e1), Some(e2) -> if Interval.isEmpty i then raise (Eq_found (Some (v,e1,e2)))
+    | i, Some(e1), Some(e2) -> if Interval.isEmpty i then raise (Eq_found (Some (e1,e2)))
     | _ -> ()
   in try Hashtbl.iter check constraints; None with Eq_found o -> o
 

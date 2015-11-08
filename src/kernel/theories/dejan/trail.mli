@@ -21,7 +21,7 @@ type c
 (* the constraints *)
 val create : Equation.equation list -> trail
 val createConstraints : trail -> c
-val checkConstraints : c -> (Equation.var * Equation.equation * Equation.equation) option
+val checkConstraints : c -> (Equation.equation * Equation.equation) option
 val chooseValue : c -> Equation.var -> Equation.value
 
 val getEqs : trail -> Equation.equation list
