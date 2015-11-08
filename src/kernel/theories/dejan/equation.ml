@@ -45,8 +45,12 @@ let getSup eq =
 let isStrict eq =
   eq.isStrict
 
+(* TODO should we directly implement this while constructing the equations ?*)
 let getPrevious eq =
-  eq.previous
+  match eq.previous with
+  | [] -> [eq]
+  | _ -> eq.previous
+
 
 let addDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=eq.previous@ll}
@@ -56,17 +60,34 @@ let setDependance eq ll =
 
 
 let getPreviousEqs eqs =
-  let res = List.fold_left (fun l eq -> eq.previous@l) [] eqs in
-  if res == [] then eqs else res
+  List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs
+  (* TODO it is not clear whereas we have to consider that case or not *)
+  (*if res == [] then eqs else res*)
 
 (* Affect in the equation an unaffected variable *)
-let affectVar eq var value =
+(*let affectVar eq var value =
   try (
     let c = Hashtbl.find eq.coeffs var in
     let newCoeffs = Hashtbl.copy eq.coeffs in
     Hashtbl.remove newCoeffs var;
     {coeffs = newCoeffs; sup = eq.sup -/ (c */ value); isStrict = eq.isStrict; nVar = eq.nVar - 1; previous=[eq]}
-  ) with Not_found -> eq
+  ) with Not_found -> eq*)
+
+(* Affect a variable in the inequation. It has to built a new
+inequation, even if the variable is not present, for compatibility
+reasons with our algorithm (the inequations contain themselves all
+the "state stack" stuff)*)
+let affectVar eq var value =
+    try (
+      let c = Hashtbl.find eq.coeffs var in
+      let newCoeffs = Hashtbl.copy eq.coeffs in
+      Hashtbl.remove newCoeffs var;
+      {coeffs = newCoeffs; sup = eq.sup -/ (c */ value);
+        isStrict = eq.isStrict; nVar = eq.nVar - 1; previous=[eq]}
+    ) with Not_found ->
+      {coeffs = eq.coeffs; sup = eq.sup; isStrict = eq.isStrict;
+        nVar = eq.nVar; previous=[eq]}
+
 
 (* Return true if and only if the eqation is an atomic constraint*)
 let isAtomic eq =
@@ -112,6 +133,10 @@ let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs and n = ref eq1.nVar in
   let f k v =
     let temp = try Hashtbl.find coeffs k with Not_found -> (n := !n +1; num_of_int 0) in
+    if (v +/ temp =/ num_of_int 0) then
+      begin
+        n := !n - 1;
+      end;
     Hashtbl.replace coeffs k (v +/ temp)
   in
   (* loop through the coeffs of the first equation*)
@@ -120,19 +145,20 @@ let add eq1 eq2 =
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict && eq2.isStrict;
    nVar = !n;
-   previous = eq1.previous @ eq2.previous (* Previous of eq1 and eq2 can't overlapse in Dejan algo *)
+   previous = eq1.previous @ eq2.previous
+   (* Previous of eq1 and eq2 can't overlapse in Dejan algo *)
   }
 
-(* return the linear combinaison c1*eq1+c2*eq2 *)
+(* return the linear combination c1*eq1+c2*eq2 *)
 let combine c1 eq1 c2 eq2 =
     add (multiply eq1 c1) (multiply eq2 c2)
 
 
 (* Pretty print an equation *)
 let print eq =
-  Hashtbl.iter (fun k v -> Printf.printf "%f%s + " (float_of_num v) k) eq.coeffs;
-  if eq.isStrict then Printf.printf " < %f"(float_of_num eq.sup) else
-    Printf.printf " <= %f" (float_of_num eq.sup)
+  Hashtbl.iter (fun k v -> Printf.printf "%s%s + " (string_of_num v) k) eq.coeffs;
+  if eq.isStrict then Printf.printf " < %s" (string_of_num eq.sup) else
+    Printf.printf " <= %s" (string_of_num eq.sup)
 
 (* Pretty print a list of equations *)
 let rec print_eqs eqs =

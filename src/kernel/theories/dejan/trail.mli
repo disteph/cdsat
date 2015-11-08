@@ -24,10 +24,12 @@ val createConstraints : trail -> c
 val checkConstraints : c -> (Equation.var * Equation.equation * Equation.equation) option
 val chooseValue : c -> Equation.var -> Equation.value
 
-(* assign a value to a variale and add a new state to the stack*)
+val getEqs : trail -> Equation.equation list
+(* assign a value to a variale and create a new state*)
 val assignValue : trail -> Equation.var -> Equation.value -> trail
-(* suppresses the current state, applies FM on the terms, adds the
-new term to the state, raises unsatFailure exception if we go back to the first state*)
+
+val getLastAssignedVariable : trail -> Equation.var
+
 val addEq : trail -> Equation.equation -> trail
 
 val getCurrentModel : trail -> (Equation.var * Equation.value) list

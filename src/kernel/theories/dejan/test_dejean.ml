@@ -29,5 +29,11 @@ let () =
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
     (*print_string "created equations OK\n";*)
-    (*test_dejan [e1]*)
-    print_string "ok";
+    test_dejan [e1;e2;e3;e4]
+
+    (*let e5 = Equation.createFromList [("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) true [] in
+    let e6 = Equation.createFromList [("x", num_of_int (1))] (num_of_int 0) true [] in
+    let eq = FourierMotzkin.fourierMotzkin "z" [e5;e6] in
+    Equation.print_eqs [e5;e6];
+    Equation.print eq;
+    print_string "\n"*)

@@ -35,7 +35,7 @@ let eliminate var eqs =
         complete_result q1 l2
         (List.fold_left (fun acc eq ->
             (combine (Num.num_of_int 1  // (getCoeff t1 var)) t1
-                     (Num.num_of_int 1 // (getCoeff eq var)) eq)::acc) accu l2)
+                     (Num.num_of_int (-1) // (getCoeff eq var)) eq)::acc) accu l2)
     in
     complete_result pos neg nul
 
@@ -67,5 +67,7 @@ let rec fourierMotzkinRec var eqs =
 let fourierMotzkin var eqs =
     let eq = fourierMotzkinRec var eqs in
     (* return the equation obtained, which dependencies are
-    all the equations used for Fm resolution *)
-    setDependance eq eqs
+    all the PREVIOUS of the equations used for FM resolution *)
+    (* that way, we enforce the invariant that all "previouses"
+    of an equation are members of the previous state *)
+    setDependance eq (Equation.getPreviousEqs eqs)

@@ -15,7 +15,8 @@ open Num
 (*type value = Num.num*)
 
 type trail = {eqs : equation list;
-          affect : (var * value) list}
+          affect : (var * value) list;
+        }
 
 (*The state equation list itself*)
 
@@ -26,6 +27,9 @@ type c = (var, bornes) Hashtbl.t
 (* Create an initial Trail from a list of equations *)
 let create eqList =
   {eqs = eqList; affect = []}
+
+let getEqs t =
+  t.eqs
 
 (* Check the equation of the trail to detect atomic constraint on varaibles *)
 let createConstraints trail =
@@ -81,6 +85,10 @@ let assignValue trail var value =
   {eqs = List.map (fun eq -> Equation.affectVar eq var value) trail.eqs;
    affect = (var, value)::trail.affect}
 
+let getLastAssignedVariable trail =
+    match trail.affect with
+    | [] -> failwith "No variable was assigned in this state"
+    | (var,value)::q -> var
 
 exception Var_found of var
 
