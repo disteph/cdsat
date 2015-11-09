@@ -58,20 +58,15 @@ let addDependance eq ll =
 let setDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=ll}
 
+(* goes through a list and keeps unique elements *)
+let uniq lst =
+    let unique_set = Hashtbl.create (List.length lst) in
+    List.iter (fun x -> Hashtbl.replace unique_set x ()) lst;
+    Hashtbl.fold (fun x () xs -> x :: xs) unique_set []
 
 let getPreviousEqs eqs =
-  List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs
-  (* TODO it is not clear whereas we have to consider that case or not *)
-  (*if res == [] then eqs else res*)
+  uniq (List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs)
 
-(* Affect in the equation an unaffected variable *)
-(*let affectVar eq var value =
-  try (
-    let c = Hashtbl.find eq.coeffs var in
-    let newCoeffs = Hashtbl.copy eq.coeffs in
-    Hashtbl.remove newCoeffs var;
-    {coeffs = newCoeffs; sup = eq.sup -/ (c */ value); isStrict = eq.isStrict; nVar = eq.nVar - 1; previous=[eq]}
-  ) with Not_found -> eq*)
 
 (* Affect a variable in the inequation. It has to built a new
 inequation, even if the variable is not present, for compatibility

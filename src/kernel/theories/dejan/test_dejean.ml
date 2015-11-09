@@ -47,9 +47,8 @@ let () =
     let e2 = Equation.createFromList [("y", num_of_int 2); ("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) false [] in
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
-    test_dejan [e1;e2;e3;e4]*)
-    let l = system 3 in
-    (*Equation.print_eqs l;*)
+    test_dejan [e1;e2;e3;e4];*)
+    let l = system 4 in
     test_dejan l
 
     (*let e5 = Equation.createFromList [("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) true [] in

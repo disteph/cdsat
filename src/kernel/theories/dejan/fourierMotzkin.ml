@@ -48,10 +48,9 @@ let rec remove_trivial = function
 exception FM_Failure
 
 (* a failure is exceptional. It can happen if the elimination
-is not suited. Nevertheless, we will never encounter it
-while using properly FM resolution in dejean's algorithm*)
+is not suited. The exception indicates to the main algorithm that something
+was wrong with the inequations. *)
 let rec fourierMotzkinRec var eqs =
-    (*print_eqs eqs;*)
     match remove_trivial eqs with
     | [] -> raise FM_Failure
     | [eq] -> eq
@@ -63,9 +62,11 @@ let rec fourierMotzkinRec var eqs =
       unitary constraint on "var"... return it, then.*)
       with Not_found -> t
 
-
+(* FIXME : seems to fail for :
+x1 + x5 + x4 +  < -4 /\ x1 + -4x5 + x4 +  < 1 /\ x1 + x5 + -4x4 +  < 1 *)
 let fourierMotzkin var eqs =
     let eq = fourierMotzkinRec var eqs in
+    if (Equation.isTrivial eq) then raise FM_Failure else
     (* return the equation obtained, which dependencies are
     all the PREVIOUS of the equations used for FM resolution *)
     (* that way, we enforce the invariant that all "previouses"
