@@ -15,6 +15,7 @@ let rec dejeanAlgoRec stack =
     (*print_string "Head state is : ";Equation.print_eqs (getEqs head);print_string "\n";*)
     (* recalculate the constraints each time... *)
     let cons = Trail.createConstraints head in
+
     (* here we have : either an empty list which means OK,
        either two contradicting equations *)
     match  Trail.checkConstraints cons with
@@ -72,6 +73,7 @@ let rec dejeanAlgoRec stack =
           (* the model is complete*)
           | None -> Trail.getCurrentModel head
           | Some(var) ->
+
             (* choose a value according to the constraints *)
             let v = Trail.chooseValue cons var in
 

@@ -153,6 +153,7 @@ let multiply eq value =
    with these variables, and update properly the number of
    active variables*)
 (* TODO : improve this function, and take great care of the nVar field *)
+(* FIXME  : there are still errors in there *)
 let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs and n = ref eq1.nVar in
   let f k v =
