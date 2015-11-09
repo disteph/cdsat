@@ -102,13 +102,13 @@ exception Var_found of var
 
 let getActiveVar eq =
   let f k v =
-    if v <>/ (Num.num_of_int 0) && v = Hashtbl.find eq.coeffs k then raise (Var_found k)
+    if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
   in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
 
 (* get an active variable that is not the one in argument *)
 let getAnotherActiveVar eq variable =
   let f k v =
-    if k <> variable && v <>/ (Num.num_of_int 0) && v = Hashtbl.find eq.coeffs k then raise (Var_found k)
+    if k <> variable && v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
   in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
 
 (* creates a new inequation by multiplying all coefficients by
