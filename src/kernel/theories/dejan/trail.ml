@@ -43,7 +43,7 @@ let createConstraints trail =
       begin
         match Interval.getInf i with
         | INFINITY -> (Interval.create (NUM b) isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
-        | NUM(inf) when (b > inf || (b =/ inf && isStrict)) ->
+        | NUM(inf) when (b >/ inf || (b =/ inf && isStrict)) ->
           (Interval.create (NUM b) isStrict (Interval.getSup i) (Interval.isSupStrict i)), (Some eq), eqC2
         | _ -> c
       end
@@ -51,7 +51,7 @@ let createConstraints trail =
       begin
         match Interval.getSup i with
         | INFINITY -> (Interval.create (Interval.getInf i) (Interval.isInfStrict i) (NUM b) isStrict), eqC1, (Some eq)
-        | NUM(sup) when (b < sup || (b =/ sup && isStrict)) ->
+        | NUM(sup) when (b </ sup || (b =/ sup && isStrict)) ->
           (Interval.create (Interval.getInf i) (Interval.isInfStrict i) (NUM b) isStrict), eqC1, (Some eq)
         | _ -> c
       end

@@ -21,15 +21,36 @@ let test_dejan eqs =
     following inequations lead to a contradiction : \n";
       Equation.print_eqs l
 
+(* creates a special system of inequations, for testing. It should
+trigger a lot of FM resolutions *)
+let system n =
+  let createTerm = fun j i n ->
+    if (i=j) then ("x"^(string_of_int i), num_of_int (1-n))
+    else ("x"^(string_of_int j), num_of_int (1))
+  in
+  let rec createIthInequation = function
+    | 0,i,n -> []
+    | j,i,n -> (createTerm j i n)::(createIthInequation ((j-1),i,n))
+  in
+  let rec createSystem = function
+    | 0,n -> []
+    | i,n -> (
+      Equation.createFromList (createIthInequation (n,i,n)) (num_of_int 0) true []
+      )::(createSystem ((i-1),n))
+  in
+  createSystem (n, n)
+
 let () =
     (* −y < 0, z − x + 2y < 0, x − y < 0, −z < −1 *)
     (* [e1; e2; e3; e4] should be UNSAT*)
-    let e1 = Equation.createFromList [("y", num_of_int (-1))] (num_of_int 0) false [] in
+    (*let e1 = Equation.createFromList [("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e2 = Equation.createFromList [("y", num_of_int 2); ("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) false [] in
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
-    (*print_string "created equations OK\n";*)
-    test_dejan [e1;e2;e3;e4]
+    test_dejan [e1;e2;e3;e4]*)
+    let l = system 3 in
+    (*Equation.print_eqs l;*)
+    test_dejan l
 
     (*let e5 = Equation.createFromList [("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) true [] in
     let e6 = Equation.createFromList [("x", num_of_int (1))] (num_of_int 0) true [] in
