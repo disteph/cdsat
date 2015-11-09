@@ -42,7 +42,7 @@ let eliminate var eqs =
 (* remove the trivial inequalities (no variable)*)
 let rec remove_trivial = function
     | [] -> []
-    | t::q when isTrivial t -> remove_trivial q
+    | t::q when isTrivial t -> remove_trivial q;
     | t::q -> t::(remove_trivial q)
 
 exception FM_Failure
@@ -62,11 +62,9 @@ let rec fourierMotzkinRec var eqs =
       unitary constraint on "var"... return it, then.*)
       with Not_found -> t
 
-(* FIXME : seems to fail for :
-x1 + x5 + x4 +  < -4 /\ x1 + -4x5 + x4 +  < 1 /\ x1 + x5 + -4x4 +  < 1 *)
+
 let fourierMotzkin var eqs =
     let eq = fourierMotzkinRec var eqs in
-    if (Equation.isTrivial eq) then raise FM_Failure else
     (* return the equation obtained, which dependencies are
     all the PREVIOUS of the equations used for FM resolution *)
     (* that way, we enforce the invariant that all "previouses"

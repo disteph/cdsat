@@ -14,6 +14,34 @@ type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
                  previous : equation list
                 }
 
+
+(* Pretty print an equation *)
+let print eq =
+  Hashtbl.iter (fun k v ->
+    if (not(v =/ num_of_int 0)) then
+      begin
+      if (v =/ num_of_int 1) then
+          Printf.printf "%s + " k
+        else begin
+          if (v =/ num_of_int (-1)) then
+            Printf.printf "-%s + " k
+          else
+            Printf.printf "%s%s + " (string_of_num v) k;
+        end;
+      end;
+    )
+    eq.coeffs;
+  if eq.isStrict then Printf.printf " < %s" (string_of_num eq.sup) else
+    Printf.printf " <= %s" (string_of_num eq.sup)
+
+(* Pretty print a list of equations *)
+let rec print_eqs eqs =
+  match eqs with
+  | [] -> ()
+  | [eq] -> print eq; print_string "\n"
+  | (t::q) -> print t; print_string " /\\ "; print_eqs q
+
+
 (* Creates an equation from its subparts *)
 let create coeffs sup isStrict previous =
   let count _ v acc =
@@ -124,11 +152,12 @@ let multiply eq value =
    the variables in both equations, create a NEW equation
    with these variables, and update properly the number of
    active variables*)
+(* TODO : improve this function, and take great care of the nVar field *)
 let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs and n = ref eq1.nVar in
   let f k v =
     let temp = try Hashtbl.find coeffs k with Not_found -> (n := !n +1; num_of_int 0) in
-    if (v +/ temp =/ num_of_int 0) then
+    if (not(temp =/ num_of_int 0) && v +/ temp =/ num_of_int 0) then
       begin
         n := !n - 1;
       end;
@@ -141,36 +170,9 @@ let add eq1 eq2 =
    isStrict = eq1.isStrict && eq2.isStrict;
    nVar = !n;
    previous = eq1.previous @ eq2.previous
-   (* Previous of eq1 and eq2 can't overlapse in Dejan algo *)
+   (* TODO : can the previous overlapse ? It seems that yes in dejean's algo *)
   }
 
 (* return the linear combination c1*eq1+c2*eq2 *)
 let combine c1 eq1 c2 eq2 =
     add (multiply eq1 c1) (multiply eq2 c2)
-
-
-(* Pretty print an equation *)
-let print eq =
-  Hashtbl.iter (fun k v ->
-    if (not(v =/ num_of_int 0)) then
-      begin
-      if (v =/ num_of_int 1) then
-          Printf.printf "%s + " k
-        else begin
-          if (v =/ num_of_int (-1)) then
-            Printf.printf "-%s + " k
-          else
-            Printf.printf "%s%s + " (string_of_num v) k;
-        end;
-      end;
-    )
-    eq.coeffs;
-  if eq.isStrict then Printf.printf " < %s" (string_of_num eq.sup) else
-    Printf.printf " <= %s" (string_of_num eq.sup)
-
-(* Pretty print a list of equations *)
-let rec print_eqs eqs =
-  match eqs with
-  | [] -> ()
-  | [eq] -> print eq; print_string "\n"
-  | (t::q) -> print t; print_string " /\\ "; print_eqs q

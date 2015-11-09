@@ -48,12 +48,13 @@ let () =
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
     test_dejan [e1;e2;e3;e4];*)
-    let l = system 4 in
+    let l = system 5 in
     test_dejan l
 
-    (*let e5 = Equation.createFromList [("z", num_of_int 1); ("x", num_of_int (-1))] (num_of_int 0) true [] in
-    let e6 = Equation.createFromList [("x", num_of_int (1))] (num_of_int 0) true [] in
-    let eq = FourierMotzkin.fourierMotzkin "z" [e5;e6] in
-    Equation.print_eqs [e5;e6];
+    (*let e5 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int 1); ("x3", num_of_int 1)] (num_of_int (-4)) true [] in
+    let e6 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int (-4)); ("x3", num_of_int 1)] (num_of_int 1) true [] in
+    let e7 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int 1); ("x3", num_of_int (-4))] (num_of_int 1) true [] in
+    let eq = FourierMotzkin.fourierMotzkin "x1" [e5;e6;e7] in
+    Equation.print_eqs [e5;e6;e7];
     Equation.print eq;
     print_string "\n"*)
