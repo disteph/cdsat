@@ -156,8 +156,8 @@ module Make(PlDS: PlugDSType) = struct
     module Seq = struct
 
       type t = 
-      |	EntF  of ASet.t*IForm.t*FSet.t*FSet.t*Pol.t*World.t
-      | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*Pol.t*World.t
+        | EntF  of ASet.t*IForm.t*FSet.t*FSet.t*Pol.t*World.t
+        | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*Pol.t*World.t
 
       let interesting = function
 	| EntF(atomN, g, formP, formPSaved, polar,ar)      -> (atomN, formP::formPSaved::[])

@@ -44,6 +44,7 @@ module GTh2Th
   open DS
 
   let consistency a sigma =
+    Dump.msg (Some(fun p -> p "Calling theories on key set\n%a" TSet.print_in_fmt a)) None None;
     match MDP.solve a with
     | WB.Provable(_,b)    -> Guard(b,sigma,fun _ -> NoMore)
     | WB.NotProvable(rest,_) when HandlersMap.is_empty rest -> NoMore
@@ -51,6 +52,7 @@ module GTh2Th
 
   let goal_consistency t a sigma =
     let nont = DS.Term.bC Top.Symbols.Neg [t] in
+    Dump.msg (Some(fun p -> p "Calling theories on key set\n%a and goal: %a" TSet.print_in_fmt a Term.print_in_fmt t)) None None;
     match MDP.solve (TSet.add nont a) with
     | WB.Provable(_,a')   -> Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)
     | WB.NotProvable(rest,_) when HandlersMap.is_empty rest -> NoMore

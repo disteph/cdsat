@@ -97,4 +97,8 @@ let parse decsorts =
     | "<" -> [Lt]
     | ">=" ->[Ge]
     | "<=" ->[Le]
+    | "select" -> let aux ind = List.map (fun so -> Select(ind,so)) allsorts
+                  in List.fold_left (fun accu ind -> (aux ind)@accu) [] allsorts
+    | "store"  -> let aux ind = List.map (fun so -> Store(ind,so)) allsorts
+                  in List.fold_left (fun accu ind -> (aux ind)@accu) [] allsorts
     | s    -> try [CstRat(Num.num_of_string s)] with _ -> []

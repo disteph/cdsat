@@ -94,6 +94,7 @@ let make theories : (module Plugin.Type) =
 
         let rec main_worker from_workers pipe_map = function
           | WB.NotProvable(rest,consset) as current ->
+             Dump.msg (Some(fun p -> p "Main_worker enters new loop\n")) None None;
              if HandlersMap.is_empty rest
              then broadcast (fun w -> return(Pipe.close w)) pipe_map
                 >>| fun () -> current

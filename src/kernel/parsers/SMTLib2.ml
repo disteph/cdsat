@@ -62,27 +62,27 @@ and getsymbQualId env tl = function
 
 and getsymbIdSymbol env tl = function
   | IdSymbol(_,symb) ->
-      begin
-	let s = getsymbSymbol symb in
-	match search s env,tl with
-	  | None,_       -> AppliedSymbol(s,tl,env)
-	  | Some(t,e),[] -> getsymb e t
-	  | _,_          -> raise (ParsingError("Higher-order definition for "^s))
-      end
+     begin
+       let s = getsymbSymbol symb in
+       match search s env,tl with
+       | None,_       -> AppliedSymbol(s,tl,env)
+       | Some(t,e),[] -> getsymb e t
+       | _,_          -> raise (ParsingError("Higher-order definition for "^s))
+     end
   | IdUnderscoreSymNum(_,symb,_)-> raise (ParsingError("Not sure about "^getsymbSymbol symb))
 
 
 let getStatus = function
   | AttributeValSymbol(_,s) -> 
-      begin
-	match getsymbSymbol s with
-	  | "unsat"      -> Some true
-	  | "sat"        -> Some false 
-	  | "provable"   -> Some true
-	  | "unprovable" -> Some false 
-	  | "unknown"    -> None
-	  | _            -> print_endline("Status could not be parsed:"^getsymbSymbol s);None
-      end
+     begin
+       match getsymbSymbol s with
+       | "unsat"      -> Some true
+       | "sat"        -> Some false 
+       | "provable"   -> Some true
+       | "unprovable" -> Some false 
+       | "unknown"    -> None
+       | _            -> print_endline("Status could not be parsed:"^getsymbSymbol s);None
+     end
   | _ -> print_endline "Status could not be parsed"; None
 
 let string_of_stat = function
@@ -105,33 +105,33 @@ type afterglance = {
 let transformCommand aft = function
   | CAssert(_,t)                 -> {aft with form_list = t::aft.form_list}
   | CSetLogic(_,symbol)          ->
-    begin
-      match aft.theory with
-      | Some prevtheory -> 
-        begin
-          print_endline("Trying to declare theory twice: was "^prevtheory
-                        ^", now declared as "^getsymbSymbol symbol^". Keeping "^prevtheory);
-          aft
-        end
-      | None   -> {aft with theory = Some(getsymbSymbol symbol)}
-    end
+     begin
+       match aft.theory with
+       | Some prevtheory -> 
+          begin
+            print_endline("Trying to declare theory twice: was "^prevtheory
+                          ^", now declared as "^getsymbSymbol symbol^". Keeping "^prevtheory);
+            aft
+          end
+       | None   -> {aft with theory = Some(getsymbSymbol symbol)}
+     end
   | CSetInfo(_,AttributeKeywordValue(_,":status",attribute)) ->
-    begin
-      match aft.status with
-      | Some prevstatus -> 
-        begin
-          print_endline("Trying to declare status twice: was "^string_of_stat aft.status
-                        ^", now declared as "^string_of_stat (getStatus attribute)^". Keeping "^string_of_stat aft.status);
-          aft
-        end
-      | None  -> aft
-    end
+     begin
+       match aft.status with
+       | Some prevstatus -> 
+          begin
+            print_endline("Trying to declare status twice: was "^string_of_stat aft.status
+                          ^", now declared as "^string_of_stat (getStatus attribute)^". Keeping "^string_of_stat aft.status);
+            aft
+          end
+       | None  -> aft
+     end
   | CCheckSat _                      -> {aft with satprov = false}
   | CDeclareSort(_,symbol,arity)     ->
-    if int_of_string arity != 0
-    then raise (ParsingError ("Trying to declare sort "^getsymbSymbol symbol^" with arity "^arity
-                              ^", but Psyche can only handle sorts of arity 0"))
-    else {aft with decso = SM.add (getsymbSymbol symbol) () aft.decso}
+     if int_of_string arity != 0
+     then raise (ParsingError ("Trying to declare sort "^getsymbSymbol symbol^" with arity "^arity
+                               ^", but Psyche can only handle sorts of arity 0"))
+     else {aft with decso = SM.add (getsymbSymbol symbol) () aft.decso}
   | CDeclareFun(_,symbol,(_,l),sort) ->
      {aft with decsym = SM.add (getsymbSymbol symbol) (getsort sort,List.map getsort l) aft.decsym}
   | _                                -> aft
@@ -163,7 +163,10 @@ let glance input =
 let guessThDecProc aft =
   match aft.theory with
     | None   -> None
-    | Some a -> Some [a]
+    | Some "QF_UF"  -> Some ["CC"]
+    | Some "QF_LRA" -> Some ["LRA"]
+    | Some "QF_AX"  -> Some ["Arrays"]
+    | Some a -> Some [a; "CC"]
 
 let rec list_index a accu = function
   | [] -> None
@@ -192,8 +195,8 @@ let parse (type t) aft i =
   in
 
   match aft.form_list with
-  | []-> (None,aft.status)
+  | []-> None, aft.status
   | _ -> 
     let formula = transformTermBase EmptyEnv [] "and" aft.form_list in
     let fformula = if aft.satprov then formula else I.sigsymb "not" [formula] in
-    (Some fformula,aft.status)
+    Some fformula, aft.status

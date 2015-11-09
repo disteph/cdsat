@@ -8,20 +8,25 @@ module Make(DS: GTheoryDSType) = struct
 
   open DS
 
-  let rec state atomN
-      = (module struct
+  let rec state atomN =
+    (module struct
 
-        type newoutput = (sign,TSet.t) output
-        type tset = TSet.t
+      type newoutput = (sign,TSet.t) output
+      type tset = TSet.t
 
-        let treated = (fun () -> atomN)
+      let treated () = atomN
 
-        let add _ = Output(None,state atomN)
+      let add = function
+        | None -> Output(None,state atomN)
+        | Some tset ->
+           let newtreated = TSet.union atomN tset in
+           Output(Some(thNotProvable () newtreated),state newtreated)
 
-        let normalise = (fun _ -> failwith "Not a theory with normaliser")
+      let normalise _ = failwith "Not a theory with normaliser"
 
-        let clone = (fun () -> Output(None, state atomN))
-      end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
+      let clone () = Output(None, state atomN)
+
+    end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = state TSet.empty
 

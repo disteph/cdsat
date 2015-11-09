@@ -22,6 +22,6 @@ type (_,_,_) thsays = private
 
 val thProvable   : 'sign -> 'tset -> ('sign,'tset,thProvable) thsays
 val thNotProvable: 'sign -> 'tset -> ('sign,'tset,thNotProvable) thsays
-val thStraight: 'sign -> 'tset -> 'tset                      -> ('sign,'tset,thStraight) thsays
+val thStraight: 'sign -> 'tset -> 'tset      -> ('sign,'tset,thStraight) thsays
 val thAnd : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thAnd) thsays
 val thOr  : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thOr) thsays

@@ -23,9 +23,8 @@ end
 let all_theories_list = 
   [ Handlers.Handler Sig.Empty;
     Handlers.Handler Sig.CC;
-  (* To be commented out when they are implemented: *)
-  (* Handlers.Handler Sig.Arrays; *)
-  (* Handlers.Handler Sig.Dejan; *)
+    Handlers.Handler Sig.Arrays;
+    Handlers.Handler Sig.Dejan;
   ]
 
 module HandlersMap = Map.Make(Handlers)
@@ -36,7 +35,9 @@ exception NotFound of string
 
 let parse = function
   | "empty" | "prop" | "bool"  -> Handlers.Handler Sig.Empty
-  | "QF_UF" -> Handlers.Handler Sig.CC
+  | "CC"     -> Handlers.Handler Sig.CC
+  | "LRA"    -> Handlers.Handler Sig.Dejan
+  | "Arrays" -> Handlers.Handler Sig.Arrays
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold_right (fun name -> HandlersMap.remove (parse name)) l all_theories
