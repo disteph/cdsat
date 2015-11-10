@@ -25,16 +25,20 @@ module Make(WB: WhiteBoard) = struct
       match msg with
       | None -> aux from_pl to_pl (add cont None)
       | Some msg ->
-         Pipe.write to_pl (Msg(hdl,msg))
-         >>= fun () -> 
-        Pipe.read from_pl
-         >>= function
-         | `Eof -> return ()
-         | `Ok(MsgStraight tset) -> aux from_pl to_pl (add cont (Some tset))
-         | `Ok(MsgBranch(tset1,tset2,newreader,newwriter))
-           -> let Output(_,newcont) = clone cont in
-              Deferred.all_unit [aux from_pl to_pl (add cont (Some tset1));
-                                 aux newreader newwriter (add newcont (Some tset2))]                
+         Deferred.all_unit 
+           [ if not(Pipe.is_closed to_pl)
+             then Pipe.write to_pl (Msg(hdl,msg)) 
+             else return();
+
+             Pipe.read from_pl
+             >>= function
+             | `Eof -> return ()
+             | `Ok(MsgStraight tset) -> aux from_pl to_pl (add cont (Some tset))
+             | `Ok(MsgBranch(tset1,tset2,newreader,newwriter))
+               -> let Output(_,newcont) = clone cont in
+                  Deferred.all_unit [aux from_pl to_pl (add cont (Some tset1));
+                                     aux newreader newwriter (add newcont (Some tset2))]
+           ]
 
     and add (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.add
     and clone (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.clone()

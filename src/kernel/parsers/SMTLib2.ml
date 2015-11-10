@@ -1,3 +1,4 @@
+
 (* SMTLib2 parser *)
 
 open SMTLib2_tools
@@ -164,8 +165,8 @@ let guessThDecProc aft =
   match aft.theory with
     | None   -> None
     | Some "QF_UF"  -> Some ["CC"]
-    | Some "QF_LRA" -> Some ["LRA"]
-    | Some "QF_AX"  -> Some ["Arrays"]
+    | Some "QF_LRA" -> Some ["LRA"; "CC"]
+    | Some "QF_AX"  -> Some ["Arrays"; "CC"]
     | Some a -> Some [a; "CC"]
 
 let rec list_index a accu = function
