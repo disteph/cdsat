@@ -5,10 +5,14 @@ open Num
 type extNum = INFINITY | NUM of num
 type interval = extNum * bool * extNum * bool
 
+(* |R *)
 let real = INFINITY, false, INFINITY, false
 
+(* Create an interval from parts *)
 let create inf isInfStrict sup isSupStrict =
     (inf,isInfStrict,sup,isSupStrict)
+
+(* Accessors *)
 
 let getInf i =
     let inf, _, _, _ = i in inf
@@ -22,11 +26,15 @@ let isInfStrict i =
 let isSupStrict i =
     let _, _, _, b = i in b
 
+(* True if the interval is empty, ie inf > sup *)
 let isEmpty i =
     let binf, iStrict, bsup, sStrict = i in match binf, bsup with
     | NUM(inf), NUM(sup) -> inf >/ sup || (inf =/ sup && (iStrict || sStrict))
     | _, _ -> false
 
+(* Return a value from the interval *)
+(* In the context of Dejan resolution, bounds are privileged
+as they are most likely to triger contradictions *)
 let chooseValue i =
     let binf, iStrict, bsup, sStrict = i in match binf, bsup  with
     | NUM(inf), _ when not iStrict -> inf

@@ -8,10 +8,10 @@ type value = num
 
 (* Represents an inequation *)
 type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
-                 sup : value;           (* Sup value *)
-                 isStrict : bool;              (* Is the inequality <= ? *)
-                 nVar : int;                 (* Number of active variables *)
-                 previous : equation list
+                 sup : value;                      (* Sup value *)
+                 isStrict : bool;                  (* Is the inequality <= ? *)
+                 nVar : int;                       (* Number of active variables *)
+                 previous : equation list          (* equation whose linear combination allowed to find this one *)
                 }
 
 
@@ -68,12 +68,15 @@ let createFromList coeffs sup isStrict previous =
   List.iter f coeffs;
   res
 
+(* Return the coeff associated to the varibale var *)
 let getCoeff eq var =
   try Hashtbl.find eq.coeffs var with Not_found -> num_of_int 0
 
+(* Return the upper bound of the equation *)
 let getSup eq =
   eq.sup
 
+(* Return if < or <= *)
 let isStrict eq =
   eq.isStrict
 
@@ -83,10 +86,11 @@ let getPrevious eq =
   | [] -> [eq]
   | _ -> eq.previous
 
-
+(* Add equations to previous equations *)
 let addDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=eq.previous@ll}
 
+(* Change equations to previous equations *)
 let setDependance eq ll =
   {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=ll}
 
@@ -95,6 +99,7 @@ let uniq lst =
     let unique_set = Hashtbl.create (List.length lst) in
     List.iter (fun x -> Hashtbl.replace unique_set x ()) lst;
     Hashtbl.fold (fun x () xs -> x :: xs) unique_set []
+
 
 let getPreviousEqs eqs =
   uniq (List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs)
@@ -127,6 +132,7 @@ let isTrivial eq =
 (* Give an active variable if it exists or raise a Not_found exception *)
 exception Var_found of var
 
+(* return an active variable, eg a variable of the equation whose coeff is non-nul*)
 let getActiveVar eq =
   let f k v =
     if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
@@ -139,8 +145,9 @@ let getAnotherActiveVar eq variable =
   in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
 
 (* creates a new inequation by multiplying all coefficients by
-   a positive or negative value. It does NOT implement the behavior
-   of changing the inequation's sense. *)
+   a positive or negative value.
+   /!\ It does NOT implement the behavior of changing the
+   inequation's sense. *)
 let multiply eq value =
   let newCoeffs = Hashtbl.create 10 in
   let f k v = Hashtbl.replace newCoeffs k (value */ v) in
@@ -151,11 +158,7 @@ let multiply eq value =
    nVar = (if value =/ (num_of_int 0) then 0 else eq.nVar);
    previous = eq.previous}
 
-(* adds two equations.
-   WARNINGS : the function has to look at all
-   the variables in both equations, create a NEW equation
-   with these variables, and update properly the number of
-   active variables*)
+(* adds two equations *)
 let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs in
   let f k v =
