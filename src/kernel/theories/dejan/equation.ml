@@ -31,8 +31,7 @@ let print eq =
       end;
     )
     eq.coeffs;
-  if eq.isStrict then Printf.printf " < %s" (string_of_num eq.sup) else
-    Printf.printf " <= %s" (string_of_num eq.sup)
+  Printf.printf (if eq.isStrict then " < %s" else " <= %s") (string_of_num eq.sup)
 
 (* Pretty print a list of equations *)
 let rec print_eqs eqs =
@@ -52,21 +51,12 @@ let create coeffs sup isStrict previous =
 
 (* Create an equation from a list of coeffs *)
 let createFromList coeffs sup isStrict previous =
-    let count acc (_,v) =
-      if v <>/ num_of_int 0 then acc+1 else acc
-    in
-    let n = (List.fold_left count 0 coeffs) in
-  let res = {coeffs = Hashtbl.create (List.length coeffs);
-             sup = sup;
-             isStrict = isStrict;
-             nVar = n;
-             previous = previous}
-  in
+  let table = Hashtbl.create (List.length coeffs) in
   let f (k,v) =
-    Hashtbl.replace res.coeffs k v
+    Hashtbl.replace table k v
   in
   List.iter f coeffs;
-  res
+  create table sup isStrict previous
 
 (* Return the coeff associated to the varibale var *)
 let getCoeff eq var =
@@ -127,12 +117,17 @@ let isAtomic eq =
 
 (* Return true if and only if the eqation is a trivial inequation *)
 let isTrivial eq =
-  eq.nVar == 0
+let count _ v acc =
+  if v <>/ Num.num_of_int 0 then acc+1 else acc
+in
+(Hashtbl.fold count eq.coeffs 0) == 0
+  (*eq.nVar == 0*)
 
 (* Give an active variable if it exists or raise a Not_found exception *)
 exception Var_found of var
 
 (* return an active variable, eg a variable of the equation whose coeff is non-nul*)
+(* ensure we are not looking to an ancient variable masked by add (should not be possible)*)
 let getActiveVar eq =
   let f k v =
     if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
@@ -162,8 +157,10 @@ let multiply eq value =
 let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs in
   let f k v =
-    let temp = try Hashtbl.find coeffs k with Not_found -> (num_of_int 0) in
+    try(
+    let temp = Hashtbl.find coeffs k in
     Hashtbl.replace coeffs k (v +/ temp)
+    ) with Not_found -> ()
   in
   let count _ v acc =
     if v <>/ Num.num_of_int 0 then acc+1 else acc
