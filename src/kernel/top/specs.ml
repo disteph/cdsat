@@ -90,7 +90,7 @@ type ('sign,'tset) slot_machine
     = (module SlotMachine with type newoutput = ('sign,'tset) output and type tset = 'tset)
 
 and (_,_) output = Output:
-  ('sign,'tset,'msg) thsays option
+  ('sign,'tset,_) thsays option
   * ('sign,'tset) slot_machine
   -> ('sign,'tset) output
 
