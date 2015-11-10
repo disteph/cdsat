@@ -45,21 +45,25 @@ let rec print_eqs eqs =
 (* Creates an equation from its subparts *)
 let create coeffs sup isStrict previous =
   let count _ v acc =
-    if v <>/ Num.num_of_int 0 then acc+1 else acc
+    if v <>/ num_of_int 0 then acc+1 else acc
   in
   let n = Hashtbl.fold count coeffs 0 in
   {coeffs = coeffs; sup = sup; isStrict = isStrict; nVar = n; previous = previous}
 
 (* Create an equation from a list of coeffs *)
 let createFromList coeffs sup isStrict previous =
+    let count acc (_,v) =
+      if v <>/ num_of_int 0 then acc+1 else acc
+    in
+    let n = (List.fold_left count 0 coeffs) in
   let res = {coeffs = Hashtbl.create (List.length coeffs);
              sup = sup;
              isStrict = isStrict;
-             nVar = List.length coeffs;
+             nVar = n;
              previous = previous}
   in
   let f (k,v) =
-    Hashtbl.add res.coeffs k v
+    Hashtbl.replace res.coeffs k v
   in
   List.iter f coeffs;
   res
@@ -131,7 +135,7 @@ let getActiveVar eq =
 (* get an active variable that is not the one in argument *)
 let getAnotherActiveVar eq variable =
   let f k v =
-    if k <> variable && v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
+    if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
   in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
 
 (* creates a new inequation by multiplying all coefficients by
@@ -139,12 +143,12 @@ let getAnotherActiveVar eq variable =
    of changing the inequation's sense. *)
 let multiply eq value =
   let newCoeffs = Hashtbl.create 10 in
-  let f k v = Hashtbl.add newCoeffs k (value */ v) in
+  let f k v = Hashtbl.replace newCoeffs k (value */ v) in
   Hashtbl.iter f eq.coeffs;
   {coeffs = newCoeffs;
    sup = value */ eq.sup;
    isStrict = eq.isStrict;
-   nVar = eq.nVar;
+   nVar = (if value =/ (num_of_int 0) then 0 else eq.nVar);
    previous = eq.previous}
 
 (* adds two equations.
@@ -152,24 +156,21 @@ let multiply eq value =
    the variables in both equations, create a NEW equation
    with these variables, and update properly the number of
    active variables*)
-(* TODO : improve this function, and take great care of the nVar field *)
-(* FIXME  : there are still errors in there *)
 let add eq1 eq2 =
-  let coeffs = Hashtbl.copy eq1.coeffs and n = ref eq1.nVar in
+  let coeffs = Hashtbl.copy eq1.coeffs in
   let f k v =
-    let temp = try Hashtbl.find coeffs k with Not_found -> (n := !n +1; num_of_int 0) in
-    if (not(temp =/ num_of_int 0) && v +/ temp =/ num_of_int 0) then
-      begin
-        n := !n - 1;
-      end;
+    let temp = try Hashtbl.find coeffs k with Not_found -> (num_of_int 0) in
     Hashtbl.replace coeffs k (v +/ temp)
+  in
+  let count _ v acc =
+    if v <>/ Num.num_of_int 0 then acc+1 else acc
   in
   (* loop through the coeffs of the first equation*)
   Hashtbl.iter f eq2.coeffs;
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict && eq2.isStrict;
-   nVar = !n;
+   nVar = Hashtbl.fold count coeffs 0; (* Count the variables. Not a problem since don't affect the complexity *)
    previous = eq1.previous @ eq2.previous
    (* TODO : can the previous overlapse ? It seems that yes in dejean's algo *)
   }
