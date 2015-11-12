@@ -12,9 +12,10 @@ include Hashtbl
 open Num
 
 (* Represent data in a state of the resolution *)
-type trail = {eqs : equation list;         (* System to solve *)
-              affect : (var * value) list; (* Variables already affected in previous decisions *)
-        }
+type trail =
+  {eqs : equation list;         (* System to solve *)
+   affect : (var * value) list; (* Variables already affected in previous decisions *)
+  }
 
 (* constraints on each variable and the equation linked to it *)
 type bornes = interval * equation option * equation option

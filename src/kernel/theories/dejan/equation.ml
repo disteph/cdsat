@@ -104,11 +104,17 @@ let affectVar eq var value =
       let c = Hashtbl.find eq.coeffs var in
       let newCoeffs = Hashtbl.copy eq.coeffs in
       Hashtbl.remove newCoeffs var;
-      {coeffs = newCoeffs; sup = eq.sup -/ (c */ value);
-        isStrict = eq.isStrict; nVar = eq.nVar - 1; previous=[eq]}
+      {coeffs   = newCoeffs;
+       sup      = eq.sup -/ (c */ value);
+       isStrict = eq.isStrict;
+       nVar     = eq.nVar - 1;
+       previous = [eq]}
     ) with Not_found ->
-      {coeffs = eq.coeffs; sup = eq.sup; isStrict = eq.isStrict;
-        nVar = eq.nVar; previous=[eq]}
+      {coeffs   = eq.coeffs;
+       sup      = eq.sup;
+       isStrict = eq.isStrict;
+       nVar     = eq.nVar;
+       previous = [eq]}
 
 
 (* Return true if and only if the eqation is an atomic constraint*)
@@ -117,11 +123,11 @@ let isAtomic eq =
 
 (* Return true if and only if the eqation is a trivial inequation *)
 let isTrivial eq =
-let count _ v acc =
-  if v <>/ Num.num_of_int 0 then acc+1 else acc
-in
-(Hashtbl.fold count eq.coeffs 0) == 0
-  (*eq.nVar == 0*)
+  let count _ v acc =
+    if v <>/ Num.num_of_int 0 then acc+1 else acc
+  in
+  (Hashtbl.fold count eq.coeffs 0) == 0
+(*eq.nVar == 0*)
 
 (* Give an active variable if it exists or raise a Not_found exception *)
 exception Var_found of var
@@ -147,20 +153,20 @@ let multiply eq value =
   let newCoeffs = Hashtbl.create 10 in
   let f k v = Hashtbl.replace newCoeffs k (value */ v) in
   Hashtbl.iter f eq.coeffs;
-  {coeffs = newCoeffs;
-   sup = value */ eq.sup;
-   isStrict = eq.isStrict;
-   nVar = (if value =/ (num_of_int 0) then 0 else eq.nVar);
-   previous = eq.previous}
+  {coeffs    = newCoeffs;
+   sup       = value */ eq.sup;
+   isStrict  = eq.isStrict;
+   nVar      = (if value =/ (num_of_int 0) then 0 else eq.nVar);
+   previous  = eq.previous}
 
 (* adds two equations *)
 let add eq1 eq2 =
   let coeffs = Hashtbl.copy eq1.coeffs in
   let f k v =
-    try(
-    let temp = Hashtbl.find coeffs k in
-    Hashtbl.replace coeffs k (v +/ temp)
-    ) with Not_found -> ()
+    try
+      let temp = Hashtbl.find coeffs k in
+      Hashtbl.replace coeffs k (v +/ temp)
+    with Not_found -> ()
   in
   let count _ v acc =
     if v <>/ Num.num_of_int 0 then acc+1 else acc
@@ -177,4 +183,4 @@ let add eq1 eq2 =
 
 (* return the linear combination c1*eq1+c2*eq2 *)
 let combine c1 eq1 c2 eq2 =
-    add (multiply eq1 c1) (multiply eq2 c2)
+  add (multiply eq1 c1) (multiply eq2 c2)

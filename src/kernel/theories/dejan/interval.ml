@@ -28,7 +28,7 @@ let isSupStrict i =
 
 (* True if the interval is empty, ie inf > sup *)
 let isEmpty i =
-    let binf, iStrict, bsup, sStrict = i in match binf, bsup with
+  let binf, iStrict, bsup, sStrict = i in match binf, bsup with
     | NUM(inf), NUM(sup) -> inf >/ sup || (inf =/ sup && (iStrict || sStrict))
     | _, _ -> false
 
@@ -36,7 +36,7 @@ let isEmpty i =
 (* In the context of Dejan resolution, bounds are privileged
 as they are most likely to triger contradictions *)
 let chooseValue i =
-    let binf, iStrict, bsup, sStrict = i in match binf, bsup  with
+  let binf, iStrict, bsup, sStrict = i in match binf, bsup  with
     | NUM(inf), _ when not iStrict -> inf
     | _, NUM(sup) when not sStrict -> sup
     | NUM(inf), NUM(sup) -> (sup -/ inf) // (num_of_int 2)

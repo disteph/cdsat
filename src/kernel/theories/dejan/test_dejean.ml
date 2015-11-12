@@ -1,5 +1,4 @@
-
-include Dejan
+include Algo
 
 let rec print_model_assignments = function
     | [] -> print_string "\n"
@@ -13,7 +12,7 @@ let test_dejan eqs =
     print_string "Trying to solve the following system : \n";
     Equation.print_eqs eqs;
     try
-      let model = Dejan.dejeanAlgo eqs in
+      let model = dejeanAlgo eqs in
       print_string "A solution is : \n";
       print_model_assignments model;
     with
@@ -48,7 +47,7 @@ let () =
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
     test_dejan [e1;e2;e3;e4];*)
-    let l = system 5 in
+    let l = system 25 in
     test_dejan l
 
     (*let e5 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int 1); ("x3", num_of_int 1)] (num_of_int (-4)) true [] in
