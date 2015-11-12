@@ -19,7 +19,7 @@ Executable psyche
   Path:       src
   MainIs:     main.ml
   CompiledObject: best
-  BuildDepends: async
+  BuildDepends: async, threads
 
 Document "Psyche"
   Type: ocamlbuild

@@ -2,6 +2,8 @@ open Top
 open Messages
 open Specs
 
+open Algo
+
 type sign = unit
 
 module Make(DS: GTheoryDSType) = struct
