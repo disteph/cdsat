@@ -70,6 +70,9 @@ let getSup eq =
 let isStrict eq =
   eq.isStrict
 
+let toggleStrict eq =
+  {coeffs=eq.coeffs; sup=eq.sup; isStrict= (not eq.isStrict); nVar=eq.nVar; previous=eq.previous}
+
 (* TODO should we directly implement this while constructing the equations ?*)
 let getPrevious eq =
   match eq.previous with

@@ -16,6 +16,7 @@ val getAnotherActiveVar : equation -> var -> var
 val getPrevious : equation -> equation list
 val getPreviousEqs : equation list -> equation list
 
+val toggleStrict : equation -> equation
 val affectVar : equation -> var -> value -> equation
 val addDependance : equation -> equation list -> equation
 val setDependance : equation -> equation list -> equation
