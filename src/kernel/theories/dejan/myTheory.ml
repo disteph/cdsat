@@ -25,11 +25,91 @@ module ThDS = struct
 
     | Symbols.Eq Sorts.Rat, l -> failwith "TODO"
     | Symbols.NEq Sorts.Rat, l -> failwith "TODO"
+
     | Symbols.CstRat n, [] -> Cst(n)
-    | Symbols.Ge, l -> failwith "TODO"
-    | Symbols.Le, l -> failwith "TODO"
-    | Symbols.Gt, l -> failwith "TODO"
-    | Symbols.Lt, l -> failwith "TODO"
+
+    | Symbols.Le, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s2 -/ s1) false [])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace t2 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        Eq(Equation.create t1 (s2 -/ s1) false [])
+      | ArithTerm(t1, s1), Cst(s2) -> Eq(Equation.create t1 (s2 -/ s1) false [])
+      | Cst(s1), ArithTerm(t2, s2) ->
+        let f k v =
+            Hashtbl.replace t2 k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t2;
+        Eq(Equation.create t2 (s2 -/ s1) false [])
+      | _, _ -> Other
+      )
+
+    | Symbols.Lt, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s2 -/ s1) true [])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace t2 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        Eq(Equation.create t1 (s2 -/ s1) true [])
+      | ArithTerm(t1, s1), Cst(s2) -> Eq(Equation.create t1 (s2 -/ s1) true [])
+      | Cst(s1), ArithTerm(t2, s2) ->
+        let f k v =
+            Hashtbl.replace t2 k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t2;
+        Eq(Equation.create t2 (s2 -/ s1) true [])
+      | _, _ -> Other
+      )
+    | Symbols.Ge, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s1 -/ s2) false [])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace t2 k (temp -/ v)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        Eq(Equation.create t1 (s1 -/ s2) false [])
+      | ArithTerm(t1, s1), Cst(s2) ->
+        let f k v =
+          Hashtbl.replace t1 k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t1;
+      Eq(Equation.create t1 (s1 -/ s2) false [])
+      | Cst(s1), ArithTerm(t2, s2) -> Eq(Equation.create t2 (s1 -/ s2) false [])
+      | _, _ -> Other
+      )
+
+    | Symbols.Gt, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s1 -/ s2) true [])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace t2 k (temp -/ v)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        Eq(Equation.create t1 (s1 -/ s2) true [])
+      | ArithTerm(t1, s1), Cst(s2) ->
+        let f k v =
+          Hashtbl.replace t1 k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t1;
+      Eq(Equation.create t1 (s1 -/ s2) true [])
+      | Cst(s1), ArithTerm(t2, s2) -> Eq(Equation.create t2 (s1 -/ s2) true [])
+      | _, _ -> Other
+      )
 
     | Symbols.Plus, [a;b] -> (match a,b with
       | ArithTerm(t1,s1), ArithTerm(t2, s2) ->
