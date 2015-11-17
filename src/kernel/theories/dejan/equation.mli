@@ -1,5 +1,5 @@
 
-type var = string
+type var = int
 type value = Num.num
 type equation
 

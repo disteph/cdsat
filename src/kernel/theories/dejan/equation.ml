@@ -3,7 +3,7 @@ include Hashtbl
 
 open Num
 
-type var = string
+type var = int
 type value = num
 
 (* Represents an inequation *)
@@ -21,12 +21,12 @@ let print eq =
     if (not(v =/ num_of_int 0)) then
       begin
       if (v =/ num_of_int 1) then
-          Printf.printf "%s + " k
+          Printf.printf "%i + " k
         else begin
           if (v =/ num_of_int (-1)) then
-            Printf.printf "-%s + " k
+            Printf.printf "-%i + " k
           else
-            Printf.printf "%s%s + " (string_of_num v) k;
+            Printf.printf "%s%i + " (string_of_num v) k;
         end;
       end;
     )
