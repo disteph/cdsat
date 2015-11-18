@@ -10,7 +10,7 @@ module ThDS = struct
   type t =
     | Cst of num
     | ArithTerm of (Equation.var, Equation.value)Hashtbl.t * num
-    | Eq of Equation.equation
+    | Eqs of Equation.equation list
     | Other
 
   let bV tag fv = match Variables.FreeVar.get_sort fv with
@@ -19,7 +19,7 @@ module ThDS = struct
 
   let bC tag symb l = match symb, l with
     | Symbols.Neg, [a] -> (match a with
-      | Eq eq -> Eq(Equation.toggleStrict (Equation.multiply eq (num_of_int (-1))))
+      | Eqs [eq] -> Eqs([Equation.toggleStrict (Equation.multiply eq (num_of_int (-1)))])
       | _ -> Other
       )
 
@@ -29,7 +29,7 @@ module ThDS = struct
     | Symbols.CstRat n, [] -> Cst(n)
 
     | Symbols.Le, [a;b] -> (match a, b with
-      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s2 -/ s1) false [])
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
         let f k v =
           try
@@ -38,19 +38,19 @@ module ThDS = struct
           with Not_found -> ()
         in
         Hashtbl.iter f t1;
-        Eq(Equation.create t1 (s2 -/ s1) false [])
-      | ArithTerm(t1, s1), Cst(s2) -> Eq(Equation.create t1 (s2 -/ s1) false [])
+        Eqs([Equation.create t1 (s2 -/ s1) false []])
+      | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) false []])
       | Cst(s1), ArithTerm(t2, s2) ->
         let f k v =
             Hashtbl.replace t2 k (v */ (num_of_int (-1)))
         in
         Hashtbl.iter f t2;
-        Eq(Equation.create t2 (s2 -/ s1) false [])
+        Eqs([Equation.create t2 (s2 -/ s1) false []])
       | _, _ -> Other
       )
 
     | Symbols.Lt, [a;b] -> (match a, b with
-      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s2 -/ s1) true [])
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
         let f k v =
           try
@@ -59,18 +59,18 @@ module ThDS = struct
           with Not_found -> ()
         in
         Hashtbl.iter f t1;
-        Eq(Equation.create t1 (s2 -/ s1) true [])
-      | ArithTerm(t1, s1), Cst(s2) -> Eq(Equation.create t1 (s2 -/ s1) true [])
+        Eqs([Equation.create t1 (s2 -/ s1) true []])
+      | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) true []])
       | Cst(s1), ArithTerm(t2, s2) ->
         let f k v =
             Hashtbl.replace t2 k (v */ (num_of_int (-1)))
         in
         Hashtbl.iter f t2;
-        Eq(Equation.create t2 (s2 -/ s1) true [])
+        Eqs([Equation.create t2 (s2 -/ s1) true []])
       | _, _ -> Other
       )
     | Symbols.Ge, [a;b] -> (match a, b with
-      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s1 -/ s2) false [])
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) false []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
         let f k v =
           try
@@ -79,19 +79,19 @@ module ThDS = struct
           with Not_found -> ()
         in
         Hashtbl.iter f t1;
-        Eq(Equation.create t1 (s1 -/ s2) false [])
+        Eqs([Equation.create t1 (s1 -/ s2) false []])
       | ArithTerm(t1, s1), Cst(s2) ->
         let f k v =
           Hashtbl.replace t1 k (v */ (num_of_int (-1)))
         in
         Hashtbl.iter f t1;
-      Eq(Equation.create t1 (s1 -/ s2) false [])
-      | Cst(s1), ArithTerm(t2, s2) -> Eq(Equation.create t2 (s1 -/ s2) false [])
+      Eqs([Equation.create t1 (s1 -/ s2) false []])
+      | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) false []])
       | _, _ -> Other
       )
 
     | Symbols.Gt, [a;b] -> (match a, b with
-      | Cst(s1), Cst(s2) -> Eq(Equation.createFromList [] (s1 -/ s2) true [])
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) true []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
         let f k v =
           try
@@ -100,14 +100,14 @@ module ThDS = struct
           with Not_found -> ()
         in
         Hashtbl.iter f t1;
-        Eq(Equation.create t1 (s1 -/ s2) true [])
+        Eqs([Equation.create t1 (s1 -/ s2) true []])
       | ArithTerm(t1, s1), Cst(s2) ->
         let f k v =
           Hashtbl.replace t1 k (v */ (num_of_int (-1)))
         in
         Hashtbl.iter f t1;
-      Eq(Equation.create t1 (s1 -/ s2) true [])
-      | Cst(s1), ArithTerm(t2, s2) -> Eq(Equation.create t2 (s1 -/ s2) true [])
+      Eqs([Equation.create t1 (s1 -/ s2) true []])
+      | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) true []])
       | _, _ -> Other
       )
 
