@@ -23,8 +23,64 @@ module ThDS = struct
       | _ -> Other
       )
 
-    | Symbols.Eq Sorts.Rat, l -> failwith "TODO"
-    | Symbols.NEq Sorts.Rat, l -> failwith "TODO"
+    | Symbols.Eq Sorts.Rat, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []; Equation.createFromList [] (s1 -/ s2) false []])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+      let c1 = Hashtbl.create 10 in
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace c1 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        let c2 = Hashtbl.create 10 in
+        let g k v =
+          try
+            let temp = Hashtbl.find t1 k in
+            Hashtbl.replace c2 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter g t2;
+        Eqs([Equation.create c1 (s2 -/ s1) false []; Equation.create c2 (s1 -/ s2) false []])
+      | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
+        let coeff = Hashtbl.create 10 in
+        let f k v =
+            Hashtbl.replace coeff k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t1;
+        Eqs([Equation.create coeff (s2 -/ s1) false []; Equation.create t1 (s1 -/ s2) false []])
+      | _, _ -> Other
+      )
+    | Symbols.NEq Sorts.Rat, [a;b] -> (match a, b with
+      | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []; Equation.createFromList [] (s1 -/ s2) true []])
+      | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
+      let c1 = Hashtbl.create 10 in
+        let f k v =
+          try
+            let temp = Hashtbl.find t2 k in
+            Hashtbl.replace c1 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter f t1;
+        let c2 = Hashtbl.create 10 in
+        let g k v =
+          try
+            let temp = Hashtbl.find t1 k in
+            Hashtbl.replace c2 k (v -/ temp)
+          with Not_found -> ()
+        in
+        Hashtbl.iter g t2;
+        Eqs([Equation.create c1 (s2 -/ s1) true []; Equation.create c2 (s1 -/ s2) true []])
+      | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
+        let coeff = Hashtbl.create 10 in
+        let f k v =
+            Hashtbl.replace coeff k (v */ (num_of_int (-1)))
+        in
+        Hashtbl.iter f t1;
+        Eqs([Equation.create coeff (s2 -/ s1) true []; Equation.create t1 (s1 -/ s2) true []])
+      | _, _ -> Other
+      )
 
     | Symbols.CstRat n, [] -> Cst(n)
 
