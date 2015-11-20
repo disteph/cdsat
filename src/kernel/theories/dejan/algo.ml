@@ -48,7 +48,7 @@ and fmResolve stack eqs =
     (* print_string "\n"; *)
     (* FM resolution should at least return an inequation *)
     let neweq =
-      try 
+      try
         Some(FourierMotzkin.fourierMotzkin (Trail.getLastAssignedVariable a) eqs)
       with FM_Failure -> None
     in
@@ -90,7 +90,54 @@ and variableChoosing stack cons =
         dejeanAlgoRec (newState::head::tail)
 
 
+exception CurrentModelIncompatible
 
+let rec applyCurrentModel eqs model = match eqs with
+  | [] -> []
+  | (t::q) -> let eq = Equation.affectVars t model in
+              if Equation.isContradictory eq then raise CurrentModelIncompatible;
+              eq::(applyCurrentModel q model)
+
+(* here, we add new equations, and we undo every assignment
+on the active variables found in these equations *)
+let goBackAndResume l stack =
+  (* go back in the stack, for one equation *)
+  let rec back vars stack =
+    match vars, stack with
+    | _,[] -> failwith "Unknown error : empty stack"
+    | [],stack -> stack
+    | t::q,s::sq when List.mem t (Trail.getAssignedVariables s) ->
+        back (t::q) sq
+    | t::q, s::sq -> back q  (s::sq)
+  in
+  let newstack = List.fold_left
+      (fun stack eq -> back (Equation.getActiveVars eq) stack) stack l in
+  match newstack with
+   | [] -> failwith "Unknown error : Empty stack in Dejean algorithm"
+   | s::q -> dejeanAlgoRec ((Trail.addEqs s l)::q)
+
+(* here, we add new equations. This is what is done
+when calling the "add" function on this theory *)
+let resumeDejeanAlgo l stack =
+  match stack with
+  | [] -> failwith "Unknown error : Empty stack in Dejean algorithm"
+  | s::q ->
+  (* try first the current model *)
+  let neweqs =
+    try (
+      let l2 = applyCurrentModel l (Trail.getCurrentModel s) in
+      Some(l2);
+    )
+    with CurrentModelIncompatible -> None
+  in
+  match neweqs with
+    (* if it does not work, we go back *)
+    | None -> goBackAndResume l stack
+    (* if it works, fine. Add them to the current state *)
+    | Some(eqs) -> dejeanAlgoRec ((Trail.addEqs s eqs)::q)
+
+
+(* the algorithm, from the beginning ie a set of terms (inequations) *)
 let dejeanAlgo l =
     let trail = Trail.create l in
     let stack = [trail] in

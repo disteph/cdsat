@@ -9,7 +9,7 @@ let eliminate var eqs =
     match eqs with
     | []   -> [], [], []
     | t::q -> let pos,neg,nul = separate q in
-              if Equation.getCoeff t var >/ (Num.num_of_int 0) 
+              if Equation.getCoeff t var >/ (Num.num_of_int 0)
               then (t::pos, neg, nul)
               else begin
                 if Equation.getCoeff t var </ (Num.num_of_int 0)

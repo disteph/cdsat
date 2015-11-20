@@ -2,7 +2,7 @@ include Algo
 
 let rec print_model_assignments = function
     | [] -> print_string "\n"
-    | (var,value)::q -> print_string "("; print_string var;
+    | (var,value)::q -> print_string "("; print_int var;
                         print_string " : ";
                         print_string (string_of_num value);
                         print_string "),";
@@ -24,8 +24,8 @@ let test_dejan eqs =
 trigger a lot of FM resolutions *)
 let system n =
   let createTerm = fun j i n ->
-    if (i=j) then ("x"^(string_of_int i), num_of_int (1-n))
-    else ("x"^(string_of_int j), num_of_int (1))
+    if (i=j) then (i, num_of_int (1-n))
+    else (j, num_of_int (1))
   in
   let rec createIthInequation = function
     | 0,i,n -> []
@@ -47,8 +47,8 @@ let () =
     let e3 = Equation.createFromList [("x", num_of_int 1); ("y", num_of_int (-1))] (num_of_int 0) false [] in
     let e4 = Equation.createFromList [("z", num_of_int (-1))] (num_of_int (-1)) false [] in
     test_dejan [e1;e2;e3;e4];*)
-    let l = system 25 in
-    test_dejan l
+    let l = system 5 in
+    test_dejan l;
 
     (*let e5 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int 1); ("x3", num_of_int 1)] (num_of_int (-4)) true [] in
     let e6 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int (-4)); ("x3", num_of_int 1)] (num_of_int 1) true [] in

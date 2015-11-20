@@ -95,6 +95,9 @@ let getLastAssignedVariable trail =
     | [] -> failwith "No variable was assigned in this state"
     | (var,value)::q -> var
 
+let getAssignedVariables trail =
+    List.fold_left (fun accu (vr,vl) -> vr::accu) [] trail.affect
+
 exception Var_found of var
 
 (* Return an unsigned variable if it exists *)
@@ -111,3 +114,6 @@ let getCurrentModel trail =
 (* Add a new equation in trail *)
 let addEq trail eq =
   {eqs= eq::trail.eqs; affect = trail.affect}
+
+let addEqs trail eqs =
+  {eqs = eqs@trail.eqs; affect = trail.affect}

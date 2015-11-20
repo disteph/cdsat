@@ -120,6 +120,11 @@ let affectVar eq var value =
        previous = [eq]}
 
 
+let rec affectVars eq l = match l with
+  |  [] -> eq
+  |  (vr,vl)::q -> let eq1 = affectVar eq vr vl in
+                      affectVars eq1 q
+
 (* Return true if and only if the eqation is an atomic constraint*)
 let isAtomic eq =
   eq.nVar == 1
@@ -132,6 +137,10 @@ let isTrivial eq =
   (Hashtbl.fold count eq.coeffs 0) == 0
 (*eq.nVar == 0*)
 
+let isContradictory eq =
+  isTrivial eq && ( (eq.isStrict && eq.sup <=/ Num.num_of_int 0 )
+  || (not(eq.isStrict) && eq.sup </ Num.num_of_int 0 ) )
+
 (* Give an active variable if it exists or raise a Not_found exception *)
 exception Var_found of var
 
@@ -141,6 +150,12 @@ let getActiveVar eq =
   let f k v =
     if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
   in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
+
+let getActiveVars eq =
+  let f k v accu =
+    if v <>/ (Num.num_of_int 0) then k::accu else accu
+  in
+  Hashtbl.fold f eq.coeffs []
 
 (* get an active variable that is not the one in argument *)
 let getAnotherActiveVar eq variable =

@@ -14,8 +14,10 @@ val checkConstraints : c -> (Equation.equation * Equation.equation) option
 
 val getEqs : trail -> Equation.equation list
 val getLastAssignedVariable : trail -> Equation.var
+val getAssignedVariables : trail -> Equation.var list
 
 val addEq : trail -> Equation.equation -> trail
+val addEqs : trail -> Equation.equation list -> trail
 val assignValue : trail -> Equation.var -> Equation.value -> trail
 
 val getCurrentModel : trail -> (Equation.var * Equation.value) list
