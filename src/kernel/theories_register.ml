@@ -37,6 +37,7 @@ let parse = function
   | "empty" | "prop" | "bool"  -> Handlers.Handler Sig.Empty
   | "CC"     -> Handlers.Handler Sig.CC
   | "LRA"    -> Handlers.Handler Sig.Dejan
+  | "LIA"    -> Handlers.Handler Sig.Dejan
   | "Arrays" -> Handlers.Handler Sig.Arrays
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 

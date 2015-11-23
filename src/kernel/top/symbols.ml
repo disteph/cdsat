@@ -43,8 +43,7 @@ let arity = function
 
 (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
 let multiary = function
-  | And         -> Some r_assoc
-  | Or          -> Some r_assoc
+  | And | Or | Plus | Times -> Some r_assoc
 (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
   | _ -> None
 
