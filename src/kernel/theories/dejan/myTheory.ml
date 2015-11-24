@@ -33,6 +33,13 @@ module ThDS = struct
     | Eqs of Equation.equation list
     | Other
 
+  (* Function to make transition between building type and dejan algo type *)
+  let tToEq v = match v with
+    | Eqs eqs -> eqs
+    | _ -> []
+
+  let eqTot eq = Eqs([eq])
+
   let bV tag fv = match Variables.FreeVar.get_sort fv with
     | Sorts.Rat -> let coeff = Hashtbl.create 10 in Hashtbl.add coeff tag (num_of_int 1); ArithTerm(coeff,num_of_int 0)
     | _ -> Other
