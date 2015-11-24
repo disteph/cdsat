@@ -127,7 +127,7 @@ let make (type a)
         end)
 
     end
-
+      
     open DS
     type answer =
       | Provable of unit HandlersMap.t*TSet.t
@@ -149,7 +149,7 @@ let make (type a)
          then NotProvable(HandlersMap.remove (Handlers.Handler hdl) rest,
                           tset)
          else failwith "Theories disagree on model"
-      | _ -> failwith "Should apply WB.straight on NotProvable"
+      | _ -> failwith "Should apply WB.notprovable on NotProvable"
 
     let straight hdl (ThStraight(newset,oldset)) = function
       | Provable(hdls,thset) ->

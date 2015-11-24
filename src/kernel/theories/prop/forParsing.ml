@@ -9,21 +9,17 @@ open Specs
 open Literals
 open Formulae
 
-type t =
-| TermI : TermB.t -> t
-| PropI : FormulaB.t -> t
+type t = TermB.t * (FormulaB.t option)
 
 open FormulaB
 
-let bV v = TermI(TermB.bV v)
+let bV v = (TermB.bV v,None)
 
 let toForm = function
-  | PropI f -> f
-  | _       -> raise (ModelError "ModelError: trying to convert into a formula an expression that clearly is not one")
+  | (_,Some f) -> f
+  | (_,None)   -> raise (ModelError "ModelError: trying to convert into a formula an expression that clearly is not one")
 
-let toTerm = function
-  | TermI t -> t
-  | _       -> raise (ModelError "ModelError: trying to convert into a term an expression that clearly is not one")
+let toTerm (t,_) = t
 
 let bC_aux symb l =
   match symb, l with
@@ -43,10 +39,12 @@ let bC_aux symb l =
 
 
 let bC symb l =
-  try PropI(bC_aux symb (List.map toForm l))
-  with ModelError _
-    -> let term = TermB.bC symb (List.map toTerm l) in
-       let (o,_) = arity symb in
-       match o with
-       | Sorts.Prop -> PropI(lit(true,term))
-       | _          -> TermI(term)
+  let term = TermB.bC symb (List.map toTerm l) in
+  let fb = 
+    try Some(bC_aux symb (List.map toForm l))
+    with ModelError _
+      -> let (o,_) = arity symb in
+         match o with
+         | Sorts.Prop -> Some(lit(true,term))
+         | _          -> None
+  in term,fb

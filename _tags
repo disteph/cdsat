@@ -31,6 +31,7 @@ true: annot, bin_annot
 <src/kernel/theories/dejan/*>    : for-pack(Kernel.Dejan)
 <src/kernel/theories/CC/*>       : for-pack(Kernel.CC)
 <src/kernel/theories/FirstOrder/*>    : for-pack(Kernel.FirstOrder)
+<src/kernel/theories/IfThenElse/*>    : for-pack(Kernel.IfThenElse)
 
 <src/kernel/*.cmx>               : for-pack(Kernel)
 <src/kernel/theories/*.cmx>      : for-pack(Kernel)

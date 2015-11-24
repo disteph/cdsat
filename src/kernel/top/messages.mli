@@ -2,8 +2,6 @@
 (* Message types *)
 (*****************)
 
-open Format
-
 open Interfaces_basic
 open Basic
 
@@ -25,3 +23,5 @@ val thNotProvable: 'sign -> 'tset -> ('sign,'tset,thNotProvable) thsays
 val thStraight: 'sign -> 'tset -> 'tset      -> ('sign,'tset,thStraight) thsays
 val thAnd : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thAnd) thsays
 val thOr  : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thOr) thsays
+
+val print_msg_in_fmt: (Format.formatter -> 'a -> unit) -> Format.formatter -> (_,'a,_)thsays -> unit

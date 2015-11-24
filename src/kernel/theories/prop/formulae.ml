@@ -42,7 +42,7 @@ module DSubstHashed  = HashedTypeFromHCons(DSubst)
 
 let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2:(a,b)form) =
   match t1,t2 with
-  | LitF l1, LitF l2             -> LitFHashed.equal l1 l2
+  | LitF l1, LitF l2           -> LitFHashed.equal l1 l2
   | LitB l1, LitB l2           -> LitBHashed.equal l1 l2
   | AndP (x1,x2), AndP (y1,y2) 
   | OrP (x1,x2), OrP (y1,y2)   

@@ -16,6 +16,8 @@ open Top.Messages
 open Theories_register
 open Combo
 
+open Lib
+
 (* We are parameterised by the theories involved in the problem *)
 
 let make theories : (module Plugin.Type) =
@@ -80,7 +82,7 @@ let make theories : (module Plugin.Type) =
 
       let branch from_workers pipe_map cont newa newb =
         let new_from_workers,new_to_pl = Pipe.create () in
-        (* Pipe.set_size_budget new_to_pl slaves_number; *)
+        Pipe.set_size_budget new_to_pl slaves_number;
         let tasks,new_pipe_map =
           let treat_worker hdl to_worker sofar =
             let new_from_pl,new_to_worker = Pipe.create () in
@@ -145,8 +147,8 @@ let make theories : (module Plugin.Type) =
         (* We start by creating a pipe to write to the master
         thread. *)
 
-        let from_workers,to_pl = Pipe.create () in        
-        (* Pipe.set_size_budget to_pl slaves_number; *)
+        let from_workers,to_pl = Pipe.create () in
+        Pipe.set_size_budget to_pl slaves_number;
 
 
         (* Then for each decision procedure in m_init, we create a
@@ -172,7 +174,8 @@ let make theories : (module Plugin.Type) =
           (* So far for all we know, the problem is not provable *)
 
           | WB.NotProvable(rest,consset) as current ->
-             Dump.msg (Some(fun p -> p "Main_worker enters new loop\n")) None None;
+             (* print "Main_worker enters new loop" *)
+             (* >>= fun () -> *)
              if HandlersMap.is_empty rest
              then
 
@@ -192,14 +195,18 @@ let make theories : (module Plugin.Type) =
                  Pipe.read from_workers
                  >>= function
                  | `Eof -> failwith "Eof"
-                 | `Ok(W.Msg(hdl,msg)) -> match msg with
+                 | `Ok(W.Msg(hdl,msg) (* as thmsg *)) 
+                   -> 
+                    (* print (Dump.toString (fun p -> p "%a" W.print_in_fmt thmsg)) *)
+                    (* >>= fun () -> *)
+                    match msg with
 
                    | ThProvable _ -> 
                       (* A theory found a proof. We stop and close all
                       pipes. *)
 
                       broadcast (fun w -> return(Pipe.close w)) pipe_map
-                      >>| fun() -> Pipe.close to_pl; WB.provable hdl msg
+                      >>| fun () -> Pipe.close to_pl; WB.provable hdl msg
 
                    | ThNotProvable newtset -> 
                       (* A theory found a counter-model newtset. If it
@@ -224,7 +231,7 @@ let make theories : (module Plugin.Type) =
                       main_worker from_workers pipe_map current
                       >>| fun ans ->
                       begin match ans with
-                      | WB.Provable _ -> straight hdl msg current
+                      | WB.Provable _ -> straight hdl msg ans
                       | WB.NotProvable _ -> ans
                       end
 
@@ -240,7 +247,8 @@ let make theories : (module Plugin.Type) =
                         begin
                           def_ans2()
                           >>| fun ans2 -> match ans2 with
-                          | WB.Provable _ -> andBranch hdl msg ans1 ans2
+                          | WB.Provable _ ->
+                             andBranch hdl msg ans1 ans2
                           | WB.NotProvable _ -> ans2
                         end
                      | WB.NotProvable _ -> return ans1
@@ -270,7 +278,7 @@ let make theories : (module Plugin.Type) =
 
         Deferred.both (Deferred.all_unit workers_list) (main_worker from_workers pipe_map (WB.notprovable_init tset))
         >>| fun ((),a) -> 
-        a
+          a
 
       (* Finally, we launch the scheduler on mysolve tset, waiting for
       all tasks to be done before returning. *)

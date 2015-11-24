@@ -66,7 +66,7 @@ module Make(PlDS: PlugDSType) = struct
       let b,atom = LitB.reveal l in
       let module M = Term.Homo(IdMon) in
       let get_in_subst intso = 
-        let k,_   = IntSort.reveal intso in
+        let k,_  = IntSort.reveal intso in
         let fv,_ = DSubst.get k d in
         fv
       in
