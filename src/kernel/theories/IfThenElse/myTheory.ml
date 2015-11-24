@@ -22,6 +22,7 @@ struct
     treated: TSet.t;
     known: Term.t LMap.t;
     todo: Term.t list;
+    solved: TSet.t;
   }
 
   let rec print_in_fmtL fmt h = 
@@ -52,7 +53,8 @@ struct
                { 
                  treated = TSet.union state.treated nl;
                  known   = TSet.fold (fun t -> LMap.add (proj(Terms.data t)) t) nl state.known;
-                 todo    = TSet.fold (fun t l -> t::l) nl state.todo
+                 todo    = TSet.fold (fun t l -> t::l) nl state.todo;
+                 solved  = state.solved
                }
           in
           let rec aux = function
@@ -61,6 +63,7 @@ struct
                  Some(thNotProvable () state.treated),
                  machine { state with todo = [] }
                ):(sign,TSet.t) output)
+            | t::l when TSet.mem t state.solved -> aux l
             | t::l ->
                begin match Terms.reveal t with
                | Terms.C(Symbols.ITE so,[b;b1;b2]) 
@@ -73,7 +76,7 @@ struct
                     let eq = Term.bC (Symbols.Eq so) [t;b1] in
                     Output(
                       Some(thStraight () (TSet.add eq TSet.empty) (TSet.add b0 TSet.empty)),
-                      machine { state with todo = l })
+                      machine { state with todo = l; solved = TSet.add t state.solved })
                (* ) *)
                   else 
                     if LMap.mem (LitF.negation blit) state.known
@@ -83,7 +86,7 @@ struct
                       let eq = Term.bC (Symbols.Eq so) [t;b2] in
                       Output(
                         Some(thStraight () (TSet.add eq TSet.empty) (TSet.add b0 TSet.empty)),
-                        machine { state with todo = l })
+                        machine { state with todo = l; solved = TSet.add t state.solved })
                     (* ) *)
                     else
                       (* (Dump.msg (Some(fun p -> p "Condition (%a,%a) not seen" LitF.print_in_fmt blit  Term.print_in_fmt b)) None None; *)
@@ -113,6 +116,6 @@ struct
 
       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
-  let init = machine { treated = TSet.empty; known = LMap.empty; todo = [] }
+  let init = machine { treated = TSet.empty; known = LMap.empty; todo = []; solved = TSet.empty }
 
 end
