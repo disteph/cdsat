@@ -4,6 +4,26 @@ open Specs
 
 open Algo
 
+(* Apply the operation op to two hashtable, to value with equal key *)
+let applyOp2 op t1 t2 =
+  let res = Hashtbl.copy t1 in
+  let g k v =
+    try
+      let temp = Hashtbl.find t1 k in
+      Hashtbl.replace res k (op temp v)
+    with Not_found -> Hashtbl.replace res k (op (num_of_int 0) v)
+  in
+  Hashtbl.iter g t2;
+  res
+
+(* Create a hashtable whose value are the opposite of those of the original one *)
+let opposite t1 =
+  let res = Hashtbl.create 10 in
+    let f k v =
+        Hashtbl.replace res k (v */ (num_of_int (-1)))
+    in
+    Hashtbl.iter f t1;
+    res
 
 module ThDS = struct
 
@@ -26,59 +46,24 @@ module ThDS = struct
     | Symbols.Eq Sorts.Rat, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []; Equation.createFromList [] (s1 -/ s2) false []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-      let c1 = Hashtbl.create 10 in
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace c1 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        let c2 = Hashtbl.create 10 in
-        let g k v =
-          try
-            let temp = Hashtbl.find t1 k in
-            Hashtbl.replace c2 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter g t2;
+        let c1 = applyOp2 (-/) t1 t2 in
+        let c2 = applyOp2 (-/) t2 t1 in
         Eqs([Equation.create c1 (s2 -/ s1) false []; Equation.create c2 (s1 -/ s2) false []])
       | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
-        let coeff = Hashtbl.create 10 in
-        let f k v =
-            Hashtbl.replace coeff k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create coeff (s2 -/ s1) false []; Equation.create t1 (s1 -/ s2) false []])
+        let coeff = opposite t1 in
+        Eqs([Equation.create coeff (s1 -/ s2) false []; Equation.create t1 (s2 -/ s1) false []])
       | _, _ -> Other
       )
+
     | Symbols.NEq Sorts.Rat, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []; Equation.createFromList [] (s1 -/ s2) true []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-      let c1 = Hashtbl.create 10 in
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace c1 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        let c2 = Hashtbl.create 10 in
-        let g k v =
-          try
-            let temp = Hashtbl.find t1 k in
-            Hashtbl.replace c2 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter g t2;
+        let c1 = applyOp2 (-/) t1 t2 in
+        let c2 = applyOp2 (-/) t2 t1 in
         Eqs([Equation.create c1 (s2 -/ s1) true []; Equation.create c2 (s1 -/ s2) true []])
       | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
-        let coeff = Hashtbl.create 10 in
-        let f k v =
-            Hashtbl.replace coeff k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create coeff (s2 -/ s1) true []; Equation.create t1 (s1 -/ s2) true []])
+        let coeff = opposite t1 in
+        Eqs([Equation.create coeff (s1 -/ s2) true []; Equation.create t1 (s2 -/ s1) true []])
       | _, _ -> Other
       )
 
@@ -87,61 +72,35 @@ module ThDS = struct
     | Symbols.Le, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace t2 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create t1 (s2 -/ s1) false []])
+        let c = applyOp2 (-/) t1 t2 in
+        Eqs([Equation.create c (s2 -/ s1) false []])
       | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) false []])
       | Cst(s1), ArithTerm(t2, s2) ->
-        let f k v =
-            Hashtbl.replace t2 k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t2;
-        Eqs([Equation.create t2 (s2 -/ s1) false []])
+        let c = opposite t2 in
+        Eqs([Equation.create c (s2 -/ s1) false []])
       | _, _ -> Other
       )
 
     | Symbols.Lt, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace t2 k (v -/ temp)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create t1 (s2 -/ s1) true []])
+        let c = applyOp2 (-/) t1 t2 in
+          Eqs([Equation.create c (s2 -/ s1) true []])
       | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) true []])
       | Cst(s1), ArithTerm(t2, s2) ->
-        let f k v =
-            Hashtbl.replace t2 k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t2;
-        Eqs([Equation.create t2 (s2 -/ s1) true []])
+        let c = opposite t2 in
+          Eqs([Equation.create c (s2 -/ s1) true []])
       | _, _ -> Other
       )
+
     | Symbols.Ge, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) false []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace t2 k (temp -/ v)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create t1 (s1 -/ s2) false []])
+        let c = applyOp2 (-/) t2 t1 in
+          Eqs([Equation.create c (s1 -/ s2) false []])
       | ArithTerm(t1, s1), Cst(s2) ->
-        let f k v =
-          Hashtbl.replace t1 k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t1;
-      Eqs([Equation.create t1 (s1 -/ s2) false []])
+        let c = opposite t1 in
+          Eqs([Equation.create c (s1 -/ s2) false []])
       | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) false []])
       | _, _ -> Other
       )
@@ -149,35 +108,18 @@ module ThDS = struct
     | Symbols.Gt, [a;b] -> (match a, b with
       | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) true []])
       | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-        let f k v =
-          try
-            let temp = Hashtbl.find t2 k in
-            Hashtbl.replace t2 k (temp -/ v)
-          with Not_found -> ()
-        in
-        Hashtbl.iter f t1;
-        Eqs([Equation.create t1 (s1 -/ s2) true []])
+        let c = applyOp2 (-/) t2 t1 in
+          Eqs([Equation.create c (s1 -/ s2) true []])
       | ArithTerm(t1, s1), Cst(s2) ->
-        let f k v =
-          Hashtbl.replace t1 k (v */ (num_of_int (-1)))
-        in
-        Hashtbl.iter f t1;
-      Eqs([Equation.create t1 (s1 -/ s2) true []])
+        let c = opposite t1 in
+          Eqs([Equation.create c (s1 -/ s2) true []])
       | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) true []])
       | _, _ -> Other
       )
 
     | Symbols.Plus, [a;b] -> (match a,b with
       | ArithTerm(t1,s1), ArithTerm(t2, s2) ->
-      let coeff = Hashtbl.copy t1 in
-        let f k v =
-          try
-            let temp = Hashtbl.find coeff k in
-            Hashtbl.replace coeff k (v +/ temp)
-          with Not_found -> ()
-        in
-        (* loop through the coeffs of the first equation*)
-        Hashtbl.iter f t2;
+      let coeff = applyOp2 (+/) t1 t2 in
         ArithTerm(coeff, s1 +/ s2)
       | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) -> ArithTerm(t1, s1 +/ s2)
       | _, _ -> Other
@@ -185,15 +127,7 @@ module ThDS = struct
 
     | Symbols.Minus, [a;b] -> (match a,b with
       | ArithTerm(t1,s1), ArithTerm(t2, s2) ->
-      let coeff = Hashtbl.copy t1 in
-        let f k v =
-          try
-            let temp = Hashtbl.find coeff k in
-            Hashtbl.replace coeff k (v -/ temp)
-          with Not_found -> ()
-        in
-        (* loop through the coeffs of the first equation*)
-        Hashtbl.iter f t2;
+      let coeff = applyOp2 (-/) t1 t2 in
         ArithTerm(coeff, s1 -/ s2)
       | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) -> ArithTerm(t1, s1 -/ s2)
       | _, _ -> Other
@@ -202,37 +136,26 @@ module ThDS = struct
     | Symbols.Times, [a;b] -> (match a,b with
       | ArithTerm(t1,s1), Cst(s2) | Cst(s2), ArithTerm(t1,s1) ->
       let coeff = Hashtbl.create 10 in
-        let f k v =
-            Hashtbl.replace coeff k (v */ s2)
-        in
-        (* loop through the coeffs of the first equation*)
-        Hashtbl.iter f t1;
-        ArithTerm(coeff, s1 -/ s2)
+        Hashtbl.iter (fun k v -> Hashtbl.replace coeff k (v */ s2)) t1;
+        ArithTerm(coeff, s1 */ s2)
+      | Cst(s1), Cst(s2) -> Cst(s1 */ s2)
       | _, _ -> Other
       )
 
     | Symbols.Divide, [a;b] -> (match a,b with
       | ArithTerm(t1,s1), Cst(s2) ->
       let coeff = Hashtbl.create 10 in
-        let f k v =
-            Hashtbl.replace coeff k (v // s2)
-        in
-        (* loop through the coeffs of the first equation*)
-        Hashtbl.iter f t1;
-        ArithTerm(coeff, s1 -/ s2)
+        Hashtbl.iter (fun k v -> Hashtbl.replace coeff k (v // s2)) t1;
+        ArithTerm(coeff, s1 */ s2)
+      | Cst(s1), Cst(s2) -> Cst(s1 // s2)
       | _, _ -> Other
       )
 
-    | Symbols.Op, [a;b] -> (match a,b with
-      | ArithTerm(t1,s1),_ ->
-      let coeff = Hashtbl.create 10 in
-        let f k v =
-            Hashtbl.replace coeff k (v */ (num_of_int (-1)))
-        in
-        (* loop through the coeffs of the first equation*)
-        Hashtbl.iter f t1;
-        ArithTerm(coeff, s1*/ (num_of_int (-1)))
-      | Cst(s),_ -> Cst((num_of_int (-1))*/s)
+    | Symbols.Op, [a] -> (match a with
+      | ArithTerm(t1,s1) ->
+      let coeff = opposite t1 in
+        ArithTerm(coeff, s1 */ (num_of_int (-1)))
+      | Cst(s) -> Cst((num_of_int (-1))*/s)
       | _ -> Other
       )
 
