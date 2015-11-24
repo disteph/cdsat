@@ -82,11 +82,11 @@ let make theories : (module Plugin.Type) =
 
       let branch from_workers pipe_map cont newa newb =
         let new_from_workers,new_to_pl = Pipe.create () in
-        Pipe.set_size_budget new_to_pl slaves_number;
+        (* Pipe.set_size_budget new_to_pl slaves_number; *)
         let tasks,new_pipe_map =
           let treat_worker hdl to_worker sofar =
             let new_from_pl,new_to_worker = Pipe.create () in
-            Pipe.write to_worker (W.MsgBranch(newa,newb,new_from_pl,new_to_pl)),
+            Lib.write to_worker (W.MsgBranch(newa,newb,new_from_pl,new_to_pl)),
             HandlersMap.add hdl new_to_worker sofar
           in
           hdlfold treat_worker pipe_map HandlersMap.empty
@@ -148,7 +148,7 @@ let make theories : (module Plugin.Type) =
         thread. *)
 
         let from_workers,to_pl = Pipe.create () in
-        Pipe.set_size_budget to_pl slaves_number;
+        (* Pipe.set_size_budget to_pl slaves_number; *)
 
 
         (* Then for each decision procedure in m_init, we create a
@@ -224,7 +224,7 @@ let make theories : (module Plugin.Type) =
                       old. We broadcast them to all theories *)
 
                       let treat_worker to_worker =
-                        Pipe.write to_worker (W.MsgStraight newa)
+                        Lib.write to_worker (W.MsgStraight newa)
                       in
                       broadcast treat_worker pipe_map
                       >>= fun () ->

@@ -37,11 +37,7 @@ module Make(WB: WhiteBoard) = struct
     let rec loop from_pl to_pl (Output(output_msg,cont)) =
 
       let write msg = 
-        if not(Pipe.is_closed to_pl)
-        then
-          Pipe.write to_pl (Msg(hdl,msg))
-        else 
-          return()
+        Lib.write to_pl (Msg(hdl,msg))
       in
 
       let read f =
