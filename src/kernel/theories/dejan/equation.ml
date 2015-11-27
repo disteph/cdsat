@@ -44,7 +44,7 @@ exception Var_found of var
 
 (* return an active variable, eg a variable of the equation whose coeff is non-nul*)
 let getActiveVar eq = match eq.guardians with
-  | None, None -> raise Not_found
+  | None, None -> print_string "Error"; raise Not_found
   | Some(a), _ | _, Some(a) -> a
 
 let getAnotherActiveVar eq v = match eq.guardians with
@@ -77,11 +77,15 @@ let initGuardians coeffs =
 let updateGuardians coeffs guardians =
   match guardians with
   | None, None -> guardians
-  | Some(a), None | None, Some(a) -> if Hashtbl.find coeffs a =/ (num_of_int 0) then None, None else guardians
-  | Some(a), Some(b) -> 
-    let newa = if Hashtbl.find coeffs a =/ (num_of_int 0) then searchAnotherActiveVar coeffs b else Some(a)
+  | Some(a), None | None, Some(a) -> if ((Hashtbl.mem coeffs a) && Hashtbl.find coeffs a <>/ (num_of_int 0)) then guardians else None, None
+  | Some(a), Some(b) ->
+    let newa = if ((Hashtbl.mem coeffs a) && Hashtbl.find coeffs a <>/ (num_of_int 0)) then 
+        Some(a) 
+      else searchAnotherActiveVar coeffs b
     in
-    let newb = if Hashtbl.find coeffs b =/ (num_of_int 0) then searchAnotherActiveVar coeffs b else Some(b)
+    let newb = if ((Hashtbl.mem coeffs b) && Hashtbl.find coeffs b <>/ (num_of_int 0)) then
+        Some(b)
+      else searchAnotherActiveVar coeffs a
     in newa, newb
 
 (* Creates an equation from its subparts *)
@@ -186,8 +190,10 @@ let isAtomic eq = match eq.guardians with
   | _ -> false
 
 (* Return true if and only if the eqation is a trivial inequation *)
-let isTrivial eq =
-  eq.guardians = (None, None)
+let isTrivial eq = match eq.guardians with
+  | None, None -> true
+  | _ -> false
+  (*eq.guardians == (None, None)*)
 
 
 let isContradictory eq =
