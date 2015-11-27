@@ -10,7 +10,7 @@ type value = num
 type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
                  sup : value;                      (* Sup value *)
                  isStrict : bool;                  (* Is the inequality <= ? *)
-                 nVar : int;                       (* Number of active variables *)
+                 guardians : var option * var option;
                  previous : equation list          (* equation whose linear combination allowed to find this one *)
                 }
 
@@ -40,14 +40,57 @@ let rec print_eqs eqs =
   | [eq] -> print eq; print_string "\n"
   | (t::q) -> print t; print_string " /\\ "; print_eqs q
 
+exception Var_found of var
+
+(* return an active variable, eg a variable of the equation whose coeff is non-nul*)
+let getActiveVar eq = match eq.guardians with
+  | None, None -> raise Not_found
+  | Some(a), _ | _, Some(a) -> a
+
+let getAnotherActiveVar eq v = match eq.guardians with
+  | None, None -> raise Not_found
+  | None, Some(a) | Some(a), None -> if a = v then raise Not_found else a
+  | Some(a), Some(b) -> if a = v then b else a
+
+let getActiveVars eq =
+  let f k v accu =
+    if v <>/ (Num.num_of_int 0) then k::accu else accu
+  in
+  Hashtbl.fold f eq.coeffs []
+
+(* Look for an active variable through an equation, différent from the one given *)
+let searchAnotherActiveVar coeff variable = 
+  let f k v =
+    if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find coeff k then raise (Var_found k)
+  in try Hashtbl.iter f coeff; None with Var_found k -> Some(k)
+
+let initGuardians coeffs = 
+  let g1 = ref None and g2 = ref None in
+  let f k v =
+    if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find coeffs k then match !g1 with
+      | None -> g1 := Some(k)
+      | _ -> g2 := Some(k); raise (Var_found k)
+  in
+  (try Hashtbl.iter f coeffs with Var_found k -> ());
+    !g1, !g2
+
+let updateGuardians coeffs guardians =
+  match guardians with
+  | None, None -> guardians
+  | Some(a), None | None, Some(a) -> if Hashtbl.find coeffs a =/ (num_of_int 0) then None, None else guardians
+  | Some(a), Some(b) -> 
+    let newa = if Hashtbl.find coeffs a =/ (num_of_int 0) then searchAnotherActiveVar coeffs b else Some(a)
+    in
+    let newb = if Hashtbl.find coeffs b =/ (num_of_int 0) then searchAnotherActiveVar coeffs b else Some(b)
+    in newa, newb
 
 (* Creates an equation from its subparts *)
 let create coeffs sup isStrict previous =
-  let count _ v acc =
-    if v <>/ num_of_int 0 then acc+1 else acc
-  in
-  let n = Hashtbl.fold count coeffs 0 in
-  {coeffs = coeffs; sup = sup; isStrict = isStrict; nVar = n; previous = previous}
+  {coeffs    = coeffs;
+   sup       = sup;
+   isStrict  = isStrict;
+   guardians = initGuardians coeffs;
+   previous  = previous}
 
 (* Create an equation from a list of coeffs *)
 let createFromList coeffs sup isStrict previous =
@@ -71,7 +114,11 @@ let isStrict eq =
   eq.isStrict
 
 let toggleStrict eq =
-  {coeffs=eq.coeffs; sup=eq.sup; isStrict= (not eq.isStrict); nVar=eq.nVar; previous=eq.previous}
+  {coeffs    = eq.coeffs;
+   sup       = eq.sup;
+   isStrict  = (not eq.isStrict);
+   guardians = eq.guardians;
+   previous  = eq.previous}
 
 (* TODO should we directly implement this while constructing the equations ?*)
 let getPrevious eq =
@@ -81,11 +128,19 @@ let getPrevious eq =
 
 (* Add equations to previous equations *)
 let addDependance eq ll =
-  {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=eq.previous@ll}
+  {coeffs    = eq.coeffs;
+   sup       = eq.sup;
+   isStrict  = eq.isStrict;
+   guardians = eq.guardians;
+   previous  = eq.previous@ll}
 
 (* Change equations to previous equations *)
 let setDependance eq ll =
-  {coeffs=eq.coeffs; sup=eq.sup; isStrict=eq.isStrict; nVar=eq.nVar; previous=ll}
+  {coeffs    = eq.coeffs;
+   sup       = eq.sup;
+   isStrict  = eq.isStrict;
+   guardians = eq.guardians;
+   previous  = ll}
 
 (* goes through a list and keeps unique elements *)
 let uniq lst =
@@ -110,13 +165,13 @@ let affectVar eq var value =
       {coeffs   = newCoeffs;
        sup      = eq.sup -/ (c */ value);
        isStrict = eq.isStrict;
-       nVar     = eq.nVar - 1;
+       guardians = updateGuardians newCoeffs eq.guardians;
        previous = [eq]}
     ) with Not_found ->
       {coeffs   = eq.coeffs;
        sup      = eq.sup;
        isStrict = eq.isStrict;
-       nVar     = eq.nVar;
+       guardians = eq.guardians;
        previous = [eq]}
 
 
@@ -126,42 +181,19 @@ let rec affectVars eq l = match l with
                       affectVars eq1 q
 
 (* Return true if and only if the eqation is an atomic constraint*)
-let isAtomic eq =
-  eq.nVar == 1
+let isAtomic eq = match eq.guardians with
+  | Some(_), None | None, Some(_) -> true
+  | _ -> false
 
 (* Return true if and only if the eqation is a trivial inequation *)
 let isTrivial eq =
-  let count _ v acc =
-    if v <>/ Num.num_of_int 0 then acc+1 else acc
-  in
-  (Hashtbl.fold count eq.coeffs 0) == 0
-(*eq.nVar == 0*)
+  eq.guardians = (None, None)
+
 
 let isContradictory eq =
   isTrivial eq && ( (eq.isStrict && eq.sup <=/ Num.num_of_int 0 )
-  || (not(eq.isStrict) && eq.sup </ Num.num_of_int 0 ) )
+                    || (not(eq.isStrict) && eq.sup </ Num.num_of_int 0 ) )
 
-(* Give an active variable if it exists or raise a Not_found exception *)
-exception Var_found of var
-
-(* return an active variable, eg a variable of the equation whose coeff is non-nul*)
-(* ensure we are not looking to an ancient variable masked by add (should not be possible)*)
-let getActiveVar eq =
-  let f k v =
-    if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
-  in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
-
-let getActiveVars eq =
-  let f k v accu =
-    if v <>/ (Num.num_of_int 0) then k::accu else accu
-  in
-  Hashtbl.fold f eq.coeffs []
-
-(* get an active variable that is not the one in argument *)
-let getAnotherActiveVar eq variable =
-  let f k v =
-    if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find eq.coeffs k then raise (Var_found k)
-  in try Hashtbl.iter f eq.coeffs; raise Not_found with Var_found k -> k
 
 (* creates a new inequation by multiplying all coefficients by
    a positive or negative value.
@@ -174,7 +206,7 @@ let multiply eq value =
   {coeffs    = newCoeffs;
    sup       = value */ eq.sup;
    isStrict  = eq.isStrict;
-   nVar      = (if value =/ (num_of_int 0) then 0 else eq.nVar);
+   guardians = updateGuardians newCoeffs eq.guardians; 
    previous  = eq.previous}
 
 (* adds two equations *)
@@ -186,15 +218,12 @@ let add eq1 eq2 =
       Hashtbl.replace coeffs k (v +/ temp)
     with Not_found -> ()
   in
-  let count _ v acc =
-    if v <>/ Num.num_of_int 0 then acc+1 else acc
-  in
   (* loop through the coeffs of the first equation*)
   Hashtbl.iter f eq2.coeffs;
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict && eq2.isStrict;
-   nVar = Hashtbl.fold count coeffs 0; (* Count the variables. Not a problem since don't affect the complexity *)
+   guardians = updateGuardians coeffs eq1.guardians; 
    previous = eq1.previous @ eq2.previous
    (* TODO : can the previous overlapse ? It seems that yes in dejean's algo *)
   }
