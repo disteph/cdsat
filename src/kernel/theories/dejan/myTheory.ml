@@ -3,6 +3,7 @@ open Messages
 open Specs
 
 open Algo
+open Trail
 
 (* Apply the operation op to two hashtable, to value with equal key *)
 let applyOp2 op t1 t2 =
@@ -25,21 +26,24 @@ let opposite t1 =
     Hashtbl.iter f t1;
     res
 
-module ThDS = struct
-
-  type t =
+type eqBuilder =
     | Cst of num
     | ArithTerm of (Equation.var, Equation.value)Hashtbl.t * num
     | Eqs of Equation.equation list
-    | Other
+| Other
 
-  (* Function to make transition between building type and dejan algo type *)
-  let tToEq v = match v with
-    | Eqs eqs -> eqs
-    | _ -> []
+(* Function to make transition between building type and dejan algo type *)
+let rec buildersToEqs v = match v with
+  | (Eqs eqs)::q -> eqs@(buildersToEqs q)
+  | _::q -> (buildersToEqs q)
+  | [] -> []
 
-  let eqTot eq = Eqs([eq])
+let eqTot eq = Eqs([eq])
 
+module ThDS = struct
+
+  type t = eqBuilder
+    
   let bV tag fv = match Variables.FreeVar.get_sort fv with
     | Sorts.Rat -> let coeff = Hashtbl.create 10 in Hashtbl.add coeff tag (num_of_int 1); ArithTerm(coeff,num_of_int 0)
     | _ -> Other
@@ -183,26 +187,44 @@ end) = struct
 
   open DS
 
-  let rec state atomN =
+type state = {treated : TSet.t; stack : trail list}
+  
+  let rec machine state  =
     (module struct
 
       type newoutput = (sign,TSet.t) output
       type tset = TSet.t
 
-      let treated () = atomN
+      let aToEq a =  proj(Terms.data a)
+      let fromTSet tset = buildersToEqs(TSet.fold (fun t l -> (aToEq t)::l) tset [])
+
+
+      let treated () = state.treated
+
+      let stack = []
 
       let add = function
-        | None -> Output(None,state atomN)
+        | None -> Output(None, machine state)
         | Some tset ->
-           let newtreated = TSet.union atomN tset in
-           Output(Some(thNotProvable () newtreated),state newtreated)
+           let newtreated = TSet.union state.treated tset in
+            try     
+                (* Lancer l'algo sur les nouvelles équations *)
+                resumeDejeanAlgo (fromTSet tset) []; (*TODO : Ajouter la stack dans la structure *)
+                let newState = {
+                    treated = newtreated;
+                    stack = [];
+                }
+                in
+
+                Output(Some(thNotProvable () newtreated), machine newState)
+            with Unsat_failure l -> Output(Some(thProvable () newtreated), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
 
-      let clone () = Output(None, state atomN)
+      let clone () = Output(None, machine state)
 
     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
-  let init = state TSet.empty
+    let init = machine {treated=TSet.empty; stack=[]}
 
 end
