@@ -21,12 +21,12 @@ let print eq =
     if (not(v =/ num_of_int 0)) then
       begin
       if (v =/ num_of_int 1) then
-          Printf.printf "%i + " k
+          Printf.printf "x%i + " k
         else begin
           if (v =/ num_of_int (-1)) then
-            Printf.printf "-%i + " k
+            Printf.printf "-x%i + " k
           else
-            Printf.printf "%s%i + " (string_of_num v) k;
+            Printf.printf "%s*x%i + " (string_of_num v) k;
         end;
       end;
     )
@@ -59,12 +59,12 @@ let getActiveVars eq =
   Hashtbl.fold f eq.coeffs []
 
 (* Look for an active variable through an equation, différent from the one given *)
-let searchAnotherActiveVar coeff variable = 
+let searchAnotherActiveVar coeff variable =
   let f k v =
     if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find coeff k then raise (Var_found k)
   in try Hashtbl.iter f coeff; None with Var_found k -> Some(k)
 
-let initGuardians coeffs = 
+let initGuardians coeffs =
   let g1 = ref None and g2 = ref None in
   let f k v =
     if v <>/ (Num.num_of_int 0) && v =/ Hashtbl.find coeffs k then match !g1 with
@@ -79,8 +79,8 @@ let updateGuardians coeffs guardians =
   | None, None -> guardians
   | Some(a), None | None, Some(a) -> if ((Hashtbl.mem coeffs a) && Hashtbl.find coeffs a <>/ (num_of_int 0)) then guardians else None, None
   | Some(a), Some(b) ->
-    let newa = if ((Hashtbl.mem coeffs a) && Hashtbl.find coeffs a <>/ (num_of_int 0)) then 
-        Some(a) 
+    let newa = if ((Hashtbl.mem coeffs a) && Hashtbl.find coeffs a <>/ (num_of_int 0)) then
+        Some(a)
       else searchAnotherActiveVar coeffs b
     in
     let newb = if ((Hashtbl.mem coeffs b) && Hashtbl.find coeffs b <>/ (num_of_int 0)) then
@@ -118,8 +118,6 @@ let isStrict eq =
   eq.isStrict
 
 let toggleStrict eq =
-  {coeffs    = eq.coeffs;
-   sup       = eq.sup;
    isStrict  = (not eq.isStrict);
    guardians = eq.guardians;
    previous  = eq.previous}
@@ -146,16 +144,18 @@ let setDependance eq ll =
    guardians = eq.guardians;
    previous  = ll}
 
-(* goes through a list and keeps unique elements *)
-let uniq lst =
-    let unique_set = Hashtbl.create (List.length lst) in
-    List.iter (fun x -> Hashtbl.replace unique_set x ()) lst;
-    Hashtbl.fold (fun x () xs -> x :: xs) unique_set []
+let uniq x =
+   let rec uniqRec x accu =
+     match x with
+     | [] -> accu
+     | t::q when List.mem t accu -> uniqRec q accu
+     | t::q -> uniqRec q (t::accu)
+   in
+   uniqRec x []
 
 
 let getPreviousEqs eqs =
   uniq (List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs)
-
 
 (* Affect a variable in the inequation. It has to built a new
 inequation, even if the variable is not present, for compatibility
@@ -212,7 +212,7 @@ let multiply eq value =
   {coeffs    = newCoeffs;
    sup       = value */ eq.sup;
    isStrict  = eq.isStrict;
-   guardians = updateGuardians newCoeffs eq.guardians; 
+   guardians = updateGuardians newCoeffs eq.guardians;
    previous  = eq.previous}
 
 (* adds two equations *)
@@ -229,9 +229,10 @@ let add eq1 eq2 =
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict && eq2.isStrict;
-   guardians = updateGuardians coeffs eq1.guardians; 
-   previous = eq1.previous @ eq2.previous
-   (* TODO : can the previous overlapse ? It seems that yes in dejean's algo *)
+   guardians = updateGuardians coeffs eq1.guardians;
+   previous = []
+   (* we do not need to update previous. (see the algorithm :
+   fourierMotzkin resolution handle it itself)*)
   }
 
 (* return the linear combination c1*eq1+c2*eq2 *)

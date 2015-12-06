@@ -1,40 +1,36 @@
 include Num
-include Equation
+open Equation
+
 
 (* eliminates a variable from a set of inequations.
 Allows to compute the general FM resolution*)
 let eliminate var eqs =
-  (* separate the inequations depending wether *)
-  let rec separate eqs =
-    match eqs with
-    | []   -> [], [], []
-    | t::q -> let pos,neg,nul = separate q in
-              if Equation.getCoeff t var >/ (Num.num_of_int 0)
-              then (t::pos, neg, nul)
-              else begin
-                if Equation.getCoeff t var </ (Num.num_of_int 0)
-                then (pos, t::neg, nul)
-                else (pos, neg, t::nul)
-              end
+
+  (* separate the inequations depending on the signum of the coefficient *)
+  (* tail-recursive, but not optimal *)
+  let separate eqs =
+    (List.filter (fun t -> Equation.getCoeff t var >/ (Num.num_of_int 0)) eqs),
+    (List.filter (fun t -> Equation.getCoeff t var </ (Num.num_of_int 0)) eqs),
+    (List.filter (fun t -> Equation.getCoeff t var =/ (Num.num_of_int 0)) eqs)
   in
+
   let pos, neg, nul = separate eqs in
-  (*print_string "pos : ";
-    print_eqs pos;print_string "neg : ";
-    print_eqs neg;print_string "nul : ";
-    print_eqs nul;*)
 
   (* create all the new inequations : we look recursively over
      all the inequations where our variable has a positive
      coefficient, and all where it has a negative one. Those two
      lists were given by the function separate *)
+
+  (*this function is tail-recursive*)
   let rec complete_result l1 l2 accu =
     match l1, l2 with
     | [], _ | _, [] -> accu
     | (t1::q1), l2 ->
-       complete_result q1 l2
-         (List.fold_left (fun acc eq ->
-           (combine (Num.num_of_int 1  // (Equation.getCoeff t1 var)) t1
-              (Num.num_of_int (-1) // (Equation.getCoeff eq var)) eq)::acc) accu l2)
+    complete_result q1 l2
+      (List.fold_left (fun acc eq ->
+        (combine (Num.num_of_int 1  // (Equation.getCoeff t1 var)) t1
+           (Num.num_of_int (-1) // (Equation.getCoeff eq var)) eq)::acc) accu l2)
+
   in
   complete_result pos neg nul
 
@@ -50,21 +46,29 @@ was wrong with the inequations. *)
 
 let fourierMotzkin var eqs =
   let rec fourierMotzkinRec var eqs =
+  (*  print_string "enter FM";*)
     match remove_trivial eqs with
     | [] -> raise FM_Failure
     | [eq] -> eq
     | (t::q) ->
+      let myvar =
        try
-         let vv = Equation.getAnotherActiveVar t var in
-         fourierMotzkinRec var (eliminate vv eqs)
+         Some(Equation.getAnotherActiveVar t var)
           (* we did not find another active variable. This is a
              unitary constraint on "var"... return it, then.*)
-       with Not_found -> t
-  in
+       with Not_found -> None
+       in
+       match myvar with
+       | None -> t
+       | Some(vv) ->  fourierMotzkinRec var (eliminate vv eqs)
 
-  let eq = fourierMotzkinRec var eqs in
-        (* return the equation obtained, which dependencies are
-           all the PREVIOUS of the equations used for FM resolution *)
-        (* that way, we enforce the invariant that all "previouses"
-           of an equation are members of the previous state *)
-  setDependance eq (Equation.getPreviousEqs eqs)
+  in
+  try(
+    let eq = fourierMotzkinRec var eqs in
+          (* return the equation obtained, which dependencies are
+             all the PREVIOUS of the equations used for FM resolution *)
+          (* that way, we enforce the invariant that all "previouses"
+             of an equation are members of the previous state *)
+    Some(Equation.setDependance eq (Equation.getPreviousEqs eqs))
+  )
+  with FM_Failure -> None
