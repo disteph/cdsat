@@ -5,7 +5,7 @@
 include Trail
 include FourierMotzkin
 
-exception Unsat_failure of Equation.equation list
+exception Unsat_failure of Equation.equation list * Trail.trail list
 
 
 let rec dejeanAlgoRec stack =
@@ -14,6 +14,7 @@ let rec dejeanAlgoRec stack =
   | head::tail ->
     (*print_string "Head state is : ";Equation.print_eqs (getEqs head);print_string "\n";*)
     (* recalculate the constraints each time... *)
+    (*print_string "calculating constraints\n";*)
     let cons = Trail.createConstraints head in
 
     (* here we have : either None which means there is no contradiction up to now,
@@ -38,7 +39,7 @@ and fmResolve stack eqs =
   match stack with
   | [] -> failwith "stack was empty but should not"
   | [t] ->  (* no going back possible *)
-     raise (Unsat_failure eqs)
+     raise (Unsat_failure (eqs, stack))
   | a::b::q ->
     (*  print_string "The previous equations will be resolved : "; *)
     (* Equation.print_eqs eqs; *)
@@ -47,12 +48,9 @@ and fmResolve stack eqs =
     (* print_string (Trail.getLastAssignedVariable a); *)
     (* print_string "\n"; *)
     (* FM resolution should at least return an inequation *)
-    let neweq =
-      try
-        Some(FourierMotzkin.fourierMotzkin (Trail.getLastAssignedVariable a) eqs)
-      with FM_Failure -> None
-    in
-    match neweq with
+    (*print_string "Resolving fm on ";print_int (List.length eqs);print_string " equations\n";*)
+
+    match FourierMotzkin.fourierMotzkin (Trail.getLastAssignedVariable a) eqs with
     | Some neweq ->
       (*  print_string "FM resolution output is the following : "; *)
       (* Equation.print neweq;print_string "\n"; *)
@@ -65,10 +63,8 @@ and fmResolve stack eqs =
        (* FM Failure : impossible to eliminate all but one variable. This means
           the inequations are not linearly independent ; moreover, since they
           produced a contradiction, we are sure to obtain something like 0 < 0*)
-       (
          (* print_string "FM resolution failed. Going back again."; *)
          fmResolve (b::q) (Equation.getPreviousEqs eqs)
-       )
 
 (* case when we choose a variable *)
 and variableChoosing stack cons =
@@ -77,7 +73,7 @@ and variableChoosing stack cons =
   | head::tail ->
      match Trail.chooseUnassignedVariable head with
       (* the model is complete*)
-     | None -> Trail.getCurrentModel head
+     | None -> (Trail.getCurrentModel head), stack
      | Some var ->
 
         (* choose a value according to the constraints *)
@@ -125,8 +121,7 @@ let resumeDejeanAlgo l stack =
   (* try first the current model *)
   let neweqs =
     try (
-      let l2 = applyCurrentModel l (Trail.getCurrentModel s) in
-      Some(l2);
+      Some(applyCurrentModel l (Trail.getCurrentModel s));
     )
     with CurrentModelIncompatible -> None
   in
