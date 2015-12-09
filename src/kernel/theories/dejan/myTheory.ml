@@ -203,8 +203,6 @@ module Make(DS: sig
       (* Requiered function *)
       let treated () = state.treated
 
-      let stack = []
-
       (* Should send a minimal set af equations *)
       let add = function
         | None -> Output(None, machine state)

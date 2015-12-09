@@ -52,7 +52,7 @@ struct
    if not : output the 'bad' disequality *)
   let rec coherent delta = function 
     | [] -> None
-    | ((_,a,b) as h)::t when VtoV.find (make a) delta = VtoV.find (make b) delta
+    | ((_,a,b) as h)::t when X.vequal (VtoV.find (make a) delta) (VtoV.find (make b) delta)
                         -> Some h
     | _::t -> coherent delta t
 
@@ -60,7 +60,8 @@ struct
   let rec equal l l' delta =
     match l,l' with
     | [], [] -> true
-    | a::ta, b::tb when VtoV.find (make a) delta = VtoV.find (make b) delta -> equal ta tb delta
+    | a::ta, b::tb when X.vequal (VtoV.find (make a) delta) (VtoV.find (make b) delta)
+        -> equal ta tb delta
     | _ -> false
 
   exception Finished
@@ -157,7 +158,7 @@ apply the substituions met since the beginning *)
     | Eq(_,a,b) | Congr(a,b) when (TSet.mem a s.theta) && (TSet.mem b s.theta) -> begin
       let ra = VtoV.find (make a) s.delta in
       let rb = VtoV.find (make b) s.delta in
-      if ra = rb
+      if X.vequal ra rb
       then (* rule REMOVE *)
       (*print_string "remove "; (*print_term a; print_term b;*) print_newline();*)
         s,phi
@@ -190,17 +191,28 @@ apply the substituions met since the beginning *)
 	       begin try 
 		       let r'  = VtoV.find r s.delta in
 		       let r'' = VtoV.find r delta' in
-		       if r'<>r'' then
+		       if X.vequal r' r'' then uf
+                       else
 		         try
-			   if U.find uf r' <> U.find uf r''
-                           then
-		          (*print_value r; print_value r'; print_value r''; print_newline();*)
+			   if X.vequal (U.find uf r') (U.find uf r'')
+                           then uf
+                           else
+		             (*print_value r; print_value r'; print_value r''; print_newline();*)
 			     U.addLink uf r' r'' i
-			   else uf
 		         with Not_found -> (* r'' unknown in uf *)
 			   let uf' = addUF r'' uf (((p,q),i)::s.sub) in
 			   U.addLink uf' r' r'' i
-		       else uf
+		       (* if r' <> r'' then *)
+		       (*   try *)
+		       (*     if U.find uf r' <> U.find uf r'' *)
+                       (*     then *)
+		       (*    (\*print_value r; print_value r'; print_value r''; print_newline();*\) *)
+		       (*       U.addLink uf r' r'' i *)
+		       (*     else uf *)
+		       (*   with Not_found -> (\* r'' unknown in uf *\) *)
+		       (*     let uf' = addUF r'' uf (((p,q),i)::s.sub) in *)
+		       (*     U.addLink uf' r' r'' i *)
+		       (* else uf *)
 	         with Not_found -> (* r unknown in s.delta *)
 		   addUF r uf (((p,q),i)::s.sub)
 	       end)
@@ -261,7 +273,8 @@ apply the substituions met since the beginning *)
 	  end
     end
     | NEq(so,a,b) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
-      if VtoV.find (make a) s.delta = VtoV.find (make b) s.delta then
+      if X.vequal (VtoV.find (make a) s.delta) (VtoV.find (make b) s.delta)
+      then
 	(* rule INCOHDIFF *)
 	(*print_string "incohdiff "; (*print_term a; print_term b;*) print_newline();*)
 	raise (Inconsistency(i::(explain s.u a b)))

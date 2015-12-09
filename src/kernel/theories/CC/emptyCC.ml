@@ -21,6 +21,8 @@ module Make(DS: GTheoryDSType)= struct
    there is no interpreted symbol for this theory *)
   type v = Term.t
 
+  let vequal = Terms.equal
+
   module VSet = TSet
 
   module DVtoTSet = struct
@@ -29,7 +31,7 @@ module Make(DS: GTheoryDSType)= struct
     type values = TSet.t
     type infos = unit
     let info_build = empty_info_build
-    let treeHCons = None (* Some((fun ts1 ts2 -> TSet.compare ts1 ts2 == 0),Terms.id,TSet.id) *)
+    let treeHCons = None
   end
 
   module F = struct
@@ -60,7 +62,7 @@ module Make(DS: GTheoryDSType)= struct
     type values = Term.t
     type infos = unit
     let info_build = empty_info_build
-    let treeHCons = Some((fun t1 t2 -> Terms.compare t1 t2 =0),Terms.id,Terms.id)
+    let treeHCons = Some(vequal,Terms.id,Terms.id)
   end
 
   module MVtoV = PATMap.Make (DVtoV) (I)

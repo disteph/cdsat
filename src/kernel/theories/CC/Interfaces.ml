@@ -44,6 +44,9 @@ module type SolvableTheory = sig
 
   type v (* semantic values *)
 
+  (* semantic values must be comparable *)
+  val vequal : v -> v -> bool
+
   (* sets of semantic values *)
   module VSet : SetImplem with type e = v
 
