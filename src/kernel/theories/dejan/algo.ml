@@ -116,7 +116,9 @@ let goBackAndResume l stack =
 when calling the "add" function on this theory *)
 let resumeDejeanAlgo l stack =
   match stack with
-  | [] -> failwith "Unknown error : Empty stack in Dejean algorithm"
+  | [] -> let trail = Trail.create l in
+          let stack = [trail] in
+          dejeanAlgoRec stack
   | s::q ->
   (* try first the current model *)
   let neweqs =
@@ -130,10 +132,3 @@ let resumeDejeanAlgo l stack =
     | None -> goBackAndResume l stack
     (* if it works, fine. Add them to the current state *)
     | Some(eqs) -> dejeanAlgoRec ((Trail.addEqs s eqs)::q)
-
-
-(* the algorithm, from the beginning ie a set of terms (inequations) *)
-let dejeanAlgo l =
-    let trail = Trail.create l in
-    let stack = [trail] in
-    dejeanAlgoRec stack

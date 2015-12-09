@@ -12,7 +12,9 @@ let test_dejan eqs =
     print_string "Trying to solve the following system : \n";
     Equation.print_eqs eqs;
     try
-      let model,stack = dejeanAlgo eqs in
+      let trail = Trail.create eqs in
+      let stack = [trail] in
+      let model,stack = dejeanAlgoRec stack in
       print_string "A solution is : \n";
       print_model_assignments model;
     with
