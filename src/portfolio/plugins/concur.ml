@@ -195,9 +195,9 @@ let make theories : (module Plugin.Type) =
                  Pipe.read from_workers
                  >>= function
                  | `Eof -> failwith "Eof"
-                 | `Ok(W.Msg(hdl,msg) (* as thmsg *)) 
+                 | `Ok(W.Msg(hdl,msg) as thmsg) 
                    -> 
-                    (* print (Dump.toString (fun p -> p "%a" W.print_in_fmt thmsg)) *)
+                    Dump.msg (Some(fun p -> p "%a" W.print_in_fmt thmsg)) None None;
                     (* >>= fun () -> *)
                     match msg with
 
