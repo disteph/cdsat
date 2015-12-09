@@ -118,6 +118,8 @@ let isStrict eq =
   eq.isStrict
 
 let toggleStrict eq =
+  {coeffs    = eq.coeffs;
+   sup       = eq.sup;
    isStrict  = (not eq.isStrict);
    guardians = eq.guardians;
    previous  = eq.previous}
