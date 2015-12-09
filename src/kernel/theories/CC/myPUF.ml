@@ -2,13 +2,18 @@
 
 module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e = Ord.t) = struct
 
+  module FCA = MyFCA.Make(struct
+      type t = Ord.t
+      let equal a b = (Ord.compare a b ==0)
+  end)
+
   module M = Map.Make(Ord)
 
   type e = Ord.t
 
   type 'a t = {father : (((e*'a) option)*int) M.t;
                sons   : e list M.t;
-               memo   : e MyFCA.t M.t ref}
+               memo   : FCA.t M.t ref}
 
   let create = {father = M.empty;
                 sons = M.empty;
@@ -131,10 +136,10 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
         (fun (i,t) n ->
           let x,_ = M.find n m.father in
           match x with
-          | None -> i+1, MyFCA.add i i (sonsList n m idmap) t
-          | Some(j,_) -> i+1, MyFCA.add i (M.find j idmap) (sonsList n m idmap) t
+          | None -> i+1, FCA.add i i (sonsList n m idmap) t
+          | Some(j,_) -> i+1, FCA.add i (M.find j idmap) (sonsList n m idmap) t
         )
-        (0,MyFCA.create list)
+        (0,FCA.create list)
         list
     in
     (* Memoising in m.memo the construction, for future re-use *)
@@ -147,9 +152,9 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
       try M.find i !(m.memo)
       with Not_found -> build (find m i) m 
     in
-    let i',j' = MyFCA.ind i j t in
-    (* print_int i; print_int j; print_int (MyFCA.fca t i' j'); print_newline();*)
-    MyFCA.fca t i' j'
+    let i',j' = FCA.ind i j t in
+    (* print_int i; print_int j; print_int (FCA.fca t i' j'); print_newline();*)
+    FCA.fca t i' j'
     
   let rec explain u a b =
     (* we compute the first common ancestor *)

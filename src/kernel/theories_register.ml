@@ -30,7 +30,7 @@ module Handlers = struct
 end
 
 let all_theories_list = 
-  [ Handlers.Handler Sig.Empty;
+  [ (* Handlers.Handler Sig.Empty; *)
     Handlers.Handler Sig.CC;
     Handlers.Handler Sig.Arrays;
     Handlers.Handler Sig.Dejan;
@@ -44,7 +44,7 @@ let all_theories = List.fold_right (fun hdl -> HandlersMap.add hdl ()) all_theor
 exception NotFound of string
 
 let parse = function
-  | "empty" | "prop" | "bool"  -> Handlers.Handler Sig.Empty
+  | "empty" | "prop" | "bool" -> Handlers.Handler Sig.Empty
   | "CC"     -> Handlers.Handler Sig.CC
   | "LRA"    -> Handlers.Handler Sig.Dejan
   | "LIA"    -> Handlers.Handler Sig.Dejan

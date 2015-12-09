@@ -8,16 +8,16 @@ module Make(DS: GTheoryDSType) = struct
 
   open DS
 
-  let rec state atomN
+  let rec machine atomN
       = (module struct
 
         type newoutput = (sign,TSet.t) output
         type tset = TSet.t
 
-        let treated = (fun () -> atomN)
+        let treated () = atomN
 
-        let add = (function
-          | None -> Output(None, state atomN)
+        let add = function
+          | None -> Output(None, machine atomN)
           | Some newtset ->
              let atomN = DS.TSet.union newtset atomN in
              let tmp = TSet.fold
@@ -33,14 +33,14 @@ module Make(DS: GTheoryDSType) = struct
                None in
              match tmp with
              | Some tset -> Output(Some(thProvable () tset), fail_state)
-             | None -> Output(Some(thNotProvable () atomN), state atomN)
-        )
+             | None -> Output(Some(thNotProvable () atomN), machine atomN)
 
-        let normalise = (fun _ -> failwith "Not a theory with normaliser")
+        let normalise _ = failwith "Not a theory with normaliser"
 
-        let clone = (fun () -> Output(None, state atomN))
+        let clone () = Output(None, machine atomN)
+
       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
-  let init = state TSet.empty
+  let init = machine TSet.empty
 
 end
