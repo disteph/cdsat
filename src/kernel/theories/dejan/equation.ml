@@ -11,24 +11,25 @@ type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
                  sup : value;                      (* Sup value *)
                  isStrict : bool;                  (* Is the inequality <= ? *)
                  guardians : var option * var option;
-                 previous : equation list          (* equation whose linear combination allowed to find this one *)
+                 previous : equation list;         (* equation whose linear combination allowed to find this one *)
+                 tag : int option;                 (* tag of the litteral on psyche if any *)
                 }
 
 
 (* Pretty print an equation *)
 let print eq =
   Hashtbl.iter (fun k v ->
-    if (not(v =/ num_of_int 0)) then
-      begin
-      if (v =/ num_of_int 1) then
-          Printf.printf "x%i + " k
-        else begin
-          if (v =/ num_of_int (-1)) then
-            Printf.printf "-x%i + " k
-          else
-            Printf.printf "%s*x%i + " (string_of_num v) k;
+      if (not(v =/ num_of_int 0)) then
+        begin
+          if (v =/ num_of_int 1) then
+            Printf.printf "x%i + " k
+          else begin
+            if (v =/ num_of_int (-1)) then
+              Printf.printf "-x%i + " k
+            else
+              Printf.printf "%s*x%i + " (string_of_num v) k;
+          end;
         end;
-      end;
     )
     eq.coeffs;
   Printf.printf (if eq.isStrict then " < %s" else " <= %s") (string_of_num eq.sup)
@@ -72,7 +73,7 @@ let initGuardians coeffs =
       | _ -> g2 := Some(k); raise (Var_found k)
   in
   (try Hashtbl.iter f coeffs with Var_found k -> ());
-    !g1, !g2
+  !g1, !g2
 
 let updateGuardians coeffs guardians =
   match guardians with
@@ -89,21 +90,22 @@ let updateGuardians coeffs guardians =
     in newa, newb
 
 (* Creates an equation from its subparts *)
-let create coeffs sup isStrict previous =
+let create coeffs sup isStrict previous tag =
   {coeffs    = coeffs;
    sup       = sup;
    isStrict  = isStrict;
    guardians = initGuardians coeffs;
-   previous  = previous}
+   previous  = previous;
+   tag = tag}
 
 (* Create an equation from a list of coeffs *)
-let createFromList coeffs sup isStrict previous =
+let createFromList coeffs sup isStrict previous tag =
   let table = Hashtbl.create (List.length coeffs) in
   let f (k,v) =
     Hashtbl.replace table k v
   in
   List.iter f coeffs;
-  create table sup isStrict previous
+  create table sup isStrict previous tag
 
 (* Return the coeff associated to the varibale var *)
 let getCoeff eq var =
@@ -112,6 +114,9 @@ let getCoeff eq var =
 (* Return the upper bound of the equation *)
 let getSup eq =
   eq.sup
+
+let getTag eq =
+  eq.tag
 
 (* Return if < or <= *)
 let isStrict eq =
@@ -122,9 +127,9 @@ let toggleStrict eq =
    sup       = eq.sup;
    isStrict  = (not eq.isStrict);
    guardians = eq.guardians;
-   previous  = eq.previous}
+   previous  = eq.previous;
+   tag = None}
 
-(* TODO should we directly implement this while constructing the equations ?*)
 let getPrevious eq =
   match eq.previous with
   | [] -> [eq]
@@ -136,7 +141,8 @@ let addDependance eq ll =
    sup       = eq.sup;
    isStrict  = eq.isStrict;
    guardians = eq.guardians;
-   previous  = eq.previous@ll}
+   previous  = eq.previous@ll;
+   tag       = None}
 
 (* Change equations to previous equations *)
 let setDependance eq ll =
@@ -144,47 +150,50 @@ let setDependance eq ll =
    sup       = eq.sup;
    isStrict  = eq.isStrict;
    guardians = eq.guardians;
-   previous  = ll}
+   previous  = ll;
+   tag       = None}
 
 let uniq x =
-   let rec uniqRec x accu =
-     match x with
-     | [] -> accu
-     | t::q when List.mem t accu -> uniqRec q accu
-     | t::q -> uniqRec q (t::accu)
-   in
-   uniqRec x []
+  let rec uniqRec x accu =
+    match x with
+    | [] -> accu
+    | t::q when List.mem t accu -> uniqRec q accu
+    | t::q -> uniqRec q (t::accu)
+  in
+  uniqRec x []
 
 
 let getPreviousEqs eqs =
   uniq (List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs)
 
 (* Affect a variable in the inequation. It has to built a new
-inequation, even if the variable is not present, for compatibility
-reasons with our algorithm (the inequations contain themselves all
-the "state stack" stuff)*)
+   inequation, even if the variable is not present, for compatibility
+   reasons with our algorithm (the inequations contain themselves all
+   the "state stack" stuff)*)
 let affectVar eq var value =
-    try (
-      let c = Hashtbl.find eq.coeffs var in
-      let newCoeffs = Hashtbl.copy eq.coeffs in
-      Hashtbl.remove newCoeffs var;
-      {coeffs   = newCoeffs;
-       sup      = eq.sup -/ (c */ value);
-       isStrict = eq.isStrict;
-       guardians = updateGuardians newCoeffs eq.guardians;
-       previous = [eq]}
-    ) with Not_found ->
-      {coeffs   = eq.coeffs;
-       sup      = eq.sup;
-       isStrict = eq.isStrict;
-       guardians = eq.guardians;
-       previous = [eq]}
+  try (
+    let c = Hashtbl.find eq.coeffs var in
+    let newCoeffs = Hashtbl.copy eq.coeffs in
+    Hashtbl.remove newCoeffs var;
+    {coeffs   = newCoeffs;
+     sup      = eq.sup -/ (c */ value);
+     isStrict = eq.isStrict;
+     guardians = updateGuardians newCoeffs eq.guardians;
+     previous = [eq];
+     tag       = None}
+  ) with Not_found ->
+    {coeffs    = eq.coeffs;
+     sup       = eq.sup;
+     isStrict  = eq.isStrict;
+     guardians = eq.guardians;
+     previous  = [eq];
+     tag       = None}
 
 
 let rec affectVars eq l = match l with
   |  [] -> eq
   |  (vr,vl)::q -> let eq1 = affectVar eq vr vl in
-                      affectVars eq1 q
+    affectVars eq1 q
 
 (* Return true if and only if the eqation is an atomic constraint*)
 let isAtomic eq = match eq.guardians with
@@ -195,7 +204,7 @@ let isAtomic eq = match eq.guardians with
 let isTrivial eq = match eq.guardians with
   | None, None -> true
   | _ -> false
-  (*eq.guardians == (None, None)*)
+(*eq.guardians == (None, None)*)
 
 
 let isContradictory eq =
@@ -215,7 +224,8 @@ let multiply eq value =
    sup       = value */ eq.sup;
    isStrict  = eq.isStrict;
    guardians = updateGuardians newCoeffs eq.guardians;
-   previous  = eq.previous}
+   previous  = eq.previous;
+   tag       = None}
 
 (* adds two equations *)
 let add eq1 eq2 =
@@ -232,10 +242,10 @@ let add eq1 eq2 =
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict && eq2.isStrict;
    guardians = updateGuardians coeffs eq1.guardians;
-   previous = []
+   previous = [];
+   tag       = None}
    (* we do not need to update previous. (see the algorithm :
-   fourierMotzkin resolution handle it itself)*)
-  }
+      fourierMotzkin resolution handle it itself)*)
 
 (* return the linear combination c1*eq1+c2*eq2 *)
 let combine c1 eq1 c2 eq2 =

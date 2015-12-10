@@ -55,76 +55,76 @@ module ThDS = struct
       )
 
     | Symbols.Eq Sorts.Rat, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []; Equation.createFromList [] (s1 -/ s2) false []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false [] (Some tag); Equation.createFromList [] (s1 -/ s2) false [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c1 = applyOp2 (-/) t1 t2 in
           let c2 = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c1 (s2 -/ s1) false []; Equation.create c2 (s1 -/ s2) false []])
+          Eqs([Equation.create c1 (s2 -/ s1) false [] (Some tag); Equation.create c2 (s1 -/ s2) false [] (Some tag)])
         | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
           let coeff = opposite t1 in
-          Eqs([Equation.create coeff (s1 -/ s2) false []; Equation.create t1 (s2 -/ s1) false []])
+          Eqs([Equation.create coeff (s1 -/ s2) false [] (Some tag); Equation.create t1 (s2 -/ s1) false [] (Some tag)])
         | _, _ -> Other
       )
 
     | Symbols.NEq Sorts.Rat, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []; Equation.createFromList [] (s1 -/ s2) true []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true [] (Some tag); Equation.createFromList [] (s1 -/ s2) true [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c1 = applyOp2 (-/) t1 t2 in
           let c2 = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c1 (s2 -/ s1) true []; Equation.create c2 (s1 -/ s2) true []])
+          Eqs([Equation.create c1 (s2 -/ s1) true [] (Some tag); Equation.create c2 (s1 -/ s2) true [] (Some tag)])
         | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
           let coeff = opposite t1 in
-          Eqs([Equation.create coeff (s1 -/ s2) true []; Equation.create t1 (s2 -/ s1) true []])
+          Eqs([Equation.create coeff (s1 -/ s2) true [] (Some tag); Equation.create t1 (s2 -/ s1) true [] (Some tag)])
         | _, _ -> Other
       )
 
     | Symbols.CstRat n, [] -> Cst(n)
 
     | Symbols.Le, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c = applyOp2 (-/) t1 t2 in
-          Eqs([Equation.create c (s2 -/ s1) false []])
-        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) false []])
+          Eqs([Equation.create c (s2 -/ s1) false [] (Some tag)])
+        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) false [] (Some tag)])
         | Cst(s1), ArithTerm(t2, s2) ->
           let c = opposite t2 in
-          Eqs([Equation.create c (s2 -/ s1) false []])
+          Eqs([Equation.create c (s2 -/ s1) false [] (Some tag)])
         | _, _ -> Other
       )
 
     | Symbols.Lt, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c = applyOp2 (-/) t1 t2 in
-          Eqs([Equation.create c (s2 -/ s1) true []])
-        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) true []])
+          Eqs([Equation.create c (s2 -/ s1) true [] (Some tag)])
+        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) true [] (Some tag)])
         | Cst(s1), ArithTerm(t2, s2) ->
           let c = opposite t2 in
-          Eqs([Equation.create c (s2 -/ s1) true []])
+          Eqs([Equation.create c (s2 -/ s1) true [] (Some tag)])
         | _, _ -> Other
       )
 
     | Symbols.Ge, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) false []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) false [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c (s1 -/ s2) false []])
+          Eqs([Equation.create c (s1 -/ s2) false [] (Some tag)])
         | ArithTerm(t1, s1), Cst(s2) ->
           let c = opposite t1 in
-          Eqs([Equation.create c (s1 -/ s2) false []])
-        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) false []])
+          Eqs([Equation.create c (s1 -/ s2) false [] (Some tag)])
+        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) false [] (Some tag)])
         | _, _ -> Other
       )
 
     | Symbols.Gt, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) true []])
+        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) true [] (Some tag)])
         | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
           let c = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c (s1 -/ s2) true []])
+          Eqs([Equation.create c (s1 -/ s2) true [] (Some tag)])
         | ArithTerm(t1, s1), Cst(s2) ->
           let c = opposite t1 in
-          Eqs([Equation.create c (s1 -/ s2) true []])
-        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) true []])
+          Eqs([Equation.create c (s1 -/ s2) true [] (Some tag)])
+        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) true [] (Some tag)])
         | _, _ -> Other
       )
 
@@ -197,8 +197,14 @@ module Make(DS: sig
 
       (* Function to convert types *)
       let aToEq a =  proj(Terms.data a)
-      let eqToA eq = failwith "TODO"
+      let eqToA eq tset = match Equation.getTag eq with
+        | None -> failwith "Can not convert an equation without tag"
+        | Some t -> match TSet.fold (fun h l -> if (Terms.id h) = t then (Some h) else l) tset None with
+          | Some h -> h
+          | None -> failwith "Can not find the terms corresponding to the tag"
+
       let fromTSet tset = buildersToEqs(TSet.fold (fun t l -> (aToEq t)::l) tset [])
+      let toTSet eqs tset = List.fold_left (fun l e -> TSet.add (eqToA e tset) l) TSet.empty eqs
 
       (* Requiered function *)
       let treated () = state.treated
@@ -218,7 +224,7 @@ module Make(DS: sig
             in
 
             Output(Some(thNotProvable () newtreated), machine newState)
-          with Unsat_failure (l,s) -> Output(Some(thProvable () newtreated), fail_state)
+          with Unsat_failure (l,s) -> Output(Some(thProvable () (toTSet l newtreated)), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
 

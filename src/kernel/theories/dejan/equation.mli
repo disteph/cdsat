@@ -3,11 +3,12 @@ type var = int
 type value = Num.num
 type equation
 
-val create : (var, value) Hashtbl.t -> value -> bool -> equation list -> equation
-val createFromList : (var*value) list -> value -> bool -> equation list -> equation
+val create : (var, value) Hashtbl.t -> value -> bool -> equation list -> int option -> equation
+val createFromList : (var*value) list -> value -> bool -> equation list -> int option -> equation
 
 val getCoeff : equation -> var -> value
 val getSup : equation -> value
+val getTag : equation -> int option
 val isStrict : equation -> bool
 val isAtomic : equation -> bool
 val isTrivial : equation -> bool
