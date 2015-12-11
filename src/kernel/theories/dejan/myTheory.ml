@@ -197,12 +197,12 @@ module Make(DS: sig
 
       (* Function to convert types *)
       let aToEq a =  proj(Terms.data a)
-      let eqToA eq tset = match Equation.getTag eq with
+      let eqToA eq = match Equation.getTag eq with
         | None -> failwith "Can not convert an equation without tag"
         | Some t -> Term.term_of_id t
 
       let fromTSet tset = buildersToEqs(TSet.fold (fun t l -> (aToEq t)::l) tset [])
-      let toTSet eqs tset = List.fold_left (fun l e -> TSet.add (eqToA e tset) l) TSet.empty eqs
+      let toTSet eqs = List.fold_left (fun l e -> TSet.add (eqToA e) l) TSet.empty eqs
 
       (* Requiered function *)
       let treated () = state.treated
@@ -221,7 +221,7 @@ module Make(DS: sig
             }
             in
             Output(Some(thNotProvable () newtreated), machine newState)
-          with Unsat_failure (l,s) -> Output(Some(thProvable () (toTSet l newtreated)), fail_state)
+          with Unsat_failure (l,s) -> Output(Some(thProvable () (toTSet l)), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
 
