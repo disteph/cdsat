@@ -199,9 +199,7 @@ module Make(DS: sig
       let aToEq a =  proj(Terms.data a)
       let eqToA eq tset = match Equation.getTag eq with
         | None -> failwith "Can not convert an equation without tag"
-        | Some t -> match TSet.fold (fun h l -> if (Terms.id h) = t then (Some h) else l) tset None with
-          | Some h -> h
-          | None -> failwith "Can not find the terms corresponding to the tag"
+        | Some t -> Term.term_of_id t
 
       let fromTSet tset = buildersToEqs(TSet.fold (fun t l -> (aToEq t)::l) tset [])
       let toTSet eqs tset = List.fold_left (fun l e -> TSet.add (eqToA e tset) l) TSet.empty eqs
@@ -222,7 +220,6 @@ module Make(DS: sig
               stack = s;
             }
             in
-
             Output(Some(thNotProvable () newtreated), machine newState)
           with Unsat_failure (l,s) -> Output(Some(thProvable () (toTSet l newtreated)), fail_state)
 
