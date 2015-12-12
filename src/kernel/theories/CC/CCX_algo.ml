@@ -25,35 +25,23 @@ struct
   open X
   open DS
 
-  (* let inputToString = function *)
-  (*   | (Eq(a,b)) -> (toString a)^" = "^(toString b) *)
-  (*   | (NEq(a,b)) -> (toString a)^" <> "^(toString b) *)
-  (*   | (Congr(a,b)) -> (toString a)^" c "^(toString b) *)
-      
-  (* let print_input i = print_string (inputToString i) *)
-
-  (* let print_inputlist l = *)
-  (*   let rec aux s = function *)
-  (*     | [] -> print_string s *)
-  (*     | (a::ta) -> aux (s^(inputToString a)^" | ") ta *)
-  (*   in aux "" l *)
-
   type state = {theta : TSet.t;
                 gamma : VtoTSet.t;
                 delta : VtoV.t; 
-                n     : (Sorts.t*Term.t*Term.t) list;
+                n     : (Sorts.t*Term.t*Term.t*(int option)) list;
                 sub   : ((X.v * X.v) * Term.t input) list;
                 u     : Term.t input U.t
                }
 
   exception Inconsistency of Term.t input list
 
-(* verify if our equivalence classes or coherent with a set of disequalities
+(* verify if our equivalence classes are coherent with a set of disequalities
    if not : output the 'bad' disequality *)
   let rec coherent delta = function 
     | [] -> None
-    | ((_,a,b) as h)::t when X.vequal (VtoV.find (make a) delta) (VtoV.find (make b) delta)
-                        -> Some h
+    | ((_,a,b,_) as h)::t
+        when X.vequal (VtoV.find (make a) delta) (VtoV.find (make b) delta)
+          -> Some h
     | _::t -> coherent delta t
 
 (* verify if the terms are in the same equivalence class 2 by 2 *)
@@ -74,12 +62,6 @@ struct
     | a::ta when TSet.mem a theta -> aux theta ta
     | a::ta -> findSterm a theta
       
-(* negation of an atom *)
-  let neg = function
-    | Eq(so,a,b)  -> NEq(so,a,b)
-    | NEq(so,a,b) -> Eq(so,a,b)
-    | _ -> assert false
-
 (* add a value to the equivalence classes (map) and 
 apply the substitutions met since the beginning *)
   let rec add r map sub =
@@ -90,7 +72,6 @@ apply the substitutions met since the beginning *)
 	  let r'' = subst p q r' in
 	  try
 	    let _ = VtoV.find r'' m in
-	  (*print_value r; print_value r'; print_value r''; print_newline();*)
 	    VtoV.add r r'' m, l
 	  with Not_found ->
 	    VtoV.add r r'' m, r'::l)
@@ -142,10 +123,10 @@ apply the substituions met since the beginning *)
   and explPath u l =
     let rec aux r = function
       | []    -> r
-      | (Eq(_,a,b) as h)::tl when List.mem h r -> aux r tl
-      | (Eq(_,a,b) as h)::tl                   -> aux (h::r) tl
+      | (Eq(_,_,_,_) as h)::tl when List.mem h r -> aux r tl
+      | (Eq(_,_,_,_) as h)::tl                   -> aux (h::r) tl
       | Congr(a,b)::tl -> aux (union r (explCongr u a b)) tl
-      | NEq(_,_,_)::_ -> assert false
+      | NEq(_,_,_,_)::_ -> assert false
     in aux [] l
 
   let normalise s t = VtoV.find (make t) s.delta
@@ -155,23 +136,21 @@ apply the substituions met since the beginning *)
   (* compute a step of the algorithm *)
   let step s phi i =
     match i with
-    | Eq(_,a,b) | Congr(a,b) when (TSet.mem a s.theta) && (TSet.mem b s.theta) -> begin
+    | Eq(_,a,b,_) | Congr(a,b) when (TSet.mem a s.theta) && (TSet.mem b s.theta) -> begin
       let ra = VtoV.find (make a) s.delta in
       let rb = VtoV.find (make b) s.delta in
       if X.vequal ra rb
       then (* rule REMOVE *)
-      (*print_string "remove "; (*print_term a; print_term b;*) print_newline();*)
         s,phi
       else
 	match solve ra rb with
 	(* rule UNSOLV : the explanations are those of all the modifications of the value of the representatives of a and b, plus a=b *)
-	| Bot -> (*print_string "unsolv "; (*print_term a; print_term b;*) print_newline();*)
+	| Bot ->
 	   let l  = union (U.explain s.u ra (make a)) (U.explain s.u rb (make b)) in
 	   let l' = explPath s.u (i::l) in 
 	   raise (Inconsistency l')
 	| Top -> assert false
 	| Sol(p,q) ->
-	   (*print_value p; print_value q; print_newline();*)
 	   (* we get a substitution and apply it on the equivalence classes *)
 	   let delta0 = VtoV.map (subst p q) s.delta in 
 	   let delta' = VtoV.fold 
@@ -197,7 +176,6 @@ apply the substituions met since the beginning *)
 			   if X.vequal (U.find uf r') (U.find uf r'')
                            then uf
                            else
-		             (*print_value r; print_value r'; print_value r''; print_newline();*)
 			     U.addLink uf r' r'' i
 		         with Not_found -> (* r'' unknown in uf *)
 			   let uf' = addUF r'' uf (((p,q),i)::s.sub) in
@@ -223,10 +201,10 @@ apply the substituions met since the beginning *)
 	    match coherent delta' s.n with
 	      (* if the substitution isn't coherent with the disequalities
 		 we apply the rule INCOHEQ *)
-	    | Some(so,a,b) -> (*print_string "incoheq "; (*print_term a; print_term b;*) print_newline();*)
-	      raise (Inconsistency(NEq(so,a,b)::(explain u' a b)))
+	    | Some(so,a,b,tag) ->
+	       raise (Inconsistency(NEq(so,a,b,tag)::(explain u' a b)))
 	    (* else this is the rule CONGR *)
-	    | None -> (*print_string "congr "; (*print_term a; print_term b;*) print_newline();*)
+	    | None ->
 	      (* we compute the new gamma *)
 	      let gamma' = VSet.fold
                 (fun l g -> VtoTSet.add l (TSet.union (get l s.gamma) (get p s.gamma)) g) 
@@ -272,21 +250,18 @@ apply the substituions met since the beginning *)
               List.append phi' phi
 	  end
     end
-    | NEq(so,a,b) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
+    | NEq(so,a,b,tag) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
       if X.vequal (VtoV.find (make a) s.delta) (VtoV.find (make b) s.delta)
       then
 	(* rule INCOHDIFF *)
-	(*print_string "incohdiff "; (*print_term a; print_term b;*) print_newline();*)
 	raise (Inconsistency(i::(explain s.u a b)))
       else 
 	(* rule DIFF *)
-	(*print_string "diff "; (*print_term a; print_term b;*) print_newline();*)
-        {s with n = (so,a,b)::s.n}, phi
-	(* rule ADD *)
-    | Eq(_,a,b) | NEq(_,a,b) | Congr(a,b) ->
+        {s with n = (so,a,b,tag)::s.n}, phi
+    (* rule ADD *)
+    | Eq(_,a,b,_) | NEq(_,a,b,_) | Congr(a,b) ->
       (* we find a good subterm to add *)
       let fs = findSterm (if not (TSet.mem a s.theta) then a else b) s.theta in
-      (*print_string "add "; (*print_term fs*); print_newline();*)
       (* this is the L_{delta} of the algorithm *)
       let ld = List.fold_left
         (fun e v -> 

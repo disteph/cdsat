@@ -28,7 +28,7 @@ end) = struct
   module MyCC = MyTheory.Make(DS)
 
   let rec init_rec next = 
-    let module Next = (val next: MyCC.State with type t = MyCC.state) in
+    let module Next = (val next: MyCC.SlotMachineCC with type t = MyCC.outputCC) in
     let rec state : (sign,DS.TSet.t) slot_machine = (module struct 
       type newoutput = (sign,DS.TSet.t) output
       type tset = DS.TSet.t

@@ -12,20 +12,20 @@ module Make(DS: sig
   val proj: Term.datatype -> LitF.t
 end) :  sig
 
-  module type State = sig
+  module type SlotMachineCC = sig
     type t
     val treated : DS.TSet.t
     val add : DS.TSet.t -> t
     val normalise : DS.Term.t -> (sign, DS.TSet.t, thStraight) thsays
   end
 
-  type state =      
+  type outputCC =
     | UNSAT of
           (sign, DS.TSet.t, thProvable) thsays
     | SAT of
         (sign, DS.TSet.t, thNotProvable) thsays
-      * (module State with type t = state)
+      * (module SlotMachineCC with type t = outputCC)
 
-  val init : (module State with type t = state)
+  val init : (module SlotMachineCC with type t = outputCC)
 
 end

@@ -32,8 +32,8 @@ module type SetImplem = sig
 end
 
 type 'a input = 
-| Eq of Sorts.t*'a*'a
-| NEq of Sorts.t*'a*'a
+| Eq of Sorts.t*'a*'a*(int option)
+| NEq of Sorts.t*'a*'a*(int option)
 | Congr of 'a*'a
 
 (* signature of the theory X in input for CC(X) *)

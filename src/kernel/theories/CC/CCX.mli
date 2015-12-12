@@ -26,7 +26,7 @@ module Make
   (U : PersistentUnionFind with type e = X.v) :
 sig
 
-  module type State =
+  module type SlotMachineCC =
     sig
       type t
       val treated : DS.TSet.t
@@ -36,12 +36,12 @@ sig
         (sign, DS.TSet.t, Top.Messages.thStraight) Top.Messages.thsays
     end
 
-  type state =
+  type outputCC =
     | UNSAT of (sign, DS.TSet.t, Top.Messages.thProvable) Top.Messages.thsays
     | SAT of
         (sign, DS.TSet.t, Top.Messages.thNotProvable) Top.Messages.thsays *
-        (module State with type t = state)
+        (module SlotMachineCC with type t = outputCC)
 
-  val init : (module State with type t = state)
+  val init : (module SlotMachineCC with type t = outputCC)
 
 end
