@@ -18,17 +18,21 @@ module Make(DS: sig
   let rec aToEq a (splits, eqs) = 
     match proj(Terms.data a) with
     | ThDS.Ineq eq    -> splits, (eq::eqs)
-    | ThDS.EqNeq(b,i) ->
+    | ThDS.EqNeq(flip,i) ->
        begin
-         match Terms.reveal(Term.term_of_id i) with
+         match flip, Terms.reveal(Term.term_of_id i) with
 
-         | Terms.C(Symbols.Eq Sorts.Rat,[a;b]) -> 
+         | true, Terms.C(Symbols.Eq Sorts.Rat,[a;b])
+         | false, Terms.C(Symbols.NEq Sorts.Rat,[a;b])
+             -> 
             let a1 = Term.bC Symbols.Le [a;b] in
             let a2 = Term.bC Symbols.Ge [a;b] in
             let splits, eqs = aToEq a1 (splits, eqs) in
             aToEq a2 (splits, eqs)
 
-         | Terms.C(Symbols.NEq Sorts.Rat,[a;b]) -> 
+         | true, Terms.C(Symbols.NEq Sorts.Rat,[a;b])
+         | false, Terms.C(Symbols.Eq Sorts.Rat,[a;b])
+             ->
             let a1 = Term.bC Symbols.Lt [a;b] in
             let a2 = Term.bC Symbols.Gt [a;b] in
             let s1 = TSet.add a1 TSet.empty in
