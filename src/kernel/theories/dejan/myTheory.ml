@@ -14,7 +14,10 @@ module Make(DS: sig
 
   open DS
 
-  (* Function to convert types *)
+(* Converts a term to something understandable by the algorithm: eqs
+is where we accumulate the inequalities, splits is where we accumulate
+the case analyses that we will ask Psyche to make *)
+
   let rec aToEq a (splits, eqs) = 
     match proj(Terms.data a) with
     | ThDS.Ineq eq    -> splits, (eq::eqs)
@@ -27,6 +30,8 @@ module Make(DS: sig
              -> 
             let a1 = Term.bC Symbols.Le [a;b] in
             let a2 = Term.bC Symbols.Ge [a;b] in
+            (* In case of an equality, we add the two non-strict
+            inequalities to eqs *)
             let splits, eqs = aToEq a1 (splits, eqs) in
             aToEq a2 (splits, eqs)
 
@@ -38,9 +43,11 @@ module Make(DS: sig
             let s1 = TSet.add a1 TSet.empty in
             let s2 = TSet.add a2 TSet.empty in
             let s3 = TSet.add a TSet.empty in
+            (* In case of a disequality, we describe the case analysis
+            to make, and store it in splits *)
             (thAnd () s1 s2 s3)::splits,
             eqs
-         | _ -> splits, eqs
+         | _ -> failwith "Should not happen"
        end
     | _ -> splits, eqs
 
@@ -48,6 +55,7 @@ module Make(DS: sig
     | None -> failwith "Can not convert an equation without tag"
     | Some t -> Term.term_of_id t
 
+  let toTSet eqs = List.fold_left (fun l e -> TSet.add (eqToA e) l) TSet.empty eqs
 
 
   type state = {treated : TSet.t;
@@ -60,34 +68,35 @@ module Make(DS: sig
       type newoutput = (sign,TSet.t) output
       type tset = TSet.t
 
-      let fromTSet tset = TSet.fold aToEq tset (state.splits,[])
-      let toTSet eqs = List.fold_left (fun l e -> TSet.add (eqToA e) l) TSet.empty eqs
-
-      (* Requiered function *)
+      (* Required function *)
       let treated () = state.treated
 
       (* Should send a minimal set af equations *)
       let add = function
         | None -> Output(None, machine state)
         | Some tset ->
-          let newtreated = TSet.union state.treated tset in
-          let splits, neweqs = fromTSet tset in
+          (* We collect from tset the equations and the split points *)
+          let splits, neweqs = TSet.fold aToEq tset (state.splits,[]) in
           try     
-            (* Lancer l'algo sur les nouvelles équations *)
+            (* We resume the algorithm with the new equations *)
             let _,s = resumeDejeanAlgo neweqs state.stack in
             begin
+              (* If we reach this, we are SAT, having ignored the
+              splits, so we see if we want Psyche to perform some splits *)
               match splits with
               | [] -> 
+                 (* No more case analyses to make, we return the SAT message *)
                  let newState = {
-                   treated = newtreated; 
+                   treated = TSet.union state.treated tset; 
                    splits = [];
                    stack = s;
                  }
                  in
-                 Output(Some(thNotProvable () newtreated), machine newState)
+                 Output(Some(thNotProvable () newState.treated), machine newState)
               | msg::splits' ->
+                 (* We ask Psyche to make a case analysis with msg *)
                  let newState = {
-                   treated = newtreated; 
+                   treated = TSet.union state.treated tset; 
                    splits = splits';
                    stack = s;
                  }
