@@ -5,179 +5,6 @@ open Specs
 open Algo
 open Trail
 
-(* Apply the operation op to two hashtable, to value with equal key *)
-let applyOp2 op t1 t2 =
-  let res = Hashtbl.copy t1 in
-  let g k v =
-    try
-      let temp = Hashtbl.find t1 k in
-      Hashtbl.replace res k (op temp v)
-    with Not_found -> Hashtbl.replace res k (op (num_of_int 0) v)
-  in
-  Hashtbl.iter g t2;
-  res
-
-(* Create a hashtable whose value are the opposite of those of the original one *)
-let opposite t1 =
-  let res = Hashtbl.create 10 in
-  let f k v =
-    Hashtbl.replace res k (v */ (num_of_int (-1)))
-  in
-  Hashtbl.iter f t1;
-  res
-
-type eqBuilder =
-  | Cst of num
-  | ArithTerm of (Equation.var, Equation.value)Hashtbl.t * num
-  | Eqs of Equation.equation list
-  | Other
-
-(* Function to make transition between building type and dejan algo type *)
-let rec buildersToEqs v = match v with
-  | (Eqs eqs)::q -> eqs@(buildersToEqs q)
-  | _::q -> (buildersToEqs q)
-  | [] -> []
-
-let eqTot eq = Eqs([eq])
-
-module ThDS = struct
-
-  type t = eqBuilder
-
-  let bV tag fv = match Variables.FreeVar.get_sort fv with
-    | Sorts.Rat -> let coeff = Hashtbl.create 10 in Hashtbl.add coeff tag (num_of_int 1); ArithTerm(coeff,num_of_int 0)
-    | _ -> Other
-
-  let bC tag symb l = match symb, l with
-    | Symbols.Neg, [a] -> (match a with
-        | Eqs [eq] -> Eqs([Equation.toggleStrict (Equation.multiply eq (num_of_int (-1)))])
-        | _ -> Other
-      )
-
-    | Symbols.Eq Sorts.Rat, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false [] (Some tag); Equation.createFromList [] (s1 -/ s2) false [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c1 = applyOp2 (-/) t1 t2 in
-          let c2 = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c1 (s2 -/ s1) false [] (Some tag); Equation.create c2 (s1 -/ s2) false [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
-          let coeff = opposite t1 in
-          Eqs([Equation.create coeff (s1 -/ s2) false [] (Some tag); Equation.create t1 (s2 -/ s1) false [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.NEq Sorts.Rat, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true [] (Some tag); Equation.createFromList [] (s1 -/ s2) true [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c1 = applyOp2 (-/) t1 t2 in
-          let c2 = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c1 (s2 -/ s1) true [] (Some tag); Equation.create c2 (s1 -/ s2) true [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) ->
-          let coeff = opposite t1 in
-          Eqs([Equation.create coeff (s1 -/ s2) true [] (Some tag); Equation.create t1 (s2 -/ s1) true [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.CstRat n, [] -> Cst(n)
-
-    | Symbols.Le, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) false [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c = applyOp2 (-/) t1 t2 in
-          Eqs([Equation.create c (s2 -/ s1) false [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) false [] (Some tag)])
-        | Cst(s1), ArithTerm(t2, s2) ->
-          let c = opposite t2 in
-          Eqs([Equation.create c (s2 -/ s1) false [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.Lt, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s2 -/ s1) true [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c = applyOp2 (-/) t1 t2 in
-          Eqs([Equation.create c (s2 -/ s1) true [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) -> Eqs([Equation.create t1 (s2 -/ s1) true [] (Some tag)])
-        | Cst(s1), ArithTerm(t2, s2) ->
-          let c = opposite t2 in
-          Eqs([Equation.create c (s2 -/ s1) true [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.Ge, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) false [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c (s1 -/ s2) false [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) ->
-          let c = opposite t1 in
-          Eqs([Equation.create c (s1 -/ s2) false [] (Some tag)])
-        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) false [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.Gt, [a;b] -> (match a, b with
-        | Cst(s1), Cst(s2) -> Eqs([Equation.createFromList [] (s1 -/ s2) true [] (Some tag)])
-        | ArithTerm(t1, s1), ArithTerm(t2, s2) ->
-          let c = applyOp2 (-/) t2 t1 in
-          Eqs([Equation.create c (s1 -/ s2) true [] (Some tag)])
-        | ArithTerm(t1, s1), Cst(s2) ->
-          let c = opposite t1 in
-          Eqs([Equation.create c (s1 -/ s2) true [] (Some tag)])
-        | Cst(s1), ArithTerm(t2, s2) -> Eqs([Equation.create t2 (s1 -/ s2) true [] (Some tag)])
-        | _, _ -> Other
-      )
-
-    | Symbols.Plus, [a;b] -> (match a,b with
-        | ArithTerm(t1,s1), ArithTerm(t2, s2) ->
-          let coeff = applyOp2 (+/) t1 t2 in
-          ArithTerm(coeff, s1 +/ s2)
-        | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) -> ArithTerm(t1, s1 +/ s2)
-        | _, _ -> Other
-      )
-
-    | Symbols.Minus, [a;b] -> (match a,b with
-        | ArithTerm(t1,s1), ArithTerm(t2, s2) ->
-          let coeff = applyOp2 (-/) t1 t2 in
-          ArithTerm(coeff, s1 -/ s2)
-        | ArithTerm(t1, s1), Cst(s2) | Cst(s2), ArithTerm(t1, s1) -> ArithTerm(t1, s1 -/ s2)
-        | _, _ -> Other
-      )
-
-    | Symbols.Times, [a;b] -> (match a,b with
-        | ArithTerm(t1,s1), Cst(s2) | Cst(s2), ArithTerm(t1,s1) ->
-          let coeff = Hashtbl.create 10 in
-          Hashtbl.iter (fun k v -> Hashtbl.replace coeff k (v */ s2)) t1;
-          ArithTerm(coeff, s1 */ s2)
-        | Cst(s1), Cst(s2) -> Cst(s1 */ s2)
-        | _, _ -> Other
-      )
-
-    | Symbols.Divide, [a;b] -> (match a,b with
-        | ArithTerm(t1,s1), Cst(s2) ->
-          let coeff = Hashtbl.create 10 in
-          Hashtbl.iter (fun k v -> Hashtbl.replace coeff k (v // s2)) t1;
-          ArithTerm(coeff, s1 */ s2)
-        | Cst(s1), Cst(s2) -> Cst(s1 // s2)
-        | _, _ -> Other
-      )
-
-    | Symbols.Op, [a] -> (match a with
-        | ArithTerm(t1,s1) ->
-          let coeff = opposite t1 in
-          ArithTerm(coeff, s1 */ (num_of_int (-1)))
-        | Cst(s) -> Cst((num_of_int (-1))*/s)
-        | _ -> Other
-      )
-
-    | _,_ -> begin
-        match Symbols.arity symb with
-        | Sorts.Rat, _ -> let coeff = Hashtbl.create 10 in Hashtbl.add coeff tag (num_of_int 1); ArithTerm(coeff,num_of_int 0)
-        | _,_ -> Other
-      end
-
-end
-
 type sign = unit
 
 module Make(DS: sig
@@ -187,7 +14,41 @@ module Make(DS: sig
 
   open DS
 
-  type state = {treated : TSet.t; stack : trail list}
+  (* Function to convert types *)
+  let rec aToEq a (splits, eqs) = 
+    match proj(Terms.data a) with
+    | ThDS.Ineq eq    -> splits, (eq::eqs)
+    | ThDS.EqNeq(b,i) ->
+       begin
+         match Terms.reveal(Term.term_of_id i) with
+
+         | Terms.C(Symbols.Eq Sorts.Rat,[a;b]) -> 
+            let a1 = Term.bC Symbols.Le [a;b] in
+            let a2 = Term.bC Symbols.Ge [a;b] in
+            let splits, eqs = aToEq a1 (splits, eqs) in
+            aToEq a2 (splits, eqs)
+
+         | Terms.C(Symbols.NEq Sorts.Rat,[a;b]) -> 
+            let a1 = Term.bC Symbols.Lt [a;b] in
+            let a2 = Term.bC Symbols.Gt [a;b] in
+            let s1 = TSet.add a1 TSet.empty in
+            let s2 = TSet.add a2 TSet.empty in
+            let s3 = TSet.add a TSet.empty in
+            (thAnd () s1 s2 s3)::splits,
+            eqs
+         | _ -> splits, eqs
+       end
+    | _ -> splits, eqs
+
+  let eqToA eq = match Equation.getTag eq with
+    | None -> failwith "Can not convert an equation without tag"
+    | Some t -> Term.term_of_id t
+
+
+
+  type state = {treated : TSet.t;
+                splits : (sign,TSet.t,thAnd) thsays list;
+                stack : trail list}
 
   let rec machine state  =
     (module struct
@@ -195,13 +56,7 @@ module Make(DS: sig
       type newoutput = (sign,TSet.t) output
       type tset = TSet.t
 
-      (* Function to convert types *)
-      let aToEq a =  proj(Terms.data a)
-      let eqToA eq = match Equation.getTag eq with
-        | None -> failwith "Can not convert an equation without tag"
-        | Some t -> Term.term_of_id t
-
-      let fromTSet tset = buildersToEqs(TSet.fold (fun t l -> (aToEq t)::l) tset [])
+      let fromTSet tset = TSet.fold aToEq tset (state.splits,[])
       let toTSet eqs = List.fold_left (fun l e -> TSet.add (eqToA e) l) TSet.empty eqs
 
       (* Requiered function *)
@@ -212,15 +67,30 @@ module Make(DS: sig
         | None -> Output(None, machine state)
         | Some tset ->
           let newtreated = TSet.union state.treated tset in
+          let splits, neweqs = fromTSet tset in
           try     
             (* Lancer l'algo sur les nouvelles équations *)
-            let _,s = resumeDejeanAlgo (fromTSet tset) state.stack in
-            let newState = {
-              treated = newtreated; 
-              stack = s;
-            }
-            in
-            Output(Some(thNotProvable () newtreated), machine newState)
+            let _,s = resumeDejeanAlgo neweqs state.stack in
+            begin
+              match splits with
+              | [] -> 
+                 let newState = {
+                   treated = newtreated; 
+                   splits = [];
+                   stack = s;
+                 }
+                 in
+                 Output(Some(thNotProvable () newtreated), machine newState)
+              | msg::splits' ->
+                 let newState = {
+                   treated = newtreated; 
+                   splits = splits';
+                   stack = s;
+                 }
+                 in
+                 Output(Some msg, machine newState)
+            end
+
           with Unsat_failure (l,s) -> Output(Some(thProvable () (toTSet l)), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
@@ -229,6 +99,6 @@ module Make(DS: sig
 
     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
-  let init = machine {treated=TSet.empty; stack=[]}
+  let init = machine {treated=TSet.empty; splits=[]; stack=[]}
 
 end

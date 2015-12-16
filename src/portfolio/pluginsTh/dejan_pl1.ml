@@ -10,7 +10,7 @@ open Dejan
 type sign = MyTheory.sign
 let hdl = Sig.Dejan
 
-module ThDS = MyTheory.ThDS
+module ThDS = ThDS
 
 module Make(DS: sig 
   include GTheoryDSType

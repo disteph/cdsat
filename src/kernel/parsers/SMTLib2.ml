@@ -163,11 +163,11 @@ let glance input =
 let guessThDecProc aft =
   match aft.theory with
     | None   -> None
-    | Some "QF_UF"  -> Some ["CC"; "IfThenElse"]
-    | Some "QF_LRA" -> Some ["LRA"; "CC"; "IfThenElse"]
-    | Some "QF_LIA" -> Some ["LIA"; "CC"; "IfThenElse"]
-    | Some "QF_AX"  -> Some ["Arrays"; "CC"; "IfThenElse"]
-    | Some a -> Some [a; "CC"; "IfThenElse"]
+    | Some "QF_UF"  -> Some ["CC"; "empty"; "IfThenElse"]
+    | Some "QF_LRA" -> Some ["LRA"; "CC"; "empty"; "IfThenElse"]
+    | Some "QF_LIA" -> Some ["LIA"; "CC"; "empty"; "IfThenElse"]
+    | Some "QF_AX"  -> Some ["Arrays"; "CC"; "empty"; "IfThenElse"]
+    | Some a -> Some [a; "CC"; "empty"; "IfThenElse"]
 
 let rec list_index a accu = function
   | [] -> None

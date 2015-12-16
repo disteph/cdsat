@@ -16,10 +16,10 @@ module Sig = struct
     | IfThenElse -> 4
     
   let print_in_fmt fmt (type a) : a t -> unit = function
-    | Empty -> Format.fprintf fmt "Empty"
-    | CC    -> Format.fprintf fmt "CC"
-    | Arrays ->  Format.fprintf fmt "Arrays"
-    | Dejan ->  Format.fprintf fmt "Dejan"
+    | Empty      -> Format.fprintf fmt "Empty"
+    | CC         -> Format.fprintf fmt "CC"
+    | Arrays     ->  Format.fprintf fmt "Arrays"
+    | Dejan      ->  Format.fprintf fmt "Dejan"
     | IfThenElse ->  Format.fprintf fmt "IfThenElse"
 end
 
@@ -30,7 +30,7 @@ module Handlers = struct
 end
 
 let all_theories_list = 
-  [ (* Handlers.Handler Sig.Empty; *)
+  [ Handlers.Handler Sig.Empty;
     Handlers.Handler Sig.CC;
     Handlers.Handler Sig.Arrays;
     Handlers.Handler Sig.Dejan;
@@ -45,10 +45,10 @@ exception NotFound of string
 
 let parse = function
   | "empty" | "prop" | "bool" -> Handlers.Handler Sig.Empty
-  | "CC"     -> Handlers.Handler Sig.CC
-  | "LRA"    -> Handlers.Handler Sig.Dejan
-  | "LIA"    -> Handlers.Handler Sig.Dejan
-  | "Arrays" -> Handlers.Handler Sig.Arrays
+  | "CC"         -> Handlers.Handler Sig.CC
+  | "LRA"        -> Handlers.Handler Sig.Dejan
+  | "LIA"        -> Handlers.Handler Sig.Dejan
+  | "Arrays"     -> Handlers.Handler Sig.Arrays
   | "IfThenElse" -> Handlers.Handler Sig.IfThenElse
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 

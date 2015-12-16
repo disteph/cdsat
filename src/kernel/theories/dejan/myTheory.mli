@@ -4,8 +4,6 @@ open Specs
 
 type sign
 
-module ThDS : DataType
-
 module Make(DS: sig 
   include GTheoryDSType
   val proj: Term.datatype -> ThDS.t
