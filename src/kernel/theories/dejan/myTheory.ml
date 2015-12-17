@@ -18,8 +18,8 @@ module Make(DS: sig
 is where we accumulate the inequalities, splits is where we accumulate
 the case analyses that we will ask Psyche to make *)
 
-  let rec aToEq a (splits, eqs) = 
-    match proj(Terms.data a) with
+  let rec aToEq lit (splits, eqs) = 
+    match proj(Terms.data lit) with
     | ThDS.Ineq eq    -> splits, (eq::eqs)
     | ThDS.EqNeq(flip,i) ->
        begin
@@ -42,7 +42,7 @@ the case analyses that we will ask Psyche to make *)
             let a2 = Term.bC Symbols.Gt [a;b] in
             let s1 = TSet.add a1 TSet.empty in
             let s2 = TSet.add a2 TSet.empty in
-            let s3 = TSet.add a TSet.empty in
+            let s3 = TSet.add lit TSet.empty in
             (* In case of a disequality, we describe the case analysis
             to make, and store it in splits *)
             (thAnd () s1 s2 s3)::splits,

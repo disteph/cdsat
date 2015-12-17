@@ -46,7 +46,11 @@ let make theories : (module Plugin.Type) =
 
       let m_init = make (module WB.DS) WB.projList
 
-      let slaves_number = HandlersMap.cardinal m_init
+      (* The set of all involved theories *)
+
+      let all_theories = HandlersMap.map (fun _ -> ()) m_init
+
+      (* let slaves_number = HandlersMap.cardinal all_theories *)
 
       (* This is a useful variant of a fold function for handlers
       maps, which accumulates on the side a list of tasks (unit
@@ -68,6 +72,25 @@ let make theories : (module Plugin.Type) =
         let list, () = hdlfold aux m () in
         Deferred.all_unit list
 
+      let print_pipes =
+        let aux (Handlers.Handler hdl) to_worker =
+          Dump.msg (Some(fun p -> p "%a: %i messages queued" Sig.print_in_fmt hdl (Pipe.length to_worker))) None None
+        in
+        HandlersMap.iter aux
+
+      type state = {
+        from_workers : W.msg2pl Pipe.Reader.t;
+        to_plugin    : W.msg2pl Pipe.Writer.t;
+        pipe_map   : W.msg2th Pipe.Writer.t HandlersMap.t;
+        thAnd_list : W.msg2pl list;
+        thOr_list  : W.msg2pl list;
+        waiting4   : unit HandlersMap.t
+      }
+
+      let kill_pipes state =
+        broadcast (fun w -> return(Pipe.close w)) state.pipe_map
+        >>| fun () -> Pipe.close state.to_plugin
+
       (* This is a branching function telling all slave workers:
 
          "Please, clone yourself; here are the new pipes to be used
@@ -80,7 +103,7 @@ let make theories : (module Plugin.Type) =
          trigger the exploration of the second branch (with newb).
       *)
 
-      let branch from_workers pipe_map cont newa newb =
+      let branch state cont newa newb =
         let new_from_workers,new_to_pl = Pipe.create () in
         (* Pipe.set_size_budget new_to_pl slaves_number; *)
         let tasks,new_pipe_map =
@@ -89,13 +112,27 @@ let make theories : (module Plugin.Type) =
             Lib.write to_worker (W.MsgBranch(newa,newb,new_from_pl,new_to_pl)),
             HandlersMap.add hdl new_to_worker sofar
           in
-          hdlfold treat_worker pipe_map HandlersMap.empty
+          hdlfold treat_worker state.pipe_map HandlersMap.empty
         in
+        print_pipes state.pipe_map;
+        Dump.msg (Some(fun p -> p "%s" "Ordering everybody to clone themselves")) None None;
         Deferred.all_unit tasks
         >>= fun () -> 
-        cont from_workers pipe_map
+        print_pipes state.pipe_map;
+        Dump.msg (Some(fun p -> p "%s" "Everybody cloned themselves; now starting first branch")) None None;
+        cont { state with waiting4 = all_theories }
         >>| fun ans ->
-        ans, fun () -> cont new_from_workers new_pipe_map
+        print_pipes state.pipe_map;
+        let newstate = { state with
+          from_workers = new_from_workers; pipe_map = new_pipe_map;
+          waiting4 = all_theories }
+        in
+        (ans,
+         (fun () -> (Dump.msg (Some(fun p -> p "%s" "Now starting second branch")) None None;
+                    cont newstate)),
+         (fun () -> kill_pipes newstate)
+        )
+
 
       (* A wrapper for the Whiteboard's straight function; the latter
          is not called in case the extra literals newset added by the
@@ -139,17 +176,153 @@ let make theories : (module Plugin.Type) =
            else WB.orBranch hdl msg side ans
         | WB.NotProvable _ -> failwith "Should apply orBranch on Provable"
 
+      let rec pipe_flush state = match state.thAnd_list, state.thOr_list with
+
+        | thmsg::l, _  when HandlersMap.is_empty state.waiting4 ->
+           return(thmsg, { state with thAnd_list = l } )
+
+        | _, thmsg::l  when HandlersMap.is_empty state.waiting4 ->
+           return(thmsg, { state with thOr_list = l } )
+
+        | _, _ -> Pipe.read state.from_workers
+                  >>= (function
+                  | `Eof -> failwith "Eof"
+                  | `Ok(W.Msg(hdl,msg) as thmsg) 
+                    -> 
+                     let hdl = Handlers.Handler hdl in
+                     let state = if HandlersMap.mem hdl state.waiting4
+                       then { state with waiting4 = HandlersMap.remove hdl state.waiting4 }
+                       else state
+                     in
+                     Dump.msg (Some(fun p -> p "%a" W.print_in_fmt thmsg)) None None;
+                      match msg with
+                      | ThAnd _ -> 
+                         let newstate = { state with thAnd_list = thmsg::state.thAnd_list }
+                         in pipe_flush newstate
+                      | ThOr _ -> 
+                         let newstate = { state with thOr_list = thmsg::state.thOr_list }
+                         in pipe_flush newstate
+                      | _ -> 
+                         Dump.msg (Some(fun p-> p "pipe_flush finished")) None None;
+                        return (thmsg, state))
+
+      (* Main loop of the master thread *)
+
+      let rec main_worker state = function
+
+        (* So far for all we know, the problem is not provable *)
+
+        | WB.NotProvable(rest,consset) as current ->
+           Dump.msg (Some(fun p-> p "Main_worker enters new loop with %i theories having to check the set\n%a"
+             (HandlersMap.cardinal rest)
+             WB.DS.TSet.print_in_fmt consset
+           )) None None;
+          begin
+            match state.thAnd_list, state.thOr_list with
+            | [], [] when HandlersMap.is_empty rest ->
+                 (* rest being empty means that all theories have
+                    stamped the set of literals consset as being consistent
+                    with them, so we can finish, closing all pipes *)
+               (kill_pipes state >>| fun () -> current)
+
+            | _, _ ->
+                  (* some theories still haven't stamped that set of
+                     literals consset as being consistent with them, so we
+                     read what the theories have to tell us *)
+               pipe_flush state
+               >>= function (W.Msg(hdl,msg), state) ->
+                 Dump.msg (Some(fun p-> p "Main_worker gets something")) None None;
+
+                 match msg with
+
+                 | ThProvable _ -> 
+                 (* A theory found a proof. We stop and close all
+                    pipes. *)
+
+                    kill_pipes state >>| fun () ->  WB.provable hdl msg
+
+                 | ThNotProvable newtset -> 
+                 (* A theory found a counter-model newtset. If it
+                    is the same as tset, then it means the theory
+                    has stamped the model for which we were
+                    collecting stamps. If not, now all other
+                    theories need to stamp newtset. *)
+
+                    let newcurrent =
+                      if WB.DS.TSet.equal newtset consset
+                      then current
+                      else WB.notprovable_init newtset
+                    in
+                    main_worker state (WB.notprovable hdl msg newcurrent)
+
+                 | ThStraight(newa,old) ->
+                 (* A theory deduced literals newa from literals
+                    old. We broadcast them to all theories *)
+                    print_pipes state.pipe_map;
+                   let treat_worker to_worker =
+                     Lib.write to_worker (W.MsgStraight newa)
+                   in
+                   Dump.msg (Some(fun p -> p "Broadcasting for Straight")) None None;
+                   broadcast treat_worker state.pipe_map
+                   >>= fun () ->
+                   Dump.msg (Some(fun p -> p "Done the Straight broadcast")) None None;
+                   main_worker { state with waiting4 = all_theories } current
+                   >>| fun ans ->
+                   begin match ans with
+                   | WB.Provable _ -> straight hdl msg ans
+                   | WB.NotProvable _ -> ans
+                   end
+
+                 | ThAnd(newa,newb,old) ->
+                 (* A theory is asking to branch conjonctively *)
+                    
+                    branch state
+                      (fun newstate -> main_worker newstate current)
+                      newa newb
+                    >>= fun (ans1, def_ans2, kill2) -> 
+                   begin match ans1 with
+                   | WB.Provable _ ->
+                      begin
+                        def_ans2()
+                        >>| fun ans2 ->
+                        Dump.msg (Some(fun p -> p "Got answer from 2nd branch")) None None;
+                        match ans2 with
+                        | WB.Provable _ ->
+                           Dump.msg (Some(fun p -> p "Got Provable answer from 2nd branch")) None None;
+                          andBranch hdl msg ans1 ans2
+                        | WB.NotProvable _ -> ans2
+                      end
+                   | WB.NotProvable _ -> kill2() >>| fun ()-> ans1
+                   end
+
+                 | ThOr(newa,newb,old) ->
+                 (* A theory is asking to branch disjonctively *)
+                    branch state (fun newstate -> main_worker newstate current)
+                      newa newb
+                    >>= fun (ans1, def_ans2, kill2) ->
+                   begin match ans1 with
+                   | WB.Provable _ -> kill2() >>| fun ()-> orBranch hdl msg true ans1
+                   | WB.NotProvable _ ->
+                      def_ans2()
+                      >>| fun ans2 -> match ans2 with
+                      | WB.Provable _ -> orBranch hdl msg true ans2
+                      | WB.NotProvable _ -> failwith "Don't know"
+                   end
+
+          end
+        | _ -> failwith "Concur.ml: current should be of the form WB.NotProvable(_,_), but found WB.Provable(_,_)"
+
       (* Main code for master thread, parameterised by the original
-      set of formulae we want to prove inconsistent *)
+         set of formulae we want to prove inconsistent *)
+
 
       let mysolve tset =
 
         (* We start by creating a pipe to write to the master
-        thread. *)
+           thread. *)
 
         let from_workers,to_pl = Pipe.create () in
         (* Pipe.set_size_budget to_pl slaves_number; *)
-
 
         (* Then for each decision procedure in m_init, we create a
            slave worker controlling it, with a dedicated pipe to write
@@ -167,121 +340,26 @@ let make theories : (module Plugin.Type) =
 
         in
 
-        (* Main loop of the master thread *)
-
-        let rec main_worker from_workers pipe_map = function
-
-          (* So far for all we know, the problem is not provable *)
-
-          | WB.NotProvable(rest,consset) as current ->
-             (* print "Main_worker enters new loop" *)
-             (* >>= fun () -> *)
-             if HandlersMap.is_empty rest
-             then
-
-               (* rest being empty means that all theories have
-               stamped the set of literals consset as being consistent
-               with them, so we can finish, closing all pipes *)
-
-               broadcast (fun w -> return(Pipe.close w)) pipe_map
-                >>| fun () -> Pipe.close to_pl; current
-             else
-
-               (* some theories still haven't stamped that set of
-               literals consset as being consistent with them, so we
-               read what the theories have to tell us *)
-
-               begin
-                 Pipe.read from_workers
-                 >>= function
-                 | `Eof -> failwith "Eof"
-                 | `Ok(W.Msg(hdl,msg) as thmsg) 
-                   -> 
-                    Dump.msg (Some(fun p -> p "%a" W.print_in_fmt thmsg)) None None;
-                    (* >>= fun () -> *)
-                    match msg with
-
-                   | ThProvable _ -> 
-                      (* A theory found a proof. We stop and close all
-                      pipes. *)
-
-                      broadcast (fun w -> return(Pipe.close w)) pipe_map
-                      >>| fun () -> Pipe.close to_pl; WB.provable hdl msg
-
-                   | ThNotProvable newtset -> 
-                      (* A theory found a counter-model newtset. If it
-                      is the same as tset, then it means the theory
-                      has stamped the model for which we were
-                      collecting stamps. If not, now all other
-                      theories need to stamp newtset. *)
-
-                      if WB.DS.TSet.equal newtset consset
-                      then main_worker from_workers pipe_map (WB.notprovable hdl msg current)
-                      else main_worker from_workers pipe_map (WB.notprovable_init newtset)
-
-                   | ThStraight(newa,old) ->
-                      (* A theory deduced literals newa from literals
-                      old. We broadcast them to all theories *)
-
-                      let treat_worker to_worker =
-                        Lib.write to_worker (W.MsgStraight newa)
-                      in
-                      broadcast treat_worker pipe_map
-                      >>= fun () ->
-                      main_worker from_workers pipe_map current
-                      >>| fun ans ->
-                      begin match ans with
-                      | WB.Provable _ -> straight hdl msg ans
-                      | WB.NotProvable _ -> ans
-                      end
-
-                   | ThAnd(newa,newb,old) ->
-                      (* A theory is asking to branch conjonctively *)
-
-                      branch from_workers pipe_map
-                        (fun fw pm -> main_worker fw pm current)
-                        newa newb
-                      >>= fun (ans1, def_ans2) -> 
-                     begin match ans1 with
-                     | WB.Provable _ ->
-                        begin
-                          def_ans2()
-                          >>| fun ans2 -> match ans2 with
-                          | WB.Provable _ ->
-                             andBranch hdl msg ans1 ans2
-                          | WB.NotProvable _ -> ans2
-                        end
-                     | WB.NotProvable _ -> return ans1
-                     end
-
-                   | ThOr(newa,newb,old) ->
-                      (* A theory is asking to branch disjonctively *)
-
-                      branch from_workers pipe_map
-                        (fun fw pm -> main_worker fw pm current)
-                        newa newb
-                      >>= fun (ans1, def_ans2) ->
-                     begin match ans1 with
-                     | WB.Provable _ -> return (orBranch hdl msg true ans1)
-                     | WB.NotProvable _ ->
-                        def_ans2()
-                        >>| fun ans2 -> match ans2 with
-                        | WB.Provable _ -> orBranch hdl msg true ans2
-                        | WB.NotProvable _ -> failwith "Don't know"
-                     end
-
-               end
-          | _ -> failwith "Concur.ml: current should be of the form WB.NotProvable(_,_), but found WB.Provable(_,_)"
+        let state = {
+          from_workers = from_workers;
+          to_plugin    = to_pl;
+          pipe_map     = pipe_map;
+          thAnd_list   = [];
+          thOr_list    = [];
+          waiting4     = all_theories;
+        }
         in
-        (* Now we wait until all slaves have finished and master has
-        finished with answer a, and we return a. *)
 
-        Deferred.both (Deferred.all_unit workers_list) (main_worker from_workers pipe_map (WB.notprovable_init tset))
-        >>| fun ((),a) -> 
-          a
+        (* Now we wait until all slaves have finished and master has
+           finished with answer a, and we return a. *)
+        Deferred.both
+          (Deferred.all_unit workers_list)
+          (main_worker state (WB.notprovable_init tset))
+        >>| fun ((), a) -> 
+        a
 
       (* Finally, we launch the scheduler on mysolve tset, waiting for
-      all tasks to be done before returning. *)
+         all tasks to be done before returning. *)
 
       let solve tset = Thread_safe.block_on_async_exn (fun () -> mysolve tset)
 
