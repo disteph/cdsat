@@ -34,10 +34,10 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     | Jackpot ans                                  -> ans
     | InsertCoin(Notify(_,_,_,machine,_))          -> solve (machine (true,noaddress,accept,fNone))
     | InsertCoin(AskFocus(_,_,p,b,_,machine,_))    -> begin
-      match FSet.forPlugin p with
-      | [] when b -> solve (machine (Restore(noaddress,accept,fNone)))
-      | []   -> solve (machine (ConsistencyCheck(noaddress,accept,fNone)))
-      | a::l -> solve (machine (Focus(a,(noaddress,noaddress),accept,fNone)))
+      match UFSet.choose(FSet.forPlugin p) with
+      | None when b -> solve (machine (Restore(noaddress,accept,fNone)))
+      | None   -> solve (machine (ConsistencyCheck(noaddress,accept,fNone)))
+      | Some a -> solve (machine (Focus(a,(noaddress,noaddress),accept,fNone)))
     end
     | InsertCoin(AskSide (_,_,machine,_))          -> solve (machine (true,(noaddress,noaddress)))
     | InsertCoin(Stop(b1,b2, machine))             -> solve (machine ())

@@ -1,7 +1,18 @@
-open General.Sums
-open Kernel.Top.Interfaces_basic
-open Kernel.Prop.Interfaces_theory
-open Kernel.Prop.Formulae
+(*******************************************************************)
+(* API for Memoisation of results.
+   
+   Now we provide tools for memoising the proof-search function.
+   Provided that plugin gives a bit more information about its data
+   structures, module Memo provides memoisation handling
+   functions, and one function to clear the memoisation table.
+
+   A plugin can store the result of a search with f:tomem
+
+   For the plugin to use these functions, it must construct a
+   memoisation table by providing more structure than just F, FSet,
+   ASet, i.e. providing small extensions of FSet and ASet *)
+(*******************************************************************)
+
 open Kernel.Prop.Interfaces_plugin
 open SetInterface
 

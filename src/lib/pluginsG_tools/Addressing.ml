@@ -8,6 +8,8 @@ type 'a addressing = {
 
 exception AddressingError of string
 
+let data_of_ad ad = ad.data
+
 let print_in_fmt_ad fmt ad =
   let rec aux fmt = function
     | [] -> ()

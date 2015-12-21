@@ -1,20 +1,3 @@
-(*******************************************************************)
-(* API for Memoisation of results.
-   
-   Now we provide tools for memoising the proof-search function.
-   Provided that plugin gives a bit more information about its data
-   structures, module Memo provides 4 memoisation handling
-   functions, and one function to clear the memoisation table.
-
-   A plugin can store the result of a search with f:tomem
-   It can search for a previously obtained result with g:tosearch
-
-   For the plugin to use these functions, it must construct a
-   memoisation table by providing more structure than just F, FSet,
-   ASet, i.e. providing small extensions of FSet and ASet *)
-(*******************************************************************)
-
-
 open Kernel
 
 open Top.Interfaces_basic

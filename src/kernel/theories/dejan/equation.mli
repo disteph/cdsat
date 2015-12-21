@@ -22,7 +22,7 @@ val getPreviousEqs : equation list -> equation list
 val toggleStrict : equation -> equation
 val affectVar : equation -> var -> value -> equation
 val affectVars : equation -> (var * value) list -> equation
-val addDependance : equation -> equation list -> equation
+(* val addDependance : equation -> equation list -> equation *)
 val setDependance : equation -> equation list -> equation
 
 val multiply : equation -> value -> equation

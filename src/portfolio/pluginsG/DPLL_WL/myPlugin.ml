@@ -230,9 +230,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     *)
 
   let update atms ad =
-    let newatoms = UASet.inter atms ad.data.remlits in
-    let tset' = UASet.diff ad.data.remlits (UASet.union newatoms (UASet.negations newatoms)) in
-    let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = ad.data.restore_parity } in
+    let newatoms = UASet.inter atms (data_of_ad ad).remlits in
+    let tset' = UASet.diff (data_of_ad ad).remlits (UASet.union newatoms (UASet.negations newatoms)) in
+    let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = (data_of_ad ad).restore_parity } in
     let aux lit a = match a with
       | None when H.mem watched lit ->
 	let l = H.find watched lit in
@@ -243,7 +243,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     in
     match UASet.fold aux newatoms None with
     | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt a)) None;
-      address:=Yes(ad.data.i);
+      address:=Yes((data_of_ad ad).i);
       count.(1)<-count.(1)+1;
       let now = count.(0) in
       let myaccept a = 
@@ -351,14 +351,14 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
               (if !is_init then
 		  let (atms,cset)= Seq.forPlugin seq in 
 		  is_init:=false;
-                  ad_up a { i = a.data.i; remlits = initialise atms cset; restore_parity = a.data.restore_parity}
+                  ad_up a { i = (data_of_ad a).i; remlits = initialise atms cset; restore_parity = (data_of_ad a).restore_parity}
 	       else a) in
 
 	  let atms = model seq in
 
               (* We update our non-persistent data structures *)
 	  let (action,adOr) = update atms adOr in
-	  let tset' = adOr.data.remlits in
+	  let tset' = (data_of_ad adOr).remlits in
 
               (* We start building the next action to perform:
                  first, we shall test if a tabled proof can be pasted there, otherwise our next action will be determined by decide *)
@@ -417,9 +417,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     | InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when FSet.is_empty l
 	->
       let a = ad[] in
-      let newad = el_wrap(ad_up a {i=a.data.i; remlits=a.data.remlits; restore_parity = not a.data.restore_parity})
+      let newad = el_wrap(ad_up a { (data_of_ad a) with restore_parity = not (data_of_ad a).restore_parity})
       in
-      let next_action = if a.data.restore_parity then (Format.printf "Restoring but next thing is move\n%!"; (fun ()->Some(Get(false,true,fNone)))) else fNone in
+      let next_action = if (data_of_ad a).restore_parity then (Format.printf "Restoring but next thing is move\n%!"; (fun ()->Some(Get(false,true,fNone)))) else fNone in
       solve_rec(machine(Restore(newad,accept,next_action)))
 
         (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)

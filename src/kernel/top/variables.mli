@@ -1,15 +1,12 @@
+open Interfaces_basic
+open Basic
+
 (*************)
 (* Variables *)
 (*************)
 
-
-(* Module type of sequents' arities: specifies types for
-   eigenvariables, meta-variables, and for the datastructures
-   recording which eigens and which metas have been created and how
-   they depend on each other *)
-
-open Interfaces_basic
-open Basic
+(* Specifying types for eigenvariables, meta-variables, and free
+   variables *)
 
 module Meta : sig
   include PHCons
@@ -34,7 +31,9 @@ end
 (**********)
 
 (* A world is a bunch of eigenvariables, a bunch of meta-variables,
-   and how they depend on each other *)
+   and how they depend on each other. The fold function ranges over
+   all the meta-variables that existed when a given eigen was
+   created *)
 
 module World : sig
 
