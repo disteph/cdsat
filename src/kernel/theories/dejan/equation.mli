@@ -8,7 +8,7 @@ val createFromList : (var*value) list -> value -> bool -> equation list -> int o
 
 val getCoeff : equation -> var -> value
 val getSup : equation -> value
-val getTag : equation -> int option
+val getTag : equation -> int list
 val isStrict : equation -> bool
 val isAtomic : equation -> bool
 val isTrivial : equation -> bool

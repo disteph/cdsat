@@ -135,8 +135,12 @@ let getCoeff eq var =
 let getSup eq =
   eq.sup
 
-let getTag eq =
-  eq.tag
+let rec getTag eq = match eq.tag with
+  | Some t -> [t]
+  | None -> (match eq.previous with
+      | [] -> print_string "\n\nNo previous no tag\n\n"; print_exhaustive eq; []
+      | l  -> List.fold_left (fun ll eq -> (getTag eq)@ll) [] l
+    )
 
 (* Return if < or <= *)
 let isStrict eq =
@@ -147,7 +151,7 @@ let toggleStrict eq =
    sup       = eq.sup;
    isStrict  = (not eq.isStrict);
    guardians = eq.guardians;
-   previous  = eq.previous;
+   previous  = [eq];
    tag = None}
 
 let getPrevious eq =
@@ -244,7 +248,7 @@ let multiply eq value =
    sup       = value */ eq.sup;
    isStrict  = eq.isStrict;
    guardians = updateGuardians newCoeffs eq.guardians;
-   previous  = eq.previous;
+   previous  = [eq];
    tag       = None}
 
 (* adds two equations *)
@@ -262,7 +266,7 @@ let add eq1 eq2 =
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict || eq2.isStrict;
    guardians = mergeGuardians coeffs eq1.guardians eq2.guardians;
-   previous = [];
+   previous = [eq1;eq2];
    tag       = None}
    (* we do not need to update previous. (see the algorithm :
       fourierMotzkin resolution handle it itself)*)

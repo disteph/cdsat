@@ -51,11 +51,13 @@ the case analyses that we will ask Psyche to make *)
        end
     | _ -> splits, eqs
 
-  let eqToA eq = match Equation.getTag eq with
-    | None -> failwith "Can not convert an equation without tag"
-    | Some t -> Term.term_of_id t
+(* FIX : when answering with newly created equation, will return previous ones that already exists.
+   Should be improved by creating new terms *)
+  let rec eqToA eq = match Equation.getTag eq with
+        | [] -> failwith "Can not convert an equation without tag"
+        | l  -> List.fold_left (fun tset v -> TSet.add (Term.term_of_id v) tset) TSet.empty l
 
-  let toTSet eqs = List.fold_left (fun l e -> TSet.add (eqToA e) l) TSet.empty eqs
+  let toTSet eqs = List.fold_left (fun l e -> TSet.union (eqToA e) l) TSet.empty eqs
 
 
   type state = {treated : TSet.t;
