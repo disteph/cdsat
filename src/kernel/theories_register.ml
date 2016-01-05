@@ -19,7 +19,7 @@ module Sig = struct
     | Empty      -> Format.fprintf fmt "Empty"
     | CC         -> Format.fprintf fmt "CC"
     | Arrays     ->  Format.fprintf fmt "Arrays"
-    | Dejan      ->  Format.fprintf fmt "Dejan"
+    | Dejan      ->  Format.fprintf fmt "Arithmetic"
     | IfThenElse ->  Format.fprintf fmt "IfThenElse"
 end
 

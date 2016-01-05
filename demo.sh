@@ -19,9 +19,9 @@ function green () {
 function test_psyche () {
     TEST_FILE=$1
     PSYCHE_PARAMS="-latex ${@:2} $TEST_FILE"
-    $PAGER $TEST_FILE
+    # $PAGER $TEST_FILE
     echo -e "  $(green "[") running \033[34m psyche $PSYCHE_PARAMS \033[1;32m]\033[0m"
-    # ./main.native $PSYCHE_PARAMS
+    ./main.native $PSYCHE_PARAMS
     echo "Finished computing. Converting proof to pdf."
     cd latex
     pdflatex Main.tex 2>&1 > /dev/null | sed "s/^/$(green [pdflatex])  /"
@@ -33,8 +33,10 @@ function test_psyche () {
     pause "Press enter to continue."
 }
 
-test_psyche problems/DIMACS/UNSAT/test.cnf -pluginG dpll_wl
-test_psyche problems/DIMACS/SatlibBench/hole7.cnf -pluginG dpll_wl
-# test_psyche demo/LRA-test.smt2 -pluginG dpll_wl
-test_psyche problems/QF_UF/hand_written/cc2.smt2 -pluginG dpll_wl
-test_psyche problems/pelletier/p36.smt2 -pluginG hint
+# test_psyche problems/DIMACS/UNSAT/test.cnf -pluginG dpll_wl
+# test_psyche problems/DIMACS/SatlibBench/hole6.cnf -pluginG dpll_wl
+# # test_psyche demo/LRA-test.smt2 -pluginG dpll_wl
+# test_psyche problems/QF_UF/hand_written/cc2.smt2 -pluginG dpll_wl
+
+test_psyche problems/pelletier/p36.smt2 -fo
+test_psyche problems/pelletier/p36.smt2 -fo -pluginG hint

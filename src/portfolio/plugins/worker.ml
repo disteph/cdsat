@@ -35,7 +35,7 @@ module Make(WB: WhiteBoard) = struct
   let make from_pl to_pl (Signed(hdl,init)) tset =
 
     let read from_pl f =
-      Dump.msg (Some(fun p-> p "%a wants to read" Sig.print_in_fmt hdl)) None None;
+      (* Dump.msg (Some(fun p-> p "%a wants to read" Sig.print_in_fmt hdl)) None None; *)
       Pipe.read from_pl
       >>= function
       | `Eof -> return()
@@ -45,7 +45,7 @@ module Make(WB: WhiteBoard) = struct
     in
 
     let rec flush reader writer msg =
-      Dump.msg (Some(fun p-> p "%a enters flush" Sig.print_in_fmt hdl)) None None;
+      (* Dump.msg (Some(fun p-> p "%a enters flush" Sig.print_in_fmt hdl)) None None; *)
       read reader (function
       | MsgStraight _ -> flush reader writer msg
       | MsgBranch(_,_,newreader,newwriter) -> 
@@ -70,7 +70,7 @@ module Make(WB: WhiteBoard) = struct
       )
       in
 
-      Dump.msg (Some(fun p-> p "%a looks at its output_msg" Sig.print_in_fmt hdl)) None None;
+      (* Dump.msg (Some(fun p-> p "%a looks at its output_msg" Sig.print_in_fmt hdl)) None None; *)
 
       match output_msg with
       | None -> 

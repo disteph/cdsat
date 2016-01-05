@@ -11,7 +11,6 @@ open PluginsG_tools.SetInterface
 
 module UASet : sig
   include CollectImplemExt with type e=LitF.t
-  val diff     : t -> t -> t
   val cardinal : t->int
   val negations: t->t
   val latest   : t -> e option

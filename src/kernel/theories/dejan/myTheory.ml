@@ -79,7 +79,7 @@ the case analyses that we will ask Psyche to make *)
         | Some tset ->
           (* We collect from tset the equations and the split points *)
           let splits, neweqs = TSet.fold aToEq tset (state.splits,[]) in
-           Dump.msg (Some(fun p -> p "Entering Dejan's add")) None None;
+           (* Dump.msg (Some(fun p -> p "Entering Dejan's add")) None None; *)
           try     
             (* We resume the algorithm with the new equations *)
             let _,s = resumeDejeanAlgo neweqs state.stack in
@@ -95,7 +95,7 @@ the case analyses that we will ask Psyche to make *)
                    stack = s;
                  }
                  in
-                 Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None;
+                 (* Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None; *)
                  Output(Some(thNotProvable () newState.treated), machine newState)
               | msg::splits' ->
                  (* We ask Psyche to make a case analysis with msg *)
@@ -105,12 +105,12 @@ the case analyses that we will ask Psyche to make *)
                    stack = s;
                  }
                  in
-                 Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None;
+                 (* Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None; *)
                  Output(Some msg, machine newState)
             end
 
           with Unsat_failure (l,s) ->
-            Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None;
+            (* Dump.msg (Some(fun p -> p "Exiting Dejan's add")) None None; *)
             Output(Some(thProvable () (toTSet l)), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"

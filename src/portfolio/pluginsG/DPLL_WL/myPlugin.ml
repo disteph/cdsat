@@ -79,13 +79,13 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   module CSet = PATMap.Make(CSetWatched)(UFSet.UT)
 
-    (* We now create the hashtable of watched literals *)
+  (* We now create the hashtable of watched literals *)
 
   module H = Hashtbl.Make(PluginsG_tools.Utils.PHCons_ext(LitF))
   let watched = H.create 5003
 
-    (* Here we can check that the table is well-formed. This function
-       is not actually used. Just there for debugging *)
+  (* Here we can check that the table is well-formed. This function
+     is not actually used. Just there for debugging *)
 
   let tablecheck() =
     let c =ref 0 in
@@ -177,49 +177,54 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
        - new set of clauses watching literal lit
     *)
 
-  let treat atms lit t =
+  let treat atms t =
     let rec aux t = match CSet.reveal t with
       | CSet.Empty           -> (None,t)
       | CSet.Leaf(j,x)       ->
 	(match UASet.sub true (FormulaF.data j) atms None with
+
 	| Yes _   ->
 	    (* Clause j is allowing backtrack;
 	       we stop investigating the table of watched literals and return j *)
 	  (Some j,t)
+
 	| Almost n when not (UASet.mem (LitF.negation n) atms) ->
 	    (* Clause j is allowing Unit Propagation;
 	       we stack it, and leave the table of watched literals unchanged *)
 	  stack:= (j,n,false)::!stack;
 	  (None,t)
+
 	| Almost n -> (None,t)
+
 	| _ ->
 	    (* Clause j allows neither backtrack nor unit propagate;
 	       we need to change the watched literal lit *)
-	    (* Pick a new literal to be watched in l *)
-	  let tobcf = UASet.remove x (FormulaF.data j) in
-	  (match pickaux tobcf (UASet.diff tobcf atms) 1 with
-	  | newlit::[] ->
-	      (* if (x=newlit)   then failwith "x=newlit"; *)
-	      (* if (lit=newlit) then failwith "lit=newlit"; *)
-	      (* if (x=lit)      then failwith "x=lit"; *)
-	      (* Updating entry of other watched literal x:
-		 lit -> newlit *)
-	    if not (H.mem watched x) then failwith "fad";
-	    (let watchingx = H.find watched x in
-	     H.replace watched x (CSet.add j (fun _ -> newlit) (CSet.remove j watchingx)));
-	      (* Updating entry of new literal newlit *)
-	    if not (H.mem watched newlit) then H.add watched newlit CSet.empty;
-	    let watchingnewlit = H.find watched newlit in
-	    H.replace watched newlit (CSet.add j (fun _ -> x) watchingnewlit);
-	      (* Final output: no backtrack clause, clause j removed from entry of lit *)
-	    (None,CSet.empty)
-	  | _ -> failwith "Disgrace"
-	  )
+	  (* Pick a new literal to be watched in l *)
+	   let tobcf = UASet.remove x (FormulaF.data j) in
+	   (match pickaux tobcf (UASet.diff tobcf atms) 1 with
+	   | [newlit] ->
+	    (* if (x=newlit)   then failwith "x=newlit"; *)
+	    (* if (lit=newlit) then failwith "lit=newlit"; *)
+	    (* if (x=lit)      then failwith "x=lit"; *)
+	    (* Updating entry of other watched literal x:
+	       lit -> newlit *)
+	      if not (H.mem watched x) then failwith "fad";
+	     (let watchingx = H.find watched x in
+	      H.replace watched x (CSet.add j (fun _ -> newlit) (CSet.remove j watchingx)));
+	    (* Updating entry of new literal newlit *)
+	     if not (H.mem watched newlit) then H.add watched newlit CSet.empty;
+	     let watchingnewlit = H.find watched newlit in
+	     H.replace watched newlit (CSet.add j (fun _ -> x) watchingnewlit);
+	    (* Final output: no backtrack clause, clause j removed from entry of lit *)
+	     (None,CSet.empty)
+	   | _ -> failwith "Disgrace"
+	   )
 	)  
-      | CSet.Branch(p,m,l,r) -> 
+
+      | CSet.Branch(_,_,l,r) -> 
 	(match aux r with
-	| (None,r')   -> let (v,l') = aux l in (v,CSet.union (fun a _ -> a) l' r')
-	| (Some c,r') -> (Some c,CSet.union (fun a _ -> a) l r')
+	| None,   r' -> let v, l' = aux l in (v,CSet.union (fun a _ -> a) l' r')
+	| Some c, r' -> (Some c,CSet.union (fun a _ -> a) l r')
 	)
     in aux t
 
@@ -233,12 +238,12 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     let newatoms = UASet.inter atms (data_of_ad ad).remlits in
     let tset' = UASet.diff (data_of_ad ad).remlits (UASet.union newatoms (UASet.negations newatoms)) in
     let newad = ad_up ad { i= count.(0); remlits = tset'; restore_parity = (data_of_ad ad).restore_parity } in
-    let aux lit a = match a with
+    let aux lit = function
       | None when H.mem watched lit ->
-	let l = H.find watched lit in
-	let (answer,l') = treat atms lit l in
-        H.replace watched lit l';
-        answer
+	 let l = H.find watched lit in
+	 let answer, l' = treat atms l in
+         H.replace watched lit l';
+         answer
       | a -> a
     in
     match UASet.fold aux newatoms None with
