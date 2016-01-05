@@ -5,7 +5,6 @@ open Equation
 (* eliminates a variable from a set of inequations.
 Allows to compute the general FM resolution*)
 let eliminate var eqs =
-
   (* separate the inequations depending on the signum of the coefficient *)
   (* tail-recursive, but not optimal *)
   let separate eqs =
@@ -20,16 +19,16 @@ let eliminate var eqs =
      all the inequations where our variable has a positive
      coefficient, and all where it has a negative one. Those two
      lists were given by the function separate *)
-
   (*this function is tail-recursive*)
   let rec complete_result l1 l2 accu =
     match l1, l2 with
     | [], _ | _, [] -> accu
     | (t1::q1), l2 ->
+
     complete_result q1 l2
       (List.fold_left (fun acc eq ->
-        (combine (Num.num_of_int 1  // (Equation.getCoeff t1 var)) t1
-           (Num.num_of_int (-1) // (Equation.getCoeff eq var)) eq)::acc) accu l2)
+        (Equation.combine ((Num.num_of_int 1)  // (Equation.getCoeff t1 var)) t1
+           ((Num.num_of_int (-1)) // (Equation.getCoeff eq var)) eq)::acc) accu l2)
 
   in
   complete_result pos neg nul
@@ -46,7 +45,6 @@ was wrong with the inequations. *)
 
 let fourierMotzkin var eqs =
   let rec fourierMotzkinRec var eqs =
-  (*  print_string "enter FM";*)
     match remove_trivial eqs with
     | [] -> raise FM_Failure
     | [eq] -> eq

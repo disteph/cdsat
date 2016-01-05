@@ -12,7 +12,8 @@ let rec dejeanAlgoRec stack =
   match stack with
   | [] -> failwith "Unknown"
   | head::tail ->
-    (*print_string "Head state is : ";Equation.print_eqs (getEqs head);print_string "\n";*)
+    (* print_string "Head state is : ";Equation.print_eqs (getEqs head);print_string "\n"; *)
+
     (* recalculate the constraints each time... *)
     (*print_string "calculating constraints\n";*)
     let cons = Trail.createConstraints head in
@@ -21,13 +22,13 @@ let rec dejeanAlgoRec stack =
        either two contradicting equations *)
     match  Trail.checkConstraints cons with
     | Some(t1,t2) ->
-      (*print_string "Failure in constraints\n";*)
-      (* damned, there is a failure, let's go back*)
+      (* print_string "Failure in constraints\n";*)
+      (* there is a failure, let's go back*)
       (* learn a new clause throug FourierMotzkin resolution and backtrack*)
       let previous = Equation.getPreviousEqs [t1; t2] in
 
-      (* print_string "The following subsystem is contradictory : "; *)
-      (* Equation.print_eqs [t1;t2]; *)
+      (* print_string "The following subsystem is contradictory : ";
+      Equation.print_eqs [t1;t2]; *)
 
       fmResolve stack previous
 
@@ -41,19 +42,20 @@ and fmResolve stack eqs =
   | [t] ->  (* no going back possible *)
      raise (Unsat_failure (eqs, stack))
   | a::b::q ->
-    (*  print_string "The previous equations will be resolved : "; *)
-    (* Equation.print_eqs eqs; *)
+    (* print_string "The previous equations will be resolved : ";
+    Equation.print_eqs eqs; *)
     (* Printf.printf "there are %i states if we want to go back\n" (List.length (b::q)); *)
-    (* print_string "All but this variable will be eliminated : "; *)
-    (* print_string (Trail.getLastAssignedVariable a); *)
-    (* print_string "\n"; *)
+    (* print_string "All but this variable will be eliminated : ";
+    print_int (Trail.getLastAssignedVariable a); print_string "\n"; *)
+
     (* FM resolution should at least return an inequation *)
     (*print_string "Resolving fm on ";print_int (List.length eqs);print_string " equations\n";*)
 
     match FourierMotzkin.fourierMotzkin (Trail.getLastAssignedVariable a) eqs with
     | Some neweq ->
-      (*  print_string "FM resolution output is the following : "; *)
-      (* Equation.print neweq;print_string "\n"; *)
+      (* print_string "FM resolution output is the following : ";
+      Equation.print neweq; print_string "\n"; *)
+
       (* new equation found by resolution FM  *)
       (* we go back and erase the current state, then add our new equation *)
       let newstack = (Trail.addEq b neweq)::q in
@@ -63,7 +65,7 @@ and fmResolve stack eqs =
        (* FM Failure : impossible to eliminate all but one variable. This means
           the inequations are not linearly independent ; moreover, since they
           produced a contradiction, we are sure to obtain something like 0 < 0*)
-         (* print_string "FM resolution failed. Going back again."; *)
+         print_string "FM resolution failed. Going back again.";
          fmResolve (b::q) (Equation.getPreviousEqs eqs)
 
 (* case when we choose a variable *)
@@ -79,8 +81,8 @@ and variableChoosing stack cons =
         (* choose a value according to the constraints *)
         let v = Trail.chooseValue cons var in
 
-        (* print_string "Assigning the value : ";print_string (string_of_num v); *)
-        (* print_string " to : ";print_string var; print_string "\n"; *)
+        (* print_string "Assigning the value : ";print_string (string_of_num v);
+        print_string " to : ";print_int var; print_string "\n"; *)
 
         let newState = Trail.assignValue head var v in
         dejeanAlgoRec (newState::head::tail)
@@ -115,6 +117,7 @@ let goBackAndResume l stack =
 (* here, we add new equations. This is what is done
 when calling the "add" function on this theory *)
 let resumeDejeanAlgo l stack =
+  (* print_string "resuming dejean\n"; *)
   match stack with
   | [] -> let trail = Trail.create l in
           let stack = [trail] in

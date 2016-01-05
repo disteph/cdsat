@@ -57,6 +57,21 @@ let () =
     | Some(eq) -> Equation.print eq;*)
     test_dejan l;
 
+    (*let e5 = Equation.createFromList [(1, num_of_int 1); (2, num_of_int (-1))] (num_of_int (0)) false [] None in
+    let e6 = Equation.createFromList [(2, num_of_int 1)] (num_of_int (0)) false [] None in
+    Equation.print_eqs [e5;e6];
+    let truc = Equation.combine (Num.num_of_int 1) e6  (Num.num_of_int 1) e5 in
+    Equation.print truc;*)
+
+    (* let e5 = Equation.createFromList [(1, num_of_int 1); (2, num_of_int (1))] (num_of_int (0)) false [] None in
+    let e6 = Equation.createFromList [(1, num_of_int (-1))] (num_of_int (0)) false [] None in
+    Equation.print_eqs [e5;e6];
+
+    let eq = FourierMotzkin.fourierMotzkin 2 [e5;e6] in
+    match eq with
+     | Some(truc) -> Equation.print truc;
+     | None -> print_string "None" *)
+
 
     (*let e5 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int 1); ("x3", num_of_int 1)] (num_of_int (-4)) true [] in
     let e6 = Equation.createFromList [("x1", num_of_int 1); ("x2", num_of_int (-4)); ("x3", num_of_int 1)] (num_of_int 1) true [] in
