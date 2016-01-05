@@ -29,4 +29,5 @@ val multiply : equation -> value -> equation
 val add : equation -> equation -> equation
 val combine : value -> equation -> value -> equation -> equation
 val print : equation -> unit
+val print_exhaustive : equation -> unit
 val print_eqs : equation list -> unit

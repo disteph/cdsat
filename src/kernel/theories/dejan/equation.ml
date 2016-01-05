@@ -34,6 +34,13 @@ let print eq =
     eq.coeffs;
   Printf.printf (if eq.isStrict then " < %s" else " <= %s") (string_of_num eq.sup)
 
+let print_exhaustive eq =
+  print eq;
+  match eq.guardians with
+  | None, None -> print_string " (no guardian)"
+  | Some(a), None | None, Some(a) -> Printf.printf " (one guardian : %i)" a
+  | Some(a), Some(b) -> Printf.printf " (two guardians : %i and %i)" a b
+
 (* Pretty print a list of equations *)
 let rec print_eqs eqs =
   match eqs with
@@ -59,10 +66,11 @@ let getActiveVars eq =
   in
   Hashtbl.fold f eq.coeffs []
 
-(* Look for an active variable through an equation, différent from the one given *)
+(* Look for an active variable through an equation, different from the one given *)
 let searchAnotherActiveVar coeff variable =
   let f k v =
-    if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find coeff k then raise (Var_found k)
+    if k <> variable && v <>/ (num_of_int 0) && v =/ Hashtbl.find coeff k  then raise (Var_found k)
+    (*FIXME why v =/ Hashtbl.find coeff k ?*)
   in try Hashtbl.iter f coeff; None with Var_found k -> Some(k)
 
 let initGuardians coeffs =
@@ -234,14 +242,14 @@ let add eq1 eq2 =
     try
       let temp = Hashtbl.find coeffs k in
       Hashtbl.replace coeffs k (v +/ temp)
-    with Not_found -> ()
+    with Not_found -> Hashtbl.replace coeffs k v
   in
   (* loop through the coeffs of the first equation*)
   Hashtbl.iter f eq2.coeffs;
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
-   isStrict = eq1.isStrict && eq2.isStrict;
-   guardians = updateGuardians coeffs eq1.guardians;
+   isStrict = eq1.isStrict || eq2.isStrict;
+   guardians = updateGuardians coeffs eq2.guardians;
    previous = [];
    tag       = None}
    (* we do not need to update previous. (see the algorithm :
