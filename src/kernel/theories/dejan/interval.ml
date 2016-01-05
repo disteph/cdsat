@@ -39,7 +39,7 @@ let chooseValue i =
   let binf, iStrict, bsup, sStrict = i in match binf, bsup  with
     | NUM(inf), _ when not iStrict -> inf
     | _, NUM(sup) when not sStrict -> sup
-    | NUM(inf), NUM(sup) -> (sup -/ inf) // (num_of_int 2)
+    | NUM(inf), NUM(sup) -> (sup +/ inf) // (num_of_int 2)
     | INFINITY, INFINITY -> num_of_int 0
     | INFINITY, NUM(sup) -> sup -/ num_of_int 1
     | NUM(inf), INFINITY -> inf +/ num_of_int 1

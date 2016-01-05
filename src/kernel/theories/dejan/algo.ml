@@ -65,7 +65,7 @@ and fmResolve stack eqs =
        (* FM Failure : impossible to eliminate all but one variable. This means
           the inequations are not linearly independent ; moreover, since they
           produced a contradiction, we are sure to obtain something like 0 < 0*)
-         print_string "FM resolution failed. Going back again.";
+         (* print_string "FM resolution failed. Going back again."; *)
          fmResolve (b::q) (Equation.getPreviousEqs eqs)
 
 (* case when we choose a variable *)
