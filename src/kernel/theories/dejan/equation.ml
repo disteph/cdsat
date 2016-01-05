@@ -97,6 +97,18 @@ let updateGuardians coeffs guardians =
       else searchAnotherActiveVar coeffs a
     in newa, newb
 
+let mergeGuardians coeffs guardians1 guardians2 =
+  match (updateGuardians coeffs guardians1) with
+  | None, None -> updateGuardians coeffs guardians2
+  | Some(a), None | None, Some(a) ->
+        (
+        match updateGuardians coeffs guardians2 with
+        | None, None -> Some(a), None
+        | _, Some(b) | Some(b), _ when b == a -> Some(a), None
+        | _, Some(b) | Some(b), _ -> Some(a), Some(b)
+        )
+  | Some(a), Some(b) -> Some(a), Some(b)
+
 (* Creates an equation from its subparts *)
 let create coeffs sup isStrict previous tag =
   {coeffs    = coeffs;
@@ -249,7 +261,7 @@ let add eq1 eq2 =
   {coeffs = coeffs;
    sup = eq1.sup +/ eq2.sup;
    isStrict = eq1.isStrict || eq2.isStrict;
-   guardians = updateGuardians coeffs eq2.guardians;
+   guardians = mergeGuardians coeffs eq1.guardians eq2.guardians;
    previous = [];
    tag       = None}
    (* we do not need to update previous. (see the algorithm :
