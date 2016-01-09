@@ -147,12 +147,10 @@ let isStrict eq =
   eq.isStrict
 
 let toggleStrict eq =
-  {coeffs    = eq.coeffs;
-   sup       = eq.sup;
-   isStrict  = (not eq.isStrict);
-   guardians = eq.guardians;
-   previous  = [eq];
-   tag = None}
+  { eq with
+    isStrict  = (not eq.isStrict);
+    previous  = [eq];
+    tag = None}
 
 let getPrevious eq =
   match eq.previous with
@@ -161,19 +159,13 @@ let getPrevious eq =
 
 (* Add equations to previous equations *)
 let addDependance eq ll =
-  {coeffs    = eq.coeffs;
-   sup       = eq.sup;
-   isStrict  = eq.isStrict;
-   guardians = eq.guardians;
-   previous  = eq.previous@ll;
-   tag       = None}
+  { eq with
+    previous  = eq.previous@ll;
+    tag       = None}
 
 (* Change equations to previous equations *)
 let setDependance eq ll =
-  {coeffs    = eq.coeffs;
-   sup       = eq.sup;
-   isStrict  = eq.isStrict;
-   guardians = eq.guardians;
+  {eq with
    previous  = ll;
    tag       = None}
 
@@ -206,12 +198,9 @@ let affectVar eq var value =
      previous = [eq];
      tag       = None}
   ) with Not_found ->
-    {coeffs    = eq.coeffs;
-     sup       = eq.sup;
-     isStrict  = eq.isStrict;
-     guardians = eq.guardians;
-     previous  = [eq];
-     tag       = None}
+    { eq with
+      previous  = [eq];
+      tag       = None}
 
 
 let rec affectVars eq l = match l with
