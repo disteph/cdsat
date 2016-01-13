@@ -1,9 +1,7 @@
 open Kernel
-open Top
-open Specs
-open Messages
+open Top.Specs
 open Theories_register
-open Num
+open PluginsTh_tools
 
 open Dejan
 

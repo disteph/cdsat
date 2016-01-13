@@ -14,9 +14,9 @@ module Make(DS: sig
 
   open DS
 
-(* Converts a term to something understandable by the algorithm: eqs
-is where we accumulate the inequalities, splits is where we accumulate
-the case analyses that we will ask Psyche to make *)
+  (* Converts a term to something understandable by the algorithm: eqs
+     is where we accumulate the inequalities, splits is where we accumulate
+     the case analyses that we will ask Psyche to make *)
 
   let rec aToEq lit (splits, eqs) = 
     match proj(Terms.data lit) with

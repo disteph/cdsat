@@ -1,12 +1,10 @@
 open Kernel
-open Top
-open Specs
-open Messages
+open Top.Specs
 open Theories_register
 
 open Empty
 
-type sign = Empty.MyTheory.sign
+type sign = MyTheory.sign
 let hdl = Sig.Empty
 
 module ThDS = struct

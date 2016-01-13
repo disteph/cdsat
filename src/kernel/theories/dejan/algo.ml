@@ -24,11 +24,11 @@ let rec dejeanAlgoRec stack =
     | Some(t1,t2) ->
       (* print_string "Failure in constraints\n";*)
       (* there is a failure, let's go back*)
-      (* learn a new clause throug FourierMotzkin resolution and backtrack*)
+      (* learn a new clause through FourierMotzkin resolution and backtrack *)
       let previous = Equation.getPreviousEqs [t1; t2] in
 
       (* print_string "The following subsystem is contradictory : ";
-      Equation.print_eqs [t1;t2]; *)
+         Equation.print_eqs [t1;t2]; *)
 
       fmResolve stack previous
 

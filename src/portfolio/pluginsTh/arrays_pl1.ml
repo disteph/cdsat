@@ -1,7 +1,5 @@
 open Kernel
-open Top
-open Specs
-open Messages
+open Top.Specs
 open Theories_register
 
 open Arrays

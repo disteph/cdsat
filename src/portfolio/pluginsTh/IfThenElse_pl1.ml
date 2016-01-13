@@ -1,11 +1,9 @@
 open Kernel
 open Top
 open Specs
-open Messages
 open Theories_register
 
-open Prop
-open Literals
+open Prop.Literals
 
 open IfThenElse
 

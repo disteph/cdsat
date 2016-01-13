@@ -41,6 +41,7 @@ true: annot, bin_annot
 
 <src/lib/general/*.cmx>:              for-pack(General)
 <src/lib/pluginsG_tools/*.cmx>:       for-pack(PluginsG_tools)
+<src/lib/pluginsTh_tools/*.cmx>:      for-pack(PluginsTh_tools)
 
 <src/portfolio/plugins/*.cmx>:        for-pack(Plugins)
 
