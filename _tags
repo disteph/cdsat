@@ -48,6 +48,7 @@ true: annot, bin_annot
 <src/portfolio/pluginsG/*.cmx>:       for-pack(PluginsG)
 <src/portfolio/pluginsG/DPLL_Pat/*.cmx>:        for-pack(PluginsG.DPLL_Pat)
 <src/portfolio/pluginsG/DPLL_WL/*.cmx>:         for-pack(PluginsG.DPLL_WL)
+<src/portfolio/pluginsG/DPLL/*.cmx>:            for-pack(PluginsG.DPLL)
 <src/portfolio/pluginsG/Naive/*.cmx>:           for-pack(PluginsG.Naive)
 <src/portfolio/pluginsG/RestartsFunctor/*.cmx>: for-pack(PluginsG.RestartsFunctor)
 <src/portfolio/pluginsG/Hint/*.cmx>:            for-pack(PluginsG.Hint)

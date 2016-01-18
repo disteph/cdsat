@@ -65,7 +65,11 @@ module Make (C : Config) = struct
                   VarMap.add var2 watching2' t.watching
                 else t.watching 
               in
-	      let watching3 = VarMap.find var3 watching in
+	      let watching3 = 
+                if VarMap.mem var3 t.watching
+                then VarMap.find var3 watching
+                else CSet.empty
+              in
               let watching3' = CSet.add c' (fun _ -> var2) watching3 in
               let watching = VarMap.add var3 watching3' watching in
               None,  {t with watching = watching }

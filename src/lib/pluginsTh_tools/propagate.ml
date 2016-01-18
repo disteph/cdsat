@@ -18,9 +18,10 @@ module type Config = sig
     | Propagate of fixed * Var.t
     | Meh
 
-  val extract_msg: constraints -> (sign,tset,thStraight) thsays option 
-  val constreat : Constraint.t -> constraints 
-    -> (constraints * result, Var.t * Var.t) Sums.sum
+  val constreat :
+    Constraint.t -> (Var.t*Var.t, constraints->(constraints*result)) Sums.sum
+
+  val extract_msg: constraints -> (sign,tset,thStraight) thsays option * constraints
 
 end
 
@@ -41,30 +42,31 @@ module Make(C: Config) = struct
   }
 
   let rec treat c t = 
-    match C.constreat c t.constraints with
-    | Sums.A(constraints', res) ->
+    match C.constreat c with
+    | Sums.A(var1,var2) ->
+       run {t with watch = WL.addconstraint c var1 var2 t.watch}
+    | Sums.F affect ->
+       let constraints', res = affect t.constraints in
        begin
          match res with
-         | C.UNSAT msg -> C.extract_msg constraints', Sums.A msg
+         | C.UNSAT msgConflict -> 
+            let msgProp,_ = C.extract_msg constraints' in
+            msgProp, Sums.A msgConflict
          | C.Propagate(fixed',var) ->
             run { fixed = fixed';
                   constraints = constraints';
                   watch = WL.fix var t.watch
                 }
          | C.Meh ->
-            run { fixed = t.fixed;
-                  constraints = constraints';
-                  watch = t.watch
-                }
+            run { t with constraints = constraints' }
        end
-    | Sums.F(var1,var2) ->
-       run {t with watch = WL.addconstraint c var1 var2 t.watch}
 
   and run t = 
     let res, watch' = WL.next t.fixed t.watch in
-    let t' = { t with watch = watch' } in
     match res with
-    | Some c -> treat c t'
-    | None   -> C.extract_msg t.constraints, Sums.F t'
+    | Some c -> treat c { t with watch = watch' }
+    | None   ->
+       let msg,constraints' = C.extract_msg t.constraints in
+       msg, Sums.F { t with constraints = constraints'; watch = watch' }
 
 end
