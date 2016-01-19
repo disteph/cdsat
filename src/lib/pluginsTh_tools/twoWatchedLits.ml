@@ -1,4 +1,5 @@
 open General
+open Patricia_interfaces
 open Patricia
 open SetConstructions
 
@@ -50,8 +51,8 @@ module Make (C : Config) = struct
   let treat fixed =
     let rec aux t cset =
       match CSet.reveal cset with
-      | CSet.Empty        -> None, t
-      | CSet.Leaf(c,var2) ->
+      | Empty        -> None, t
+      | Leaf(c,var2) ->
          begin
 	   (* Trying to pick a new variable to be watched *)
 	   match pick_another c fixed var2 with
@@ -74,7 +75,7 @@ module Make (C : Config) = struct
               let watching = VarMap.add var3 watching3' watching in
               None,  {t with watching = watching }
          end
-      | CSet.Branch(_,_,l,r) -> 
+      | Branch(_,_,l,r) -> 
          begin
            match aux t l with
 	   | None, t          -> aux t r

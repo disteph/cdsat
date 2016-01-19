@@ -1,6 +1,6 @@
 (* ******************************************* *)
 (* Implementation of sets of atoms for DPLL,
-   Implementation of formulae for DPLL,
+   Implementation of formulae info for DPLL,
    Implementation of sets of formulae for DPLL *)
 (* ******************************************* *)
 
@@ -17,7 +17,6 @@ open Sums
 open SetConstructions
 open PluginsG_tools.SetInterface
 
-
 (* **************************************** *)
 (* Implementation of sets of atoms for DPLL *)
 
@@ -30,42 +29,9 @@ module UT  = struct
 end
 
 module UASet = struct
-
-  module AtSet = PluginsG_tools.Patricia_ext.MyPat(UT)
-
-  type e              = LitF.t
-  type t              = AtSet.t*(e option)
-  let empty           = (AtSet.empty, None)
-  let is_empty(a,_)   = AtSet.is_empty a
-  let union(a,_)(a',_)= (AtSet.union a a',None)
-  let inter(a,_)(a',_)= (AtSet.inter a a',None)
-  let subset(a,_)(a',_)= AtSet.subset a a'
-  let mem l (t,_)   = AtSet.mem l t
-  let add l (h,_)     = (AtSet.add l h,Some l)
-  let remove l (h,_)  = (AtSet.remove l h, None)
-  let next (t1,a)     = 
-    let (l,t2) = AtSet.next t1 in
-    (l, (t2,None))
-  let fold f (a,_)    = AtSet.fold f a
-  let print_in_fmt fmt (h,a)= 
-    match a with
-    | None   -> Format.fprintf fmt "{ %a }" AtSet.print_in_fmt h
-    | Some a -> Format.fprintf fmt "{ %a }" AtSet.print_in_fmt h
-
-  let diff (t1,_)(t2,_)     = (AtSet.diff t1 t2,None)
-  let compare(a,_)(a',_)    = AtSet.compare a a'
-  let compareE              = AtSet.compareE
-  let first_diff(a,_)(a',_) = AtSet.first_diff a a'
-  let sub alm (s1,f) (s2,g) limit = AtSet.sub alm s1 s2 limit
-  let choose (t,_)    = AtSet.choose t
-  let clear ()        = AtSet.clear()
-  let id (a,_)        = AtSet.id a
-  let latest (_,b)    = b
-  let cardinal (s,_)  = AtSet.cardinal s
-  let negations (s,_) = AtSet.fold (fun k accu -> add (LitF.negation k) accu) s empty
-
+  include PluginsG_tools.Patricia_ext.MyPat(UT)
+  let negations s = fold (fun k accu -> add (LitF.negation k) accu) s empty
 end
-
 
 (* *********************************** *)
 (* Implementation of formulae for DPLL *)
@@ -85,9 +51,6 @@ module UF = struct
     | _            -> true
 
 end
-
-
-
 
 (* ******************************************* *)
 (* Implementation of sets of formulae for DPLL *)

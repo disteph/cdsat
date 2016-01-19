@@ -159,7 +159,10 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
       then print_endline(print_state olda);
 	count.(4)<-count.(4)+1;
-	solve(machine(true,(fun _ -> count.(4)),Me.tomem,Me.search4provableNact seq ((fun _ -> count.(4)),(fun _ -> count.(4))) fNone))
+	solve(machine(true,
+                      (fun _ -> count.(4)),
+                      (fun a -> let _ = Me.tomem a in ()),
+                      Me.search4provableNact seq ((fun _ -> count.(4)),(fun _ -> count.(4))) fNone))
 
 
       (* When we are asked a side, we always go for the left first *)

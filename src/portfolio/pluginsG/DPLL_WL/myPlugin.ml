@@ -6,6 +6,7 @@ open Interfaces_theory
 open Literals
 open Formulae
 open Interfaces_plugin
+open Patricia_interfaces
 open Patricia
 open Sums
 
@@ -179,8 +180,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let treat atms t =
     let rec aux t = match CSet.reveal t with
-      | CSet.Empty           -> (None,t)
-      | CSet.Leaf(j,x)       ->
+      | Empty           -> (None,t)
+      | Leaf(j,x)       ->
 	(match UASet.sub true (FormulaF.data j) atms None with
 
 	| Yes _   ->
@@ -221,7 +222,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	   )
 	)  
 
-      | CSet.Branch(_,_,l,r) -> 
+      | Branch(_,_,l,r) -> 
 	(match aux r with
 	| None,   r' -> let v, l' = aux l in (v,CSet.union (fun a _ -> a) l' r')
 	| Some c, r' -> (Some c,CSet.union (fun a _ -> a) l r')
@@ -389,7 +390,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
           try
 	    solve_rec (machine (true,
 			        el_wrap adOr,
-			        Me.tomem,
+			        (fun a-> let _ = Me.tomem a in ()),
 			        match action with
 			        | Some action as saction -> (* print_endline "Found an action!" *)(fun()->saction)
 			        | None        -> 
@@ -402,7 +403,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
               Dump.Kernel.toPlugin();
 	      solve_rec (machine (true,
 	      	                  el_wrap adOr,
-	      	                  Me.tomem,
+	      	                  (fun a-> let _ = Me.tomem a in ()),
                                   fNone)      )
 
 	)

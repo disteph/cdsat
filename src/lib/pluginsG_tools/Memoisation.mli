@@ -22,7 +22,7 @@ module Make
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   : sig
     open FE
-    val tomem          : answer -> unit
+    val tomem          : answer -> (AS.t*FS.t) option
 
     val get_usage_stats4provable : answer->int 
     val reset_stats4provable     : answer->unit

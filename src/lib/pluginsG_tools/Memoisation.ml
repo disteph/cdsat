@@ -46,8 +46,8 @@ module Make
     let byes j x = x
     let bempty   = (AS.empty,FS.empty)
     let bsingleton j x = function
-      | A(a) -> (AS.add a AS.empty,FS.empty)
-      | F(a) -> (AS.empty,FS.add a FS.empty)
+      | A a -> (AS.add a AS.empty,FS.empty)
+      | F a -> (AS.empty,FS.add a FS.empty)
     let bunion (a,b)(a',b')=if AS.is_empty a&&FS.is_empty b then (a',b') else (a,b)
     (* let bunion (a,b)(a',b')=(AS.union a a',FS.union b b')  *)
 
@@ -66,9 +66,9 @@ module Make
     let size () = (MP.cardinal !tableS) + (MP.cardinal !tableF)
 
     let tomem ans = 
-      let (table,algo,b) = match ans with
-	| Provable(s,_,_)-> (tableS,find_sub false,true)
-	| NotProvable(s) -> (tableF,find_sup false,false)
+      let table,algo,b = match ans with
+	| Provable _    -> (tableS,find_sub false,true)
+	| NotProvable _ -> (tableF,find_sup false,false)
       in
       let s = sequent ans in
       let k = Seq.forPlugin s in
@@ -78,10 +78,12 @@ module Make
           (Some(fun p->p "%i/%i Recording %s for\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
           (Some 4);
 	table := MP.add k (fun _ -> (ans, 1)) !table;
+        if b then Some k else None
       | A a -> Dump.Plugin.incr_count 5;
 	Dump.msg None
           (Some(fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
-          (Some 5)
+          (Some 5);
+        None
 
     let search4success b s = find_sub b (Seq.forPlugin s) !tableS
     let search4failure b s = find_sup b (Seq.forPlugin s) !tableF
@@ -92,11 +94,11 @@ module Make
           (Dump.msg None (Some(fun p->p "Found no previous success for %a" Seq.print_in_fmt seq)) None;
            Dump.Plugin.incr_count 9;
 	   alternative())
-	else let (toCut,_)=FS.next f in
+	else let toCut, _ = FS.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
               Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq IForm.print_in_fmt toCut)) None;
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
-      else let (toCut,_) = AS.next a in
+      else let toCut, _ = AS.next a in
 	   Dump.Plugin.incr_count 8;
            Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq LitF.print_in_fmt toCut)) None ;
            Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
@@ -109,7 +111,7 @@ module Make
 
     let search4provableNact seq data alternative () =
       match search4success !Flags.almo seq with
-      | A(a) 
+      | A a
         -> Dump.Plugin.incr_count 7;
           Dump.msg None (Some(fun p->p "Found previous success for %a" Seq.print_in_fmt seq)) None;
           let ans, count = a in
@@ -120,9 +122,9 @@ module Make
 
     let search4notprovableNact seq alternative =
       match search4failure false seq with
-      | A(a) -> Dump.msg None (Some(fun p->p "Found previous failure for %a" Seq.print_in_fmt seq)) None;
+      | A a -> Dump.msg None (Some(fun p->p "Found previous failure for %a" Seq.print_in_fmt seq)) None;
 	Propose (fst a)
-      | _    -> Dump.msg None (Some(fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq)) None;
+      | _   -> Dump.msg None (Some(fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq)) None;
 	alternative()
 
     let report() = 

@@ -22,6 +22,7 @@ module MyPat(UT:sig
   :MyPatCollect with type e = UT.keys
 		and  type common=UT.common
 		and  type branching = UT.branching
+		and  type infos = UT.keys m_infos
   = struct
 
     module D = struct

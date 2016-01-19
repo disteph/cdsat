@@ -39,9 +39,10 @@ end
 module type MyPatCollect = sig
 
   type e
-  type t
+  type infos
   type common
   type branching
+  type t = (e,unit,common,branching,infos) General.Patricia.poly
 
   val id    : t -> int
   (* val checktree : branching list -> t -> bool *)

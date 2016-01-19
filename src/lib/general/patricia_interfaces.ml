@@ -3,6 +3,11 @@
 
 open Sums
 
+type ('a,'keys,'values,'common,'branching) poly_rev =
+  | Empty
+  | Leaf of 'keys * 'values
+  | Branch of 'common * 'branching * 'a * 'a
+
 type ('keys,'values,'infos) info_build_type = 
   {empty_info  : 'infos;
    leaf_info   : 'keys -> 'values -> 'infos;
@@ -78,18 +83,15 @@ module type PATMapType = sig
   type branching
   type infos
 
-  type 'a pat = private
-                | Empty
-                | Leaf of keys * values
-                | Branch of common * branching * 'a * 'a
-  type t
+  type ('v,'i) param
+  type t = (values,infos) param
+  type pat = (t,keys,values,common,branching) poly_rev
+
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> t pat
+  val reveal : t -> pat
   val id     : t -> int
   val info   : t -> infos
-  val info_gen : t pat -> infos
-  val build    : t pat -> t
   val clear    : unit -> unit
   val compare  : t -> t -> int
   val is_empty : t -> bool
@@ -98,24 +100,16 @@ module type PATMapType = sig
   val find     : keys -> t -> values
   val cardinal : t -> int
   val empty    : t
-  val leaf   : keys * values -> t
-  val branch : common * branching * t * t -> t
-  val join   : common * t * common * t -> t
-  val remove_aux : (keys -> values -> t) -> keys -> t -> t
   val remove : keys -> t -> t
   val add    : keys -> (values option -> values) -> t -> t
-  val merge  : (values -> values -> values) -> t * t -> t
   val union  : (values -> values -> values) -> t -> t -> t
-  val inter  : (values -> values -> values) -> t -> t -> t
+  val inter  : (keys -> values -> values -> values) -> t -> t -> t
+  val inter_poly  : (keys -> 'v1 -> 'v2 -> values) -> ('v1,_)param -> ('v2,_)param -> t
   val subset : (values -> values -> bool) -> t -> t -> bool
   val diff   : (keys -> values -> values -> t) -> t -> t -> t
-  val aux_and :
-    (bool -> (unit, 'a) almost) ->
-    (bool -> (unit, 'a) almost) -> bool -> (unit, 'a) almost
   val sub :
     (bool -> keys -> values -> values option -> (unit, 'a) almost) ->
     (t -> t) -> bool -> t -> t -> (unit, 'a) almost
-  val opt_st : ('a -> 'b -> int) -> 'a option * 'b option -> int
   val first_diff :
     (keys -> values -> values -> 'a option * bool) ->
     ('a -> 'a -> int) -> (t -> 'a option) -> t -> t -> 'a option * bool
@@ -169,18 +163,13 @@ module type PATSetType = sig
   type branching
   type infos
 
-  type 'a pat = private
-                | Empty
-                | Leaf of e * unit
-                | Branch of common * branching * 'a * 'a
   type t
+  type pat = (t,e,unit,common,branching) poly_rev
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> t pat
+  val reveal : t -> pat
   val id     : t -> int
   val info   : t -> infos
-  val info_gen : t pat -> infos
-  val build  : t pat -> t
   val clear  : unit -> unit
   val compare  : t -> t -> int
   val is_empty : t -> bool

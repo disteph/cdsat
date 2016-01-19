@@ -7,6 +7,7 @@ open Literals
 open Formulae
 open Interfaces_plugin
 open Patricia
+open Patricia_interfaces
 open SetConstructions
 open Sums
 
@@ -93,7 +94,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   (* Reporting *)
 
   let report i =
-    print_endline("   Plugin's report (DPLL_WL):");
+    print_endline("   Plugin's report (DPLL):");
     print_endline(string_of_int count.(0)^" notifies, "^
 		    string_of_int count.(1)^" Backtrack, "^
 		    string_of_int count.(2)^" Unit propagate, "^
@@ -120,33 +121,87 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
 
   (**************************************************)
-  (* Not so last resort: picking literal for decide *)
+  (* Not so last resort: VSIDS heuristics for picking decision
+  literals *)
 
-  let priority_lits = ref (Queue.create ())
+  module Dest = struct
+    type keys = LitF.t
+    let kcompare = LitF.compare
+    type values = float
+    type infos = (LitF.t*float) option
+    let info_build = {
+      empty_info  = None;
+      leaf_info   = (fun l score -> Some(l,score));
+      branch_info = (fun x1 x2 -> match x1,x2 with
+      | None,_ -> failwith "Bad1"
+      | _,None -> failwith "Bad2"
+      | Some(_,v1),Some(_,v2)-> if v1>v2 then x1 else x2
+      )
+    }
+    let treeHCons = None
+  end
+
+  module Scores = PATMap.Make(Dest)(TypesFromHConsed(LitF))
+  let scores = ref Scores.empty
+  let bump = ref 1.
+  let since_last = ref 1
+
+  let last_model = ref UASet.empty
 
   exception Nonempty_intersection of UASet.t
 
   let pick_lit_from tset =
-    let select_pool lemma_litterals =
-      let inter = UASet.inter lemma_litterals tset in
-      if not (UASet.is_empty inter) then raise (Nonempty_intersection inter) in
-    let pool = 
-      try Queue.iter select_pool !priority_lits; tset
-      with Nonempty_intersection inter -> inter
-    in UASet.choose pool
+    Scores.info(Scores.inter_poly (fun _ () x -> x) tset !scores)
 
   (* Picks an atom from tset to branch on it *)
 
   let decide atms adO () = 
     let tset = (data_of_ad adO).remlits in
     if decide_cut && not (UASet.is_empty tset) then
-      (let lit = pick_lit_from tset in
-       if UASet.mem lit atms then failwith "Chosen lit in atms";
-       if UASet.mem (LitF.negation lit) atms then failwith "Chosen nlit in atms";
-       count.(3)<-count.(3)+1;
-       Some(Cut(7,IForm.lit lit,branch_one adO,accept,accept,fNone)))
+      match pick_lit_from tset with
+      | Some(lit,_) ->
+        (* if UASet.mem lit atms then failwith "Chosen lit in atms"; *)
+        (* if UASet.mem (LitF.negation lit) atms then failwith "Chosen nlit in atms"; *)
+        count.(3)<-count.(3)+1;
+        let lit =
+          if UASet.mem lit !last_model
+          then lit
+          else LitF.negation lit
+        in
+        Some(Cut(7,IForm.lit lit,branch_one adO,accept,accept,fNone))
+      | None -> None
     else
       None
+
+  let bump_lit lit =
+    Scores.add lit (function
+    | None -> !bump
+    | Some score -> score +. !bump)
+
+  let bump_set aset =
+    scores := UASet.fold bump_lit aset !scores
+
+  let divide_all v =
+    scores := Scores.map (fun _ score -> score /. v) !scores;
+    bump   := !bump /. v
+
+  let factor = 2.**100.
+
+  let bumpNdivide aset =
+    bump_set aset;
+    incr since_last;
+    if !since_last > 100
+    then 
+      (Dump.msg None (Some(fun p-> p "Dividing all, bump being %f\n" !bump)) None;
+       divide_all factor;
+       since_last := 1)
+    else bump := 2. *. !bump
+
+  let tomem a = match Me.tomem a with
+    | Some(aset,_) ->
+       Dump.msg None (Some(fun p-> p "Bumping %a with %f\n" UASet.print_in_fmt aset !bump)) None;
+      bumpNdivide aset
+    | None -> ()
 
 
   (**************************)
@@ -252,6 +307,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
             then 
               (* Literals of the clause that aren't already fixed *)
               let remlits() = UASet.union data.remlits (UASet.union aset naset) in 
+              bump_set aset;
               (* print_string(Dump.stringOf IForm.print_in_fmt form^" "); *)
               match picklits aset 2 with
               | lit1::lit2::_ ->
@@ -348,20 +404,20 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
               | _ -> ());
             out
           in
-          try
+          (* try *)
 	    solve_rec (machine (true,
 			        el_wrap adOr,
-			        Me.tomem,
+                                tomem,
 			        match action with
 			        | Some _ -> (* print_endline "Found an action!" *)(fun()->action)
 			        | None -> alternative_restart))
-          with
-            WrongInstructionException _ ->
-              Dump.Kernel.toPlugin();
-	      solve_rec (machine (true,
-	      	                  el_wrap adOr,
-	      	                  Me.tomem,
-                                  fNone)      )
+          (* with *)
+          (*   WrongInstructionException _ -> *)
+          (*     Dump.Kernel.toPlugin(); *)
+	  (*     solve_rec (machine (true, *)
+	  (*     	                  el_wrap adOr, *)
+	  (*     	                  Me.tomem, *)
+          (*                         fNone)      ) *)
 
 	)
 	  
@@ -427,21 +483,18 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       for i=0 to Array.length count-1 do count.(i) <- 0 done;
       ans
 
-
-  let reset () = address:=No
-
     (* solve_restart handles restarts, launching solve_rec once, 
        then re-launching it every time a Restart exception is raised. *)
   let rec solve input =
     try 
       solve_rec input
     with Restarts.Restart lits -> 
-      reset();
-      Queue.push lits !priority_lits;
+      address:=No;
+      last_model := lits;
       restart_strategy#increment ();
       Dump.Kernel.toPlugin ();
       Dump.Kernel.reset_branches ();
-          (* if !Flags.debug>0 then *)
+      (* if !Flags.debug>0 then *)
       print_endline (Printf.sprintf "Restarting (next restart: %d)" restart_strategy#next);
       solve input
 

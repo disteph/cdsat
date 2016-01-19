@@ -6,13 +6,38 @@ open Patricia_interfaces
 
 let pattreenum = ref 0
 
-module PATMap = struct
+type ('keys,'values,'common,'branching,'infos) poly =
+  {reveal: (('keys,'values,'common,'branching,'infos) poly,
+            'keys,
+            'values,
+            'common,
+            'branching) poly_rev ;
+   id:int ;
+   info: 'infos}
 
-  module type S = PATMapType
 
-  module Make(D:MapDestType)(I:Intern with type keys=D.keys) = struct
+module Poly(I:Intern) = struct
 
-    open I
+  open I
+
+  module ToInclude = struct
+    type ('v,'i) param = (keys,'v,common,branching,'i) poly
+  end
+
+  let equal rec_eq kcompare vequal t1 t2 =
+    match t1.reveal,t2.reveal with
+    | Empty, Empty                             -> true
+    | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2==0) && (vequal value1 value2)
+    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2==0)&&(match_prefix c1 c2 b1)
+    | _                                        -> false
+
+  let hash rec_hash khash vhash t1 = match t1.reveal with
+    | Empty            -> 1
+    | Leaf(key,value)  -> 2*(khash key)+3*(vhash value)
+    | Branch(_,b,t2,t3)-> 5*(rec_hash t2)+7*(rec_hash t3)
+
+
+  module MapMake(D:MapDestType with type keys=I.keys) = struct
 
   (* This module BackOffice will be share by the Patricia tree
      structure for sets, below *)
@@ -22,60 +47,48 @@ module PATMap = struct
       type branching = I.branching
       type common = I.common
 
+      (* Our Patricia trees can be HConsed *)
+
       let is_hcons = match treeHCons with
         | None -> false
         | Some _ -> true
-
-
-    (* Our Patricia trees can be HConsed *)
-
-      type 'a pat =
-      | Empty
-      | Leaf of keys * values
-      | Branch of common * branching * 'a * 'a
-
-    (* Primitive type of Patricia trees to feed the HashTable Make
-       functor *)
-
-      module PATPrimitive = struct
-        type t = {reveal: t pat ; id:int ; info: infos}
-
-        let rec equal t1 t2 =
-          match treeHCons with
-          | None -> failwith "No function equal when patricia trees are not HConsed"
-          | Some(vequal,_,_) -> (match t1.reveal,t2.reveal with
-	    | Empty, Empty                             -> true
-	    | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2==0) && (vequal value1 value2)
-	    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (t3==t4)&&(t3'==t4')&&(bcompare b1 b2==0)&&(match_prefix c1 c2 b1)
-	    | _                                        -> false
-          )
-
-        let hash t1 = match treeHCons with
-          | None -> failwith "No function hash when patricia trees are not HConsed"
-          | Some(_,khash,vhash) ->
-            (match t1.reveal with
-	    | Empty            -> 1
-	    | Leaf(key,value)  -> 2*(khash key)+3*(vhash value)
-	    | Branch(_,b,t2,t3)-> 5*t2.id+7*t3.id
-            )
-
-      end
-
-      include PATPrimitive
-
-      let rec size t = match t.reveal with
-        | Empty               -> 0
-        | Leaf (j,_)          -> 1
-        | Branch (_, _, l, r) -> size l + size r
 
       let reveal f = f.reveal
       let id f     = f.id
       let info f   = f.info
 
+      (* Primitive type of Patricia trees to feed the HashTable Make
+         functor *)
+
+      module PATPrimitive = struct
+
+        type t = (keys,values,common,branching,infos) poly
+
+        let equal =
+          match treeHCons with
+          | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
+          | Some(vequal,_,_) -> equal (fun t t' -> t==t') kcompare vequal
+
+        let hash = match treeHCons with
+          | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
+          | Some(_,khash,vhash) -> hash id khash vhash
+
+      end
+
+      include PATPrimitive
+
+      type pat = (t,keys,values,common,branching) poly_rev
+
+      let rec size t = match reveal t with
+        | Empty               -> 0
+        | Leaf (j,_)          -> 1
+        | Branch (_, _, l, r) -> size l + size r
+
+
       let info_gen = function
         | Empty            -> info_build.empty_info
         | Leaf(k,x)        -> info_build.leaf_info k x
-        | Branch(_,_,t0,t1)-> info_build.branch_info t0.info t1.info  
+        | Branch(_,_,t0,t1)-> info_build.branch_info (info t0) (info t1)  
 
       module H = Hashtbl.Make(PATPrimitive)
 
@@ -97,7 +110,7 @@ module PATMap = struct
       let compare t1 t2 = 
         match treeHCons with 
         | None   -> failwith "No function compare when patricia trees are not HConsed"
-        | Some _ -> Pervasives.compare t1.id t2.id
+        | Some _ -> Pervasives.compare (id t1) (id t2)
 
     (* Now we start the standard functions on maps/sets *)
 
@@ -172,7 +185,7 @@ module PATMap = struct
        or as a tree [b=Some(g,h)], with g printing prefixes and h printing branchings *)
 
       let print_in_fmt b f fmt t =
-        let rec aux indent fmt t = match t.reveal with
+        let rec aux indent fmt t = match reveal t with
 	  | Empty            -> fprintf fmt "{}"
 	  | Leaf(j,x)        -> 
             (match b with
@@ -194,6 +207,7 @@ module PATMap = struct
     end
 
     include BackOffice
+    include ToInclude
 
   (* Now starting functions specific to Maps, not Sets *)
 
@@ -219,7 +233,6 @@ module PATMap = struct
      argument f says what to do in case a key is assigned a value in both u1 and u2 *)
 
     let rec merge f (u1,u2) =
-      if is_hcons && u1==u2 then u1 else
       let newf x = function
         | None  -> x
         | Some y-> f x y
@@ -229,43 +242,47 @@ module PATMap = struct
       | Leaf(k,x), _ -> add k (newf x) u2
       | _, Leaf(k,x) -> add k (newf x) u1
       | Branch (p,m,s0,s1), Branch (q,n,t0,t1) ->
-	if (bcompare m n==0) && match_prefix q p m then
-	    (* The trees have the same prefix. Merge the subtrees. *)
-	  branch (p, m, merge f (s0,t0), merge f (s1,t1))
-	else if bcompare m n < 0 && match_prefix q p m then
-	    (* [q] contains [p]. Merge [t] with a subtree of [s]. *)
-	  if check q m then 
-	    branch (p, m, merge f (s0,u2), s1)
-          else 
-	    branch (p, m, s0, merge f (s1,u2))
-	else if bcompare n m < 0 && match_prefix p q n then
-	    (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
-	  if check p n then
-	    branch (q, n, merge f (u1,t0), t1)
-	  else
-	    branch (q, n, t0, merge f (u1,t1))
-	else
-	    (* The prefixes disagree. *)
-	  join (p, u1, q, u2)
+	 if (bcompare m n==0) && match_prefix q p m then
+	      (* The trees have the same prefix. Merge the subtrees. *)
+	   branch (p, m, merge f (s0,t0), merge f (s1,t1))
+	 else if bcompare m n < 0 && match_prefix q p m then
+	      (* [q] contains [p]. Merge [t] with a subtree of [s]. *)
+	   if check q m then 
+	     branch (p, m, merge f (s0,u2), s1)
+           else 
+	     branch (p, m, s0, merge f (s1,u2))
+	 else if bcompare n m < 0 && match_prefix p q n then
+	      (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
+	   if check p n then
+	     branch (q, n, merge f (u1,t0), t1)
+	   else
+	     branch (q, n, t0, merge f (u1,t1))
+	 else
+	      (* The prefixes disagree. *)
+	   join (p, u1, q, u2)
 
     let union f s t = merge f (s,t)
 
-    let rec inter f s1 s2 =
-      if is_hcons && s1==s2 then s1 else
+    let inter_trans reccall f s1 s2 =
         match (reveal s1,reveal s2) with
       | Empty, _      -> empty
       | _, Empty      -> empty
-      | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f x y) else empty
-      | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f x y) else empty
+      | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f k x y) else empty
+      | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f k x y) else empty
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
-	  union (fun _ -> failwith("Should not be called")) (inter f l1 l2) (inter f r1 r2)
+	  union (fun _ -> failwith("Should not be called")) (reccall f l1 l2) (reccall f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	  inter f (if check p2 m1 then l1 else r1) s2
+	  reccall f (if check p2 m1 then l1 else r1) s2
 	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	  inter f s1 (if check p1 m2 then l2 else r2)
+	  reccall f s1 (if check p1 m2 then l2 else r2)
 	else
 	  empty
+
+    let rec inter f s1 s2 =
+      if is_hcons && s1==s2 then s1 else inter_trans inter f s1 s2
+
+    let rec inter_poly f s1 s2 = inter_trans inter_poly f s1 s2
 
     let rec subset f s1 s2 =
       if is_hcons && s1==s2 then true else
@@ -447,17 +464,13 @@ module PATMap = struct
       in aux t
 
   end
-end
 
 
-module PATSet = struct
-
-  module type S = PATSetType
 
   (* Construction of a Patricia tree structure for sets, given the above.
      Most of it is imported from PATMap *)
 
-  module Make(D:SetDestType)(I:Intern with type keys=D.keys) = struct
+  module SetMake(D:SetDestType with type keys=I.keys) = struct
 
   (* A Set is just a Map with codomain unit.  Constructing this Map
      structure *)
@@ -475,7 +488,7 @@ module PATSet = struct
                              (fun _   -> 0))
     end
 
-    module PM = PATMap.Make(MapDest)(I)
+    module PM = MapMake(MapDest)
 
     include PM.BackOffice
 
@@ -487,8 +500,8 @@ module PATSet = struct
     let singleton k= PM.leaf(k,())
     let add k t    = PM.add k (fun _ -> ()) t
     let union      = PM.union (fun _ _ -> ())
-    let inter      = PM.inter (fun _ _ -> ())
-    let subset     = PM.subset(fun _ _ -> true)
+    let inter      = PM.inter (fun _ _ _ -> ())
+    let subset: t -> t -> bool = PM.subset(fun _ _ -> true)
     let diff       = PM.diff  (fun _ _ _ -> empty)
     let first_diff = PM.first_diff (fun _ ()()->(None,true)) D.kcompare
     let sub        = PM.sub (fun alm k () -> function
@@ -538,7 +551,33 @@ module PATSet = struct
       | Branch (_,_,s,t) -> f (elect f s) (elect f t)
 
   end
+
+
 end
+
+
+module PATSet = struct
+
+  module type S = PATSetType
+
+  module Make(D:SetDestType)(I:Intern with type keys=D.keys) = struct
+      module Base = Poly(I)
+      include Base.SetMake(D)
+  end
+
+end
+
+module PATMap = struct
+
+  module type S = PATMapType
+
+  module Make(D:MapDestType)(I:Intern with type keys=D.keys) = struct
+      module Base = Poly(I)
+      include Base.MapMake(D)
+  end
+
+end
+
 
 
 let empty_info_build = {

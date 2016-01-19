@@ -11,10 +11,10 @@ open PluginsG_tools.SetInterface
 
 module UASet : sig
   include CollectImplemExt with type e=LitF.t
+                           and type t=(LitF.t,unit,int,int,LitF.t Patricia.m_infos) Patricia.poly
   val print_in_fmt : Format.formatter -> t -> unit
   val cardinal : t->int
   val negations: t->t
-  val latest   : t -> e option
   val choose   : t -> e
   val clear    : unit->unit
 end
