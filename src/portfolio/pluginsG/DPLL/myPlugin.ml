@@ -155,7 +155,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   (* Picks an atom from tset to branch on it *)
 
-  let decide atms adO () = 
+  let decide adO () = 
     let tset = (data_of_ad adO).remlits in
     if decide_cut && not (UASet.is_empty tset) then
       match pick_lit_from tset with
@@ -364,15 +364,19 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	  (* if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report(); *)
 	  count.(0)<-count.(0)+1;
 
-          let a = ad [] in
-	  let adOr = branch OrNode a in
-	  let atms = model seq in
-
-          (* We update our non-persistent data structures *)
-	  let action, adOr = update seq adOr in
+	  let adOr = branch OrNode (ad []) in
 
           (* We start building the next action to perform:
-             first, we shall test if a tabled proof can be pasted there, otherwise our next action will be determined by decide *)
+             First, we look at whether we can do unit propagations *)
+
+	  let action, adOr = update seq adOr in
+
+          (* Second, we test whether a tabled proof can be pasted there,
+             otherwise our next action will be determined by decide *)
+
+	  let alternative =
+            Me.search4provableNact seq (branch_one adOr) (decide adOr)
+	  in
 
           (* let action, adOr =  *)
           (*   match *)
@@ -382,12 +386,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
           (*   | ans -> ans, adOr *)
           (* in *)
 
-	  let alternative =
-            Me.search4provableNact seq (branch_one adOr) (decide atms adOr)
-	  in
-
 	  (* let alternative =  *)
-          (*   decide atms adOr *)
+          (*   decide adOr *)
 	  (* in *)
           
           let alternative_restart () =
@@ -404,20 +404,12 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
               | _ -> ());
             out
           in
-          (* try *)
-	    solve_rec (machine (true,
-			        el_wrap adOr,
-                                tomem,
-			        match action with
-			        | Some _ -> (* print_endline "Found an action!" *)(fun()->action)
-			        | None -> alternative_restart))
-          (* with *)
-          (*   WrongInstructionException _ -> *)
-          (*     Dump.Kernel.toPlugin(); *)
-	  (*     solve_rec (machine (true, *)
-	  (*     	                  el_wrap adOr, *)
-	  (*     	                  Me.tomem, *)
-          (*                         fNone)      ) *)
+	  solve_rec (machine (true,
+			      el_wrap adOr,
+                              tomem,
+			      match action with
+			      | Some _ -> (fun()->action)
+			      | None   -> alternative_restart))
 
 	)
 	  
@@ -426,12 +418,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     | InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) (* when UFSet.is_empty l *)
       -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
 
-	(* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
-	(*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
-
-
-	(* If there is no more positive formulae to place the focus on,
-	   we restore the formulae on which we already placed focus *)
+    (* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
+    (*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
 
     | InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when FSet.is_empty l
 	->
@@ -441,8 +429,14 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       let next_action = if (data_of_ad a).restore_parity then (Format.printf "Restoring but next thing is move\n%!"; (fun ()->Some(Get(false,true,fNone)))) else fNone in
       solve_rec(machine(Restore(newad,accept,next_action)))
 
-        (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)
-	(*   -> solve_rec (machine(Restore(olda,accept,fNone))) *)
+    (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)
+    (*   -> solve_rec (machine(Restore(olda,accept,fNone))) *)
+
+
+
+	(* If there is no more positive formulae to place the focus on,
+	   we restore the formulae on which we already placed focus *)
+
 
 
 	(* We

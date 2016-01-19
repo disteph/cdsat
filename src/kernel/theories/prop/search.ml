@@ -49,21 +49,21 @@ module ProofSearch(PlDS: PlugDSType) = struct
        adequate counter in the array *)
 
     let throw ans =
-      let (index, word) = match ans with
+      let index, word = match ans with
 	| Success _ -> (0,"LocalSuccess")
 	| Fail _    -> (1,"LocalFail")
       in
       Dump.Kernel.incr_count index;
-      Dump.msg
-        (Some (fun p -> p "%i %s: " (Dump.Kernel.read_count index) word))
-        (Some (fun p -> p "%i %s: %a" (Dump.Kernel.read_count index) word
-          (fun fmt -> function
-          | Success(Genuine(s,_),_,_)-> Seq.print_in_fmt fmt s
-          | Fail(Genuine s,_)        -> Seq.print_in_fmt fmt s
-          | _ -> ())
-          ans
-         ))
-        (Some index);
+      (* Dump.msg *)
+      (*   (Some (fun p -> p "%i %s: " (Dump.Kernel.read_count index) word)) *)
+      (*   (Some (fun p -> p "%i %s: %a" (Dump.Kernel.read_count index) word *)
+      (*     (fun fmt -> function *)
+      (*     | Success(Genuine(s,_),_,_)-> Seq.print_in_fmt fmt s *)
+      (*     | Fail(Genuine s,_)        -> Seq.print_in_fmt fmt s *)
+      (*     | _ -> ()) *)
+      (*     ans *)
+      (*    )) *)
+      (*   (Some index); *)
       ans
 
     let lift2local f = function
