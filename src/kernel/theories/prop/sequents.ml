@@ -287,7 +287,6 @@ module Make(PlDS: PlugDSType) = struct
     type 'a focusCoin = 
     | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
     | Cut      of int*IForm.t*('a address*'a address)*receive*receive*('a alt_action)
-    (* | ACut     of ASet.e*('a address*'a address)*receive*receive*('a alt_action) *)
     | ConsistencyCheck of ('a address)*receive*('a alt_action)
     | Polarise   of ASet.e*('a address)*receive
     | DePolarise of ASet.e*('a address)*receive

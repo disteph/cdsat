@@ -297,7 +297,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	
       | Seq.EntUF(atomN, delta, formP, formPSaved, polar,ar) when not (FSet.is_empty delta)
 	  -> 
-        let (toDecompose,newdelta) = FSet.next delta in
+        let toDecompose, newdelta = FSet.next delta in
 	begin match FormulaF.reveal toDecompose with
 	| _ when (Pol.form polar toDecompose) = Pos 
             ->if (FSet.mem toDecompose formP)||(FSet.mem toDecompose formPSaved)

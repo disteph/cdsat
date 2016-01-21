@@ -73,13 +73,18 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                   fixed. remlits is closed under negation *)
                   remlits : UASet.t;
                   (* Known Forms: we have already checked if they are
-                  clauses, in which case they may be watching
-                  literals *)
+                  clauses, in which case they are watching literals *)
                   knownforms : UFSet.t;
                   (* Stack of forms that haven't been checked *)
                   stack : IForm.t list;
                   (* State of the 2-watched lits algorithm *)
-                  up_state : UP.t
+                  up_state : UP.t;
+                  (* Indicates that the next step should start with 
+                     a memoisation step *)
+                  mem_first : bool;
+                  (* Model and formulae before last decide *)
+                  modelb4   : ASet.t;
+                  formsb4   : FSet.t
                  }
   type data       = my_data addressing
   let initial_data _ = ad_init {i = 0;
@@ -87,7 +92,11 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                                 remlits      = UASet.empty;
                                 knownforms   = UFSet.empty;
                                 stack        = [];
-                                up_state     = UP.init}
+                                up_state     = UP.init;
+                                mem_first    = false;
+                                modelb4      = ASet.empty;
+                                formsb4      = FSet.empty
+                               }
   let address     = ref No
 
   (*************)
@@ -109,6 +118,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   module Restarts = PluginsG_tools.RestartStrategies.RestartStrategies(UASet)
   let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2    
+  let last_model = ref UASet.empty
 
   (******************************************************)
   (* Last resort: pick a clause and put the focus on it *)
@@ -121,8 +131,24 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
 
   (**************************************************)
-  (* Not so last resort: VSIDS heuristics for picking decision
-  literals *)
+  (* Not so last resort: picking decision literals *)
+
+  (* Backjump stuff *)
+
+  exception Backjump of bool*IForm.t*ASet.t*FSet.t
+
+  let backjump cut = function
+    | Provable(Seq.EntUF(aset,delta,formP,formPSaved,_,_),_,_)
+        when FSet.mem cut delta ->
+       (* (print_endline(Dump.toString(fun p->p *)
+       (*   "Raising exception on %a\nwhere atms=%a and delta=%a" IForm.print_in_fmt cut Seq.print_in_fmt seq FSet.print_in_fmt delta)); *)
+        raise (Backjump(false,cut,aset,FSet.union formP formPSaved))
+    | _ ->
+       (* (print_endline(Dump.toString(fun p->p *)
+       (*   "Not raising exception on %a" IForm.print_in_fmt cut))); *)
+      ()
+
+  (* VSIDS heuristics *)
 
   module Dest = struct
     type keys = LitF.t
@@ -145,33 +171,6 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   let scores = ref Scores.empty
   let bump = ref 1.
   let since_last = ref 1
-
-  let last_model = ref UASet.empty
-
-  exception Nonempty_intersection of UASet.t
-
-  let pick_lit_from tset =
-    Scores.info(Scores.inter_poly (fun _ () x -> x) tset !scores)
-
-  (* Picks an atom from tset to branch on it *)
-
-  let decide adO () = 
-    let tset = (data_of_ad adO).remlits in
-    if decide_cut && not (UASet.is_empty tset) then
-      match pick_lit_from tset with
-      | Some(lit,_) ->
-        (* if UASet.mem lit atms then failwith "Chosen lit in atms"; *)
-        (* if UASet.mem (LitF.negation lit) atms then failwith "Chosen nlit in atms"; *)
-        count.(3)<-count.(3)+1;
-        let lit =
-          if UASet.mem lit !last_model
-          then lit
-          else LitF.negation lit
-        in
-        Some(Cut(7,IForm.lit lit,branch_one adO,accept,accept,fNone))
-      | None -> None
-    else
-      None
 
   let bump_lit lit =
     Scores.add lit (function
@@ -202,6 +201,25 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
        Dump.msg None (Some(fun p-> p "Bumping %a with %f\n" UASet.print_in_fmt aset !bump)) None;
       bumpNdivide aset
     | None -> ()
+       
+  (* Picks an atom from tset to branch on it *)
+
+  let decide tset = 
+    if decide_cut && not (UASet.is_empty tset) then
+      match Scores.info(Scores.inter_poly (fun _ () x -> x) tset !scores) with
+      | Some(lit,_) ->
+        (* if UASet.mem lit atms then failwith "Chosen lit in atms"; *)
+        (* if UASet.mem (LitF.negation lit) atms then failwith "Chosen nlit in atms"; *)
+         count.(3)<-count.(3)+1;
+        let cut =
+          let nlit = LitF.negation lit in
+          IForm.lit (if UASet.mem nlit !last_model then lit else nlit)
+        in
+        Some cut
+      | None -> None
+    else
+      None
+
 
 
   (**************************)
@@ -366,54 +384,109 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
 	  let adOr = branch OrNode (ad []) in
 
-          (* We start building the next action to perform:
-             First, we look at whether we can do unit propagations *)
-
-	  let action, adOr = update seq adOr in
-
-          (* Second, we test whether a tabled proof can be pasted there,
-             otherwise our next action will be determined by decide *)
-
-	  let alternative =
-            Me.search4provableNact seq (branch_one adOr) (decide adOr)
-	  in
-
-          (* let action, adOr =  *)
-          (*   match *)
-          (*     Me.search4provableNact seq (branch_one adOr) fNone () *)
-          (*   with *)
-          (*   | None -> update seq adOr *)
-          (*   | ans -> ans, adOr *)
-          (* in *)
-
-	  (* let alternative =  *)
-          (*   decide adOr *)
-	  (* in *)
-          
-          let alternative_restart () =
-            let out = alternative () in
-            if restart_strategy#is_enabled then
-              (match out with
-              | Some (Propose a) ->
-                let count = Me.get_usage_stats4provable a in
-                if count >= restart_strategy#next then (
-                  Dump.Plugin.incr_count 10;
-                  Me.reset_stats4provable a;
-                  raise (Restarts.Restart (model(sequent a)))
-                )
-              | _ -> ());
-            out
+          let andW b ad = 
+            let data = data_of_ad ad in
+            let newdata = { data with mem_first=true } in
+            let datal,datar = if b then newdata,data else data,newdata in
+            and_branch ad datal datar
           in
-	  solve_rec (machine (true,
-			      el_wrap adOr,
-                              tomem,
-			      match action with
-			      | Some _ -> (fun()->action)
-			      | None   -> alternative_restart))
+          
+          (* We start building the next action to perform:
+             First, we look at whether we can do unit propagations
+             Second, we test whether a tabled proof can be pasted there
+          *)
+	  let action, adOr =
+            if (data_of_ad adOr).mem_first
+            then
+              ((* print_endline "going for mem first"; *)
+               match Me.search4provableNact seq (branch_one adOr) fNone () with
+               | Some(Propose _) as a -> a, adOr
+               | _ -> failwith "didn't find it")
+            else
+              let action, adOr = update seq adOr in
+	      (match action with
+	      | Some _ -> action
+	      | None   -> Me.search4provableNact seq (andW false adOr) fNone ()),
+              adOr
+          in
 
+          let restart action = 
+            (if restart_strategy#is_enabled then
+                (match action with
+                | Some (Propose a) ->
+                   let count = Me.get_usage_stats4provable a in
+                   if count >= restart_strategy#next then (
+                     Dump.Plugin.incr_count 10;
+                     Me.reset_stats4provable a;
+                     raise (Restarts.Restart (model(sequent a)))
+                   )
+                | _ -> ()))
+          in
+
+	  match action with
+	  | Some _ -> begin
+            restart action;
+            try solve_rec (machine (true,el_wrap adOr,tomem,fun()->action))
+            with
+              WrongInstructionException _ ->
+                Dump.Kernel.toPlugin();
+	        solve_rec (machine (true, el_wrap adOr, tomem, fNone))
+          end
+	  | None -> begin
+            let modelb4, formsb4 = match seq with
+              | Seq.EntUF(atms,_,formP,formPSaved,_,_) -> atms, FSet.union formP formPSaved
+              | _ -> failwith "Sequent is supposed to be unfocussed at the point of decision"
+            in
+            let data = data_of_ad adOr in
+            (* Our next action will be determined by decide *)
+            match decide data.remlits with
+            | Some f -> begin
+              (* print_endline(Dump.toString(fun p->p "I decide %a" IForm.print_in_fmt f)); *)
+              try
+                let newad = and_branch adOr { data with modelb4 = modelb4; formsb4 = formsb4 } data in
+                let action() = Some(Cut(7, f, newad, backjump f, accept, fNone)) in
+	        solve_rec (machine (true,el_wrap adOr,tomem,action))
+                with
+                | Backjump(false,cut,aset,fset) 
+                    when (IForm.compare f cut==0
+                          && ASet.subset aset (data_of_ad adOr).modelb4
+                          && FSet.subset fset (data_of_ad adOr).formsb4)
+                      -> raise (Backjump(true,cut,aset,fset))
+                | Backjump(b,cut,aset,fset)
+                    when (b || IForm.compare f cut==0)
+                      && not (ASet.subset aset (data_of_ad adOr).modelb4
+                              && FSet.subset fset (data_of_ad adOr).formsb4) ->
+                   begin
+                     (* print_endline (Dump.toString(fun p->p "cut= %a\n f= %a" IForm.print_in_fmt cut IForm.print_in_fmt f)); *)
+                     Dump.Kernel.toPlugin();
+                     let newad = andW true adOr in
+                     let action() = Some(Cut(7, cut, newad, accept,
+                                             (* (function *)
+                                             (* | Provable(seq,_,_) as ans -> *)
+                                                (* print_endline (Dump.toString(fun p->p "Proved again\n%a" Seq.print_in_fmt seq)); *)
+                                             (*    accept ans *)
+                                             (* | _ -> failwith "Dumb shit"), *)
+                                             accept,fNone)) in
+                     (* print_endline(Dump.toString(fun p->p "I re-decide %a" IForm.print_in_fmt cut)); *)
+                     solve_rec (machine (true,el_wrap adOr,tomem,action))
+                   end
+            end
+            | _ -> solve_rec (machine (true,el_wrap adOr,tomem,fun()->action))
+          end
 	)
 	  
     (* When we are asked for focus: *)
+    (* We
+       - start searching whether a bigger sequent doesn't already
+       have a counter-model
+       - accept the result of that search
+       - A(...) indicates that we look for an exact inclusion of our
+       sequent in a bigger sequent
+       - in case we have not found happiness in memoisation table,
+       run focus_pick to determine action to perform, passing it
+       the set of atoms, the set of formulae on which focus is
+       allowed, and the address of the current focus point
+    *)
 
     | InsertCoin(AskFocus(seq,_,l,_,false,machine,ad)) (* when UFSet.is_empty l *)
       -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))
@@ -421,35 +494,23 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     (* | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))  when UFSet.is_empty l   *)
     (*     -> solve_rec(machine(Me.search4notprovableNact seq (fun()->ConsistencyCheck(ad,accept,fNone))))  *)
 
+    (* If there is no more positive formulae to place the focus on,
+       we restore the formulae on which we already placed focus *)
+
     | InsertCoin(AskFocus(_,_,l,true,_,machine,ad)) when FSet.is_empty l
 	->
       let a = ad[] in
       let newad = el_wrap(ad_up a { (data_of_ad a) with restore_parity = not (data_of_ad a).restore_parity})
       in
-      let next_action = if (data_of_ad a).restore_parity then (Format.printf "Restoring but next thing is move\n%!"; (fun ()->Some(Get(false,true,fNone)))) else fNone in
+      let next_action = if (data_of_ad a).restore_parity
+        then (Format.printf "Restoring but next thing is move\n%!";
+              (fun ()->Some(Get(false,true,fNone))))
+        else fNone in
       solve_rec(machine(Restore(newad,accept,next_action)))
 
     (* | InsertCoin(AskFocus(_,_,l,true,_,machine,olda)) when UFSet.is_empty l *)
     (*   -> solve_rec (machine(Restore(olda,accept,fNone))) *)
 
-
-
-	(* If there is no more positive formulae to place the focus on,
-	   we restore the formulae on which we already placed focus *)
-
-
-
-	(* We
-	   - start searching whether a bigger sequent doesn't already
-	   have a counter-model
-	   - accept the result of that search
-	   - A(...) indicates that we look for an exact inclusion of our
-	   sequent in a bigger sequent
-	   - in case we have not found happiness in memoisation table,
-	   run focus_pick to determine action to perform, passing it
-	   the set of atoms, the set of formulae on which focus is
-	   allowed, and the address of the current focus point
-	*)
 
     | InsertCoin(AskFocus(seq,_,l,_,_,machine,ad))
       -> let atms = model seq in
@@ -459,18 +520,18 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	 solve_rec(machine(Me.search4notprovableNact seq alternative))
 
 
-	(* When we are asked a side, we always go for the left first *)
+    (* When we are asked a side, we always go for the left first *)
 
     | InsertCoin(AskSide(seq,_,machine,ad)) -> solve_rec (machine(true,branch_two(branch OrNode (ad[]))))
 
-	(* When kernel has explored all branches and proposes to go
-	   backwards to close remaining branches, we give it the green
-	   light *)
+    (* When kernel has explored all branches and proposes to go
+       backwards to close remaining branches, we give it the green
+       light *)
 
     | InsertCoin(Stop(b1,b2, machine)) ->  Format.printf "Reaching the END\n%!"; 
       solve_rec (machine ())
 
-	(* When the kernel gives us a final answer, we return it and clear all the caches *)
+    (* When the kernel gives us a final answer, we return it and clear all the caches *)
 
     | Jackpot ans                    -> report(); address:=No;
       restart_strategy#reset() ; Me.clear(); UASet.clear(); UFSet.clear();LitF.clear();Dump.Plugin.clear();

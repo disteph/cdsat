@@ -400,12 +400,11 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                                   findaction atms adOr alternative_restart))
           with
             WrongInstructionException _ ->
-              failwith "Plant'e"
-              (* Dump.Kernel.toPlugin(); *)
-	      (* solve_rec (machine (true, *)
-	      (* 	                  el_wrap adOr, *)
-	      (* 	                  (fun a-> let _ = Me.tomem a in ()), *)
-              (*                     fNone)      ) *)
+              Dump.Kernel.toPlugin();
+	      solve_rec (machine (true,
+	      	                  el_wrap adOr,
+	      	                  (fun a-> let _ = Me.tomem a in ()),
+                                  fNone)      )
 
 	)
 	  
