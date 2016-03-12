@@ -51,8 +51,8 @@ module Generate(IAtom:IAtomType) = struct
     let fold f (a,_)    = AtSet.fold f a
     let print_in_fmt fmt (h,a)= 
       match a with
-      | None   -> Format.fprintf fmt "({ %a },last= None)" AtSet.print_in_fmt h
-      | Some a -> Format.fprintf fmt "({ %a },last= %a)" AtSet.print_in_fmt h IAtom.print_in_fmt a
+      | None   -> Format.fprintf fmt "{ %a }" AtSet.print_in_fmt h
+      | Some a -> Format.fprintf fmt "{ %a }" AtSet.print_in_fmt h
 
     let diff (t1,_)(t2,_)     = (AtSet.diff t1 t2,None)
     let compare(a,_)(a',_)    = AtSet.compare a a'
