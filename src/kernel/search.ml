@@ -395,6 +395,7 @@ module ProofSearch
 		| Cut(7,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*cut_7*)
 		  ->if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
 		    Dump.Kernel.incr_count 5;
+                    (* Format.printf "CUT ON: %a\n%!" IForm.print_in_fmt toCut; *)
                     let u1 = lk_solve true (Seq.EntUF (atomN, FSet.add toCut FSet.empty, formP, formPSaved, polar,ar)) (bleft newdata1) in
                     let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                     let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in

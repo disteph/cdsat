@@ -2,7 +2,7 @@
          	PSYCHE,
 The Proof-Search factorY for Collaborative HEuristics
 =====================================================
-Copyright (C) 2012 - 1013
+Copyright (C) 2012 - 2015
 
 Stephane Graham-Lengrand <graham-lengrand@lix.polytechnique.fr>, CNRS
 Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA

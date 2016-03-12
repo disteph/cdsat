@@ -15,7 +15,7 @@ module type SolvableTheory = sig
   module Structure(F:Kernel.Formulae.FormulaType with type lit=Atom.t) :
   sig
     type t
-    val st      : (Sig.sort,Sig.symbol,t) structureType
+    val st      : (Sig.symbol,t) structureType
     val toform  : t->F.t
     val examples: ((unit->F.t)*bool) list
   end

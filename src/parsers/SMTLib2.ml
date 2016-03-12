@@ -151,7 +151,7 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
   and transformTerm env boundvarlist t expsort =
     match getsymb env t with
     | AppliedSymbol (s,l,newenv) -> transformTermBase newenv boundvarlist expsort s l
-    | Quantif(b,l,t') when expsort=ts.prop -> i.quantif b (List.map snd l) (transformTerm env (List.append l boundvarlist) t' ts.prop)
+    | Quantif(b,l,t') when expsort=`Prop -> i.quantif b (List.map snd l) (transformTerm env (List.append l boundvarlist) t' `Prop)
     | Quantif(b,l,t') -> raise (ParsingError "Parsing a quantifier while inhabiting another sort than prop")
 
   in
@@ -163,10 +163,10 @@ let parse ts i (theory,satprov,status,declared,formulalist) =
     match formulalist with
       | []          -> (None,status)
       | _ -> 
-	  let formula = transformTermBase EmptyEnv [] ts.prop "and" formulalist in
+	  let formula = transformTermBase EmptyEnv [] `Prop "and" formulalist in
 	  let fformula =
 	    if satprov then formula
 	    else 
-	      i.sigsymb "not" ts.prop [fun so -> if so=ts.prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
+	      i.sigsymb "not" `Prop [fun so -> if so=`Prop then formula else raise(ParsingError "\"Formula\" to find UNSAT is not of type `Prop!")]
 	  in
 	    (Some fformula,status)

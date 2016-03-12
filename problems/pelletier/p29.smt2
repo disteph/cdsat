@@ -5,6 +5,9 @@
 (declare-fun j (Term) Bool)
 (set-info :status unsat)
 (assert (and (exists ((x Term)) (f x)) (exists ((x Term)) (g x))))
-(assert (not (<=> (and (forall ((x Term)) (=> (f x) (h x))) (forall ((x Term)) (=> (g x) (j x)))))))
+(assert (not (<=> 
+                  (and (forall ((x Term)) (=> (f x) (h x))) (forall ((x Term)) (=> (g x) (j x))))
+                  (forall ((x Term) (y Term)) (=> (and (f x) (g y)) (and (h x) (j y))))
+)))
 (check-sat)
 (exit)

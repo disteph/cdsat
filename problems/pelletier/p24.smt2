@@ -7,6 +7,7 @@
 (assert (not (exists ((x Term)) (and (s x) (q x)))))
 (assert (forall ((x Term)) (=> (p x) (or (q x) (r x)))))
 (assert (=> (not (exists ((x Term)) (p x))) (exists ((x Term)) (q x))))
+(assert (forall ((x Term)) (=> (or (q x) (r x)) (s x))))
 (assert (not (exists ((x Term)) (and (p x) (r x)))))
 (check-sat)
 (exit)

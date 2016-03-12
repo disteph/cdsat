@@ -5,12 +5,10 @@
 open Theories
 
 module PropSig = struct
-  type sort   = [ `Prop ]
+
   type symbol = [ `True | `False | `Neg | `And | `Or | `Imp | `Xor | `EqProp | `NEqProp | `ITEProp ]
 
-  let forParser =
-    {names   = ["prop";"empty"];
-     prop    = `Prop }
+  let forParser = {names   = ["prop";"empty"] }
 
   let forParsing =
     { arity = 
@@ -50,15 +48,13 @@ end
 
 
 module LRASig = struct
-  type sort   = [ `Prop | `Rat ]
+
   type symbol = [ PropSig.symbol 
   | `CstRat of Num.num
   | `Ge | `Le | `Gt | `Lt | `EqRat | `NEqRat
   | `Plus | `Minus | `Times | `Divide | `Op | `ITERat]
 
-  let forParser =
-    {names   = ["lra";"qflra"; "QF_LRA"];
-     prop    = `Prop }
+  let forParser = {names   = ["lra";"qflra"; "QF_LRA"] }
 
   let forParsing =
     { arity = 
@@ -109,12 +105,10 @@ module LRASig = struct
 end
 
 module CCemptySig = struct
-  type sort   = [ `Prop | `Term ]
+
   type symbol = [ PropSig.symbol | `EqTerm | `NEqTerm ]
 
-  let forParser =
-    {names   = ["emptyCC";"QF_UF"];
-     prop    = `Prop }
+  let forParser = {names   = ["emptyCC";"QF_UF"] }
 
   let forParsing =
     { arity = 
@@ -142,12 +136,10 @@ module CCemptySig = struct
 end
 
 module FOSig = struct
-  type sort   = [ `Prop | `Term ]
+
   type symbol = PropSig.symbol
 
-  let forParser =
-    {names   = ["FO"];
-     prop    = `Prop }
+  let forParser = {names   = ["FO"; "UF"] }
 
   let forParsing =
     { arity     = PropSig.forParsing.arity;
