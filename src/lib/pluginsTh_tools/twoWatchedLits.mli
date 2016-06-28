@@ -33,22 +33,23 @@ module type Config = sig
   (* Type of the data-structures recording which variables are determined *)
   type fixed
 
-  (* pick_another constraint fixed var
+  (* simplify fixed c
+
+     simplifies constraint c according to currently fixed variables
+   *)
+  val simplify: fixed -> Constraint.t -> Constraint.t
+
+  (* pick_another constraint var
 
      looks for another variable that constraint can watch:
-     - fixed records which variables are determined (and therefore
-     should not be picked)
      - var is the other variable that constraint was watching (which
      may or may not, at this point, be determined, but in any case
      it should not be picked).
 
      The output provides (Some var'), if var' is the new variable to
      watch, or None, if no variable could be picked (in which case the
-     constraint is unit or constant). The output also provides a new
-     version of this constraint, in case the picking has done some
-     work on the constraint's implementation that one does not want
-     to lose. *)
-  val pick_another: Constraint.t -> fixed -> Var.t -> Constraint.t*(Var.t option)
+     constraint is unit or constant). *)
+  val pick_another: Constraint.t -> Var.t -> (Var.t option)
 end
 
 (* Given such a configuration module C, Make(C) provides an

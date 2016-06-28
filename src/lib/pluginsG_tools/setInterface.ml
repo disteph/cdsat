@@ -49,6 +49,7 @@ module type MyPatCollect = sig
   val is_empty : t -> bool
   val mem   : e -> t -> bool
   val empty : t
+  val singleton : e -> t
   val add   : e -> t -> t
   val union : t -> t -> t
   val subset : t -> t -> bool

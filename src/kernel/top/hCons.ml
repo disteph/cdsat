@@ -65,7 +65,7 @@ module MakePoly
         module Arg = struct
           type t = (Par.t,Data.t) generic
           let equal a b = M.equal (fun x y -> x == y) Par.equal a.reveal b.reveal
-          let hash a    = M.hash Hashtbl.hash Par.hash a.reveal
+          let hash a    = M.hash id Par.hash a.reveal
         end
 
         (* module H = Weak.Make(Arg) *)

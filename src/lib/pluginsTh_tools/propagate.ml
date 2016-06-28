@@ -6,22 +6,20 @@ module type Config = sig
 
   include TwoWatchedLits.Config
 
-  type sign
-  type tset
-  type constraints
+  type stop
+  type msg
 
   val init_fixed : fixed
-  val init_constraints : constraints
 
-  type result = 
-    | UNSAT of (sign,tset,thProvable) thsays
-    | Propagate of fixed * Var.t
-    | Meh
+  type result =
+    | UNSAT     of stop
+    | Propagate of fixed * Var.t list
+    | Meh of fixed
 
   val constreat :
-    Constraint.t -> (Var.t*Var.t, constraints->(constraints*result)) Sums.sum
+    Constraint.t -> fixed -> (Var.t*Var.t*fixed, result) Sums.sum
 
-  val extract_msg: constraints -> (sign,tset,thStraight) thsays option * constraints
+  val extract_msg: fixed -> (msg * fixed) option
 
 end
 
@@ -31,42 +29,45 @@ module Make(C: Config) = struct
 
   type t = {
     fixed : C.fixed;
-    constraints : C.constraints;
     watch : WL.t
   }
 
   let init = {
     fixed = C.init_fixed;
-    constraints = C.init_constraints;
     watch = WL.init
   }
 
-  let rec treat c t = 
-    match C.constreat c with
-    | Sums.A(var1,var2) ->
-       run {t with watch = WL.addconstraint c var1 var2 t.watch}
-    | Sums.F affect ->
-       let constraints', res = affect t.constraints in
-       begin
-         match res with
-         | C.UNSAT msgConflict -> 
-            let msgProp,_ = C.extract_msg constraints' in
-            msgProp, Sums.A msgConflict
-         | C.Propagate(fixed',var) ->
-            run { fixed = fixed';
-                  constraints = constraints';
-                  watch = WL.fix var t.watch
-                }
-         | C.Meh ->
-            run { t with constraints = constraints' }
-       end
+  let rec treat_simplified c t = 
+    match C.constreat c t.fixed with
+    | Sums.A(var1,var2,fixed') ->
+       run {
+           fixed = fixed';
+           watch = WL.addconstraint c var1 var2 t.watch
+         }
+    | Sums.F(C.UNSAT stop) -> Sums.A stop
+    | Sums.F(C.Propagate(fixed',varlist)) ->
+       run {
+           fixed = fixed';
+           watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
+         }
+    | Sums.F(C.Meh fixed') ->
+       run { t with fixed = fixed' }
 
   and run t = 
     let res, watch' = WL.next t.fixed t.watch in
+    let t = { t with watch = watch' } in
     match res with
-    | Some c -> treat c { t with watch = watch' }
-    | None   ->
-       let msg,constraints' = C.extract_msg t.constraints in
-       msg, Sums.F { t with constraints = constraints'; watch = watch' }
+    | Some c -> treat_simplified c t
+    | None   -> Sums.F t
+
+  let treat c t =
+    let c = C.simplify t.fixed c in
+    treat_simplified c t
+
+  let extract_msg t =
+    match C.extract_msg t.fixed with
+    | None -> None, t
+    | Some(msg,fixed') -> Some msg,{ t with fixed = fixed' }
+
 
 end

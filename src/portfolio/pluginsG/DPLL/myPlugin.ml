@@ -44,21 +44,27 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     module Var = LitF
     type fixed = UASet.t
 
-    let pick_another (f,clause) fixed var =
+    let simplify fixed (f,clause) =
+      f,
       match clause with
       | Some(set,setn) when UASet.is_empty (UASet.inter setn fixed) ->
          let just_fixed = UASet.negations(UASet.inter set fixed) in
          let updated_clause = UASet.diff set fixed in
+         Some(updated_clause,UASet.diff setn just_fixed)
+      | _ -> None
+      
+    let pick_another fclause var =
+      match fclause with
+      | _,Some(set,_) ->
          let tochoose = 
-           if UASet.mem var updated_clause
-           then UASet.remove var updated_clause
-           else updated_clause
+           if UASet.mem var set
+           then UASet.remove var set
+           else set
          in
-         (f,Some(updated_clause,UASet.diff setn just_fixed)),
          if UASet.is_empty tochoose
          then None
          else Some(UASet.choose tochoose)
-      | _ -> (f,None), None
+      | _ -> None
   end
 
   module UP = PluginsTh_tools.TwoWatchedLits.Make(UPConfig)

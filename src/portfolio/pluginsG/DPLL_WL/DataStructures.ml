@@ -36,6 +36,7 @@ module UASet = struct
   type e              = LitF.t
   type t              = AtSet.t*(e option)
   let empty           = (AtSet.empty, None)
+  let singleton l     = (AtSet.singleton l, Some l)
   let is_empty(a,_)   = AtSet.is_empty a
   let union(a,_)(a',_)= (AtSet.union a a',None)
   let inter(a,_)(a',_)= (AtSet.inter a a',None)

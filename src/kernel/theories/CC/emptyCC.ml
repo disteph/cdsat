@@ -62,7 +62,7 @@ module Make(DS: GTheoryDSType)= struct
     type values = Term.t
     type infos = unit
     let info_build = empty_info_build
-    let treeHCons = Some(vequal,Terms.id,Terms.id)
+    let treeHCons = Some(Terms.id,Terms.id,vequal)
   end
 
   module MVtoV = PATMap.Make (DVtoV) (I)

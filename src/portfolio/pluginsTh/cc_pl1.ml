@@ -35,7 +35,7 @@ end) = struct
         | None -> Output(None,state)
         | Some tset -> 
            match Next.add tset with
-           | MyCC.UNSAT(msg)    -> Output(Some msg, fail_state)
+           | MyCC.UNSAT msg     -> Output(Some msg, fail_state)
            | MyCC.SAT(msg,cont) -> Output(Some msg, init_rec cont)
       let normalise _ = failwith "Not a theory with normaliser"
       let clone () = Output(None,state)

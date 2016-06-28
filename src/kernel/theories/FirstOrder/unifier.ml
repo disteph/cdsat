@@ -62,7 +62,7 @@ module TermDest = struct
   type values = KTerm.t
   type infos = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons = Some((fun x y -> Terms.id x = Terms.id y),IntSort.id,Terms.id)
+  let treeHCons = Some(IntSort.id,Terms.id,(fun x y -> Terms.id x = Terms.id y))
 end
 
 module TMap = PATMap.Make(TermDest)(TypesFromHConsed(IntSort))
@@ -153,7 +153,7 @@ module KM = struct
   type values    = Meta.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(MetaHashed.equal,IntSortHashed.hash,MetaHashed.hash)
+  let treeHCons  = Some(IntSortHashed.hash,MetaHashed.hash,MetaHashed.equal)
 end
 module KMap  = PATMap.Make(KM)(TypesFromHConsed(IntSort))
 
@@ -163,7 +163,7 @@ module MK = struct
   type values    = IntSort.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(IntSortHashed.equal,MetaHashed.hash,IntSortHashed.hash)
+  let treeHCons  = Some(MetaHashed.hash,IntSortHashed.hash,IntSortHashed.equal)
 end
 module MMap  = PATMap.Make(MK)(TypesFromHConsed(Meta))
 
@@ -173,6 +173,6 @@ module KK = struct
   type values    = IntSort.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(IntSortHashed.equal,IntSortHashed.hash,IntSortHashed.hash)
+  let treeHCons  = Some(IntSortHashed.hash,IntSortHashed.hash,IntSortHashed.equal)
 end
 module KKMap = PATMap.Make(KK)(TypesFromHConsed(IntSort))

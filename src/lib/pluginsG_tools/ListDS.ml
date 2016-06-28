@@ -27,6 +27,8 @@ module MyCollectImplem (MyPType:PrintableType) = struct
 
   let empty = []
 
+  let singleton e = [e]
+
   let add x l = if mem x l then l else x::l
 
   let rec remove x = function

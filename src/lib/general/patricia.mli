@@ -5,12 +5,6 @@ open Patricia_interfaces
 
 type ('keys,'values,'common,'branching,'infos) poly
 
-module Poly(I:Intern): sig
-
-  open I
-
-end
-
 module PATMap: sig
 
   module type S = PATMapType
@@ -38,6 +32,7 @@ module PATSet: sig
         and  type infos  = D.infos
         and  type common = I.common
         and  type branching = I.branching
+        and  type ('v,'i) param = (D.keys,'v,I.common,I.branching,'i) poly
         and  type t = (D.keys,unit,I.common,I.branching,D.infos) poly
 end
 

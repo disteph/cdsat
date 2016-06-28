@@ -19,6 +19,7 @@ module type Collection = sig
   type e
   type t
   val empty: t
+  val singleton: e -> t
   val add  : e -> t -> t
   val remove: e -> t -> t
   val union: t -> t -> t

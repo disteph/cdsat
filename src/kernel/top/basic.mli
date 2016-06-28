@@ -18,8 +18,9 @@ module IntMap : Map.S with type key = int
 module HashedTypeFromHCons(M: sig
   type t
   val id: t -> int
-end): Hashtbl.HashedType with type t = M.t
-
+end)
+  : Hashtbl.HashedType with type t = M.t
+  
 module IdMon : MonadType with type 'a t = 'a
 
 module MakeCollection(OT: sig

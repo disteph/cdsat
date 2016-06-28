@@ -6,7 +6,7 @@ module Sig = struct
     | Arrays: Arrays.MyTheory.sign t
     | Dejan : Dejan.MyTheory.sign t
     | IfThenElse: IfThenElse.MyTheory.sign t
-
+    | Bool  : Bool.MyTheory.sign t
 
   let id (type a) : a t -> int = function
     | Empty -> 0
@@ -14,13 +14,15 @@ module Sig = struct
     | Arrays -> 2
     | Dejan -> 3
     | IfThenElse -> 4
+    | Bool -> 5
     
   let print_in_fmt fmt (type a) : a t -> unit = function
     | Empty      -> Format.fprintf fmt "Empty"
     | CC         -> Format.fprintf fmt "CC"
-    | Arrays     ->  Format.fprintf fmt "Arrays"
-    | Dejan      ->  Format.fprintf fmt "Arithmetic"
-    | IfThenElse ->  Format.fprintf fmt "IfThenElse"
+    | Arrays     -> Format.fprintf fmt "Arrays"
+    | Dejan      -> Format.fprintf fmt "Arithmetic"
+    | IfThenElse -> Format.fprintf fmt "IfThenElse"
+    | Bool       -> Format.fprintf fmt "Bool"
 end
 
 module Handlers = struct

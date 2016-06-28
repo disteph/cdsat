@@ -32,6 +32,7 @@ true: annot, bin_annot
 <src/kernel/theories/CC/*>       : for-pack(Kernel.CC)
 <src/kernel/theories/FirstOrder/*>    : for-pack(Kernel.FirstOrder)
 <src/kernel/theories/IfThenElse/*>    : for-pack(Kernel.IfThenElse)
+<src/kernel/theories/bool/*>     : for-pack(Kernel.Bool)
 
 <src/kernel/*.cmx>               : for-pack(Kernel)
 <src/kernel/theories/*.cmx>      : for-pack(Kernel)
@@ -55,7 +56,7 @@ true: annot, bin_annot
 
 <src/portfolio/pluginsTh/*.cmx>:      for-pack(PluginsTh)
 
-<src/*.{byte,native}>:                 use_nums, use_str
+<src/*.{byte,native}>:                 use_str
 <src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async
 
 true: debug

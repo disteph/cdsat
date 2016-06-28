@@ -21,6 +21,7 @@ module DblSet(TrustedSet: Collection)(PluginSet: CollectExtra with type e = Trus
     type ps = PluginSet.t
 
     let empty                    = (TrustedSet.empty, PluginSet.empty)
+    let singleton e              = (TrustedSet.singleton e, PluginSet.singleton e)
     let add e (tt,pt)            = (TrustedSet.add e tt, PluginSet.add e pt)
     let remove e (tt,pt)         = (TrustedSet.remove e tt, PluginSet.remove e pt)
     let union (tt1,pt1)(tt2,pt2) = (TrustedSet.union tt1 tt2, PluginSet.union pt1 pt2)

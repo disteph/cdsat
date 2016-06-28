@@ -7,7 +7,8 @@ module type Config = sig
   module Constraint: FromHConsed
   module Var: Map.OrderedType
   type fixed
-  val pick_another: Constraint.t -> fixed -> Var.t -> Constraint.t*(Var.t option)
+  val simplify: fixed -> Constraint.t -> Constraint.t
+  val pick_another: Constraint.t -> Var.t -> (Var.t option)
 end
 
 
@@ -27,25 +28,16 @@ module Make (C : Config) = struct
     let treeHCons    = None
   end
 
-  module Watching = TypesFromHConsed(Constraint)
-
-  module CSet = PATMap.Make(CSetWatched)(Watching)
-
-  type stream_comp = Finished | Next of CSet.t * stream
-  and stream = unit -> stream_comp
-
-  let rec queue s cset () = match s () with
-    | Finished    -> Next(cset, fun () -> Finished)
-    | Next(cs,s') -> Next(cs, queue s' cset)
+  module CSet = PATMap.Make(CSetWatched)(TypesFromHConsed(Constraint))
 
   type t = {
     watching: CSet.t VarMap.t;
-    todo: stream
+    todo: CSet.t Pqueue.t
   }
 
   let init = {
     watching = VarMap.empty;
-    todo = fun () -> Finished
+    todo = Pqueue.empty
   }
 
   let treat fixed =
@@ -54,10 +46,11 @@ module Make (C : Config) = struct
       | Empty        -> None, t
       | Leaf(c,var2) ->
          begin
+           let c' = simplify fixed c in
 	   (* Trying to pick a new variable to be watched *)
-	   match pick_another c fixed var2 with
-	   | c',None -> Some c', t
-           | c',Some var3 ->
+	   match pick_another c' var2 with
+	   | None -> Some c', t
+           | Some var3 ->
               let watching =
                 if VarMap.mem var2 t.watching
                 then 
@@ -79,10 +72,20 @@ module Make (C : Config) = struct
          begin
            match aux t l with
 	   | None, t          -> aux t r
-	   | Some c as ans, t -> ans, {t with todo = queue t.todo r}
+	   | Some c as ans, t -> ans, {t with todo = Pqueue.push r t.todo}
          end
     in
     aux
+
+  let rec next fixed t = 
+    match Pqueue.pop t.todo with
+    | None -> None, t
+    | Some(cset,cont) -> 
+       begin
+         match treat fixed { t with todo = cont } cset with
+         | None, t -> next fixed t
+         | ans  -> ans
+       end
 
   let add2var var1 constr var2 watching =
     let watching1 = 
@@ -111,16 +114,6 @@ module Make (C : Config) = struct
       else CSet.empty, t.watching
     in
     { watching = watching;
-      todo = queue t.todo cset }
-
-  let rec next fixed t = 
-    match t.todo() with
-    | Finished -> None, t
-    | Next(cset,cont) -> 
-       begin
-         match treat fixed { t with todo = cont } cset with
-         | None, t -> next fixed t
-         | ans, t  -> ans, t
-       end
+      todo = Pqueue.push cset t.todo }
 
 end

@@ -23,7 +23,7 @@ module Poly(I:Intern) = struct
   module ToInclude = struct
     type ('v,'i) param = (keys,'v,common,branching,'i) poly
   end
-
+    
   let equal rec_eq kcompare vequal t1 t2 =
     match t1.reveal,t2.reveal with
     | Empty, Empty                             -> true
@@ -44,6 +44,7 @@ module Poly(I:Intern) = struct
     module BackOffice = struct
 
       include D
+      include ToInclude
       type branching = I.branching
       type common = I.common
 
@@ -67,11 +68,11 @@ module Poly(I:Intern) = struct
         let equal =
           match treeHCons with
           | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
-          | Some(vequal,_,_) -> equal (fun t t' -> t==t') kcompare vequal
+          | Some(_,_,vequal) -> equal (fun t t' -> t==t') kcompare vequal
 
         let hash = match treeHCons with
           | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
-          | Some(_,khash,vhash) -> hash id khash vhash
+          | Some(khash,vhash,_) -> hash id khash vhash
 
       end
 
@@ -207,7 +208,6 @@ module Poly(I:Intern) = struct
     end
 
     include BackOffice
-    include ToInclude
 
   (* Now starting functions specific to Maps, not Sets *)
 
@@ -264,7 +264,7 @@ module Poly(I:Intern) = struct
     let union f s t = merge f (s,t)
 
     let inter_trans reccall f s1 s2 =
-        match (reveal s1,reveal s2) with
+        match reveal s1, reveal s2 with
       | Empty, _      -> empty
       | _, Empty      -> empty
       | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f k x y) else empty
@@ -284,43 +284,47 @@ module Poly(I:Intern) = struct
 
     let rec inter_poly f s1 s2 = inter_trans inter_poly f s1 s2
 
-    let rec subset f s1 s2 =
-      if is_hcons && s1==s2 then true else
-      match (reveal s1,reveal s2) with
-      | Empty, _            -> true
-      | _, Empty            -> false
-      | Leaf(k,x), _        -> mem k s2 &&(let y = find k s2 in f x y)
-      | Branch _, Leaf(k,_) -> false
-      | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
-	  subset f l1 l2 && subset f r1 r2
-	else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
-	  if check p1 m2 then 
-	    subset f l1 l2 && subset f r1 l2
-	  else 
-	    subset f l1 r2 && subset f r1 r2
-	else
-	  false
-
-    let rec diff f s1 s2 =
-      if is_hcons && s1==s2 then empty else
-        match (reveal s1,reveal s2) with
+    let diff_trans reccall f s1 s2 =
+      match reveal s1, reveal s2 with
       | Empty, _      -> empty
       | _, Empty      -> s1
       | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in f k x y else s1
       | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun k x -> f k x y) k s1 else s1
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
-	  union (fun _ -> failwith("Should not be called")) (diff f l1 l2) (diff f r1 r2)
-	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	  if check p2 m1 then 
-	    union (fun _ -> failwith("Should not be called")) (diff f l1 s2) r1 
-	  else 
-	    union (fun _ -> failwith("Should not be called")) l1 (diff f r1 s2)
-	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	  if check p1 m2 then diff f s1 l2 else diff f s1 r2
-	else
-	  s1
+	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
+	   union (fun _ -> failwith("Should not be called")) (reccall f l1 l2) (reccall f r1 r2)
+	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	   if check p2 m1 then 
+	     union (fun _ -> failwith("Should not be called")) (reccall f l1 s2) r1 
+	   else 
+	     union (fun _ -> failwith("Should not be called")) l1 (reccall f r1 s2)
+	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	   if check p1 m2 then reccall f s1 l2 else reccall f s1 r2
+	 else
+	   s1
+
+    let rec diff f s1 s2 =
+      if is_hcons && s1==s2 then empty else diff_trans diff f s1 s2
+
+    let rec diff_poly f s1 s2 = diff_trans diff_poly f s1 s2
+
+    let rec subset f s1 s2 =
+      if is_hcons && s1==s2 then true
+      else match reveal s1, reveal s2 with
+      | Empty, _            -> true
+      | _, Empty            -> false
+      | Leaf(k,x), _        -> mem k s2 &&(let y = find k s2 in f x y)
+      | Branch _, Leaf(k,_) -> false
+      | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
+	   subset f l1 l2 && subset f r1 r2
+	 else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
+	   if check p1 m2 then 
+	     subset f l1 l2 && subset f r1 l2
+	   else 
+	     subset f l1 r2 && subset f r1 r2
+	 else
+	   false
 
 
   (* Advanced version of subset, returning 
@@ -483,15 +487,15 @@ module Poly(I:Intern) = struct
       let info_build = D.info_build
       let treeHCons  = match D.treeHCons with
         | None       -> None
-        | Some khash -> Some((fun _ _ -> true),
-                             khash, 
-                             (fun _   -> 0))
+        | Some khash -> Some(khash, 
+                             (fun _   -> 0),
+                             (fun _ _ -> true))
     end
 
     module PM = MapMake(MapDest)
 
     include PM.BackOffice
-
+    
     type e = keys
 
   (* Now starting functions specific to Sets, not Maps.
@@ -501,8 +505,10 @@ module Poly(I:Intern) = struct
     let add k t    = PM.add k (fun _ -> ()) t
     let union      = PM.union (fun _ _ -> ())
     let inter      = PM.inter (fun _ _ _ -> ())
+    let inter_poly a = PM.inter_poly (fun _ _ _ -> ()) a
     let subset: t -> t -> bool = PM.subset(fun _ _ -> true)
     let diff       = PM.diff  (fun _ _ _ -> empty)
+    let diff_poly a= PM.diff_poly (fun _ _ _ -> empty) a
     let first_diff = PM.first_diff (fun _ ()()->(None,true)) D.kcompare
     let sub        = PM.sub (fun alm k () -> function
       | Some()         -> Yes()

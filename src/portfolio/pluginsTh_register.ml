@@ -11,6 +11,7 @@ let bank :(module PluginTh.Type) array=
     (module Arrays_pl1);
     (module Dejan_pl1);
     (module IfThenElse_pl1);
+    (module Bool_pl1);
   |]
     
 let get_default : type a. a Sig.t -> (module PluginTh.Type)
@@ -20,3 +21,4 @@ let get_default : type a. a Sig.t -> (module PluginTh.Type)
   | Sig.Arrays -> bank.(2)
   | Sig.Dejan -> bank.(3)
   | Sig.IfThenElse -> bank.(4)
+  | Sig.Bool -> bank.(5)
