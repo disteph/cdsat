@@ -150,6 +150,7 @@ module Poly(I:Intern) = struct
 
       let empty      = build Empty
       let leaf (k,x) = build (Leaf(k,x))
+      let singleton k x = leaf(k,x)
       let branch = function
         | (_,_,e,t) when (reveal e=Empty) -> t
         | (_,_,t,e) when (reveal e=Empty) -> t
@@ -501,7 +502,7 @@ module Poly(I:Intern) = struct
   (* Now starting functions specific to Sets, not Maps.
      Starting with similar functions *)
 
-    let singleton k= PM.leaf(k,())
+    let singleton k= PM.singleton k ()
     let add k t    = PM.add k (fun _ -> ()) t
     let union      = PM.union (fun _ _ -> ())
     let inter      = PM.inter (fun _ _ _ -> ())

@@ -30,8 +30,10 @@ module Make
   val pick_another: Constraint.t -> LitF.t -> (LitF.t option)
 
   type straight = (sign,TSet.t,thStraight) thsays
-  type msg = (straight, (sign,TSet.t,thNotProvable) thsays) Sums.sum
-  type stop = straight list * ((sign,TSet.t,thProvable) thsays)
+  type msg =
+    | Msg : (sign,TSet.t,_) thsays -> msg
+    | SplitBut : (Term.t,unit) LSet.param -> msg
+  type stop = straight list * ((sign,TSet.t,thProvable) thsays) * Term.t
 
   val init_fixed : fixed
 
@@ -39,11 +41,12 @@ module Make
   type result =
     | UNSAT     of stop
     | Propagate of fixed * LitF.t list
-    | Meh of fixed
+    | Meh   of fixed
+    | Watch of fixed * LitF.t * LitF.t
 
-  val constreat :
-    Constraint.t -> fixed -> (LitF.t*LitF.t*fixed, result) Sums.sum
+  val constreat  : Constraint.t -> fixed -> result
 
   val extract_msg: fixed -> (msg * fixed) option
 
+  val split : LitF.t -> (sign,TSet.t,thAnd) thsays
 end

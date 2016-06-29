@@ -107,6 +107,7 @@ module type PATMapType = sig
   val find     : keys -> t -> values
   val cardinal : t -> int
   val empty    : t
+  val singleton: keys -> values -> t
   val remove : keys -> t -> t
   val add    : keys -> (values option -> values) -> t -> t
   val union  : (values -> values -> values) -> t -> t -> t
@@ -121,9 +122,9 @@ module type PATMapType = sig
   val first_diff :
     (keys -> values -> values -> 'a option * bool) ->
     ('a -> 'a -> int) -> (t -> 'a option) -> t -> t -> 'a option * bool
-  val iter   : (keys -> values -> unit) -> t -> unit
-  val map    : (keys -> values -> values) -> t -> t
-  val fold   : (keys -> values -> 'a -> 'a) -> t -> 'a -> 'a
+  val iter   : (keys -> 'v -> unit) -> ('v,_)param -> unit
+  val map    : (keys -> 'v -> values) -> ('v,_)param -> t
+  val fold   : (keys -> 'v -> 'a -> 'a) -> ('v,_)param -> 'a -> 'a
   val choose : t -> keys * values
   val make :
     ('a -> values option -> values) -> (keys * 'a) list -> t

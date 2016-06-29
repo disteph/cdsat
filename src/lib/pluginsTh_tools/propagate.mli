@@ -45,6 +45,7 @@ module type Config = sig
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
     | Meh of fixed
+    | Watch of fixed * Var.t * Var.t
 
   (* constreat constraint
      treats the addition of constraint.
@@ -57,14 +58,14 @@ module type Config = sig
      -- the range of a variable has become empty, we return UNSAT msg,
         where msg is the message announcing the conflict;
      -- the range of a variable has become a singleton, we return
-        Propagate(fixed,var), where var is the variable whose value
+        Propagate(fixed,varlist), where varlist are the variables whose value
         has become forced and fixed is the new structure recording the
-        determined variables (now including var);
+        determined variables (now including varlist);
      -- we have recorded the unit or constant constraint, and no
         conflict or propagation has been triggered, we return Meh.
   *)
-  val constreat :
-    Constraint.t -> fixed -> (Var.t*Var.t*fixed, result) Sums.sum
+  val constreat  : Constraint.t -> fixed -> result
+
 
   (* extract_msg fixed
      extracts from fixed a message declaring a propagation

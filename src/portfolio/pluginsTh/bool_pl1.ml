@@ -5,9 +5,13 @@ open Messages
 
 open Prop.Literals
 open Theories_register
+
 open General
+open Patricia
+open Patricia_interfaces
 open SetConstructions
 open Sums
+
 open PluginsTh_tools
 
 open Bool
@@ -15,8 +19,42 @@ open Bool
 type sign = MyTheory.sign
 let hdl = Sig.Bool
 
+(* Needed in our mli *)
+            
 module ThDS = MyStructures.ThDS
 
+(* We are implementing VSIDS heuristics for choosing decision
+literals: we need to keep a score of each lit, we need to update the
+scores, and we need to pick the lit with highest score. We use a
+patricia tries for this. *)
+                
+module I = TypesFromHConsed(LitF)
+  
+module DMap = struct
+  type keys      = LitF.t
+  let kcompare   = LitF.compare
+  type values    = float
+  type infos     = (LitF.t*float) option
+  let info_build = {
+      empty_info  = None;
+      leaf_info   =
+        (fun lit score -> Some(lit,score));
+      branch_info =
+        (fun x1 x2 ->
+          match x1,x2 with
+          | None,_ -> failwith "Bad1"
+          | _,None -> failwith "Bad2"
+          | Some(l1,s1),Some(l2,s2)->
+             if s1 < s2 then x2 else x1
+        )
+    }
+  let treeHCons  = Some(LitF.id,int_of_float,(=))
+end
+
+module LMap = PATMap.Make(DMap)(I)
+
+let decay = 1.5
+                
 module Make(DS: sig 
   include GTheoryDSType
   val proj: Term.datatype -> ThDS.t
@@ -31,7 +69,23 @@ struct
   end
 
   module Propa = Propagate.Make(Config)
-    
+
+  let scores = ref LMap.empty
+  let bump_value = ref 1.
+
+  let bump lset =
+    begin match LMap.info !scores with
+    | Some(_,max_score) when max_score > max_float *. 0.5
+      -> scores := LMap.map (fun _ score -> score *. 0.0000000001 ) !scores
+    | _ -> ()
+    end;
+    scores := LMap.diff_poly
+                (fun lit score () -> LMap.singleton lit (score +. !bump_value))
+                !scores
+                lset;
+    bump_value := !bump_value *. decay
+                                   
+                                   
   type state = {
       treated: TSet.t;
       todo   : Term.t Pqueue.t;
@@ -53,7 +107,7 @@ struct
 
            let state =
              match state.finalsay, newlits with
-             | Some([],msg), _ -> state
+             | Some([],msg,_), _ -> state
              | _, Some nl when not(TSet.is_empty nl) ->
                 {
                   state with
@@ -65,11 +119,11 @@ struct
 
            match state.finalsay with
 
-           | Some([],msg) ->
+           | Some([],msg,_) ->
               Output(Some msg,fail_state)
 
-           | Some(msg::l,unsat) ->
-              let state = { state with finalsay = Some(l,unsat) } in
+           | Some(msg::l,unsat,term) ->
+              let state = { state with finalsay = Some(l,unsat,term) } in
               Output(Some msg, machine state)
 
            | None ->
@@ -78,14 +132,27 @@ struct
                 match Pqueue.pop state.todo with
 
                 | Some(t,todo) ->
+                   begin
+                     match proj(Terms.data t) with
+                     | None,_ -> ()
+                     | Some lset,_ ->
+                        let toadd = LMap.map (fun _ () -> 1.) lset in
+                        scores := LMap.union (fun score _ -> score) !scores toadd
+                   end;
                    let c = Config.Constraint.make t in
                    begin
                      match Propa.treat c state.propastate with
-                     | A([],msg) ->
-                        Output(Some msg,fail_state)
-                     | A(msg::l,unsat) ->
-                        let state = {state with finalsay = Some(l,unsat) } in
-                        Output(Some msg, machine state)
+                     | A(list,unsat,term) ->
+                        begin match proj(Terms.data term) with
+                        | None,_ -> failwith "Clause is false, cannot be true"
+                        | Some lset,_ -> bump lset
+                        end;
+                        begin match list with
+                        | [] -> Output(Some unsat,fail_state)
+                        | msg::l ->
+                           let state = {state with finalsay = Some(l,unsat,term) } in
+                           Output(Some msg, machine state)
+                        end
                      | F propastate -> aux { state with propastate = propastate }
                    end
 
@@ -96,13 +163,23 @@ struct
                    
                    match msg with
 
-                   | Some(Sums.A msg) ->
-                      Output(Some msg, next)
-
-                   | Some(Sums.F msg) ->
-                      Output(Some msg, next)
-
-                   | None -> 
+                   | Some(Config.Msg message) ->
+                      Output(Some message, next)
+                            
+                   | Some(Config.SplitBut lset) ->
+                      let remaining =
+                        LMap.diff_poly
+                          (fun _ _ _ -> LMap.empty)
+                          !scores
+                          lset
+                      in
+                      begin match LMap.info remaining with
+                      | Some(lit,_) ->
+                         Output(Some(Config.split lit), next)
+                      | None ->
+                         Output(None, next)
+                      end
+                   | None ->
                       Output(None, next)
 
               in
@@ -114,6 +191,10 @@ struct
 
       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
-  let init = machine { treated = TSet.empty; todo = Pqueue.empty; finalsay = None; propastate = Propa.init }
+  let init = machine
+               { treated = TSet.empty;
+                 todo = Pqueue.empty;
+                 finalsay = None;
+                 propastate = Propa.init }
 
 end

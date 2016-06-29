@@ -8,6 +8,8 @@ open Patricia_interfaces
 
 
 module I : Intern with type keys = LitF.t
+                   and type common = int
+                   and type branching = int
                       
 (* LSet = Sets of literals, patricia tries implementation (hconsed) *)
 

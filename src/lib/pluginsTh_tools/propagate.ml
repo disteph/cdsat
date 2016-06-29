@@ -15,9 +15,9 @@ module type Config = sig
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
     | Meh of fixed
+    | Watch of fixed * Var.t * Var.t
 
-  val constreat :
-    Constraint.t -> fixed -> (Var.t*Var.t*fixed, result) Sums.sum
+  val constreat  : Constraint.t -> fixed -> result
 
   val extract_msg: fixed -> (msg * fixed) option
 
@@ -39,18 +39,18 @@ module Make(C: Config) = struct
 
   let rec treat_simplified c t = 
     match C.constreat c t.fixed with
-    | Sums.A(var1,var2,fixed') ->
+    | C.Watch(fixed',var1,var2) ->
        run {
            fixed = fixed';
            watch = WL.addconstraint c var1 var2 t.watch
          }
-    | Sums.F(C.UNSAT stop) -> Sums.A stop
-    | Sums.F(C.Propagate(fixed',varlist)) ->
+    | C.UNSAT stop -> Sums.A stop
+    | C.Propagate(fixed',varlist) ->
        run {
            fixed = fixed';
            watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
          }
-    | Sums.F(C.Meh fixed') ->
+    | C.Meh fixed' ->
        run { t with fixed = fixed' }
 
   and run t = 

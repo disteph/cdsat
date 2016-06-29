@@ -38,6 +38,12 @@ struct
   (* Module for those maps mapping literals to a term that makes them
   false *)
 
+  let litAsTerm l =
+    let b,i = LitF.reveal l in
+    if b then Term.term_of_id i
+    else Term.bC Symbols.Neg [Term.term_of_id i]
+
+                           
   module L2Term =
     (struct
       type t = LMap.t*LMap.t
@@ -47,10 +53,7 @@ struct
         let ln = LitF.negation l in
         let dejavu = function
           | Some _ -> failwith "Literal already determined!"
-          | None ->
-             let b,i = LitF.reveal l in
-             if b then Term.term_of_id i
-             else Term.bC Symbols.Neg [Term.term_of_id i]
+          | None -> litAsTerm l
         in
         let t = LMap.add l dejavu t in
         let tn = LMap.add ln dejavu tn in
@@ -210,8 +213,11 @@ original clauses that have simplified to true
   (* Type declarations needed for the 2-watched literals functor *)
   type straight = (sign,TSet.t,thStraight) thsays
                     
-  type msg = (straight, (sign,TSet.t,thNotProvable) thsays) Sums.sum
-  type stop = straight list * ((sign,TSet.t,thProvable) thsays)
+  type msg =
+    | Msg : (sign,TSet.t,_) thsays -> msg
+    | SplitBut : (Term.t,unit) LSet.param -> msg
+
+  type stop = straight list * ((sign,TSet.t,thProvable) thsays) * Term.t
 
   (***********************************************************)
   (* This is the generation of explanations, for e.g. conflict
@@ -315,21 +321,24 @@ used in a ThStraight or ThProvable message. *)
          | None -> failwith "Should not happen: extract_msg"
          | Some(term,_,msg,justif) ->
             let fixed = {fixed with justification = justif; propagation = propa} in            
-            Some(Sums.A msg, solve_clause term (Some litterm) fixed)
+            Some(Msg msg, solve_clause term (Some litterm) fixed)
        end
     | None ->
        if TSet.is_empty fixed.orig_clauses
        then
          let msg = thNotProvable () fixed.true_clauses in
-         Some(Sums.F msg, fixed)
-       else None
+         Some(Msg msg, fixed)
+       else
+         let asTrue,_ = L2Term.reveal fixed.asTrueFalse in
+         Some(SplitBut asTrue, fixed)
 
     
   (* type used in the following function *)
   type result =
     | UNSAT     of stop
     | Propagate of fixed * LitF.t list
-    | Meh of fixed
+    | Meh   of fixed
+    | Watch of fixed * LitF.t * LitF.t
 
   (* constreat constraint
        treats the addition of constraint (=clause).
@@ -348,7 +357,7 @@ used in a ThStraight or ThProvable message. *)
        remove it; in any case we add it to true_clauses together with
        the literal term that makes the clause true. *)
 
-       Sums.F(Meh(solve_clause term slitterm fixed))
+       Meh(solve_clause term slitterm fixed)
 
     | Sums.A(set,justif) -> begin
         match LSet.reveal set with
@@ -360,7 +369,7 @@ used in a ThStraight or ThProvable message. *)
 
            let tset = explain { term = term; simpl = None ; justif = justif } in
            let msgs,_ = explain_relevant tset fixed.justification in 
-           Sums.F(UNSAT(msgs, thProvable () tset))
+           UNSAT(msgs, thProvable () tset, term)
 
         | Leaf(l,()) ->
            (* The clause has becom unit, the last literal being l. We
@@ -371,14 +380,14 @@ used in a ThStraight or ThProvable message. *)
 
            let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
            let uc_clause = { term = term; simpl = Some l ; justif = justif } in
-           let fixed' = {
+           let fixed = {
                fixed with
                asTrueFalse   = asTrueFalse;
                justification = T2Clause.add litterm uc_clause fixed.justification;
                propagation   = Pqueue.push litterm fixed.propagation;
              }
            in
-           Sums.F(Propagate(fixed', [l; LitF.negation l]))
+           Propagate(fixed, [l; LitF.negation l])
 
         | Branch(_,_,set1,set2) ->
            (* The clause is neither true not unsat nor unit: we can
@@ -386,8 +395,12 @@ used in a ThStraight or ThProvable message. *)
            remains to be satisfied. *)
 
            let fixed = { fixed with orig_clauses = TSet.add term fixed.orig_clauses} in
-           Sums.A(LSet.choose set1, LSet.choose set2, fixed)
+           Watch(fixed, LSet.choose set1, LSet.choose set2)
       end
     
-    
+  let split lit =
+    let t = litAsTerm lit in
+    let nt = litAsTerm (LitF.negation lit) in
+    thAnd () TSet.empty (TSet.singleton t) (TSet.singleton nt)
+
 end
