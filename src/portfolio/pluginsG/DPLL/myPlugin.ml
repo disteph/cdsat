@@ -131,9 +131,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	
   let clause_pick h l =
     match UFSet.rchoose h l with
-    | A a -> Dump.msg None (Some(fun p->p "Random focus on %a" IForm.print_in_fmt a)) None; a
+    | A a -> Dump.print ["dpll",2] (fun p->p "Random focus on %a" IForm.print_in_fmt a); a
     | _   -> let a = UFSet.choose l in
-	     Dump.msg None (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None; a
+	     Dump.print ["dpll",2] (fun p->p "Random problematic focus on %a" IForm.print_in_fmt a); a
 
 
   (**************************************************)
@@ -197,14 +197,14 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     incr since_last;
     if !since_last > 100
     then 
-      (Dump.msg None (Some(fun p-> p "Dividing all, bump being %f\n" !bump)) None;
+      (Dump.print ["dpll",2] (fun p-> p "Dividing all, bump being %f\n" !bump);
        divide_all factor;
        since_last := 1)
     else bump := 2. *. !bump
 
   let tomem a = match Me.tomem a with
     | Some(aset,_) ->
-       Dump.msg None (Some(fun p-> p "Bumping %a with %f\n" UASet.print_in_fmt aset !bump)) None;
+       Dump.print ["dpll",2] (fun p-> p "Bumping %a with %f\n" UASet.print_in_fmt aset !bump);
       bumpNdivide aset
     | None -> ()
        
@@ -240,7 +240,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       lit::(picklits set' (n-1))
 
   let close_branch form ad =
-    (* Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt a)) None; *)
+    (* Dump.print ["dpll",2] (fun p->p "Yes %a" IForm.print_in_fmt a); *)
     address := Yes (data_of_ad ad).i;
     count.(1)<-count.(1)+1;
     let now = count.(0) in

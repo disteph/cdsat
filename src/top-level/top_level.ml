@@ -51,24 +51,31 @@ let init th =
       | Some _,None       when !Flags.skipunknown-> print_endline("Skipping problem with no expectation");None
       | Some _,Some(true) when !Flags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
       | Some _,Some(false)when !Flags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
-      | Some parsed,c    ->
+      | Some parsed, expected ->
 	try 
-          let formula = Prop.ForParsing.toForm parsed in
-	  let d =
-	    Dump.msg
-              (Some(fun p->p "I am now starting: %t"
-                (if !Flags.printrhs then fun fmt -> Prop.Formulae.FormulaB.print_in_fmt fmt formula else fun fmt -> ())))
-              None None;
+          let formula =
+            Prop.ForParsing.toForm 
+              (if !Flags.mode
+               then Prop.ForParsing.bC Top.Symbols.IsTrue [parsed]
+               else parsed)
+          in
+	  let answer =
+	    Dump.print ["top_level",1]
+              (fun p->
+                p "I am now starting: %t"
+                  (if !Flags.printrhs
+                   then fun fmt -> Prop.Formulae.FormulaB.print_in_fmt fmt formula
+                   else fun fmt -> ()));
 	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
-	  print_endline(match c,d with
+	  print_endline(match expected, answer with
 	  |None ,_                         -> "Nothing expected"
 	  |Some true, Src.FE.Provable _    -> "Expected Provable (UNSAT), got it"
 	  |Some true, Src.FE.NotProvable _ -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
 	  |Some false,Src.FE.Provable _    -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
 	  |Some false,Src.FE.NotProvable _ -> "Expected Unprovable (SAT), got it"
 	  );
-	  Some d
+	  Some answer
         with PluginG.PluginAbort s -> Dump.Kernel.fromPlugin(); Dump.Kernel.report s; None
     in 
     match result with
@@ -81,8 +88,8 @@ let init th =
 
 let parseNrun input =
   let rec trying = function
-    | i when i < Array.length Parsers_register.bank ->
-      let module MyParser = (val Parsers_register.bank.(i):Top.Parser.ParserType) in
+    | parser::other_parsers ->
+      let module MyParser = (val parser:Top.Parser.ParserType) in
       begin
 	try 
           let aft = MyParser.glance input in
@@ -95,11 +102,15 @@ let parseNrun input =
 	  init (MyParser.guessThDecProc aft) pair
 	with Top.Parser.ParsingError s | Typing.TypingError s ->
           print_endline(Dump.toString (fun p->p "Parser %s could not parse input, because \n%s" MyParser.name s));
-          trying (i+1)
+          trying other_parsers
       end
-    | _ -> print_endline "No parser seems to work for this input."; function _ -> None
+    | [] -> print_endline "No parser seems to work for this input."; function _ -> None
   in
-  trying 0
+  let parselist = match !Flags.parser with
+    | None   -> Parsers_register.all_parsers
+    | Some l -> List.fold_left (fun l s -> (Parsers_register.get s)::l) [] l
+  in
+  trying parselist
 
 
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:

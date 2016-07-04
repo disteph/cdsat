@@ -71,7 +71,7 @@ struct
                   let blit = proj(Terms.data b) in
                   if LMap.mem blit state.known
                   then
-                    (* (Dump.msg (Some(fun p -> p "Condition (%a,%a) seen" LitF.print_in_fmt blit Term.print_in_fmt b)) None None; *)
+                    (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) seen" LitF.print_in_fmt blit Term.print_in_fmt b); *)
                     let b0 = LMap.find blit state.known in
                     let eq = Term.bC (Symbols.Eq so) [t;b1] in
                     Output(
@@ -81,7 +81,7 @@ struct
                   else 
                     if LMap.mem (LitF.negation blit) state.known
                     then
-                      (* (Dump.msg (Some(fun p -> p "Condition -(%a,%a) seen" LitF.print_in_fmt blit  Term.print_in_fmt b)) None None; *)
+                      (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition -(%a,%a) seen" LitF.print_in_fmt blit  Term.print_in_fmt b); *)
                       let b0 = LMap.find (LitF.negation blit) state.known in
                       let eq = Term.bC (Symbols.Eq so) [t;b2] in
                       Output(
@@ -89,7 +89,7 @@ struct
                         machine { state with todo = l; solved = TSet.add t state.solved })
                     (* ) *)
                     else
-                      (* (Dump.msg (Some(fun p -> p "Condition (%a,%a) not seen" LitF.print_in_fmt blit  Term.print_in_fmt b)) None None; *)
+                      (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.print_in_fmt blit  Term.print_in_fmt b); *)
                       Output(
                         Some(
                           thAnd () (TSet.add b TSet.empty) (TSet.add (Term.bC Symbols.Neg [b]) TSet.empty) TSet.empty
@@ -105,9 +105,9 @@ struct
 
                end
           in
-          (* Dump.msg (Some(fun p -> p "treated=%a" TSet.print_in_fmt state.treated)) None None; *)
-          (* Dump.msg (Some(fun p -> p "known=%a" print_in_fmtL state.known)) None None; *)
-          (* Dump.msg (Some(fun p -> p "todo=%a" print_in_fmt state.todo)) None None; *)
+          (* Dump.print ["IfThenElse",1] (fun p -> p "treated=%a" TSet.print_in_fmt state.treated); *)
+          (* Dump.print ["IfThenElse",1] (fun p -> p "known=%a" print_in_fmtL state.known); *)
+          (* Dump.print ["IfThenElse",1] (fun p -> p "todo=%a" print_in_fmt state.todo); *)
           aux state.todo
 
         let normalise = (fun _ -> failwith "Not a theory with normaliser")

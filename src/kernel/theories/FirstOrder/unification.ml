@@ -151,7 +151,7 @@ module Unification = (struct
   *)
 
   let translate b fold key0 u2 t2 cont =
-    Dump.msg (Some(fun p->p "translate k%a -> %a in %a" IU.print_in_fmtK key0 IU.print_in_fmtV t2 IU.print_in_fmt u2)) None None;
+    Dump.print ["unification",1] (fun p->p "translate k%a -> %a in %a" IU.print_in_fmtK key0 IU.print_in_fmtV t2 IU.print_in_fmt u2);
 
     (* In the recursive auxiliary function aux,
        - lax says whether we accept key0 to be mapped to itself.
@@ -176,8 +176,9 @@ module Unification = (struct
              check to verify that this assignment respects
              dependencie *)
           let u1' = 
-            Dump.msg (Some(fun p->p "occurs_check_ei on k%a -> %a" IU.print_in_fmtK key0 Eigen.print_in_fmt ei)) None None;
-            occurs_check_ei fold key0 u1 ei in
+            Dump.print ["unification",1] (fun p->p "occurs_check_ei on k%a -> %a" IU.print_in_fmtK key0 Eigen.print_in_fmt ei);
+            occurs_check_ei fold key0 u1 ei
+          in
           cont (IU.eigen2val ei) u1' u2'
 
       | IU.C(a,l) when b -> 
@@ -212,7 +213,7 @@ module Unification = (struct
                 | Some((t,_) as c) -> (t,occurs_check_v lax fold key0 c)
               in cont t0 u1' u2' kk_corr
             | Some key1 -> 
-              Dump.msg (Some(fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.print_in_fmtK key0 IU.print_in_fmtK i2 IU.print_in_fmtK key1)) None None;
+              Dump.print ["unification",1] (fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.print_in_fmtK key0 IU.print_in_fmtK i2 IU.print_in_fmtK key1);
               raise NonUnifiable
           end
 
@@ -279,7 +280,7 @@ module Unification = (struct
       (* We find a unification constraint between 2 terms *)
 
       | (t1,t2)::l -> 
-        Dump.msg(Some(fun p->p "unifying %a in %a to %a in %a" IU.print_in_fmtV t1 IU.print_in_fmt u1 IU.print_in_fmtV t2 IU.print_in_fmt u2))None None; 
+        Dump.print ["unification",1] (fun p->p "unifying %a in %a to %a in %a" IU.print_in_fmtV t1 IU.print_in_fmt u1 IU.print_in_fmtV t2 IU.print_in_fmt u2);
 
         (* We expose the head shape of the 2 terms, and match them *)
 

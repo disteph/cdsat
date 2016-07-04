@@ -50,12 +50,12 @@ let rec parse_cnf_file = function
   | a::l -> parse_cnf_file l
 
 
-type afterglance = ((bool*string) list) list
+type afterglance = (bool*string) list list
 
 let glance contents = 
   parse_cnf_file(list_from_string contents [] 0)
 
-let guessThDecProc _ = Some ["empty"]
+let guessThDecProc _ = Some ["empty"; "bool"]
 
 let parse (type t) l i = 
 
@@ -64,7 +64,7 @@ let parse (type t) l i =
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
     let v = I.decsymb var (Sort("prop",[]),[]) [] in
-      if b then v else I.sigsymb "not" [v]
+      if b then I.sigsymb "not" [v] else v
   in
 
   (* parse a clause from list of literal descriptions *)

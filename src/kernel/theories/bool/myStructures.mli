@@ -15,6 +15,7 @@ module I : Intern with type keys = LitF.t
 
 module LSet : PATSetType
        with type e = LitF.t
+        and type infos = int
         and type ('v, 'i) param =
                    (LitF.t, 'v, I.common, I.branching, 'i) General.Patricia.poly
                      

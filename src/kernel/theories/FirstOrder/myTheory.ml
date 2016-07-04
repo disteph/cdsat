@@ -72,12 +72,12 @@ module Make(PropDS:DataType) = struct
   let aux aset compare cont t atomN sigma = 
     TSet.fold
       (fun a alias -> 
-        Dump.msg(Some(fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t))None None;
+        Dump.print ["FirstOrder",1] (fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t);
         let newalias = TSet.remove a alias in
         (match asL a, asL t with
         | (b1,l1,_), (b2,l2,_) when compare b1 b2 ->
-          (Dump.msg(Some(fun p -> p "constraint = %a" Constraint.print_in_fmt sigma))None None;
-           Dump.msg(Some(fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2))None None;
+          (Dump.print ["FirstOrder",1] (fun p -> p "constraint = %a" Constraint.print_in_fmt sigma);
+           Dump.print ["FirstOrder",1] (fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2);
            match Constraint.unif sigma l1 l2 with
            | Some newsigma -> 
              raise (FoundIt(TSet.add a aset,newsigma, cont newalias))

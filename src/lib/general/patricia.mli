@@ -47,6 +47,10 @@ val empty_info_build : ('keys,'values,unit) info_build_type
 type 'keys m_infos = 'keys option
 val m_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys m_infos) info_build_type
 
+(* Info build function to record cardinal *)
+
+val c_info_build : (_,_, int) info_build_type
+
 (* Info type to record minimum key, maximum key, and cardinal of table
    Standard inhabitant info_build when given 
 *)

@@ -35,17 +35,17 @@ module Make(WB: WhiteBoard) = struct
   let make from_pl to_pl (Signed(hdl,init)) tset =
 
     let read from_pl f =
-      (* Dump.msg (Some(fun p-> p "%a wants to read" Sig.print_in_fmt hdl)) None None; *)
+      (* Dump.print ["worker",1] (fun p-> p "%a wants to read" Sig.print_in_fmt hdl); *)
       Pipe.read from_pl
       >>= function
       | `Eof -> return()
       | `Ok msg ->
-         Dump.msg (Some(fun p-> p "%a reads %a" Sig.print_in_fmt hdl print_in_fmt2 msg)) None None;
-        f msg
+         Dump.print ["worker",1] (fun p-> p "%a reads %a" Sig.print_in_fmt hdl print_in_fmt2 msg);
+         f msg
     in
 
     let rec flush reader writer msg =
-      (* Dump.msg (Some(fun p-> p "%a enters flush" Sig.print_in_fmt hdl)) None None; *)
+      (* Dump.print ["worker",1] (fun p-> p "%a enters flush" Sig.print_in_fmt hdl); *)
       read reader (function
       | MsgStraight _ -> flush reader writer msg
       | MsgBranch(_,_,newreader,newwriter) -> 
@@ -70,11 +70,11 @@ module Make(WB: WhiteBoard) = struct
       )
       in
 
-      (* Dump.msg (Some(fun p-> p "%a looks at its output_msg" Sig.print_in_fmt hdl)) None None; *)
+      (* Dump.print ["worker",1] (fun p-> p "%a looks at its output_msg" Sig.print_in_fmt hdl); *)
 
       match output_msg with
       | None -> 
-         Dump.msg (Some(fun p-> p "%a: no output msg" Sig.print_in_fmt hdl)) None None;
+         Dump.print ["worker",1] (fun p-> p "%a: no output msg" Sig.print_in_fmt hdl);
         loop from_pl to_pl (add cont None)
       | Some msg ->
          (* print (Dump.toString (fun p-> p "Outputting message %a" print_in_fmt (Msg(hdl,msg)))) >>= fun () ->  *)

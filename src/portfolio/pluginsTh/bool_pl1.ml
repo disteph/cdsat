@@ -87,10 +87,11 @@ struct
                                    
                                    
   type state = {
-      treated: TSet.t;
-      todo   : Term.t Pqueue.t;
-      finalsay: Config.stop option;
-      propastate: Propa.t
+      treated: TSet.t;              (* Set of terms received so far, not really treated, actually *)
+      todo   : Term.t Pqueue.t;     (* Set of terms to be passed to kernel *)
+      outqueue : Config.straight Pqueue.t; (* Queue for outgoing messages *)
+      finalsay: Config.stop option; (* Has the kernel already found a conflict? *)
+      propastate: Propa.t           (* State of the 2-watched algorithm *)
     }
 
   let rec machine state =
@@ -129,13 +130,17 @@ struct
            | None ->
               
               let rec aux state =
-                match Pqueue.pop state.todo with
+                match Pqueue.pop state.todo, Pqueue.pop state.outqueue with
 
-                | Some(t,todo) ->
+                | Some(t,todo), _ ->
+                   Dump.print ["bool_pl1",2] (fun p -> p "Treating: %a" Term.print_in_fmt t);
+                   (* A term we have not treated yet! *)
+                   (* We start by maybe updating the VSIDS structures*)
                    begin
-                     match proj(Terms.data t) with
-                     | None,_ -> ()
+                     match proj(Terms.data t) with (* Let's look at its clausal structure *)
+                     | None,_ -> ()      (* It's the trivially true clause, nothing to do *)
                      | Some lset,_ ->
+                        (* Every literal in lset that we have never seen before is given score 1. *)
                         let toadd = LMap.map (fun _ () -> 1.) lset in
                         scores := LMap.union (fun score _ -> score) !scores toadd
                    end;
@@ -153,10 +158,26 @@ struct
                            let state = {state with finalsay = Some(l,unsat,term) } in
                            Output(Some msg, machine state)
                         end
-                     | F propastate -> aux { state with propastate = propastate }
+                     | F propastate ->
+                        begin match Config.unfold t with
+                        | Some(ThStraight(tset,_) as msg) ->
+                           aux {state with
+                                 todo = (* TSet.fold Pqueue.push tset *) todo;
+                                 outqueue = Pqueue.push msg state.outqueue;
+                                 propastate = propastate
+                               }
+                        | None ->
+                           aux {state with
+                                 todo = todo;
+                                 propastate = propastate  }
+                        end
                    end
 
-                | None ->
+                | None, Some(msg,outqueue) ->
+                   let next = machine { state with outqueue = outqueue } in
+                   Output(Some msg, next)
+
+                | None, None ->
 
                    let msg,propastate = Propa.extract_msg state.propastate in
                    let next = machine { state with propastate = propastate } in
@@ -167,33 +188,50 @@ struct
                       Output(Some message, next)
                             
                    | Some(Config.SplitBut lset) ->
+
                       let remaining =
                         LMap.diff_poly
                           (fun _ _ _ -> LMap.empty)
                           !scores
                           lset
                       in
+                      Dump.print ["bool_pl1",2]
+                        (fun p->p "Choosing among %a"
+                                  (LMap.print_in_fmt
+                                     None
+                                     (fun fmt (l,_) -> LitF.print_in_fmt fmt l)
+                                  )
+                                  remaining
+                        );
                       begin match LMap.info remaining with
                       | Some(lit,_) ->
-                         Output(Some(Config.split lit), next)
+                         let msg = Config.split lit in
+                         Dump.print ["bool_pl1",2]
+                           (fun p->p "Splitting on literal %a: %a"
+                                     LitF.print_in_fmt
+                                     lit
+                                     (Messages.print_msg_in_fmt TSet.print_in_fmt)
+                                     msg
+                           );
+                         Output(Some msg, next)
                       | None ->
                          Output(None, next)
                       end
-                   | None ->
-                      Output(None, next)
+                   | None -> Output(None, next)
 
               in
               aux state
 
-        let normalise = (fun _ -> failwith "Not a theory with normaliser")
-
-        let clone = (fun () -> Output(None, machine state))
-
-      end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
-
+         let normalise = (fun _ -> failwith "Not a theory with normaliser")
+                           
+         let clone = (fun () -> Output(None, machine state))
+                       
+       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
+      
   let init = machine
                { treated = TSet.empty;
                  todo = Pqueue.empty;
+                 outqueue = Pqueue.empty;
                  finalsay = None;
                  propastate = Propa.init }
 

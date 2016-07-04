@@ -4,12 +4,15 @@
 (* printed.                                             *)
 (********************************************************)
 
-let toString a = let buf = Buffer.create 255 in
-                 let fmt = Format.formatter_of_buffer buf in
-                 a (Format.fprintf fmt);
-                 Format.fprintf fmt "%!";
-                 Buffer.contents buf
+let wait () = Format.printf "%!";ignore (read_line ())
 
+let toString a =
+  let buf = Buffer.create 255 in
+  let fmt = Format.formatter_of_buffer buf in
+  a (Format.fprintf fmt);
+  Format.fprintf fmt "%!";
+  Buffer.contents buf
+                  
 let stringOf f a = toString (fun p->p "%a" f a)
                 
 let every
@@ -33,16 +36,34 @@ let every
       0
     |] 
 
-let msg un deux _ =
-  (* | Some i (\* when Flags.every.(i)==0||((every.(i) mod Flags.every.(i)) !=0) *\) *)
-  (*     -> () *)
-  if !Flags.debug>0
-  then match deux,un with
-      | Some a,_ when !Flags.debug>1 -> print_endline(toString a)
-      | _ , Some a                   -> print_endline(toString a)
-      | _ , None   -> ()
-        
+module DTags = Map.Make(String)
 
+let dtags : (int*bool)DTags.t ref = ref DTags.empty
+                                        
+let dtags_init() =
+  dtags:=
+    List.fold_left
+      (fun sofar (tag,level,b) -> DTags.add tag (level,b) sofar)
+      DTags.empty
+      !Flags.dtags
+
+let print t msg =
+  match !Flags.dtags with
+  | [] -> ()
+  | _ ->
+     let rec aux = function
+       | [] -> ()
+       | (tag,level)::tags
+            when DTags.mem tag !dtags
+         -> let i,b= DTags.find tag !dtags in
+            if i <= level
+            then (print_endline(toString msg); if b then wait())
+            else aux tags
+       | _::tags -> aux tags
+     in
+     aux t
+
+        
 (**********)
 (* Timers *)
 (**********)

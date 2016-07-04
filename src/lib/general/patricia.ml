@@ -604,6 +604,12 @@ let m_info_build kcompare = {
   )
 }
 
+let c_info_build = {
+  empty_info  = 0;
+  leaf_info   = (fun x _ -> 1);
+  branch_info = (fun x1 x2 -> x1 + x2)
+}
+
 type 'keys mmc_infos = ('keys option)*('keys option)*int
 let mmc_info_build kcompare = {
   empty_info  = (None,None,0);

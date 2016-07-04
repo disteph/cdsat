@@ -15,7 +15,8 @@ type t =
 (* Prop *)
 | True | False | Neg | And | Or | Imp | Xor
 | Forall of Sorts.t | Exists of Sorts.t
-
+| IsTrue
+                                  
 (* General *)
 | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
 
@@ -32,6 +33,7 @@ let arity = function
   | True | False                      -> (Sorts.Prop, [])
   | Neg | Forall _ | Exists _         -> (Sorts.Prop, [Sorts.Prop])
   | And | Or | Imp | Xor              -> (Sorts.Prop, [Sorts.Prop;Sorts.Prop])
+  | IsTrue                            -> (Sorts.Prop, [Sorts.Prop])
   | ITE so                            -> (so, [Sorts.Prop;so;so])
   | Eq so | NEq so                    -> (Sorts.Prop, [so;so])
   | CstRat i                          -> (Sorts.Rat, [])
@@ -47,7 +49,7 @@ let multiary = function
 (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
   | _ -> None
 
-let print_in_fmt fmt = function
+let print_in_fmt_latex fmt = function
   | User(f,ar)  -> fprintf fmt "\\mbox{\\small %s}" f
   | True        -> fprintf fmt "\\top"
   | False       -> fprintf fmt "\\bot"
@@ -58,6 +60,7 @@ let print_in_fmt fmt = function
   | Or          -> fprintf fmt "\\vee"
   | Imp         -> fprintf fmt "\\Rightarrow"
   | Xor         -> fprintf fmt "\\oplus"
+  | IsTrue      -> fprintf fmt "\\mbox{\\small isT}"                           
   | ITE so      -> fprintf fmt "\\mbox{if}"
   | Eq so       -> fprintf fmt "=_{%a}" Sorts.print_in_fmt so
   | NEq so      -> fprintf fmt "\\neq_{%a}" Sorts.print_in_fmt so
@@ -74,6 +77,37 @@ let print_in_fmt fmt = function
   | Select(_,_) -> fprintf fmt "\\mbox{\\small select}"
   | Store(_,_)  -> fprintf fmt "\\mbox{\\small store}"
 
+let print_in_fmt_utf8 fmt = function
+  | User(f,ar)  -> fprintf fmt "%s" f
+  | True        -> fprintf fmt "⊤"
+  | False       -> fprintf fmt "⊥"
+  | Neg         -> fprintf fmt "¬"
+  | Forall s    -> fprintf fmt "∀"
+  | Exists s    -> fprintf fmt "∃"
+  | And         -> fprintf fmt "∧"
+  | Or          -> fprintf fmt "∨"
+  | Imp         -> fprintf fmt "⇒"
+  | Xor         -> fprintf fmt "⊻"
+  | IsTrue      -> fprintf fmt "isT"
+  | ITE so      -> fprintf fmt "if"
+  | Eq so       -> fprintf fmt "="
+  | NEq so      -> fprintf fmt "≠"
+  | CstRat i    -> fprintf fmt "%s" (Num.string_of_num i)
+  | Plus        -> fprintf fmt "+"
+  | Minus       -> fprintf fmt "-"
+  | Times       -> fprintf fmt "×"
+  | Divide      -> fprintf fmt "÷"
+  | Op          -> fprintf fmt "-"
+  | Ge          -> fprintf fmt "≥"
+  | Gt          -> fprintf fmt ">"
+  | Le          -> fprintf fmt "≤"
+  | Lt          -> fprintf fmt "<"
+  | Select(_,_) -> fprintf fmt "select"
+  | Store(_,_)  -> fprintf fmt "store"
+
+let print_in_fmt =
+  if !Flags.latex then print_in_fmt_latex
+  else print_in_fmt_utf8
 
 let parse decsorts = 
   let allsorts = Sorts.allsorts decsorts in function

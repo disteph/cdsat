@@ -37,6 +37,7 @@ let all_theories_list =
     Handlers.Handler Sig.Arrays;
     Handlers.Handler Sig.Dejan;
     Handlers.Handler Sig.IfThenElse;
+    Handlers.Handler Sig.Bool;
   ]
 
 module HandlersMap = Map.Make(Handlers)
@@ -46,12 +47,13 @@ let all_theories = List.fold_right (fun hdl -> HandlersMap.add hdl ()) all_theor
 exception NotFound of string
 
 let parse = function
-  | "empty" | "prop" | "bool" -> Handlers.Handler Sig.Empty
+  | "empty" | "prop" -> Handlers.Handler Sig.Empty
   | "CC"         -> Handlers.Handler Sig.CC
   | "LRA"        -> Handlers.Handler Sig.Dejan
   | "LIA"        -> Handlers.Handler Sig.Dejan
   | "Arrays"     -> Handlers.Handler Sig.Arrays
   | "IfThenElse" -> Handlers.Handler Sig.IfThenElse
+  | "bool"       -> Handlers.Handler Sig.Bool
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold_right (fun name -> HandlersMap.remove (parse name)) l all_theories

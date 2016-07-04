@@ -18,11 +18,15 @@ let weakenings = ref true  (* Activates a-posteriori weakening mode
 			      (irrelevant formulae are not in proof-tree) *)
 
 let debug    = ref 0       (* Activates debug mode (displays fails, etc) *)
+let dtag     = ref ""      (* Temp variable to construct following ref *)
+let dtags : (string*int*bool) list ref
+             = ref []      (* Activates debug mode (displays fails, etc) *)
 let printrhs = ref false   (* When printing a sequent, print right-hand side? *)
 
 (* Variables containing the user-provided info about theories and plugins (from command-line) *)
 
 let mode = ref true        (* Uses the Combo if true, uses First-Order if false *)
+let parser   : string list option ref  = ref None (* List of parsers to try. None = try them all *)
 let mypluginG: string ref = ref "dpll"            (* Default pluginG *)
 let myplugin : string ref = ref "basic"           (* Default plugin *)
 let notheories: string list option ref = ref None (* List of forbidden theories *)

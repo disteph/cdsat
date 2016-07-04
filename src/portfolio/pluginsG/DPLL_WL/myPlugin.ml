@@ -164,7 +164,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       )
       cset;
     if decide_cut then 
-      (Dump.msg (Some(fun p->p "%i atoms and negations present in non-unit clauses" (UASet.cardinal !alllits))) None None;
+      (Dump.print ["dpll_wl",1] (fun p->p "%i atoms and negations present in non-unit clauses" (UASet.cardinal !alllits));
        let onoatms = UASet.union atms (UASet.negations atms) in
        let res = UASet.diff !alllits onoatms in
        UASet.union res (UASet.negations res)
@@ -248,7 +248,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       | a -> a
     in
     match UASet.fold aux newatoms None with
-    | Some a -> Dump.msg None (Some (fun p->p "Yes %a" IForm.print_in_fmt a)) None;
+    | Some a -> Dump.print ["dpll_wl",2] (fun p->p "Yes %a" IForm.print_in_fmt a);
       address:=Yes((data_of_ad ad).i);
       count.(1)<-count.(1)+1;
       let now = count.(0) in
@@ -288,9 +288,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   let clause_pick h l =
     if not(!stack=[]) then failwith("pas []");
     match UFSet.rchoose h l with
-    | A a       -> Dump.msg None (Some(fun p->p "Random focus on %a" IForm.print_in_fmt a)) None; a
+    | A a       -> Dump.print ["dpll_wl",2] (fun p->p "Random focus on %a" IForm.print_in_fmt a); a
     | _         -> let a = UFSet.choose l in
-	           Dump.msg None (Some(fun p->p "Random problematic focus on %a" IForm.print_in_fmt a)) None; a
+	           Dump.print ["dpll_wl",2] (fun p->p "Random problematic focus on %a" IForm.print_in_fmt a); a
 
 
     (* We look at the stack to see if there is any unit propagation left to do:

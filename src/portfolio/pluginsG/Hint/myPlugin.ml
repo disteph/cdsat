@@ -8,7 +8,7 @@ open Literals
 open Formulae
 open Interfaces_plugin
 open PluginsG_tools.Addressing
-
+       
 module DS = PluginsG_tools.ListDS.Generate
 
 module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
@@ -30,8 +30,6 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   type data = unit addressing
   let initial_data _ = ad_init ()
-
-  let wait () = Format.printf "%!";ignore (read_line ())
 
   let display_aset atoms =
     let latoms = UASet.fold (fun x l -> x::l) atoms [] in
@@ -179,7 +177,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       print_hrule '-';
       print_endline "Status: Notify";
       Format.printf "Hit enter to continue > %!";
-      wait ();
+      Dump.wait ();
       let newad = el_wrap (branch OrNode (ad [])) in
       solve (execute (true,newad,accept,fNone))
     | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,ad)) -> 

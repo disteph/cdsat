@@ -54,16 +54,14 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	| Fail _    -> (1,"LocalFail")
       in
       Dump.Kernel.incr_count index;
-      (* Dump.msg *)
-      (*   (Some (fun p -> p "%i %s: " (Dump.Kernel.read_count index) word)) *)
-      (*   (Some (fun p -> p "%i %s: %a" (Dump.Kernel.read_count index) word *)
+      (* Dump.print ["prop_search",1]  *)
+      (*   (fun p -> p "%i %s: %a" (Dump.Kernel.read_count index) word *)
       (*     (fun fmt -> function *)
       (*     | Success(Genuine(s,_),_,_)-> Seq.print_in_fmt fmt s *)
       (*     | Fail(Genuine s,_)        -> Seq.print_in_fmt fmt s *)
       (*     | _ -> ()) *)
       (*     ans *)
-      (*    )) *)
-      (*   (Some index); *)
+      (*    ); *)
       ans
 
     let lift2local f = function
@@ -239,7 +237,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
     let rec lk_solve inloop seq data sigma cont =
       Dump.Kernel.incr_count 9;
       Dump.Kernel.print_time();
-      Dump.msg None (Some(fun p -> p "---attack\n %a" Seq.print_in_fmt seq)) None;
+      Dump.print ["prop_search",2] (fun p -> p "---attack\n %a" Seq.print_in_fmt seq);
       match seq with
       | Seq.EntF(atomN, g, formP, formPSaved, polar,ar)
         -> begin match FormulaF.reveal g with
@@ -396,7 +394,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                   if not (makes_senseF toCut ar)
                   then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		  Dump.Kernel.incr_count 5;
-                  Dump.msg None (Some (fun p->p "Cut3 on %a" IForm.print_in_fmt toCut)) (Some 5);
+                  Dump.print ["prop_search",2] (fun p->p "Cut3 on %a" IForm.print_in_fmt toCut);
                   let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) (bleft newdata1) in
                   let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                   let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
@@ -499,12 +497,12 @@ module ProofSearch(PlDS: PlugDSType) = struct
         | Success(Fake b2,sigma,f) -> 
           dir:= not !dir ;
           let strg = if b2 then "right" else "left" in
-          Dump.msg (Some (fun p->p "No more Success branch on the %s" strg)) None None;
+          Dump.print ["prop_search",1] (fun p->p "No more Success branch on the %s" strg);
           InsertCoin(Stop(true,b2,fun _ -> wrap (f true)))
         | Fail(Fake b2,f)          -> 
           dir:= not !dir ;
           let strg = if b2 then "right" else "left" in
-          Dump.msg (Some (fun p->p "No more Failure branch on the %s" strg)) None None;
+          Dump.print ["prop_search",1] (fun p->p "No more Failure branch on the %s" strg);
           InsertCoin(Stop(false,b2,fun _ -> wrap (f true)))
       in
       f Constraint.topconstraint inter

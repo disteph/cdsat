@@ -49,4 +49,5 @@ module Make
   val extract_msg: fixed -> (msg * fixed) option
 
   val split : LitF.t -> (sign,TSet.t,thAnd) thsays
+  val unfold : Term.t -> (sign,TSet.t,thStraight) thsays option
 end

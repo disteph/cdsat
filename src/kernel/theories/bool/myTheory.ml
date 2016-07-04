@@ -50,6 +50,8 @@ struct
       let reveal t = t
       let empty = LMap.empty,LMap.empty
       let add l (t,tn) =
+        Dump.print ["bool",2]
+          (fun p->p "Setting this lit to true: %a" Term.print_in_fmt (litAsTerm l));
         let ln = LitF.negation l in
         let dejavu = function
           | Some _ -> failwith "Literal already determined!"
@@ -245,7 +247,7 @@ used in a ThStraight or ThProvable message. *)
          match LSet.reveal set, stack with
 
          | Empty, _ | Leaf _, _  when inc (LSet.reveal set, clause.simpl) ->
-            LMap.fold (fun _ -> TSet.add) res (TSet.singleton clause.term)            
+            LMap.fold (fun _ -> TSet.add) res (TSet.singleton clause.term)
 
          | _, l2term::tail ->
             let _,asfalse = L2Term.reveal l2term in
@@ -265,7 +267,7 @@ used in a ThStraight or ThProvable message. *)
     else
       let clause = T2Clause.find litterm justif in
       let tset = explain clause in
-      let msg = thStraight () tset (TSet.singleton litterm) in
+      let msg = thStraight () (TSet.singleton litterm) tset in
       let justif' = T2Clause.remove litterm justif in
       Some(clause.term,tset,msg,justif')
           
@@ -329,8 +331,19 @@ used in a ThStraight or ThProvable message. *)
          let msg = thNotProvable () fixed.true_clauses in
          Some(Msg msg, fixed)
        else
-         let asTrue,_ = L2Term.reveal fixed.asTrueFalse in
-         Some(SplitBut asTrue, fixed)
+         let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
+         Dump.print ["bool",2]
+           (fun p-> let f =
+                      LMap.print_in_fmt None
+                        (fun fmt (lit,_)->LitF.print_in_fmt fmt lit)
+                    in p "Is true: %a\nIs false: %a" f asTrue f asFalse
+           );
+         let lset = LMap.union
+                      (fun _ _ -> failwith "extract_msg: shouldn't happen")
+                      asTrue
+                      asFalse
+         in
+         Some(SplitBut lset, fixed)
 
     
   (* type used in the following function *)
@@ -350,13 +363,16 @@ used in a ThStraight or ThProvable message. *)
    *)
   let constreat c fixed =
     let term = Constraint.term c in
+    Dump.print ["bool",2]
+      (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
     match Constraint.simpl c with
 
     | Sums.F slitterm ->
        (* The clause is satisfied. If it was in orig_clauses, we
        remove it; in any case we add it to true_clauses together with
        the literal term that makes the clause true. *)
-
+       
+       Dump.print ["bool",2] (fun p->p "Clause is satisfied");
        Meh(solve_clause term slitterm fixed)
 
     | Sums.A(set,justif) -> begin
@@ -367,6 +383,7 @@ used in a ThStraight or ThProvable message. *)
            we recursively collect the propagations messages that led
            to the conflict and haven't been communicated yet. *)
 
+           Dump.print ["bool",2] (fun p->p "Clause is unsat");
            let tset = explain { term = term; simpl = None ; justif = justif } in
            let msgs,_ = explain_relevant tset fixed.justification in 
            UNSAT(msgs, thProvable () tset, term)
@@ -378,14 +395,20 @@ used in a ThStraight or ThProvable message. *)
            propagation queue, and mapped to the unit clause in the
            justification map. *)
 
+           Dump.print ["bool",2] (fun p->p "Clause is unit on %a" LitF.print_in_fmt l);
            let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
-           let uc_clause = { term = term; simpl = Some l ; justif = justif } in
-           let fixed = {
-               fixed with
-               asTrueFalse   = asTrueFalse;
-               justification = T2Clause.add litterm uc_clause fixed.justification;
-               propagation   = Pqueue.push litterm fixed.propagation;
-             }
+           let fixed =
+             if Terms.equal litterm term
+             then { fixed with asTrueFalse = asTrueFalse;
+                               true_clauses = TSet.add term fixed.true_clauses }
+             else
+               let uc_clause = { term = term; simpl = Some l ; justif = justif } in
+               {
+                 fixed with
+                 asTrueFalse   = asTrueFalse;
+                 justification = T2Clause.add litterm uc_clause fixed.justification;
+                 propagation   = Pqueue.push litterm fixed.propagation
+               }
            in
            Propagate(fixed, [l; LitF.negation l])
 
@@ -394,6 +417,7 @@ used in a ThStraight or ThProvable message. *)
            pick 2 literals to watch. We record it as a clause that
            remains to be satisfied. *)
 
+           Dump.print ["bool",2] (fun p->p "Clause is now watched");
            let fixed = { fixed with orig_clauses = TSet.add term fixed.orig_clauses} in
            Watch(fixed, LSet.choose set1, LSet.choose set2)
       end
@@ -401,6 +425,15 @@ used in a ThStraight or ThProvable message. *)
   let split lit =
     let t = litAsTerm lit in
     let nt = litAsTerm (LitF.negation lit) in
-    thAnd () TSet.empty (TSet.singleton t) (TSet.singleton nt)
+    thAnd () (TSet.singleton t) (TSet.singleton nt) TSet.empty
 
+  let unfold term =
+    match proj(Terms.data term) with
+    | _, Some set when LSet.info set > 1 ->
+       let tset = LSet.fold (fun l -> TSet.add (litAsTerm(LitF.negation l))) set TSet.empty in
+       Dump.print ["bool",2]
+         (fun p-> p "Unfold: %a from %a" TSet.print_in_fmt tset Term.print_in_fmt term);
+       Some(thStraight () tset (TSet.singleton term))
+    | _ -> None
+          
 end

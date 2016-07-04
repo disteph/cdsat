@@ -5,3 +5,4 @@ latex/
 *.byte
 setup.data
 setup.log
+*~

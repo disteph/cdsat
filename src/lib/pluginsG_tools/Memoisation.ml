@@ -73,17 +73,17 @@ module Make
       let s = sequent ans in
       let k = Seq.forPlugin s in
       match algo k !table with
-      | F _ -> Dump.Plugin.incr_count 4;
-	Dump.msg None
-          (Some(fun p->p "%i/%i Recording %s for\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
-          (Some 4);
-	table := MP.add k (fun _ -> (ans, 1)) !table;
-        if b then Some k else None
-      | A a -> Dump.Plugin.incr_count 5;
-	Dump.msg None
-          (Some(fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s))
-          (Some 5);
-        None
+      | F _ ->
+         Dump.Plugin.incr_count 4;
+	 Dump.print ["memo",2]
+           (fun p->p "%i/%i Recording %s for\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s);
+	 table := MP.add k (fun _ -> (ans, 1)) !table;
+         if b then Some k else None
+      | A a ->
+         Dump.Plugin.incr_count 5;
+	 Dump.print ["memo",2]
+           (fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s);
+         None
 
     let search4success b s = find_sub b (Seq.forPlugin s) !tableS
     let search4failure b s = find_sup b (Seq.forPlugin s) !tableF
@@ -91,16 +91,16 @@ module Make
     let cut_series seq data alternative (a,f) =
       if AS.is_empty a then
 	if FS.is_empty f then
-          (Dump.msg None (Some(fun p->p "Found no previous success for %a" Seq.print_in_fmt seq)) None;
+          (Dump.print ["memo",2] (fun p->p "Found no previous success for %a" Seq.print_in_fmt seq);
            Dump.Plugin.incr_count 9;
 	   alternative())
 	else let toCut, _ = FS.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
-              Dump.msg None (Some (fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq IForm.print_in_fmt toCut)) None;
+              Dump.print ["memo",2](fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq IForm.print_in_fmt toCut);
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
       else let toCut, _ = AS.next a in
 	   Dump.Plugin.incr_count 8;
-           Dump.msg None (Some(fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq LitF.print_in_fmt toCut)) None ;
+           Dump.print ["memo",2] (fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq LitF.print_in_fmt toCut);
            Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4provable ans =
@@ -111,21 +111,23 @@ module Make
 
     let search4provableNact seq data alternative () =
       match search4success !Flags.almo seq with
-      | A a
-        -> Dump.Plugin.incr_count 7;
-          Dump.msg None (Some(fun p->p "Found previous success for %a" Seq.print_in_fmt seq)) None;
-          let ans, count = a in
-          tableS := MP.add (Seq.forPlugin (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
-          Some(Propose ans)
+      | A a ->
+         Dump.Plugin.incr_count 7;
+         Dump.print ["memo",2] (fun p->p "Found previous success for %a" Seq.print_in_fmt seq);
+         let ans, count = a in
+         tableS := MP.add (Seq.forPlugin (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
+         Some(Propose ans)
       | F(d1,d2) -> cut_series seq data alternative (d1,d2)
      
 
     let search4notprovableNact seq alternative =
       match search4failure false seq with
-      | A a -> Dump.msg None (Some(fun p->p "Found previous failure for %a" Seq.print_in_fmt seq)) None;
-	Propose (fst a)
-      | _   -> Dump.msg None (Some(fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq)) None;
-	alternative()
+      | A a ->
+         Dump.print ["memo",2] (fun p->p "Found previous failure for %a" Seq.print_in_fmt seq);
+	 Propose (fst a)
+      | _   ->
+         Dump.print ["memo",2] (fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq);
+	 alternative()
 
     let report() = 
       print_endline("   Memoisation report:");

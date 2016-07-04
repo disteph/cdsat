@@ -74,7 +74,7 @@ let make theories : (module Plugin.Type) =
 
       let print_pipes =
         let aux (Handlers.Handler hdl) to_worker =
-          Dump.msg (Some(fun p -> p "%a: %i messages queued" Sig.print_in_fmt hdl (Pipe.length to_worker))) None None
+          Dump.print ["concur",1] (fun p -> p "%a: %i messages queued" Sig.print_in_fmt hdl (Pipe.length to_worker))
         in
         HandlersMap.iter aux
 
@@ -116,7 +116,7 @@ let make theories : (module Plugin.Type) =
         in
         Deferred.all_unit tasks
         >>= fun () -> 
-        Dump.msg (Some(fun p -> p "%s" "Everybody cloned themselves; now starting first branch")) None None;
+        Dump.print ["concur",1] (fun p -> p "%s" "Everybody cloned themselves; now starting first branch");
         cont { state with waiting4 = all_theories }
         >>| fun ans ->
         let newstate = { state with
@@ -124,7 +124,7 @@ let make theories : (module Plugin.Type) =
           waiting4 = all_theories }
         in
         (ans,
-         (fun () -> (Dump.msg (Some(fun p -> p "%s" "Now starting second branch")) None None;
+         (fun () -> (Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
                     cont newstate)),
          (fun () -> kill_pipes newstate)
         )
@@ -210,11 +210,11 @@ let make theories : (module Plugin.Type) =
         | WB.NotProvable(rest,consset) as current ->
 
            begin
-             Dump.msg None (Some(fun p-> p "Main_worker enters new loop with %i theories having to check the set\n%a"
-               (HandlersMap.cardinal rest)
-               WB.DS.TSet.print_in_fmt consset
-             )) None;
-
+             Dump.print ["concur",2]
+               (fun p-> p "Main_worker enters new loop with %i theories having to check the set\n%a"
+                          (HandlersMap.cardinal rest)
+                          WB.DS.TSet.print_in_fmt consset
+               );
              if HandlersMap.is_empty rest
              (* rest being empty means that all theories have
                 stamped the set of literals consset as being consistent
@@ -226,7 +226,7 @@ let make theories : (module Plugin.Type) =
                 read what the theories have to tell us *)
              else select_msg state
                 >>= function (W.Msg(hdl,msg) as thmsg, state) ->
-                  Dump.msg (Some(fun p -> p "%a" W.print_in_fmt thmsg)) None None;
+                  Dump.print ["concur",1] (fun p -> p "%a" W.print_in_fmt thmsg);
                   match msg with
 
                   | ThProvable _ -> 
