@@ -105,9 +105,9 @@ let print_in_fmt_utf8 fmt = function
   | Select(_,_) -> fprintf fmt "select"
   | Store(_,_)  -> fprintf fmt "store"
 
-let print_in_fmt =
-  if !Flags.latex then print_in_fmt_latex
-  else print_in_fmt_utf8
+let print_in_fmt fmt = match !Dump.display with
+  | Dump.Latex -> print_in_fmt_latex fmt
+  | _ -> print_in_fmt_utf8 fmt
 
 let parse decsorts = 
   let allsorts = Sorts.allsorts decsorts in function

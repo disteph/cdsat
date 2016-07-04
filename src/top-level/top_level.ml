@@ -80,7 +80,12 @@ let init th =
     in 
     match result with
     | None -> None
-    | Some r when stringOrunit-> Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+    | Some r when stringOrunit-> if !Flags.latex then
+                                   let display = !Dump.display in
+                                   Dump.display := Dump.Latex;
+                                   let ans = Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+                                   in Dump.display := display; ans
+                                 else Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
     | Some r                  -> Some(F())
 
 

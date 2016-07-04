@@ -83,7 +83,7 @@ let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
 
 
 (* Displays a formula *)
-let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
+let print_in_fmt_latex (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
@@ -111,6 +111,36 @@ let print_in_fmt (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   | ExistsB(so, f)-> print_quantif_in_fmtB fmt "\\exists" so f
      in fun reveal fmt t -> aux fmt (reveal t)
 
+(* Displays a formula *)
+let print_in_fmt_utf8 (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
+  let print_bin_op_in_fmt fmt f1 op f2 =
+    fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
+  and print_quantif_in_fmt fmt op so pSub1 f d =
+    fprintf fmt "%s %a %a" op (* Sorts.print_in_fmt so *) pSub1 f DSubst.print_in_fmt d
+  and print_quantif_in_fmtB fmt op so f =
+    fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
+  in let aux fmt: (a,b)form -> unit = function
+  | LitF l       -> fprintf fmt "%a" LitF.print_in_fmt l
+  | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
+  | TrueP        -> fprintf fmt "%s" "⊤+"
+  | TrueN        -> fprintf fmt "%s" "⊤-"
+  | FalseP       -> fprintf fmt "%s" "⊥+"
+  | FalseN       -> fprintf fmt "%s" "⊥-"
+  | AndN(f1, f2) -> print_bin_op_in_fmt fmt f1 "∧-" f2
+  | OrN(f1, f2)  -> print_bin_op_in_fmt fmt f1 "∨-" f2
+  | AndP(f1, f2) -> print_bin_op_in_fmt fmt f1 "∧+" f2
+  | OrP(f1, f2)  -> print_bin_op_in_fmt fmt f1 "∨+" f2
+  | ForAllF(so,f,d)-> let FreeFunc pif = pSub in
+                      print_quantif_in_fmt fmt "∀" so (fun fmt t -> pif t fmt) f d
+  | ExistsF(so,f,d)-> let FreeFunc pif = pSub in
+                      print_quantif_in_fmt fmt "∃" so (fun fmt t -> pif t fmt) f d
+  | ForAllB(so, f)-> print_quantif_in_fmtB fmt "∀" so f
+  | ExistsB(so, f)-> print_quantif_in_fmtB fmt "∃" so f
+     in fun reveal fmt t -> aux fmt (reveal t)
+
+let print_in_fmt fmt = match !Dump.display with
+  | Dump.Latex -> print_in_fmt_latex fmt
+  | _ -> print_in_fmt_utf8 fmt
 
 (* Negates a formula *)
 let negation (type a)(type b) (nSub:(b,b)func_prim) nRec reveal build =

@@ -4,18 +4,25 @@
 (* printed.                                             *)
 (********************************************************)
 
-val wait : unit -> unit
+val init : unit -> unit
+
+(**********************)
+(* Printing functions *)
+(**********************)
+
+type display =
+  | Latex
+  | Utf8
+
+val display : display ref
 
 val toString : ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> string
-
 val stringOf : (Format.formatter -> 'a -> unit) -> 'a -> string
+val print : (string * int) list -> ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> unit
+                      
+val wait : unit -> unit
                 
 val every : int array
-
-val dtags_init : unit -> unit
-
-val print : (string * int) list -> ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> unit
-
         
 (**********)
 (* Timers *)

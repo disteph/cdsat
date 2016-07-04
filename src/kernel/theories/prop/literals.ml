@@ -18,7 +18,9 @@ module LitF = struct
 
   let print_in_fmt fmt l =
     let b,a = reveal l in
-    fprintf fmt "%s{%i}" (if b then "" else "\\overline") a
+    match !Dump.display with
+    | Dump.Latex -> fprintf fmt "%s{%i}" (if b then "" else "\\overline") a
+    | _ -> fprintf fmt "%s%i" (if b then "" else "¬") a
 
   let negation l = 
     let b,a = reveal l in build(not b,a)
@@ -49,7 +51,9 @@ module LitB = struct
 
   let print_in_fmt fmt l =
     let b,a = reveal l in
-    fprintf fmt "%s{%a}" (if b then "" else "\\overline") TermB.print_in_fmt a
+    match !Dump.display with
+    | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") TermB.print_in_fmt a
+    | _ -> fprintf fmt "%s%a" (if b then "" else "¬") TermB.print_in_fmt a
 
   let negation l = 
     let b,a = reveal l in build(not b,a)
