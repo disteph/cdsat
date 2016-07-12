@@ -160,7 +160,7 @@ struct
                         end
                      | F propastate ->
                         begin match Config.unfold t with
-                        | Some(ThStraight(tset,_) as msg) ->
+                        | Some(Propa(_,Straight tset) as msg) ->
                            aux {state with
                                  todo = (* TSet.fold Pqueue.push tset *) todo;
                                  outqueue = Pqueue.push msg state.outqueue;

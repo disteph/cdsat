@@ -33,13 +33,13 @@ sig
       val add : DS.TSet.t -> t
       val normalise :
         DS.Term.t ->
-        (sign, DS.TSet.t, Top.Messages.thStraight) Top.Messages.thsays
+        (sign, DS.TSet.t, Top.Messages.straight) message
     end
 
   type outputCC =
-    | UNSAT of (sign, DS.TSet.t, Top.Messages.thProvable) Top.Messages.thsays
+    | UNSAT of (sign, DS.TSet.t, unsat) message
     | SAT of
-        (sign, DS.TSet.t, Top.Messages.thNotProvable) Top.Messages.thsays *
+        (sign, DS.TSet.t, sat) message *
         (module SlotMachineCC with type t = outputCC)
 
   val init : (module SlotMachineCC with type t = outputCC)

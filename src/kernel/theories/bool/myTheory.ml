@@ -213,13 +213,13 @@ original clauses that have simplified to true
 
 
   (* Type declarations needed for the 2-watched literals functor *)
-  type straight = (sign,TSet.t,thStraight) thsays
+  type straight = (sign,TSet.t,Messages.straight) message
                     
   type msg =
-    | Msg : (sign,TSet.t,_) thsays -> msg
+    | Msg : (sign,TSet.t,_) message -> msg
     | SplitBut : (Term.t,unit) LSet.param -> msg
 
-  type stop = straight list * ((sign,TSet.t,thProvable) thsays) * Term.t
+  type stop = straight list * ((sign,TSet.t,unsat) message) * Term.t
 
   (***********************************************************)
   (* This is the generation of explanations, for e.g. conflict
@@ -267,7 +267,7 @@ used in a ThStraight or ThProvable message. *)
     else
       let clause = T2Clause.find litterm justif in
       let tset = explain clause in
-      let msg = thStraight () (TSet.singleton litterm) tset in
+      let msg = straight () tset (TSet.singleton litterm) in
       let justif' = T2Clause.remove litterm justif in
       Some(clause.term,tset,msg,justif')
           
@@ -328,7 +328,7 @@ used in a ThStraight or ThProvable message. *)
     | None ->
        if TSet.is_empty fixed.orig_clauses
        then
-         let msg = thNotProvable () fixed.true_clauses in
+         let msg = sat () fixed.true_clauses in
          Some(Msg msg, fixed)
        else
          let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
@@ -386,7 +386,7 @@ used in a ThStraight or ThProvable message. *)
            Dump.print ["bool",2] (fun p->p "Clause is unsat");
            let tset = explain { term = term; simpl = None ; justif = justif } in
            let msgs,_ = explain_relevant tset fixed.justification in 
-           UNSAT(msgs, thProvable () tset, term)
+           UNSAT(msgs, unsat () tset, term)
 
         | Leaf(l,()) ->
            (* The clause has becom unit, the last literal being l. We
@@ -425,7 +425,7 @@ used in a ThStraight or ThProvable message. *)
   let split lit =
     let t = litAsTerm lit in
     let nt = litAsTerm (LitF.negation lit) in
-    thAnd () (TSet.singleton t) (TSet.singleton nt) TSet.empty
+    both () TSet.empty (TSet.singleton t) (TSet.singleton nt)
 
   let unfold term =
     match proj(Terms.data term) with
@@ -433,7 +433,7 @@ used in a ThStraight or ThProvable message. *)
        let tset = LSet.fold (fun l -> TSet.add (litAsTerm(LitF.negation l))) set TSet.empty in
        Dump.print ["bool",2]
          (fun p-> p "Unfold: %a from %a" TSet.print_in_fmt tset Term.print_in_fmt term);
-       Some(thStraight () tset (TSet.singleton term))
+       Some(straight () (TSet.singleton term) tset)
     | _ -> None
           
 end

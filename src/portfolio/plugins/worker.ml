@@ -14,7 +14,7 @@ module Make(WB: WhiteBoard) = struct
   open WB
   open DS
 
-  type msg2pl = Msg: 'sign Sig.t*('sign,TSet.t,'msg) thsays -> msg2pl
+  type msg2pl = Msg: 'sign Sig.t*('sign,'msg) Msg.t -> msg2pl
 
   let print_in_fmt fmt (Msg(hdl,msg)) =
     Format.fprintf fmt "%a says %a" Sig.print_in_fmt hdl (print_msg_in_fmt TSet.print_in_fmt) msg
@@ -81,8 +81,8 @@ module Make(WB: WhiteBoard) = struct
          Deferred.all_unit 
            [ Lib.write to_pl (Msg(hdl,msg));
              match msg with
-             | ThProvable _ -> flush from_pl to_pl msg
-             | _            -> keep_on()
+             | Propa(_,Unsat) -> flush from_pl to_pl msg
+             | _              -> keep_on()
            ]
                                                                                           
     in loop from_pl to_pl (add init tset)

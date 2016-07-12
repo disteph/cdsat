@@ -4,37 +4,69 @@
 
 open Format
 
-open Interfaces_basic
-open Basic
+(* Type labels, used in GADTs *)
 
-type thProvable = private TProvable
-type thNotProvable = private TNotProvable
-type thStraight = private TStraight
-type thAnd = private TAnd
-type thOr = private TOr
+type unsat_l    = private CUnsat
+type straight_l = private CStraight
+type both_l     = private CBoth
+type either_l   = private CEither
+type 'a propa = private CPropa
+type sat      = private CSat
 
-type (_,_,_) thsays =
-| ThProvable   : 'tset -> (_,'tset,thProvable) thsays
-| ThNotProvable: 'tset -> (_,'tset,thNotProvable) thsays
-| ThStraight: 'tset*'tset   -> (_,'tset,thStraight) thsays
-| ThAnd : 'tset*'tset*'tset -> (_,'tset,thAnd) thsays
-| ThOr  : 'tset*'tset*'tset -> (_,'tset,thOr) thsays
+(* Abbreviation for type labels, used in GADTs *)
+                          
+type unsat    = unsat_l propa
+type straight = straight_l propa
+type both     = both_l propa
+type either   = either_l propa
 
+(* Message types *)
 
-let thProvable _ tset    = ThProvable tset
-let thNotProvable _ tset = ThNotProvable tset
-let thStraight _ tset old  = ThStraight(tset,old)
-let thAnd _ tset tset' old = ThAnd(tset,tset',old)
-let thOr _ tset tset' old  = ThOr(tset,tset',old)
+type (_,_) propagated =
+  | Unsat    : (_,unsat_l) propagated
+  | Straight : 'tset -> ('tset,straight_l) propagated
+  | Both     : 'tset * 'tset -> ('tset,both_l) propagated
+  | Either   : 'tset * 'tset -> ('tset,either_l) propagated
+                                                 
+type (_,_,_) message =
+  | Sat   : 'tset -> (_,'tset,sat) message
+  | Propa : 'tset * ('tset,'a) propagated -> (_,'tset,'a propa) message
 
-let print_msg_in_fmt tsetprint fmt (type a): (_,_,a)thsays -> unit = function
-  | ThProvable tset
-    -> fprintf fmt "ThProvable(%a)" tsetprint tset
-  | ThNotProvable tset
-    -> fprintf fmt "ThNotProvable(%a)" tsetprint tset
-  | ThStraight(newset,oldset)
-    -> fprintf fmt "ThStraight(%a, %a)" tsetprint newset tsetprint oldset
-  | ThAnd(newset1,newset2,oldset)
-    -> fprintf fmt "ThAnd(%a, %a, %a)" tsetprint newset1 tsetprint newset2 tsetprint oldset
-  | ThOr(newset1,newset2,oldset)
-    -> fprintf fmt "ThOr(%a, %a, %a)" tsetprint newset1 tsetprint newset2 tsetprint oldset
+(* Message construction functions *)
+                                                                  
+let sat _ tset              = Sat tset
+let propa _ tset p          = Propa(tset,p)
+let unsat _ tset            = Propa(tset,Unsat)
+let straight _ tset newtset = Propa(tset,Straight newtset)
+let both   _ tset new1 new2 = Propa(tset,Both(new1,new2))
+let either _ tset new1 new2 = Propa(tset,Either(new1,new2))
+
+(* Printing messages *)
+
+let print_msg_in_fmt_latex tsetprint fmt (type a): (_,_,a)message -> unit = function
+  | Sat tset
+    -> fprintf fmt "Sat(%a)" tsetprint tset
+  | Propa(tset,Unsat)
+    -> fprintf fmt "%a\\vdash\\bot" tsetprint tset
+  | Propa(oldset,Straight newset)
+    -> fprintf fmt "%a\\vdash %a" tsetprint oldset tsetprint newset
+  | Propa(oldset,Both(newset1,newset2))
+    -> fprintf fmt "%a\\vdash (%a)\\bigwedge (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
+  | Propa(oldset,Either(newset1,newset2))
+    -> fprintf fmt "%a\\vdash (%a)\\bigvee (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
+
+let print_msg_in_fmt_utf8 tsetprint fmt (type a): (_,_,a)message -> unit = function
+  | Sat tset
+    -> fprintf fmt "Sat(%a)" tsetprint tset
+  | Propa(tset,Unsat)
+    -> fprintf fmt "%a ⊢ ⊥" tsetprint tset
+  | Propa(oldset,Straight newset)
+    -> fprintf fmt "%a ⊢ %a" tsetprint oldset tsetprint newset
+  | Propa(oldset,Both(newset1,newset2))
+    -> fprintf fmt "%a ⊢ (%a) ⋀ (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
+  | Propa(oldset,Either(newset1,newset2))
+    -> fprintf fmt "%a ⊢ (%a) ⋁ (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
+
+let print_msg_in_fmt tsetprint fmt = match !Dump.display with
+  | Dump.Latex -> print_msg_in_fmt_latex tsetprint fmt
+  | _ -> print_msg_in_fmt_utf8 tsetprint fmt

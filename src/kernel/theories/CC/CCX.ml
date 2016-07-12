@@ -66,11 +66,14 @@ struct
     type t
     val treated  : TSet.t
     val add      : TSet.t -> t
-    val normalise: Term.t -> (sign,TSet.t,thStraight) thsays
+    val normalise: Term.t -> (sign,TSet.t,straight) message
   end
 
-  type outputCC = | UNSAT of (sign,TSet.t,thProvable) thsays
-                  | SAT of (sign,TSet.t,thNotProvable) thsays * (module SlotMachineCC with type t = outputCC)
+  type outputCC =
+    | UNSAT of (sign, DS.TSet.t, unsat) message
+    | SAT of
+        (sign, DS.TSet.t, sat) message *
+          (module SlotMachineCC with type t = outputCC)
 
   let rec machine treated s =
     (module struct
@@ -82,18 +85,18 @@ struct
       let add tset = 
         let newtreated = TSet.union treated tset in
         try 
-          SAT(thNotProvable () newtreated, machine newtreated (Alg.algo s (fromTSet tset)))
+          SAT(sat () newtreated, machine newtreated (Alg.algo s (fromTSet tset)))
         with
-          Alg.Inconsistency l -> UNSAT(thProvable () (toTSet l))
+          Alg.Inconsistency l -> UNSAT(unsat () (toTSet l))
 
       let normalise t = 
         let t' = Alg.normalise s t in
         let so = get_sort t in
         let l = Term.bC (Symbols.Eq so) [t;t'] in
         let justif = Alg.explain s.Alg.u t t' in
-        thStraight () 
-          (TSet.add l TSet.empty)
+        straight () 
           (toTSet justif)
+          (TSet.singleton l)
 
     end: SlotMachineCC with type t = outputCC)
 

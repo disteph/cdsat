@@ -7,7 +7,6 @@ open Format
 open Interfaces_basic
 open Basic
 open Variables
-open Messages
 
 exception ModelError of string
 
@@ -90,7 +89,7 @@ type ('sign,'tset) slot_machine
     = (module SlotMachine with type newoutput = ('sign,'tset) output and type tset = 'tset)
 
 and (_,_) output = Output:
-  ('sign,'tset,_) thsays option
+  ('sign,'tset,_) Messages.message option
   * ('sign,'tset) slot_machine
   -> ('sign,'tset) output
 

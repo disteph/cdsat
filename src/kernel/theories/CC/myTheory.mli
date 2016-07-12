@@ -16,15 +16,14 @@ end) :  sig
     type t
     val treated : DS.TSet.t
     val add : DS.TSet.t -> t
-    val normalise : DS.Term.t -> (sign, DS.TSet.t, thStraight) thsays
+    val normalise : DS.Term.t -> (sign, DS.TSet.t, straight) message
   end
 
   type outputCC =
-    | UNSAT of
-          (sign, DS.TSet.t, thProvable) thsays
+    | UNSAT of (sign, DS.TSet.t, unsat) message
     | SAT of
-        (sign, DS.TSet.t, thNotProvable) thsays
-      * (module SlotMachineCC with type t = outputCC)
+        (sign, DS.TSet.t, sat) message *
+        (module SlotMachineCC with type t = outputCC)
 
   val init : (module SlotMachineCC with type t = outputCC)
 

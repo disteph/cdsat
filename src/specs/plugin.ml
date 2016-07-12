@@ -1,5 +1,8 @@
-open Kernel.Combo
-
+open Kernel
+open Combo
+open Top.Messages
+open General.Sums
+       
 module type DataList = sig
   type agglo
   val dataList : agglo dataList
@@ -14,6 +17,6 @@ module type Type = sig
     val projList: (DS.Term.datatype,agglo) projList
   end)
     : sig
-      val solve : WB.DS.TSet.t -> WB.answer
+      val solve : WB.DS.TSet.t -> (unsat WB.t, sat WB.t) sum 
     end
 end

@@ -32,8 +32,8 @@ module Make(DS: GTheoryDSType) = struct
                atomN
                None in
              match tmp with
-             | Some tset -> Output(Some(thProvable () tset), fail_state)
-             | None -> Output(Some(thNotProvable () atomN), machine atomN)
+             | Some tset -> Output(Some(unsat () tset), fail_state)
+             | None -> Output(Some(sat () atomN), machine atomN)
 
         let normalise _ = failwith "Not a theory with normaliser"
 

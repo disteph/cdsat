@@ -2,26 +2,43 @@
 (* Message types *)
 (*****************)
 
-open Interfaces_basic
-open Basic
+(* Type labels, used in GADTs *)
 
-type thProvable = private TProvable
-type thNotProvable = private TNotProvable
-type thStraight = private TStraight
-type thAnd = private TAnd
-type thOr = private TOr
+type unsat_l    = private CUnsat
+type straight_l = private CStraight
+type both_l     = private CBoth
+type either_l   = private CEither
+type 'a propa = private CPropa
+type sat      = private CSat
 
-type (_,_,_) thsays = private
-| ThProvable   : 'tset -> (_,'tset,thProvable) thsays
-| ThNotProvable: 'tset -> (_,'tset,thNotProvable) thsays
-| ThStraight: 'tset*'tset   -> (_,'tset,thStraight) thsays
-| ThAnd : 'tset*'tset*'tset -> (_,'tset,thAnd) thsays
-| ThOr  : 'tset*'tset*'tset -> (_,'tset,thOr) thsays
+(* Abbreviation for type labels, used in GADTs *)
+                          
+type unsat    = unsat_l propa
+type straight = straight_l propa
+type both     = both_l propa
+type either   = either_l propa
 
-val thProvable   : 'sign -> 'tset -> ('sign,'tset,thProvable) thsays
-val thNotProvable: 'sign -> 'tset -> ('sign,'tset,thNotProvable) thsays
-val thStraight: 'sign -> 'tset -> 'tset      -> ('sign,'tset,thStraight) thsays
-val thAnd : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thAnd) thsays
-val thOr  : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,thOr) thsays
+(* Message types *)
+                         
+type (_,_) propagated =
+  | Unsat    : (_,unsat_l) propagated
+  | Straight : 'tset -> ('tset,straight_l) propagated
+  | Both     : 'tset * 'tset -> ('tset,both_l) propagated
+  | Either   : 'tset * 'tset -> ('tset,either_l) propagated
+                                                 
+type (_,_,_) message =
+  | Sat   : 'tset -> (_,'tset,sat) message
+  | Propa : 'tset * ('tset,'a)propagated -> (_,'tset,'a propa) message
 
-val print_msg_in_fmt: (Format.formatter -> 'a -> unit) -> Format.formatter -> (_,'a,_)thsays -> unit
+(* Message construction functions *)
+                                                                  
+val sat     : 'sign -> 'tset -> ('sign,'tset,sat) message
+val propa   : 'sign -> 'tset -> ('tset,'a) propagated -> ('sign,'tset,'a propa) message
+val unsat   : 'sign -> 'tset -> ('sign,'tset,unsat) message
+val straight: 'sign -> 'tset -> 'tset      -> ('sign,'tset,straight) message
+val both    : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,both) message
+val either  : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,either) message
+
+(* Printing messages *)
+
+val print_msg_in_fmt: (Format.formatter -> 'tset -> unit) -> Format.formatter -> (_,'tset,_)message -> unit

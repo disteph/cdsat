@@ -60,7 +60,7 @@ struct
           let rec aux = function
             | []   -> 
                (Output(
-                 Some(thNotProvable () state.treated),
+                 Some(sat () state.treated),
                  machine { state with todo = [] }
                ):(sign,TSet.t) output)
             | t::l when TSet.mem t state.solved -> aux l
@@ -75,7 +75,7 @@ struct
                     let b0 = LMap.find blit state.known in
                     let eq = Term.bC (Symbols.Eq so) [t;b1] in
                     Output(
-                      Some(thStraight () (TSet.add eq TSet.empty) (TSet.add b0 TSet.empty)),
+                      Some(straight () (TSet.singleton b0) (TSet.singleton eq)),
                       machine { state with todo = l; solved = TSet.add t state.solved })
                (* ) *)
                   else 
@@ -85,14 +85,14 @@ struct
                       let b0 = LMap.find (LitF.negation blit) state.known in
                       let eq = Term.bC (Symbols.Eq so) [t;b2] in
                       Output(
-                        Some(thStraight () (TSet.add eq TSet.empty) (TSet.add b0 TSet.empty)),
+                        Some(straight () (TSet.singleton b0) (TSet.singleton eq)),
                         machine { state with todo = l; solved = TSet.add t state.solved })
                     (* ) *)
                     else
                       (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.print_in_fmt blit  Term.print_in_fmt b); *)
                       Output(
                         Some(
-                          thAnd () (TSet.add b TSet.empty) (TSet.add (Term.bC Symbols.Neg [b]) TSet.empty) TSet.empty
+                          both () TSet.empty (TSet.singleton b) (TSet.singleton (Term.bC Symbols.Neg [b]))
                         ),
                         machine { state with todo = t::l })
                (* ) *)

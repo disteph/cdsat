@@ -20,7 +20,7 @@ module Make(DS: GTheoryDSType) = struct
         | None -> Output(None,state atomN)
         | Some tset ->
            let newtreated = TSet.union atomN tset in
-           Output(Some(thNotProvable () newtreated),state newtreated)
+           Output(Some(sat () newtreated),state newtreated)
 
       let normalise _ = failwith "Not a theory with normaliser"
 

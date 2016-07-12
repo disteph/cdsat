@@ -40,12 +40,12 @@ module Make(DS: sig
              ->
             let a1 = Term.bC Symbols.Lt [a;b] in
             let a2 = Term.bC Symbols.Gt [a;b] in
-            let s1 = TSet.add a1 TSet.empty in
-            let s2 = TSet.add a2 TSet.empty in
-            let s3 = TSet.add lit TSet.empty in
+            let s1 = TSet.singleton a1 in
+            let s2 = TSet.singleton a2 in
+            let s0 = TSet.singleton lit in
             (* In case of a disequality, we describe the case analysis
             to make, and store it in splits *)
-            (thAnd () s1 s2 s3)::splits,
+            (both () s0 s1 s2)::splits,
             eqs
          | _ -> failwith "Should not happen"
        end
@@ -61,7 +61,7 @@ module Make(DS: sig
 
 
   type state = {treated : TSet.t;
-                splits : (sign,TSet.t,thAnd) thsays list;
+                splits : (sign,TSet.t,both) message list;
                 stack : trail list}
 
   let rec machine state  =
@@ -96,7 +96,7 @@ module Make(DS: sig
                  }
                  in
                  (* Dump.print ["dejan",1] (fun p -> p "Exiting Dejan's add"); *)
-                 Output(Some(thNotProvable () newState.treated), machine newState)
+                 Output(Some(sat () newState.treated), machine newState)
               | msg::splits' ->
                  (* We ask Psyche to make a case analysis with msg *)
                  let newState = {
@@ -111,7 +111,7 @@ module Make(DS: sig
 
           with Unsat_failure (l,s) ->
             (* Dump.print ["dejan",1] (fun p -> p "Exiting Dejan's add"); *)
-            Output(Some(thProvable () (toTSet l)), fail_state)
+            Output(Some(unsat () (toTSet l)), fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
 
