@@ -6,6 +6,10 @@ open Format
 
 open Interfaces_basic
 
+open General
+open Patricia
+open SetConstructions
+       
 module IntSort = struct
 
   module M = struct
@@ -61,14 +65,32 @@ module IdMon = struct
   let bind (f: 'a -> 'b t) a = f a
 end
 
-module MakeCollection(OT: sig
-  include Set.OrderedType
-  val print_in_fmt: Format.formatter -> t -> unit
-end) = struct
+module MakeCollection
+         (OT: sig
+              include Set.OrderedType
+              val print_in_fmt: Format.formatter -> t -> unit
+            end) = struct
   include Set.Make(OT)
   type e    = elt
   let next t = let e = choose t in (e,remove e t)
   let print_in_fmt fmt s =
     let _ = fold (fun a b -> fprintf fmt "%s%a" (if b then ", " else "") OT.print_in_fmt a; true) s false in
     ()
+end
+
+module MakePATCollection(M: PHCons) = struct
+
+  module DSet = struct
+    type keys      = M.t
+    let kcompare a b = Pervasives.compare (M.id a) (M.id b)
+    type infos     = unit
+    let info_build = empty_info_build
+    let treeHCons  = None
+  end
+
+  module I = TypesFromHConsed(M)
+
+  include PATSet.Make(DSet)(I)
+  let next t = let e = choose t in (e,remove e t)
+  let print_in_fmt fmt s = print_in_fmt None M.print_in_fmt fmt s
 end

@@ -15,7 +15,12 @@ open Specs
 (* This is the module type that we are going to produce at the end of this file *)
 
 module type WhiteBoard = sig
-  module DS : GTheoryDSType
+  module DS : sig
+    module Term : TermF
+    module TSet : Collection with type e = Term.t
+                              and type t = (Term.t, unit, int, int, unit)
+                                             General.Patricia.poly
+  end
   module Msg : sig
     type ('sign,'a) t = ('sign,DS.TSet.t,'a) Messages.message
     val print_in_fmt : Format.formatter -> (_,_)t -> unit
@@ -117,15 +122,25 @@ let make (type a)
     module DS = struct
 
       module Term = Terms.Make(FreeVar)(DT)
+                              
+      module TSet =
+        MakePATCollection(
+            struct
+              type t       = Term.t
+              let id       = Terms.id
+              let compare  = Terms.compare
+              let clear    = Term.clear
+              let print_in_fmt = Term.print_in_fmt
+            end)
 
-      module TSet = MakeCollection(
-        struct
-          type t       = DT.t termF
-          let id       = Terms.id
-          let compare  = Terms.compare
-          let clear    = Term.clear
-          let print_in_fmt = Term.print_in_fmt
-        end)
+      (* module TSet = *)
+      (*   MakeCollection(struct *)
+      (*       type t       = DT.t termF *)
+      (*       let id       = Terms.id *)
+      (*       let compare  = Terms.compare *)
+      (*       let clear    = Term.clear *)
+      (*       let print_in_fmt = Term.print_in_fmt *)
+      (*     end) *)
 
     end
       
