@@ -17,9 +17,12 @@ open Specs
 module type WhiteBoard = sig
   module DS : sig
     module Term : TermF
-    module TSet : Collection with type e = Term.t
-                              and type t = (Term.t, unit, int, int, unit)
-                                             General.Patricia.poly
+    module TSet : sig
+      include Collection with type e = Term.t
+                          and type t = (Term.t, unit, int, int, unit)
+                                         General.Patricia.poly
+      val id : t -> int
+    end
   end
   module Msg : sig
     type ('sign,'a) t = ('sign,DS.TSet.t,'a) Messages.message
@@ -31,7 +34,7 @@ module type WhiteBoard = sig
   val stamp    : 'a Sig.t -> ('a, 'b propa) Msg.t -> 'b propa t
   val resolve  : straight t -> 'b propa t -> 'b propa t
   val both2straight: ?side:bool -> both t -> unsat t -> straight t
-  (* val orBranch: 'a Sig.t -> ('a,TSet.t,thOr) thsays -> bool -> answer -> answer *)
+  val unit_propa: unsat t -> DS.Term.t -> straight t
 end
 
 (*********************************************************************)
@@ -133,15 +136,6 @@ let make (type a)
               let print_in_fmt = Term.print_in_fmt
             end)
 
-      (* module TSet = *)
-      (*   MakeCollection(struct *)
-      (*       type t       = DT.t termF *)
-      (*       let id       = Terms.id *)
-      (*       let compare  = Terms.compare *)
-      (*       let clear    = Term.clear *)
-      (*       let print_in_fmt = Term.print_in_fmt *)
-      (*     end) *)
-
     end
       
     open DS
@@ -192,24 +186,12 @@ let make (type a)
       in
       WB(HandlersMap.merge merge_aux hdls1 hdls2,
          straight () (TSet.union (TSet.diff thset tset) oldset) newset)
-          
-    (* let andBranch hdl (ThAnd(new1,new2,oldset)) ans1 ans2 = *)
-    (*   match ans1,ans2 with  *)
-    (*   | Provable(hdls1,thset1), Provable(hdls2,thset2) -> *)
-    (*      check hdl; *)
-    (*     Provable(HandlersMap.add (Handlers.Handler hdl) ()  *)
-    (*                (HandlersMap.merge (fun _ _ _ -> Some()) hdls1 hdls2), *)
-    (*              TSet.union (TSet.diff thset1 new1)  *)
-    (*                (TSet.union (TSet.diff thset2 new2) oldset)) *)
-    (*   | _ -> failwith "Should apply WB.andBranch on two Provable" *)
 
-    (* let orBranch hdl (ThOr(new1,new2,oldset)) side = function *)
-    (*   | Provable(hdls,thset) -> *)
-    (*      check hdl; *)
-    (*     let newset = if side then new1 else new2 in *)
-    (*     Provable(HandlersMap.add (Handlers.Handler hdl) () hdls, *)
-    (*              TSet.union (TSet.diff thset newset) oldset) *)
-    (*   | NotProvable _ -> failwith "Should apply WB.orBranch on Provable" *)
+    let unit_propa (WB(hdls,Propa(thset,Unsat))) term =
+      if TSet.mem term thset
+      then let thset = TSet.remove term thset in
+           WB(hdls,Propa(thset, Straight(TSet.singleton(Term.bC Symbols.Neg [term]))))
+      else failwith "Combo.unit_propa: term not in conflict"
 
    end),
   pl (fun x -> x)

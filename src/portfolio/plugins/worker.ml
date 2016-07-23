@@ -85,6 +85,6 @@ module Make(WB: WhiteBoard) = struct
              | _              -> keep_on()
            ]
                                                                                           
-    in loop from_pl to_pl (add init tset)
+    in loop from_pl to_pl (add init (Some tset))
 
 end

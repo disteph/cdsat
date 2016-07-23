@@ -36,6 +36,7 @@ module type Config = sig
   (* simplify fixed c
 
      simplifies constraint c according to currently fixed variables
+     ATTENTION: the output and the input hould have the same id
    *)
   val simplify: fixed -> Constraint.t -> Constraint.t
 

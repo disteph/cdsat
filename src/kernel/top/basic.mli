@@ -30,6 +30,8 @@ module MakeCollection
             end)
        : Collection with type e = OT.t
 
-module MakePATCollection(M: PHCons)
-       : Collection with type e = M.t
-                     and type t = (M.t, unit, int, int, unit) General.Patricia.poly
+module MakePATCollection(M: PHCons) : sig
+  include Collection with type e = M.t
+                      and type t = (M.t, unit, int, int, unit) General.Patricia.poly
+  val id : t -> int
+end

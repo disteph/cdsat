@@ -29,6 +29,6 @@ module Make(WB: WhiteBoard) : sig
     msg2th Pipe.Reader.t ->
     msg2pl Pipe.Writer.t ->
     TSet.t sslot_machine ->
-    TSet.t option -> unit Deferred.t
+    TSet.t -> unit Deferred.t
 end
 
