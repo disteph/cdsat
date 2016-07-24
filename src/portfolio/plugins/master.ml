@@ -172,12 +172,14 @@ module Make(WB: sig
        Pipe.read state.from_workers
        >>= (function
             | `Eof -> failwith "Eof"
-            | `Ok(W.Msg(hdl,msg) as thmsg) 
+            | `Ok(W.Msg(WB(hdls,msg)) as thmsg) 
               -> 
-               let hdl = Handlers.Handler hdl in
-               let state = if HandlersMap.mem hdl state.waiting4
-                           then { state with waiting4 = HandlersMap.remove hdl state.waiting4 }
-                           else state
+               let state = { state with
+                             waiting4 =
+                               match msg with
+                               | Propa _ -> HandlersMap.diff state.waiting4 hdls
+                               | Sat _ -> HandlersMap.inter state.waiting4 hdls 
+                           }
                in
                match msg with
                | Propa(_,Both _) -> 
@@ -195,8 +197,8 @@ module Make(WB: sig
     (* So far for all we know, the problem is not provable *)
 
     Dump.print ["concur",2]
-      (fun p-> p "Main_worker enters new loop with %i theories having to check the set\n%a"
-                 (HandlersMap.cardinal rest)
+      (fun p-> p "Main_worker enters new loop with theories %a having to check the set\n%a"
+                 HandlersMap.print_in_fmt rest
                  WB.DS.TSet.print_in_fmt consset
       );
     if HandlersMap.is_empty rest
@@ -209,67 +211,67 @@ module Make(WB: sig
                 literals consset as being consistent with them, so we
                 read what the theories have to tell us *)
     else select_msg state
-         >>= fun (W.Msg(hdl,msg) as thmsg, state) ->
-         Dump.print ["concur",1] (fun p -> p "%a" W.print_in_fmt thmsg);
-         match msg with
-           
-         | Sat newtset -> 
-            (* A theory found a counter-model newtset. If it
+         >>= fun (W.Msg(WB(hdls,msg) as thmsg), state) ->
+         Dump.print ["concur",1] (fun p -> p "%a" WB.print_in_fmt thmsg);
+         (match msg with
+            
+          | Sat newtset -> 
+             (* A theory found a counter-model newtset. If it
                        is the same as tset, then it means the theory
                        has stamped the model for which we were
                        collecting stamps. If not, now all other
                        theories need to stamp newtset. *)
 
-            let newcurrent =
-              if WB.DS.TSet.equal newtset consset
-              then current
-              else WB.sat_init newtset
-            in
-            main_worker state (WB.sat hdl msg newcurrent)
+             let newcurrent =
+               if WB.DS.TSet.equal newtset consset
+               then current
+               else WB.sat_init newtset
+             in
+             main_worker state (WB.sat thmsg newcurrent)
 
-         | Propa(_,Unsat) as msg -> 
-            (* A theory found a proof. We stop and close all pipes. *)
+          | Propa(_,Unsat) -> 
+             (* A theory found a proof. We stop and close all pipes. *)
 
-            kill_pipes state >>| fun () -> A(WB.stamp hdl msg)
+             (kill_pipes state >>| fun () -> A thmsg)
 
-         | Propa(old,Straight newa) ->
-            (* A theory deduced literals newa from literals
+          | Propa(old,Straight newa) ->
+             (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
-            let treat_worker to_worker =
-              Lib.write to_worker (W.MsgStraight newa)
-            in
-            broadcast treat_worker state.pipe_map
-            >>= fun () ->
-            main_worker { state with waiting4 = theories } current
-            >>| (function
-                 | A ans -> A(resolve (WB.stamp hdl msg) ans)
-                 | ans -> ans)
+             let treat_worker to_worker =
+               Lib.write to_worker (W.MsgStraight newa)
+             in
+             broadcast treat_worker state.pipe_map
+             >>= fun () ->
+             main_worker { state with waiting4 = theories } current
+             >>| (function
+                  | A ans -> A(resolve thmsg ans)
+                  | ans -> ans)
 
-         | Propa(old,Both(newa,newb)) ->
-            (* A theory is asking to branch conjonctively *)
-            branch state (fun newstate -> main_worker newstate current)
-              newa newb
-            >>= fun (ans1, def_ans2, kill2) -> 
-            begin match ans1 with
-            | A(WB(_,Propa(tset,Unsat)) as ans1)
-                 when not(DS.TSet.is_empty(DS.TSet.inter newa tset))
-              -> def_ans2()
-                 >>| (function
-                      | A ans ->
-                         let fork = WB.stamp hdl msg in
-                         let pr = WB.both2straight fork ans1 in
-                         A(resolve pr ans)
-                      | ans -> ans)
-            | _ -> kill2() >>| fun ()-> ans1
-            end
+          | Propa(old,Both(newa,newb)) ->
+             (* A theory is asking to branch conjonctively *)
+             branch state (fun newstate -> main_worker newstate current)
+               newa newb
+             >>= fun (ans1, def_ans2, kill2) -> 
+             begin match ans1 with
+             | A(WB(_,Propa(tset,Unsat)) as ans1)
+                  when not(DS.TSet.is_empty(DS.TSet.inter newa tset))
+               -> def_ans2()
+                  >>| (function
+                       | A ans ->
+                          let pr = WB.both2straight thmsg ans1 in
+                          A(resolve pr ans)
+                       | ans -> ans)
+             | _ -> kill2() >>| fun ()-> ans1
+             end
 
-         | Propa(old,Either(newa,newb)) ->
-            (* A theory is asking to branch disjonctively *)
-            branch state (fun newstate -> main_worker newstate current)
-              newa newb
-            >>= fun (ans1, def_ans2, kill2) ->
-            begin match ans1 with
-            | A _ -> kill2() >>| fun ()-> orBranch hdl msg true ans1
-            | F _ -> def_ans2() >>| orBranch hdl msg false
-            end
+          | Propa(old,Either(newa,newb)) ->
+             (* A theory is asking to branch disjonctively *)
+             branch state (fun newstate -> main_worker newstate current)
+               newa newb
+             >>= fun (ans1, def_ans2, kill2) ->
+             begin match ans1 with
+             | A _ -> kill2() >>| fun ()-> orBranch hdls msg true ans1
+             | F _ -> def_ans2() >>| orBranch hdls msg false
+             end
+             : (unsat WB.t, sat WB.t) sum Deferred.t)
 end

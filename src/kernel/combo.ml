@@ -2,8 +2,6 @@
 (* Theory Combinator *)
 (*********************)
 
-open Format
-
 open Top
 open Basic
 open Interfaces_basic
@@ -29,12 +27,13 @@ module type WhiteBoard = sig
     val print_in_fmt : Format.formatter -> (_,_)t -> unit
   end
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
+  val print_in_fmt : Format.formatter -> 'a t -> unit
+  val stamp    : 'a Sig.t -> ('a, 'b) Msg.t -> 'b t
   val sat_init : DS.TSet.t -> sat t
-  val sat      : 'a Sig.t -> ('a,sat) Msg.t -> sat t -> sat t
-  val stamp    : 'a Sig.t -> ('a, 'b propa) Msg.t -> 'b propa t
+  val sat      : sat t -> sat t -> sat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
   val both2straight: ?side:bool -> both t -> unsat t -> straight t
-  val unit_propa: unsat t -> DS.Term.t -> straight t
+  val curryfy: DS.TSet.t -> unsat t -> straight t
 end
 
 (*********************************************************************)
@@ -147,30 +146,37 @@ let make (type a)
 
     type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
 
-    let sat_init tset = WB(theories, Messages.sat () tset)
+    let print_in_fmt fmt (type a) (WB(hdls,msg) : a t) =
+      Format.fprintf fmt
+        (match msg with
+         | Propa _ -> "%a say(s) %a"
+         | Sat   _ -> "%a still need to validate %a")
+        HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
 
-    let sat hdl (Sat newtset) (WB(rest, Sat tset)) =
-      if TSet.equal newtset tset
-      then WB(HandlersMap.remove (Handlers.Handler hdl) rest, sat () tset)
+    let sat_init tset = WB(theories, Messages.sat () tset)
+                          
+    let sat (WB(rest1, Sat tset1)) (WB(rest2, Sat tset2)) =
+      if TSet.equal tset1 tset2
+      then WB(HandlersMap.inter rest1 rest2, sat () tset1)
       else failwith "Theories disagree on model"
 
     let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
       else failwith "Using a theory that is not allowed"
 
-    let stamp hdl (Propa(oldset,o))
-      = check hdl;
-        WB(HandlersMap.singleton (Handlers.Handler hdl) (),
-           propa () oldset o)
-
-    let merge_aux _ a b = match a,b with
-      | None, None -> None
-      | Some (), None | None, Some () | Some(), Some() -> Some()
+    let stamp (type b) (hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
+      | Propa(tset,o) ->
+         check hdl;
+         WB(HandlersMap.singleton (Handlers.Handler hdl) (),
+            Messages.propa () tset o)
+      | Sat tset ->
+         WB(HandlersMap.remove (Handlers.Handler hdl) theories,
+            Messages.sat () tset)
 
     let resolve
           (WB(hdls1,Propa(oldset,Straight newset)))
           (WB(hdls2,Propa(thset,o)))
       =
-      WB(HandlersMap.merge merge_aux hdls1 hdls2,
+      WB(HandlersMap.union hdls1 hdls2,
          propa () (TSet.union (TSet.diff thset newset) oldset) o)
               
     (* val both2straight: both t -> unsat t -> straight t *)
@@ -184,14 +190,15 @@ let make (type a)
         if side then tset1,tset2
         else tset2, tset1
       in
-      WB(HandlersMap.merge merge_aux hdls1 hdls2,
+      WB(HandlersMap.union hdls1 hdls2,
          straight () (TSet.union (TSet.diff thset tset) oldset) newset)
 
-    let unit_propa (WB(hdls,Propa(thset,Unsat))) term =
-      if TSet.mem term thset
-      then let thset = TSet.remove term thset in
-           WB(hdls,Propa(thset, Straight(TSet.singleton(Term.bC Symbols.Neg [term]))))
-      else failwith "Combo.unit_propa: term not in conflict"
+    let curryfy tset (WB(hdls,Propa(thset,Unsat))) =
+      let tset = TSet.inter tset thset in
+      let thset= TSet.diff thset tset in
+      let aux term sofar = Term.bC Symbols.Imp [term;sofar] in
+      let rhs = TSet.fold aux tset (Term.bC Symbols.False []) in
+      WB(hdls,Propa(thset, Straight(TSet.singleton rhs)))
 
    end),
   pl (fun x -> x)

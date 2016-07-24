@@ -1,3 +1,5 @@
+open Format
+
 module Sig = struct
 
   type _ t = 
@@ -29,6 +31,7 @@ module Handlers = struct
   type t = Handler: 'a Sig.t -> t
   let id (Handler hdl) = Sig.id hdl
   let compare a b = Pervasives.compare (id a) (id b)
+  let print_in_fmt fmt (Handler hdl) = Sig.print_in_fmt fmt hdl
 end
 
 let all_theories_list = 
@@ -40,7 +43,35 @@ let all_theories_list =
     Handlers.Handler Sig.Bool;
   ]
 
-module HandlersMap = Map.Make(Handlers)
+module HandlersMap = struct
+  include Map.Make(Handlers)
+  let print_in_fmt fmt hdls =
+    let _ =
+      fold
+        (fun a _ b ->
+          fprintf fmt "%s%a" (if b then ", " else "") Handlers.print_in_fmt a; true)
+        hdls false in
+    ()
+
+  let union_aux _ a b = match a,b with
+    | None, None -> None
+    | Some v, None | None, Some v | Some _, Some v -> Some v
+
+  let union a b = merge union_aux a b
+
+  let inter_aux _ a b = match a,b with
+    | Some _, Some v -> Some v
+    | Some _, None | None, Some _ | None, None -> None
+      
+  let inter a b = merge inter_aux a b
+
+  let diff_aux _ a b = match b with
+    | Some v -> None
+    | None -> a
+                                                    
+  let diff a b = merge diff_aux a b
+
+end
 
 let all_theories = List.fold_right (fun hdl -> HandlersMap.add hdl ()) all_theories_list HandlersMap.empty
 

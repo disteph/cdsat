@@ -31,19 +31,13 @@ module Make(WB: sig
 
   module W : sig
 
-    type msg2pl = Msg : 'sign Sig.t * ('sign, 'msg) WB.Msg.t -> msg2pl
-
-    val print_in_fmt : Format.formatter -> msg2pl -> unit
+    type msg2pl = Msg : _ WB.t -> msg2pl
 
     type msg2th =
       | MsgStraight of TSet.t
       | MsgBranch of TSet.t * TSet.t * msg2th Pipe.Reader.t * msg2pl Pipe.Writer.t
 
-    val print_in_fmt2 : Format.formatter -> msg2th -> unit
-
-    val add : ('a, TSet.t) slot_machine -> TSet.t option -> ('a, TSet.t) output
-
-    val clone : ('a, TSet.t) slot_machine -> ('a, TSet.t) output
+    val print2th_in_fmt : Format.formatter -> msg2th -> unit
 
     val make :
       msg2th Pipe.Reader.t ->
