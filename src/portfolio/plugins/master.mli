@@ -20,7 +20,7 @@ open Combo
 open General.Sums
 
 module Make(WB: sig
-                include WhiteBoard
+                include WhiteBoardExt.Type
                 val theories: unit HandlersMap.t
               end) : sig
 
@@ -30,15 +30,6 @@ module Make(WB: sig
       Whiteboard *)
 
   module W : sig
-
-    type msg2pl = Msg : _ WB.t -> msg2pl
-
-    type msg2th =
-      | MsgStraight of TSet.t
-      | MsgBranch of TSet.t * TSet.t * msg2th Pipe.Reader.t * msg2pl Pipe.Writer.t
-
-    val print2th_in_fmt : Format.formatter -> msg2th -> unit
-
     val make :
       msg2th Pipe.Reader.t ->
       msg2pl Pipe.Writer.t ->
@@ -46,19 +37,31 @@ module Make(WB: sig
       TSet.t -> unit Deferred.t
   end
 
-  val hdlfold :
-    (Handlers.t -> 'a -> 'b -> unit Deferred.t * 'b)
-    -> 'a HandlersMap.t -> 'b -> unit Deferred.t list * 'b
+  module WM : sig
 
-  val broadcast : (W.msg2th Pipe.Writer.t -> unit Deferred.t) ->
-                  W.msg2th Pipe.Writer.t HandlersMap.t -> unit Deferred.t
+    type t
 
+    val make :
+      (msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'c option -> 'd)
+      -> 'c HandlersMap.t
+      -> msg2pl Pipe.Reader.t * msg2pl Pipe.Writer.t * 'd list * t
+
+  end
+
+  module Mm : sig
+    val make :
+      msg2th Pipe.Reader.t
+      -> msg2pl Pipe.Writer.t
+      -> TSet.t
+      -> unit Deferred.t
+  end
+                
   type state = {
-      from_workers : W.msg2pl Pipe.Reader.t;
-      to_plugin  : W.msg2pl Pipe.Writer.t;
-      pipe_map   : W.msg2th Pipe.Writer.t HandlersMap.t;
-      thAnd_list : W.msg2pl list;
-      thOr_list  : W.msg2pl list;
+      from_workers : msg2pl Pipe.Reader.t;
+      to_plugin  : msg2pl Pipe.Writer.t;
+      pipe_map   : WM.t;
+      thAnd_list : msg2pl list;
+      thOr_list  : msg2pl list;
       waiting4   : unit HandlersMap.t;
     }
 
@@ -73,7 +76,7 @@ module Make(WB: sig
 
   val resolve : straight WB.t -> 'a propa WB.t -> 'a propa WB.t
 
-  val select_msg : state -> (W.msg2pl * state) Deferred.t
+  val select_msg : state -> (msg2pl * state) Deferred.t
 
   val main_worker : state -> sat WB.t -> (unsat WB.t, sat WB.t) sum Deferred.t
 end

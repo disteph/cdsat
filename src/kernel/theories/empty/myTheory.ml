@@ -14,8 +14,6 @@ module Make(DS: GTheoryDSType) = struct
         type newoutput = (sign,TSet.t) output
         type tset = TSet.t
 
-        let treated () = atomN
-
         let add = function
           | None -> Output(None, machine atomN)
           | Some newtset ->

@@ -15,7 +15,9 @@ open PluginsTh_tools
 
 open LoadPluginsTh
 
-module Make(WB : WhiteBoard) = struct
+type sign = unit
+              
+module Make(WB : WhiteBoardExt.Type) = struct
 
   open WB
   open DS
@@ -92,11 +94,32 @@ module Make(WB : WhiteBoard) = struct
 
   let state = ref P.init
 
-  let make
-        (reader: unsat WB.t Pipe.Reader.t)
-        (writer: ((unsat WB.t)*(Term.t option)) Pipe.Writer.t)
-        (tset  : TSet.t option)
-      : unit Deferred.t
-    = failwith "TODO"
+  type state = unit
+
+  let rec machine state  =
+    (module struct
+
+       type newoutput = (sign,TSet.t) output
+       type tset = TSet.t
+
+       (* Should send a minimal set af equations *)
+       let add = function
+         | None -> Output(None, machine state)
+         | Some tset -> failwith "todo"
+
+       let normalise _ = failwith "Not a theory with normaliser"
+
+       let clone () = Output(None, machine state)
+
+     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
+
+  let init = machine ()
                   
+  let make
+        (from_pl : msg2th Pipe.Reader.t)
+        (to_pl : msg2pl Pipe.Writer.t)
+        (tset : TSet.t)
+      : unit Deferred.t
+    = return ()
+
 end

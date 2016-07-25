@@ -79,10 +79,9 @@ end
 module type SlotMachine = sig
   type newoutput
   type tset
-  val treated  : unit -> tset
   val add      : tset option -> newoutput
-  val normalise: tset -> newoutput
   val clone    : unit -> newoutput
+  val normalise: tset -> newoutput
 end
 
 type ('sign,'tset) slot_machine

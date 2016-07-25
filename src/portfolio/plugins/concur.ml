@@ -36,14 +36,14 @@ let make theories : (module Plugin.Type) =
                         val projList: (DS.Term.datatype,agglo) projList
                       end) = struct
 
-
-      include Master.Make(struct
-                  include WB
-                  let theories = theories
-                end)
-      
-      open WB
-
+      module WBE = WhiteBoardExt.Make(WB)
+      module M = Master.Make(struct
+                     include WB
+                     include WBE
+                     let theories = theories
+                   end)
+      open M
+             
       (* We use the make function to create a map m_init that maps
       every (involved) theory handler to (the initial state of) a
       decision procedure for it. *)
@@ -55,27 +55,18 @@ let make theories : (module Plugin.Type) =
 
       let mysolve tset =
 
-        (* We start by creating a pipe to write to the master
-           thread. *)
-
-        let from_workers,to_pl = Pipe.create () in
-        (* Pipe.set_size_budget to_pl slaves_number; *)
-
-
-        (* Then for each decision procedure in m_init, we create a
+        (* For each decision procedure in m_init, we create a
            slave worker controlling it, with a dedicated pipe to write
            to that slave. From this we collect the list of workers,
            and a map mapping each theory handler to the pipe writer
            used to communicate to its corresponding slave. *)
 
-        let workers_list,pipe_map =
-          let aux hdl a sofar =
-            let from_pl,to_worker = Pipe.create () in
-            let worker = W.make from_pl to_pl a tset in
-            worker, HandlersMap.add hdl to_worker sofar
-          in
-          hdlfold aux m_init HandlersMap.empty
-
+        let aux from_pl to_pl = function
+          | Some a -> W.make from_pl to_pl a tset
+          | None -> Mm.make from_pl to_pl tset
+        in
+        let from_workers, to_pl, workers_list, pipe_map =
+          WM.make aux m_init
         in
 
         let state = {

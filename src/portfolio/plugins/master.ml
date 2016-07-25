@@ -20,7 +20,7 @@ open General.Sums
 open Lib
 
 module Make(WB: sig
-                include WhiteBoard
+                include WhiteBoardExt.Type
                 val theories: unit HandlersMap.t
               end) = struct
 
@@ -29,31 +29,10 @@ module Make(WB: sig
   (* We load the code of the slave workers, generated from the
       Whiteboard *)
 
-  module W = Worker.Make(WB)
-
-  (* let slaves_number = HandlersMap.cardinal theories *)
-
-  (* This is a useful variant of a fold function for handlers
-      maps, which accumulates on the side a list of tasks (unit
-      Deferred.t list) *)
-
-  let hdlfold f map init =
-    HandlersMap.fold
-      (fun hdl a (list,sofar) ->
-        let def,newsofar = f hdl a sofar in
-        (def::list), newsofar
-      )
-      map
-      ([],init)
-
-  (* Particular case of the above where we are only interested in
-      generating a list of tasks. *)
+  module W  = Worker.Make(WB)
+  module WM = WorkersMap.Make(WB)
+  module Mm = Memo.Make(WB)
                              
-  let broadcast f map = 
-    let aux _ to_worker () = f to_worker,() in
-    let list, () = hdlfold aux map () in
-    Deferred.all_unit list
-
   let print_pipes =
     let aux (Handlers.Handler hdl) to_worker =
       Dump.print ["concur",1] (fun p -> p "%a: %i messages queued" Sig.print_in_fmt hdl (Pipe.length to_worker))
@@ -61,16 +40,16 @@ module Make(WB: sig
     HandlersMap.iter aux
 
   type state = {
-      from_workers : W.msg2pl Pipe.Reader.t;
-      to_plugin    : W.msg2pl Pipe.Writer.t;
-      pipe_map   : W.msg2th Pipe.Writer.t HandlersMap.t;
-      thAnd_list : W.msg2pl list;
-      thOr_list  : W.msg2pl list;
+      from_workers : msg2pl Pipe.Reader.t;
+      to_plugin    : msg2pl Pipe.Writer.t;
+      pipe_map   : WM.t;
+      thAnd_list : msg2pl list;
+      thOr_list  : msg2pl list;
       waiting4   : unit HandlersMap.t
     }
 
   let kill_pipes state =
-    broadcast (fun w -> return(Pipe.close w)) state.pipe_map
+    WM.broadcast (fun w -> return(Pipe.close w)) state.pipe_map
     >>| fun () -> Pipe.close state.to_plugin
 
   (* This is a branching function telling all slave workers:
@@ -86,15 +65,11 @@ module Make(WB: sig
    *)
 
   let branch state cont newa newb =
-    let new_from_workers,new_to_pl = Pipe.create () in
-    (* Pipe.set_size_budget new_to_pl slaves_number; *)
-    let tasks,new_pipe_map =
-      let treat_worker hdl to_worker sofar =
-        let new_from_pl,new_to_worker = Pipe.create () in
-        Lib.write to_worker (W.MsgBranch(newa,newb,new_from_pl,new_to_pl)),
-        HandlersMap.add hdl new_to_worker sofar
-      in
-      hdlfold treat_worker state.pipe_map HandlersMap.empty
+    let aux new_from_pl new_to_pl to_worker =
+      Lib.write to_worker (MsgBranch(newa,newb,new_from_pl,new_to_pl))
+    in
+    let new_from_workers, new_to_pl, tasks, new_pipe_map =
+      WM.clone aux state.pipe_map
     in
     Deferred.all_unit tasks
     >>= fun () -> 
@@ -123,42 +98,6 @@ module Make(WB: sig
     if WB.DS.TSet.is_empty inter then msg2
     else WB.resolve msg1 msg2
                     
-  (* A wrapper for the Whiteboard's and function; the latter is
-         not called in case the extra literals new1 or new2 added in
-         each branch are not used in the proof coming back from that
-         branch. *)
-
-  let andBranch hdl msg ans1 ans2 =
-    failwith "TODO"
-  (* let ThAnd(new1,new2,_) = WB.reveal msg in *)
-  (* match ans1,ans2 with  *)
-  (* | WB.Provable(hdls1,thset1), WB.Provable(hdls2,thset2) -> *)
-  (*    let inter1 = WB.DS.TSet.inter thset1 new1 in *)
-  (*      if WB.DS.TSet.is_empty inter1 *)
-  (*      then ans1 *)
-  (*      else *)
-  (*        let inter2 = WB.DS.TSet.inter thset2 new2 in *)
-  (*        if WB.DS.TSet.is_empty inter2 *)
-  (*        then ans2 *)
-  (*        else WB.andBranch hdl msg ans1 ans2 *)
-  (* | _,WB.NotProvable(_,_) -> ans2 *)
-  (* | WB.NotProvable(_,_),_ -> ans1 *)
-
-  (* A wrapper for the Whiteboard's or function; the latter is not
-         called in case the extra literals new1 or new2 added in the
-         branch that returns a proof are not used in that proof. *)
-
-  let orBranch hdl msg side ans =
-    failwith "TODO"
-  (* let ThOr(new1,new2,_) = WB.reveal msg in *)
-  (* match ans with  *)
-  (* | WB.Provable(hdls,thset) as ans -> *)
-  (*    let newset = if side then new1 else new2 in *)
-  (*    let inter = WB.DS.TSet.inter thset newset in *)
-  (*    if WB.DS.TSet.is_empty inter *)
-  (*    then ans *)
-  (*    else WB.orBranch hdl msg side ans *)
-  (* | WB.NotProvable _ -> failwith "Should apply orBranch on Provable" *)
 
   let rec select_msg state = match state.thAnd_list, state.thOr_list with
 
@@ -172,7 +111,7 @@ module Make(WB: sig
        Pipe.read state.from_workers
        >>= (function
             | `Eof -> failwith "Eof"
-            | `Ok(W.Msg(WB(hdls,msg)) as thmsg) 
+            | `Ok(Msg(WB(hdls,msg)) as thmsg) 
               -> 
                let state = { state with
                              waiting4 =
@@ -211,7 +150,7 @@ module Make(WB: sig
                 literals consset as being consistent with them, so we
                 read what the theories have to tell us *)
     else select_msg state
-         >>= fun (W.Msg(WB(hdls,msg) as thmsg), state) ->
+         >>= fun (Msg(WB(hdls,msg) as thmsg), state) ->
          Dump.print ["concur",1] (fun p -> p "%a" WB.print_in_fmt thmsg);
          (match msg with
             
@@ -238,9 +177,9 @@ module Make(WB: sig
              (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
              let treat_worker to_worker =
-               Lib.write to_worker (W.MsgStraight newa)
+               Lib.write to_worker (MsgStraight newa)
              in
-             broadcast treat_worker state.pipe_map
+             WM.broadcast treat_worker state.pipe_map
              >>= fun () ->
              main_worker { state with waiting4 = theories } current
              >>| (function
@@ -270,8 +209,8 @@ module Make(WB: sig
                newa newb
              >>= fun (ans1, def_ans2, kill2) ->
              begin match ans1 with
-             | A _ -> kill2() >>| fun ()-> orBranch hdls msg true ans1
-             | F _ -> def_ans2() >>| orBranch hdls msg false
+             | A _ -> kill2() >>| fun ()-> failwith "TODO"
+             | F _ -> def_ans2() >>| failwith "TODO"
              end
              : (unsat WB.t, sat WB.t) sum Deferred.t)
 end

@@ -7,16 +7,8 @@ open Combo
 
 open LoadPluginsTh
 
-module Make(WB: WhiteBoard) : sig
+module Make(WB: WhiteBoardExt.Type) : sig
   open WB.DS
-
-  type msg2pl = Msg : _ WB.t -> msg2pl
-
-  type msg2th =
-    | MsgStraight of TSet.t
-    | MsgBranch of TSet.t * TSet.t * msg2th Pipe.Reader.t * msg2pl Pipe.Writer.t
-
-  val print2th_in_fmt : Format.formatter -> msg2th -> unit
 
   val add :
     ('a, TSet.t) slot_machine ->
@@ -27,8 +19,8 @@ module Make(WB: WhiteBoard) : sig
     ('a, TSet.t) output
 
   val make :
-    msg2th Pipe.Reader.t ->
-    msg2pl Pipe.Writer.t ->
+    WB.msg2th Pipe.Reader.t ->
+    WB.msg2pl Pipe.Writer.t ->
     TSet.t sslot_machine ->
     TSet.t -> unit Deferred.t
 end

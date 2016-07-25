@@ -70,9 +70,6 @@ module Make(DS: sig
       type newoutput = (sign,TSet.t) output
       type tset = TSet.t
 
-      (* Required function *)
-      let treated () = state.treated
-
       (* Should send a minimal set af equations *)
       let add = function
         | None -> Output(None, machine state)

@@ -125,7 +125,8 @@ let make (type a)
 
       module Term = Terms.Make(FreeVar)(DT)
                               
-      module TSet =
+      module TSet = struct
+        include
         MakePATCollection(
             struct
               type t       = Term.t
@@ -134,6 +135,8 @@ let make (type a)
               let clear    = Term.clear
               let print_in_fmt = Term.print_in_fmt
             end)
+        let equal a b = subset a b && subset b a
+      end
 
     end
       

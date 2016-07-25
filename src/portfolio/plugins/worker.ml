@@ -9,21 +9,10 @@ open Combo
 
 open LoadPluginsTh
 
-module Make(WB: WhiteBoard) = struct
+module Make(WB: WhiteBoardExt.Type) = struct
 
-  open WB.DS
-
-  type msg2pl = Msg : _ WB.t -> msg2pl
-      
-  type msg2th =
-    | MsgStraight of TSet.t
-    | MsgBranch of TSet.t * TSet.t * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
-
-  let print2th_in_fmt fmt = function
-    | MsgStraight tset 
-      -> Format.fprintf fmt "MsgStraight %a" TSet.print_in_fmt tset
-    | MsgBranch(tset1,tset2,_,_)
-      -> Format.fprintf fmt "MsgBranch(%a, %a)" TSet.print_in_fmt tset1 TSet.print_in_fmt tset2
+  open WB
+  open DS
 
   let add   (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.add
   let clone (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.clone()

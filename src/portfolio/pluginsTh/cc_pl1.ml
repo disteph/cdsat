@@ -30,7 +30,6 @@ end) = struct
     let rec state : (sign,DS.TSet.t) slot_machine = (module struct 
       type newoutput = (sign,DS.TSet.t) output
       type tset = DS.TSet.t
-      let treated () = failwith "Not implemented"
       let add = function
         | None -> Output(None,state)
         | Some tset -> 

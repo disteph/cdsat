@@ -43,8 +43,6 @@ struct
         type newoutput = (sign,TSet.t) output
         type tset = TSet.t
 
-        let treated() = state.treated
-
         let add newlits =
           let state = 
             match newlits with

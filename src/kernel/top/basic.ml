@@ -85,7 +85,7 @@ module MakePATCollection(M: PHCons) = struct
     let kcompare a b = Pervasives.compare (M.id a) (M.id b)
     type infos     = unit
     let info_build = empty_info_build
-    let treeHCons  = Some M.id
+    let treeHCons  = None
   end
 
   module I = TypesFromHConsed(M)
