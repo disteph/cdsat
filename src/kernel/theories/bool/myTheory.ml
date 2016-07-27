@@ -51,7 +51,7 @@ struct
       let empty = LMap.empty,LMap.empty
       let add l (t,tn) =
         Dump.print ["bool",2]
-          (fun p->p "Setting this lit to true: %a" Term.print_in_fmt (litAsTerm l));
+          (fun p->p "Setting this term to true: %a" Term.print_in_fmt (litAsTerm l));
         let ln = LitF.negation l in
         let dejavu = function
           | Some _ -> failwith "Literal already determined!"
@@ -193,7 +193,7 @@ original clauses that have simplified to true
   (* Given a clause, together with a set of fixed lits and a lit,
        pick another lit to watch *)
                                  
-  let pick_another (c :Constraint.t) (var :LitF.t) : LitF.t option =
+  let pick_another _ (c :Constraint.t) (var :LitF.t) : LitF.t option =
 
     match Constraint.simpl c with
 
@@ -334,7 +334,7 @@ used in a ThStraight or ThProvable message. *)
          let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
          Dump.print ["bool",2]
            (fun p-> let f =
-                      LMap.print_in_fmt None
+                      LMap.print_in_fmt 
                         (fun fmt (lit,_)->LitF.print_in_fmt fmt lit)
                     in p "Is true: %a\nIs false: %a" f asTrue f asFalse
            );
@@ -395,7 +395,7 @@ used in a ThStraight or ThProvable message. *)
            propagation queue, and mapped to the unit clause in the
            justification map. *)
 
-           Dump.print ["bool",2] (fun p->p "Clause is unit on %a" LitF.print_in_fmt l);
+           Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt (litAsTerm l));
            let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
            let fixed =
              if Terms.equal litterm term

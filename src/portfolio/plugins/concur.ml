@@ -61,9 +61,9 @@ let make theories : (module Plugin.Type) =
            and a map mapping each theory handler to the pipe writer
            used to communicate to its corresponding slave. *)
 
-        let aux from_pl to_pl = function
-          | Some a -> W.make from_pl to_pl a tset
-          | None -> Mm.make from_pl to_pl tset
+        let aux = function
+          | Some a -> W.make a tset
+          | None -> Mm.make tset
         in
         let from_workers, to_pl, workers_list, pipe_map =
           WM.make aux m_init
@@ -75,17 +75,17 @@ let make theories : (module Plugin.Type) =
           pipe_map     = pipe_map;
           thAnd_list   = [];
           thOr_list    = [];
-          waiting4     = theories;
+          waiting4     = AS.all;
         }
         in
 
         (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)
-        Deferred.both
-          (Deferred.all_unit workers_list)
-          (main_worker state (WB.sat_init tset))
-        >>| fun ((), a) -> 
-        a
+        main_worker state (WB.sat_init tset)
+        >>= fun a ->
+        Dump.print ["concur",1] (fun p-> p "Finished computation");
+        Deferred.all_unit (clause_listener_kill()::clause_listener::workers_list)
+        >>| fun () -> a
 
       (* Finally, we launch the scheduler on mysolve tset, waiting for
          all tasks to be done before returning. *)

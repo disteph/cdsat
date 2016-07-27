@@ -19,9 +19,10 @@ module Make(WB: WhiteBoardExt.Type) : sig
     ('a, TSet.t) output
 
   val make :
+    TSet.t sslot_machine ->
+    TSet.t ->
     WB.msg2th Pipe.Reader.t ->
     WB.msg2pl Pipe.Writer.t ->
-    TSet.t sslot_machine ->
-    TSet.t -> unit Deferred.t
+    unit Deferred.t
 end
 

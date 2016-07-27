@@ -59,7 +59,7 @@ let options =
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],
-                                                      "XXX iii prints on stdout those debug messages whose tags contain XXX and whose level is at least iii");
+                                                      "XXX iii prints on stdout those debug messages whose tags contain XXX and whose level is at most iii");
     ("-step",        Unit(fun ()->
                          match !dtags with
                          | [] -> failwith "-step option only makes sense after the -debug option"

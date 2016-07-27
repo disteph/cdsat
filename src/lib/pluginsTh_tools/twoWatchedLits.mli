@@ -50,7 +50,7 @@ module type Config = sig
      The output provides (Some var'), if var' is the new variable to
      watch, or None, if no variable could be picked (in which case the
      constraint is unit or constant). *)
-  val pick_another: Constraint.t -> Var.t -> (Var.t option)
+  val pick_another: fixed -> Constraint.t -> Var.t -> (Var.t option)
 end
 
 (* Given such a configuration module C, Make(C) provides an

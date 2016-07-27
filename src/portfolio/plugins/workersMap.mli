@@ -10,12 +10,12 @@ module Make(W: sig
   type t
 
   val make :
-    (W.msg2th Pipe.Reader.t -> W.msg2pl Pipe.Writer.t -> 'c option -> 'd)
+    ('c option -> W.msg2th Pipe.Reader.t -> W.msg2pl Pipe.Writer.t -> 'd)
     -> 'c HandlersMap.t
     -> W.msg2pl Pipe.Reader.t * W.msg2pl Pipe.Writer.t * 'd list * t
 
   val clone :
-    (W.msg2th Pipe.Reader.t -> W.msg2pl Pipe.Writer.t -> W.msg2th Pipe.Writer.t -> 'd)
+    (W.msg2th Pipe.Writer.t -> W.msg2th Pipe.Reader.t -> W.msg2pl Pipe.Writer.t -> 'd)
     -> t
     -> W.msg2pl Pipe.Reader.t * W.msg2pl Pipe.Writer.t * 'd list * t
 

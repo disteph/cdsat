@@ -27,7 +27,7 @@ module Make
   type fixed
 
   val simplify: fixed -> Constraint.t -> Constraint.t
-  val pick_another: Constraint.t -> LitF.t -> (LitF.t option)
+  val pick_another: fixed -> Constraint.t -> LitF.t -> (LitF.t option)
 
   type straight = (sign,TSet.t,Messages.straight) message
   type msg =

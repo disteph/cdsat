@@ -17,6 +17,7 @@ module Make(DS: GTheoryDSType) = struct
         let add = function
           | None -> Output(None, machine atomN)
           | Some newtset ->
+             Dump.print ["empty",1] (fun p-> p "Empty adds %a" TSet.print_in_fmt newtset);
              let atomN = DS.TSet.union newtset atomN in
              let tmp = TSet.fold
                (fun l -> function
@@ -31,7 +32,9 @@ module Make(DS: GTheoryDSType) = struct
                None in
              match tmp with
              | Some tset -> Output(Some(unsat () tset), fail_state)
-             | None -> Output(Some(sat () atomN), machine atomN)
+             | None ->
+                Dump.print ["empty",1] (fun p-> p "Empty is fine with %a" TSet.print_in_fmt atomN);
+                Output(Some(sat () atomN), machine atomN)
 
         let normalise _ = failwith "Not a theory with normaliser"
 

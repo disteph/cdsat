@@ -53,7 +53,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
          Some(updated_clause,UASet.diff setn just_fixed)
       | _ -> None
       
-    let pick_another fclause var =
+    let pick_another _ fclause var =
       match fclause with
       | _,Some(set,_) ->
          let tochoose = 

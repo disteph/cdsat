@@ -8,9 +8,7 @@
 (* Initialising things *)
 (***********************)
 
-type display =
-  | Latex
-  | Utf8
+type display = Latex | Utf8
 
 let display = ref Utf8
 
@@ -49,7 +47,7 @@ let print t msg =
        | (tag,level)::tags
             when DTags.mem tag !dtags
          -> let i,b= DTags.find tag !dtags in
-            if i <= level
+            if level <= i
             then (print_endline(toString msg); if b then wait())
             else aux tags
        | _::tags -> aux tags

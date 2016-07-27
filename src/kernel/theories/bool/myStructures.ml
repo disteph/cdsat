@@ -53,6 +53,7 @@ module ThDS = struct
     | Symbols.Or, [a,an; b,bn] -> or_comb(a,b), and_comb false tag (an,bn)
     | Symbols.And,[a,an; b,bn] -> and_comb true tag (a,b), or_comb(an,bn)
     | Symbols.Neg,[a,an] -> an,a
+    | Symbols.Imp, [a,an; b,bn] -> or_comb(an,b), and_comb false tag (a,bn)
     | Symbols.IsTrue,[a,an] -> a,an
     | _,_ ->  bV tag l
 end

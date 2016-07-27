@@ -130,7 +130,7 @@ module type PATMapType = sig
     ('a -> values option -> values) -> (keys * 'a) list -> t
   val elements : t -> (keys * values) list
   val print_in_fmt: 
-    ((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit)) option
+    ?tree:((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit))
     -> (Format.formatter -> (keys * values) -> unit)
     -> Format.formatter -> t -> unit
   val find_su :
@@ -218,7 +218,7 @@ module type PATSetType = sig
     (branching -> bool) ->
     ('b -> bool) -> common -> t -> ('a, 'b) sum
   val print_in_fmt: 
-    ((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit)) option
+    ?tree:((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit))
     -> (Format.formatter -> e -> unit)
     -> Format.formatter -> t -> unit
   val make    : e list -> t

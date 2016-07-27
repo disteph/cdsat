@@ -8,7 +8,7 @@ module type Config = sig
   module Var: Map.OrderedType
   type fixed
   val simplify: fixed -> Constraint.t -> Constraint.t
-  val pick_another: Constraint.t -> Var.t -> (Var.t option)
+  val pick_another: fixed -> Constraint.t -> Var.t -> (Var.t option)
 end
 
 
@@ -40,7 +40,7 @@ module Make (C : Config) = struct
     todo = Pqueue.empty
   }
 
-  let treat fixed =
+  let treat fixed t cset =
     let rec aux t cset =
       match CSet.reveal cset with
       | Empty        -> None, t
@@ -48,7 +48,7 @@ module Make (C : Config) = struct
          begin
            let c' = simplify fixed c in
 	   (* Trying to pick a new variable to be watched *)
-	   match pick_another c' var2 with
+	   match pick_another fixed c' var2 with
 	   | None -> Some c', t
            | Some var3 ->
               let watching =
@@ -75,7 +75,7 @@ module Make (C : Config) = struct
 	   | Some c as ans, t -> ans, {t with todo = Pqueue.push r t.todo}
          end
     in
-    aux
+    aux t cset
 
   let rec next fixed t = 
     match Pqueue.pop t.todo with

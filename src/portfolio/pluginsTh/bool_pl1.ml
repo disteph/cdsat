@@ -198,7 +198,6 @@ struct
                       Dump.print ["bool_pl1",2]
                         (fun p->p "Choosing among %a"
                                   (LMap.print_in_fmt
-                                     None
                                      (fun fmt (l,_) -> LitF.print_in_fmt fmt l)
                                   )
                                   remaining

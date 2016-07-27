@@ -186,20 +186,20 @@ module Poly(I:Intern) = struct
        argument b decides whether to print the map as a list [b=None]
        or as a tree [b=Some(g,h)], with g printing prefixes and h printing branchings *)
 
-      let print_in_fmt b f fmt t =
+      let print_in_fmt ?tree f fmt t =
         let rec aux indent fmt t = match reveal t with
 	  | Empty            -> fprintf fmt "{}"
 	  | Leaf(j,x)        -> 
-            (match b with
+            (match tree with
 	    | None -> fprintf fmt "%a" f (j,x) 
 	    | _    -> fprintf fmt "%t%s%a" indent "   " f (j,x))
 	  | Branch(p,m,t0,t1)->
-	    match b with
+	    match tree with
 	    | None     -> let auxd = aux indent in
-                          fprintf fmt "%a,%a" auxd t0 auxd t1
+                          fprintf fmt "%a, %a" auxd t0 auxd t1
 	    | Some(g,h)-> let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent g p s h m) in
                           fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
-        in match b with
+        in match tree with
 	| None   -> aux (fun fmt -> ()) fmt t
 	| Some _ -> fprintf fmt "\n%a" (aux (fun fmt -> ())) t
 
@@ -525,7 +525,7 @@ module Poly(I:Intern) = struct
   (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-    let print_in_fmt b f = print_in_fmt b (fun fmt (x,y)->f fmt x)
+    let print_in_fmt ?tree f = print_in_fmt ?tree (fun fmt (x,y)->f fmt x)
 
     let make l     = List.fold_right add l empty
 

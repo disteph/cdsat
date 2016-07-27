@@ -125,18 +125,14 @@ let make (type a)
 
       module Term = Terms.Make(FreeVar)(DT)
                               
-      module TSet = struct
-        include
-        MakePATCollection(
-            struct
-              type t       = Term.t
-              let id       = Terms.id
-              let compare  = Terms.compare
-              let clear    = Term.clear
-              let print_in_fmt = Term.print_in_fmt
-            end)
-        let equal a b = subset a b && subset b a
-      end
+      module TSet = MakePATCollection(
+                        struct
+                          type t       = Term.t
+                          let id       = Terms.id
+                          let compare  = Terms.compare
+                          let clear    = Term.clear
+                          let print_in_fmt = Term.print_in_fmt
+                        end)
 
     end
       
@@ -150,11 +146,10 @@ let make (type a)
     type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
 
     let print_in_fmt fmt (type a) (WB(hdls,msg) : a t) =
-      Format.fprintf fmt
-        (match msg with
-         | Propa _ -> "%a say(s) %a"
-         | Sat   _ -> "%a still need to validate %a")
-        HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
+      match msg with
+      | Propa _ -> Format.fprintf fmt "%a say(s) %a" HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
+      | Sat   _ -> Format.fprintf fmt "%a is/are fine with %a" HandlersMap.print_in_fmt (HandlersMap.diff theories hdls) Msg.print_in_fmt msg
+        
 
     let sat_init tset = WB(theories, Messages.sat () tset)
                           

@@ -1,12 +1,19 @@
 open Async.Std
-open Kernel.Combo
-
+open Kernel
+open Combo
+open Theories_register
+       
 module type Type = sig
 
   include WhiteBoard
   open DS
-         
-  type msg2pl = Msg : _ t -> msg2pl
+
+  type ack = private AckL
+  type say = private MsgL
+
+  type _ answer = Ack : ack answer | Say : _ t -> say answer
+    
+  type msg2pl = Msg : Handlers.t option * _ answer -> msg2pl
                                   
   type msg2th =
     | MsgStraight of TSet.t
@@ -21,7 +28,12 @@ module Make(WB: WhiteBoard) = struct
   open WB
   open DS
 
-  type msg2pl = Msg : _ WB.t -> msg2pl
+  type ack = private AckL
+  type say = private MsgL
+
+  type _ answer = Ack : ack answer | Say : _ t -> say answer
+    
+  type msg2pl = Msg : Handlers.t option * _ answer -> msg2pl
       
   type msg2th =
     | MsgStraight of TSet.t

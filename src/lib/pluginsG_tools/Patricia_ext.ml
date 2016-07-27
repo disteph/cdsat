@@ -35,7 +35,7 @@ module MyPat(UT:sig
 
     include PATSet.Make(D)(UT)
 
-    let print_in_fmt = print_in_fmt UT.tString UT.print_in_fmt
+    let print_in_fmt = print_in_fmt ?tree:UT.tString UT.print_in_fmt
     let next  t1   = let e1 = choose t1 in (e1, remove e1 t1) 
     let compareE   = UT.compare
     let first_diff = first_diff info

@@ -27,7 +27,7 @@ module Make(W: sig
     let from_workers,to_pl = Pipe.create () in
     let aux1 a =
       let from_pl,to_worker = Pipe.create () in
-      let worker = f from_pl to_pl a in
+      let worker = f a from_pl to_pl in
       worker, to_worker
     in
     let aux2 hdl a mapsofar =
@@ -39,9 +39,9 @@ module Make(W: sig
     from_workers,to_pl,(worker::workers),(hdlsmap,to_worker)
 
   let clone f (hdlsmap,memo) =
-    let f from_pl to_pl = function
-      | Some v -> f from_pl to_pl v
-      | None   -> f from_pl to_pl memo
+    let f = function
+      | Some v -> f v
+      | None   -> f memo
     in
     make f hdlsmap
 
