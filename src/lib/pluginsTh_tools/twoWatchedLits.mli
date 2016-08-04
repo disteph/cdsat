@@ -73,6 +73,12 @@ module Make(C : Config) : sig
      whowatcheswhat, and that var1 and var2 are distinct. *)
   val addconstraint : Constraint.t -> Var.t -> Var.t -> t -> t
 
+  (* addconstraintNcheck constraint var1 var2 whowatcheswhat
+
+     does the same as above, but also queues constraint for new 
+     watched variables selection. *)
+  val addconstraintNpick : Constraint.t -> Var.t -> Var.t -> t -> t
+
   (* fix var whowatcheswhat
 
      declares in whowatcheswhat that var should no longer be watched.
@@ -90,5 +96,8 @@ module Make(C : Config) : sig
      the computation and is output as (Some constraint); if all
      constraints manage to do so we get None. In both cases, the new
      state of whowatcheswhat is also output. *)
-  val next : fixed -> t -> Constraint.t option * t
+  val next : fixed -> t -> (Constraint.t*Var.t) option * t
+
+  val reset : t -> t
+
 end

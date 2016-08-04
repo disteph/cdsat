@@ -63,9 +63,9 @@ let print_msg_in_fmt_utf8 tsetprint fmt (type a): (_,_,a)message -> unit = funct
   | Propa(oldset,Straight newset)
     -> fprintf fmt "%a ⊢ %a" tsetprint oldset tsetprint newset
   | Propa(oldset,Both(newset1,newset2))
-    -> fprintf fmt "%a ⊢ (%a) ⋀ (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
-  | Propa(oldset,Either(newset1,newset2))
     -> fprintf fmt "%a ⊢ (%a) ⋁ (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
+  | Propa(oldset,Either(newset1,newset2))
+    -> fprintf fmt "%a ⊢ (%a) ⋀ (%a)" tsetprint oldset tsetprint newset1 tsetprint newset2
 
 let print_msg_in_fmt tsetprint fmt = match !Dump.display with
   | Dump.Latex -> print_msg_in_fmt_latex tsetprint fmt

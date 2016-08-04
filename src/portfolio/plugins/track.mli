@@ -25,17 +25,24 @@ The bool in propagated indicates whether we know the level of this propagation f
    *)
                              
   type nature =
-    | Propagated of bool * straight WB.t
+    | Propagated of straight WB.t
     | Decided of both WB.t
     | Tried
+    | Original
 
   module Trail : PATMapType with type keys = Term.t
                              and type values = int*int*nature
+                             (* and type infos  = D.infos *)
+                             (* and type common = I.common *)
+                             (* and type branching = I.branching *)
+                             and type ('v,'i) param = (Term.t,'v,int,int,'i) Patricia.poly
+                             (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
+
+
   (* First int is level, second int is timestamp*)
-                                                         
-  type max
-         
-  val analyse : Trail.t -> unsat WB.t
-                -> unsat WB.t * int * Term.t * (Trail.values,max) Trail.param
+
+  val analyse : Trail.t
+                -> unsat WB.t
+                -> unsat WB.t * int * Term.t
                            
 end

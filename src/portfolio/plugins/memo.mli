@@ -21,8 +21,7 @@ module Make(WB : WhiteBoardExt.Type) : sig
   open DS
 
   val make :
-    TSet.t
-    -> msg2th Pipe.Reader.t
+    msg2th Pipe.Reader.t
     -> msg2pl Pipe.Writer.t
     -> unit Deferred.t
 

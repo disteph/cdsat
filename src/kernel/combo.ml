@@ -79,8 +79,8 @@ let addTheory (type a)(type b)
    itself, as a product: *)
 
 type _ dataList =
-| NoData : unit dataList
-| ConsData: (module DataType with type t = 'a) * 'b dataList -> ('a*'b) dataList
+  | NoData : unit dataList
+  | ConsData: (module DataType with type t = 'a) * 'b dataList -> ('a*'b) dataList
 
 (* Now, we shall be given a list of the above form, which we shall
    aggregate into datatype, but we shall also have to provide a list
@@ -89,8 +89,8 @@ type _ dataList =
    list) is again an indexed list, of the type below: *)
 
 type (_,_) projList =
-| NoProj  : (_,unit) projList
-| ConsProj: ('t -> 'a) * ('t,'b) projList -> ('t,'a*'b) projList
+  | NoProj  : (_,unit) projList
+  | ConsProj: ('t -> 'a) * ('t,'b) projList -> ('t,'a*'b) projList
 
 (* Now we finally organise the traversal: *)
 
@@ -147,7 +147,7 @@ let make (type a)
 
     let print_in_fmt fmt (type a) (WB(hdls,msg) : a t) =
       match msg with
-      | Propa _ -> Format.fprintf fmt "%a say(s) %a" HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
+      | Propa _ -> Format.fprintf fmt "%a propagate(s) %a" HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
       | Sat   _ -> Format.fprintf fmt "%a is/are fine with %a" HandlersMap.print_in_fmt (HandlersMap.diff theories hdls) Msg.print_in_fmt msg
         
 

@@ -51,7 +51,10 @@ module GTh2Th
     Dump.print ["ForGround",1] (fun p -> p "Calling theories on key set\n%a" TSet.print_in_fmt a);
     match MDP.solve a with
     | A(WB(_,Propa(b,Unsat))) ->
-       Guard(b,sigma,fun _ -> NoMore)
+       if TSet.subset b a then Guard(b,sigma,fun _ -> NoMore)
+       else
+         ( Dump.print ["ForGround",1] (fun p -> p "Theories came back with extra assumptions\n%a" TSet.print_in_fmt (TSet.diff b a));
+           failwith "ForGround1" )
     | F(WB(hdls,Sat _)) when HandlersMap.is_empty hdls ->
        NoMore
     | _ -> failwith "Combo: Not a definitive answer"
@@ -59,9 +62,13 @@ module GTh2Th
   let goal_consistency t a sigma =
     let nont = DS.Term.bC Top.Symbols.Neg [t] in
     Dump.print ["ForGround",1] (fun p -> p "Calling theories on key set\n%a and goal: %a" TSet.print_in_fmt a Term.print_in_fmt t);
-    match MDP.solve (TSet.add nont a) with
-    | A(WB(_,Propa(a',Unsat))) ->
-       Guard((if TSet.mem nont a' then TSet.remove nont a' else a'),sigma,fun _ -> NoMore)
+    let a' = TSet.add nont a in
+    match MDP.solve a' with
+    | A(WB(_,Propa(b,Unsat))) ->
+       if TSet.subset b a' then Guard((if TSet.mem nont b then TSet.remove nont b else b),sigma,fun _ -> NoMore)
+       else
+         ( Dump.print ["ForGround",1] (fun p -> p "Theories came back with extra assumptions\n%a" TSet.print_in_fmt (TSet.diff b a'));
+           failwith "ForGround2" )
     | F(WB(hdls,Sat _)) when HandlersMap.is_empty hdls ->
        NoMore
     | _ -> failwith "Combo: Not a definitive answer"

@@ -19,12 +19,12 @@ module Sig = struct
     | Bool -> 5
     
   let print_in_fmt fmt (type a) : a t -> unit = function
-    | Empty      -> Format.fprintf fmt "Empty"
-    | CC         -> Format.fprintf fmt "CC"
-    | Arrays     -> Format.fprintf fmt "Arrays"
-    | Dejan      -> Format.fprintf fmt "Arithmetic"
-    | IfThenElse -> Format.fprintf fmt "IfThenElse"
-    | Bool       -> Format.fprintf fmt "Bool"
+    | Empty      -> fprintf fmt "Empty"
+    | CC         -> fprintf fmt "CC"
+    | Arrays     -> fprintf fmt "Arrays"
+    | Dejan      -> fprintf fmt "Arithmetic"
+    | IfThenElse -> fprintf fmt "IfThenElse"
+    | Bool       -> fprintf fmt "Bool"
 end
 
 module Handlers = struct
@@ -45,6 +45,7 @@ let all_theories_list =
 
 module HandlersMap = struct
   include Map.Make(Handlers)
+
   let print_in_fmt fmt hdls =
     let _ =
       fold

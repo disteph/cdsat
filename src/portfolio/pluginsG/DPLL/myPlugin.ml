@@ -260,8 +260,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let rec up_next atms state =
     match UP.next atms state with
-    | Some(_,None), state -> up_next atms state
-    | Some(f,Some(c,_)), state -> Some(f,c), state
+    | Some((_,None),_), state -> up_next atms state
+    | Some((f,Some(c,_)),_), state -> Some(f,c), state
     | None, state -> None, state
 
 

@@ -4,42 +4,48 @@
 
 open General.Sums
 open Kernel
-
+  
 (* guessThPlug guesses the pair Theory+DecProc + Plugin, taking into
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
 let init th =
-  let theories =
-    match !Flags.notheories,th with
-    | Some l,_    when !Flags.mode -> Theories_register.get_no l
-    | None,Some l when !Flags.mode -> Theories_register.get l
-    | _,_                          -> Theories_register.get_no []
-  in
 
   let mypluginG = PluginsG_register.get !Flags.mypluginG in
   let module MyPluginG = (val mypluginG) in
-
-  let myplugin = Plugins_register.get !Flags.myplugin theories in
-  let module MyPlugin = (val myplugin) in
 
   let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
   let propds = (module PS.Semantic: Top.Specs.DataType with type t = PS.Semantic.t) in
 
   let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
-      = if !Flags.mode
-        then
-          let datalistWprop = Combo.ConsData(propds,MyPlugin.dataList) in
-          let wb,Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
-          let module WB = (val wb) in
-          let module Res = ForGround.GTh2Th(WB)
-                (struct type formulae = PS.Semantic.t let asF = asForm end)
-                (MyPlugin.Strategy(struct include WB let projList = projlist end))
-          in
-          (module Res)
-        else
-          let module FO = FirstOrder.MyTheory.Make(PS.Semantic) in
-          (module FO)
+    = if !Flags.mode
+      then
+        let open Theories_register in
+        let theories =
+          match !Flags.addtheories, !Flags.notheories, th with
+          | Some l,Some l', Some parsed ->
+             HandlersMap.diff (HandlersMap.union (get parsed) (get l)) (get l')
+          | None,Some l',_
+            | _,Some l',None   -> HandlersMap.diff all_theories (get l')
+          | None,None,None     -> all_theories
+          | Some l, None,_  
+            | None,None,Some l -> get l
+        in
+        print_endline(Dump.toString (fun p->
+                          p "Using theories: %a" HandlersMap.print_in_fmt theories));
+        let myplugin = Plugins_register.get !Flags.myplugin theories in
+        let module MyPlugin = (val myplugin) in
+        let datalistWprop = Combo.ConsData(propds,MyPlugin.dataList) in
+        let wb,Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
+        let module WB = (val wb) in
+        let module Res = ForGround.GTh2Th(WB)
+                           (struct type formulae = PS.Semantic.t let asF = asForm end)
+                           (MyPlugin.Strategy(struct include WB let projList = projlist end))
+        in
+        (module Res)
+      else
+        let module FO = FirstOrder.MyTheory.Make(PS.Semantic) in
+        (module FO)
   in
   let module Mode  = (val mode) in
 
@@ -80,13 +86,14 @@ let init th =
     in 
     match result with
     | None -> None
-    | Some r when stringOrunit-> if !Flags.latex then
-                                   let display = !Dump.display in
-                                   Dump.display := Dump.Latex;
-                                   let ans = Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
-                                   in Dump.display := display; ans
-                                 else Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
-    | Some r                  -> Some(F())
+    | Some r when stringOrunit ->
+       if !Flags.latex then
+         let display = !Dump.display in
+         Dump.display := Dump.Latex;
+         let ans = Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+         in Dump.display := display; ans
+       else Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+    | Some _ -> Some(F())
 
 
 (* Now we run on a particular input, trying out various parsers *)

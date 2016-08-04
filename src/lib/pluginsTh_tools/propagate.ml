@@ -14,8 +14,8 @@ module type Config = sig
   type result =
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
-    | Meh of fixed
-    | Watch of fixed * Var.t * Var.t
+    | Meh       of fixed
+    | Watch     of fixed * Var.t * Var.t
 
   val constreat  : Constraint.t -> fixed -> result
 
@@ -57,7 +57,7 @@ module Make(C: Config) = struct
     let res, watch' = WL.next t.fixed t.watch in
     let t = { t with watch = watch' } in
     match res with
-    | Some c -> treat_simplified c t
+    | Some(c,_) -> treat_simplified c t
     | None   -> Sums.F t
 
   let treat c t =

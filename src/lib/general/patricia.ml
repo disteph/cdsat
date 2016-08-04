@@ -113,6 +113,15 @@ module Poly(I:Intern) = struct
         | None   -> failwith "No function compare when patricia trees are not HConsed"
         | Some _ -> Pervasives.compare (id t1) (id t2)
 
+      let equal = match treeHCons with
+        | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
+        | Some _ -> fun t t' -> t==t'
+
+      let hash = match treeHCons with
+        | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
+        | Some _ -> id
+
+                                       
     (* Now we start the standard functions on maps/sets *)
 
       let rec checktree aux t = match reveal t with
@@ -162,7 +171,7 @@ module Poly(I:Intern) = struct
        p0 and p1 are not equal *)
 
       let join (p0,t0,p1,t1) =
-        let (c,m,b) = disagree p0 p1 in
+        let c,m,b = disagree p0 p1 in
 	if b then branch (c, m, t0, t1) else branch (c, m, t1, t0)
 
     (* remove_aux function: argument f says what to do in case the key is found *)
@@ -230,6 +239,20 @@ module Poly(I:Intern) = struct
 	    join (tag k, leaf(k,f None), c, t)
       in ins t
 
+    let rec map f t = match reveal t with
+      | Empty              -> empty
+      | Leaf (k,x)         -> leaf (k, f k x)
+      | Branch (p,m,t0,t1) -> branch (p, m, map f t0, map f t1)
+	                             
+    let rec fold f t accu = match reveal t with
+      | Empty              -> accu
+      | Leaf (k,x)         -> f k x accu
+      | Branch (_,_,t0,t1) -> fold f t0 (fold f t1 accu)
+
+    let iter f t =
+      let aux k x () = f k x in
+      fold aux t ()
+             
   (* In merge, union, inter, subset, diff,
      argument f says what to do in case a key is assigned a value in both u1 and u2 *)
 
@@ -264,6 +287,83 @@ module Poly(I:Intern) = struct
 
     let union f s t = merge f (s,t)
 
+    let fail _ = failwith "Should not be called"
+
+    type ('v1,'i1,'v2,'i2) merge = {
+        sameleaf  : keys -> 'v1 -> 'v2 -> t;
+        emptyfull  : ('v2,'i2) param -> t;
+        fullempty  : ('v1,'i1) param -> t
+      }
+
+    let disjoint action s1 s2 =
+      merge fail (action.fullempty s1, action.emptyfull s2)
+                                     
+    let merge_trans reccall action s1 s2 =
+      match reveal s1, reveal s2 with
+
+      | Empty, _ -> action.emptyfull s2
+
+      | _, Empty -> action.fullempty s1
+
+      | Leaf(k1,x1), Leaf(k2,x2) ->
+	 if  kcompare k1 k2 ==0
+         then action.sameleaf k1 x1 x2
+	 else disjoint action s1 s2
+
+      | Leaf(k,x), Branch(p,m,t1,t2) ->
+         let tagk = tag k in
+	  if match_prefix tagk p m then
+	    if check tagk m then 
+	      merge fail (reccall s1 t1,action.emptyfull t2)
+	    else
+	      merge fail (action.emptyfull t1,reccall s1 t2)
+	  else
+	    disjoint action s1 s2
+                
+      | Branch(p,m,t1,t2), Leaf(k,x) ->
+         let tagk = tag k in
+	  if match_prefix tagk p m then
+	    if check tagk m then 
+	      merge fail (reccall t1 s2, action.fullempty t2)
+	    else
+	      merge fail (action.fullempty t1, reccall t2 s2)
+	  else
+	    disjoint action s1 s2
+
+      | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
+	   merge fail ((reccall l1 l2),(reccall r1 r2))
+	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+	   if check p2 m1
+           then merge fail ((reccall l1 s2),(action.fullempty r1))
+	   else merge fail ((action.fullempty l1),(reccall r1 s2))
+	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	   if check p1 m2
+           then merge fail ((reccall s1 l2),(action.emptyfull r2))
+	   else merge fail ((action.emptyfull l2),(reccall s1 r2))
+	 else
+	    disjoint action s1 s2
+
+    let merge_poly action =
+      let rec aux s1 s2 = merge_trans aux action s1 s2
+      in aux
+
+    let merge =
+      if is_hcons
+      then
+        (fun ?equal action ->
+          match equal with
+          | Some f ->
+             let rec aux s1 s2 =
+               if s1==s2 then f s1 else merge_trans aux action s1 s2
+             in aux
+          | None -> merge_poly action )
+      else
+        (fun ?equal action ->
+          match equal with
+          | Some f -> failwith "Patricia tries not hconsed"
+          | None -> merge_poly action )
+          
     let inter_trans reccall f s1 s2 =
         match reveal s1, reveal s2 with
       | Empty, _      -> empty
@@ -271,8 +371,8 @@ module Poly(I:Intern) = struct
       | Leaf(k,x), _  -> if mem k s2 then let y = find k s2 in leaf(k,f k x y) else empty
       | _, Leaf(k,y)  -> if mem k s1 then let x = find k s1 in leaf(k,f k x y) else empty
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
-	  union (fun _ -> failwith("Should not be called")) (reccall f l1 l2) (reccall f r1 r2)
+	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1
+         then union fail (reccall f l1 l2) (reccall f r1 r2)
 	else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	  reccall f (if check p2 m1 then l1 else r1) s2
 	else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
@@ -293,14 +393,15 @@ module Poly(I:Intern) = struct
       | _, Leaf(k,y)  -> if mem k s1 then remove_aux (fun k x -> f k x y) k s1 else s1
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
-	   union (fun _ -> failwith("Should not be called")) (reccall f l1 l2) (reccall f r1 r2)
+	   union fail (reccall f l1 l2) (reccall f r1 r2)
 	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	   if check p2 m1 then 
-	     union (fun _ -> failwith("Should not be called")) (reccall f l1 s2) r1 
-	   else 
-	     union (fun _ -> failwith("Should not be called")) l1 (reccall f r1 s2)
+	   if check p2 m1
+           then union fail (reccall f l1 s2) r1 
+	   else union fail l1 (reccall f r1 s2)
 	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	   if check p1 m2 then reccall f s1 l2 else reccall f s1 r2
+	   if check p1 m2
+           then reccall f s1 l2
+           else reccall f s1 r2
 	 else
 	   s1
 
@@ -415,21 +516,6 @@ module Poly(I:Intern) = struct
 	| _ -> failwith("Should not happen, mins must be the same!")
 	else select (m1,true) (m2,false)
       in aux s1 s2
-
-    let rec iter f t = match reveal t with
-      | Empty -> ()
-      | Leaf (k,x) -> f k x
-      | Branch (_,_,t0,t1) -> iter f t0; iter f t1
-
-    let rec map f t = match reveal t with
-      | Empty              -> empty
-      | Leaf (k,x)         -> leaf (k, f k x)
-      | Branch (p,m,t0,t1) -> branch (p, m, map f t0, map f t1)
-	
-    let rec fold f s accu = match reveal s with
-      | Empty -> accu
-      | Leaf (k,x) -> f k x accu
-      | Branch (_,_,t0,t1) -> fold f t0 (fold f t1 accu)
 
     let rec choose t =  match reveal t with
       | Empty      -> raise Not_found

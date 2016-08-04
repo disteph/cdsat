@@ -17,7 +17,8 @@ module type Type = sig
                                   
   type msg2th =
     | MsgStraight of TSet.t
-    | MsgBranch of TSet.t * TSet.t * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
+    | MsgBranch of (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
+                   * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
 
   val print2th_in_fmt : Format.formatter -> msg2th -> unit
                                                             
@@ -35,7 +36,8 @@ module Make(WB: WhiteBoard) : sig
                                   
   type msg2th =
     | MsgStraight of TSet.t
-    | MsgBranch of TSet.t * TSet.t * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
+    | MsgBranch of (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
+                   * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
 
   val print2th_in_fmt : Format.formatter -> msg2th -> unit
 

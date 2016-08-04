@@ -49,7 +49,7 @@ module Make (C : Config) = struct
            let c' = simplify fixed c in
 	   (* Trying to pick a new variable to be watched *)
 	   match pick_another fixed c' var2 with
-	   | None -> Some c', t
+	   | None -> Some(c',var2), t
            | Some var3 ->
               let watching =
                 if VarMap.mem var2 t.watching
@@ -105,15 +105,19 @@ module Make (C : Config) = struct
              t.watching)
     }
 
-  let fix var t = 
-    let cset, watching = 
-      if VarMap.mem var t.watching
-      then 
-        VarMap.find var t.watching,
-        VarMap.remove var t.watching
-      else CSet.empty, t.watching
-    in
-    { watching = watching;
-      todo = Pqueue.push cset t.todo }
+  let addconstraintNpick constr var1 var2 t =
+    let t = addconstraint constr var1 var2 t in
+    let cset1 = CSet.singleton constr var1 in
+    let cset2 = CSet.singleton constr var2 in
+    { t with
+      todo = Pqueue.push cset2 (Pqueue.push cset1 t.todo)
+    }
 
+  let fix var t = 
+    if VarMap.mem var t.watching
+    then { t with todo = Pqueue.push (VarMap.find var t.watching) t.todo }
+    else t
+           
+  let reset t = { t with todo = Pqueue.empty }
+        
 end

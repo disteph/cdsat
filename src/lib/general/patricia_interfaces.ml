@@ -110,6 +110,13 @@ module type PATMapType = sig
   val singleton: keys -> values -> t
   val remove : keys -> t -> t
   val add    : keys -> (values option -> values) -> t -> t
+  type ('v1,'i1,'v2,'i2) merge = {
+      sameleaf  : keys -> 'v1 -> 'v2 -> t;
+      emptyfull  : ('v2,'i2) param -> t;
+      fullempty  : ('v1,'i1) param -> t
+    }
+  val merge_poly : ('v1,'i1,'v2,'i2) merge -> ('v1,'i1)param -> ('v2,'i2)param -> t
+  val merge : ?equal:(('v,'i)param -> t) -> ('v,'i,'v,'i) merge -> ('v,'i)param -> ('v,'i)param -> t
   val union  : (values -> values -> values) -> t -> t -> t
   val inter  : (keys -> values -> values -> values) -> t -> t -> t
   val inter_poly  : (keys -> 'v1 -> 'v2 -> values) -> ('v1,_)param -> ('v2,_)param -> t

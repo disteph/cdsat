@@ -270,20 +270,18 @@ used in a ThStraight or ThProvable message. *)
       let msg = straight () tset (TSet.singleton litterm) in
       let justif' = T2Clause.remove litterm justif in
       Some(clause.term,tset,msg,justif')
-          
-  let treat litterm ((next,msgs,justif) as sofar) =
-    match formThStraight litterm justif with
-    | None -> sofar
-    | Some(_,tset,msg,justif') -> tset::next, msg::msgs, justif'
 
   let explain_relevant relevant (justif : uc_clause T2Clause.t)
       : (straight list) * (uc_clause T2Clause.t) =
-    let rec aux relevant sofar =
-      match TSet.fold treat relevant sofar with
-      | [],msgs,justif -> msgs,justif
-      | (relevant'::next),msgs,justif -> aux relevant' (next,msgs,justif)
+    let rec treat litterm ((msgs,justif) as sofar) =
+      match formThStraight litterm justif with
+      | None -> sofar
+      | Some(_,tset,msg,justif) ->
+         let msgs,justif = TSet.fold treat tset (msgs,justif) in
+         Dump.print ["bool",3] (fun p->p "Generating %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
+         msg::msgs, justif
     in
-    aux relevant ([],[],justif)
+    TSet.fold treat relevant ([],justif)
 
         
   (*******************************************************************)
@@ -363,65 +361,70 @@ used in a ThStraight or ThProvable message. *)
    *)
   let constreat c fixed =
     let term = Constraint.term c in
-    Dump.print ["bool",2]
-      (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
-    match Constraint.simpl c with
+    if TSet.mem term fixed.true_clauses
+    then Meh fixed
+    else
+      begin
+        Dump.print ["bool",2]
+          (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
+        match Constraint.simpl c with
 
-    | Sums.F slitterm ->
-       (* The clause is satisfied. If it was in orig_clauses, we
+        | Sums.F slitterm ->
+           (* The clause is satisfied. If it was in orig_clauses, we
        remove it; in any case we add it to true_clauses together with
        the literal term that makes the clause true. *)
-       
-       Dump.print ["bool",2] (fun p->p "Clause is satisfied");
-       Meh(solve_clause term slitterm fixed)
+           
+           Dump.print ["bool",2] (fun p->p "Clause is satisfied");
+           Meh(solve_clause term slitterm fixed)
 
-    | Sums.A(set,justif) -> begin
-        match LSet.reveal set with
-        | Empty ->
-           (* The clause has become empty/unsat. We collect in tset
+        | Sums.A(set,justif) -> begin
+            match LSet.reveal set with
+            | Empty ->
+               (* The clause has become empty/unsat. We collect in tset
            the terms that have been used to simplify it to empty, then
            we recursively collect the propagations messages that led
            to the conflict and haven't been communicated yet. *)
 
-           Dump.print ["bool",2] (fun p->p "Clause is unsat");
-           let tset = explain { term = term; simpl = None ; justif = justif } in
-           let msgs,_ = explain_relevant tset fixed.justification in 
-           UNSAT(msgs, unsat () tset, term)
+               Dump.print ["bool",2] (fun p->p "Clause is unsat");
+               let tset = explain { term = term; simpl = None ; justif = justif } in
+               let msgs,_ = explain_relevant tset fixed.justification in
+               UNSAT(List.rev_append msgs [], unsat () tset, term)
 
-        | Leaf(l,()) ->
-           (* The clause has becom unit, the last literal being l. We
+            | Leaf(l,()) ->
+               (* The clause has becom unit, the last literal being l. We
            set l to true and its negation nl to false, generating the
            term litterm to propagate. That term is pushed in the
            propagation queue, and mapped to the unit clause in the
            justification map. *)
 
-           Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt (litAsTerm l));
-           let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
-           let fixed =
-             if Terms.equal litterm term
-             then { fixed with asTrueFalse = asTrueFalse;
-                               true_clauses = TSet.add term fixed.true_clauses }
-             else
-               let uc_clause = { term = term; simpl = Some l ; justif = justif } in
-               {
-                 fixed with
-                 asTrueFalse   = asTrueFalse;
-                 justification = T2Clause.add litterm uc_clause fixed.justification;
-                 propagation   = Pqueue.push litterm fixed.propagation
-               }
-           in
-           Propagate(fixed, [l; LitF.negation l])
+               Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt (litAsTerm l));
+               let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
+               let fixed =
+                 if Terms.equal litterm term
+                 then { fixed with asTrueFalse = asTrueFalse;
+                                   true_clauses = TSet.add term fixed.true_clauses }
+                 else
+                   let uc_clause = { term = term; simpl = Some l ; justif = justif } in
+                   {
+                     fixed with
+                     asTrueFalse   = asTrueFalse;
+                     justification = T2Clause.add litterm uc_clause fixed.justification;
+                     propagation   = Pqueue.push litterm fixed.propagation
+                   }
+               in
+               Propagate(fixed, [l; LitF.negation l])
 
-        | Branch(_,_,set1,set2) ->
-           (* The clause is neither true not unsat nor unit: we can
+            | Branch(_,_,set1,set2) ->
+               (* The clause is neither true not unsat nor unit: we can
            pick 2 literals to watch. We record it as a clause that
            remains to be satisfied. *)
 
-           Dump.print ["bool",2] (fun p->p "Clause is now watched");
-           let fixed = { fixed with orig_clauses = TSet.add term fixed.orig_clauses} in
-           Watch(fixed, LSet.choose set1, LSet.choose set2)
+               Dump.print ["bool",2] (fun p->p "Clause is now watched");
+               let fixed = { fixed with orig_clauses = TSet.add term fixed.orig_clauses} in
+               Watch(fixed, LSet.choose set1, LSet.choose set2)
+          end
       end
-    
+        
   let split lit =
     let t = litAsTerm lit in
     let nt = litAsTerm (LitF.negation lit) in
@@ -432,7 +435,7 @@ used in a ThStraight or ThProvable message. *)
     | _, Some set when LSet.info set > 1 ->
        let tset = LSet.fold (fun l -> TSet.add (litAsTerm(LitF.negation l))) set TSet.empty in
        Dump.print ["bool",2]
-         (fun p-> p "Unfold: %a from %a" TSet.print_in_fmt tset Term.print_in_fmt term);
+         (fun p-> p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);
        Some(straight () (TSet.singleton term) tset)
     | _ -> None
           

@@ -29,7 +29,8 @@ let mode = ref true        (* Uses the Combo if true, uses First-Order if false 
 let parser   : string list option ref  = ref None (* List of parsers to try. None = try them all *)
 let mypluginG: string ref = ref "dpll"            (* Default pluginG *)
 let myplugin : string ref = ref "basic"           (* Default plugin *)
-let notheories: string list option ref = ref None (* List of forbidden theories *)
+let notheories: string list option ref = ref (Some[]) (* List of forbidden theories *)
+let addtheories: string list option ref = ref (Some[]) (* List of added theories *)
 
 (* MyPatricia flags *)
 

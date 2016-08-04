@@ -20,7 +20,6 @@ module Make(WB: WhiteBoardExt.Type) : sig
 
   val make :
     TSet.t sslot_machine ->
-    TSet.t ->
     WB.msg2th Pipe.Reader.t ->
     WB.msg2pl Pipe.Writer.t ->
     unit Deferred.t
