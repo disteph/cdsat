@@ -15,16 +15,15 @@ open Sums
 open PluginsTh_tools
 
 open Bool
-
+open MyStructures
+       
 type sign = MyTheory.sign
 let hdl = Sig.Bool
 
 (* Needed in our mli *)
             
-module ThDS = MyStructures.ThDS
-module I    = MyStructures.I
-module LSet = MyStructures.LSet
-                
+module ThDS = ThDS
+
 (* We are implementing VSIDS heuristics for choosing decision
 literals: we need to keep a score of each lit, we need to update the
 scores, and we need to pick the lit with highest score. We use a
@@ -53,7 +52,8 @@ end
 
 module LMap = PATMap.Make(DMap)(I)
 
-let decay = 1.5
+let decay = 2.
+let factor = decay**100.
                 
 module Make(DS: sig 
   include GTheoryDSType
@@ -72,18 +72,22 @@ struct
 
   let scores = ref LMap.empty
   let bump_value = ref 1.
+  let since_last = ref 1
 
+  let action() = {
+      LMap.sameleaf = (fun k () v -> LMap.singleton k (v +. !bump_value));
+      LMap.emptyfull = (fun trail -> trail);
+      LMap.fullempty = LMap.map (fun _ () -> !bump_value);
+    }
+                       
   let bump lset =
-    begin match LMap.info !scores with
-    | Some(_,max_score) when max_score > max_float *. 0.5
-      -> scores := LMap.map (fun _ score -> score *. 0.0000000001 ) !scores
-    | _ -> ()
-    end;
-    scores := LMap.diff_poly
-                (fun lit score () -> LMap.singleton lit (score +. !bump_value))
-                !scores
-                lset;
-    bump_value := !bump_value *. decay
+    scores := LMap.merge_poly (action()) lset !scores;
+    incr since_last;
+    bump_value := !bump_value *. decay;
+    if !since_last > 100
+    then (scores := LMap.map (fun _ score -> score /. factor) !scores;
+          bump_value := !bump_value /. factor;
+          since_last := 1)
                                    
                                    
   type state = {
@@ -137,8 +141,8 @@ struct
                    (* A term we have not treated yet! *)
                    (* We start by maybe updating the VSIDS structures*)
                    begin
-                     match proj(Terms.data t) with (* Let's look at its clausal structure *)
-                     | Some lset,_ when LSet.info lset > 1 ->
+                     match (proj(Terms.data t)).asclause with (* Let's look at its clausal structure *)
+                     | Some lset when LSet.info lset > 1 ->
                         (* Every literal in lset that we have never seen before is given score 1. *)
                         let toadd = LMap.map (fun _ () -> 1.) lset in
                         scores := LMap.union (fun score _ -> score) !scores toadd
@@ -148,9 +152,9 @@ struct
                    begin
                      match Propa.treat c state.propastate with
                      | A(list,unsat,term) ->
-                        begin match proj(Terms.data term) with
-                        | None,_ -> failwith "Clause is false, cannot be true"
-                        | Some lset,_ -> bump lset
+                        begin match (proj(Terms.data term)).asclause with
+                        | None -> failwith "Clause is false, cannot be true"
+                        | Some lset -> bump lset
                         end;
                         begin match list with
                         | []     -> Output(Some unsat,fail_state)
@@ -185,7 +189,7 @@ struct
                    | Some(Config.Msg message),_ ->
                       Output(Some message, machine state)
                             
-                   | Some(Config.SplitBut lset),None ->
+                   | Some(Config.SplitBut lset), None ->
                       let remaining =
                         LMap.diff_poly
                           (fun _ _ _ -> LMap.empty)
@@ -216,14 +220,22 @@ struct
                       | None ->
                          Output(None, machine state)
                       end
-                   | _,_ -> Output(None, machine state)
+                   | _,Some(t1,t2) ->
+                      Dump.print ["bool_pl1",2]
+                        (fun p->p "Waiting to know about (%a, %a)"
+                                  TSet.print_in_fmt t1
+                                  TSet.print_in_fmt t2
+                        );
+                      Output(None, machine state)
+                   | _,_ ->
+                      Output(None, machine state)
 
               in
               aux state
 
          let normalise = (fun _ -> failwith "Not a theory with normaliser")
                            
-         let clone = (fun () -> Output(None, machine state))
+         let clone = (fun () -> Output(None, machine { state with already = None }))
                        
        end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
       

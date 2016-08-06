@@ -63,23 +63,7 @@ module Make(WB: sig
     val all : t
   end
 
-  type nature
   type state
-
-  val kill_pipes : state -> unit Deferred.t
-
-  val branch :
-    state ->
-    (state -> 'a Deferred.t) ->
-    TSet.t ->
-    TSet.t ->
-    nature ->
-    unit Deferred.t *
-      ('a * (unit -> 'a Deferred.t) *
-         (unit -> unit Deferred.t))
-        Deferred.t
-
-  val resolve : straight WB.t -> (unsat WB.t, sat WB.t) sum -> (unsat WB.t, sat WB.t) sum Deferred.t
 
   val select_msg : state -> (say answer * state) Deferred.t
 

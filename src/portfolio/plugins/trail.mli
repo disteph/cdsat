@@ -30,18 +30,18 @@ The bool in propagated indicates whether we know the level of this propagation f
     | Tried
     | Original
 
-  module Trail : PATMapType with type keys = Term.t
-                             and type values = int*int*nature
-                             (* and type infos  = D.infos *)
-                             (* and type common = I.common *)
-                             (* and type branching = I.branching *)
-                             and type ('v,'i) param = (Term.t,'v,int,int,'i) Patricia.poly
-                             (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
+  include PATMapType with type keys = Term.t
+                      and type values = int*int*nature
+                      (* and type infos  = D.infos *)
+                      (* and type common = I.common *)
+                      (* and type branching = I.branching *)
+                      and type ('v,'i) param = (Term.t,'v,int,int,'i) Patricia.poly
+  (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
 
 
   (* First int is level, second int is timestamp*)
 
-  val analyse : Trail.t
+  val analyse : t
                 -> unsat WB.t
                 -> unsat WB.t * int * Term.t
                            

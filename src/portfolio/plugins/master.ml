@@ -32,8 +32,8 @@ module Make(WB: sig
   module Mm = Memo.Make(WB)
   module W  = Worker.Make(WB)
   module WM = WorkersMap.Make(WB)
-  include Track.Make(WB)
-                             
+  module T  = Trail.Make(WB)
+                        
   let clause_reader,clause_writer = Pipe.create ()
   let clause_listener = Mm.make_listener clause_reader
   let clause_listener_kill() = return(Pipe.close clause_writer)
@@ -51,9 +51,9 @@ module Make(WB: sig
     let print_in_fmt fmt = function
       | None -> Format.fprintf fmt "Memo module"
       | Some hdl -> Format.fprintf fmt "%a module" Handlers.print_in_fmt hdl
-      
+                                   
   end
-                     
+                    
   module AS = struct
     include Set.Make(Agents)
     let all = HandlersMap.fold (fun hdl () sofar -> add(Some hdl) sofar) theories (singleton None)
@@ -78,18 +78,12 @@ module Make(WB: sig
       waiting4   : AS.t;
       level      : int;
       chrono     : int;
-      trail      : Trail.t
+      trail      : T.t
     }
 
-  let print_pipes =
-    let aux (Handlers.Handler hdl) to_worker =
-      Dump.print ["concur",1] (fun p -> p "%a: %i messages queued" Sig.print_in_fmt hdl (Pipe.length to_worker))
-    in
-    HandlersMap.iter aux
-
-  let kill_pipes state =
-    WM.broadcast (fun w -> return(Pipe.close w)) state.pipe_map
-    >>| fun () -> Pipe.close state.to_plugin
+  let kill_pipes pipe_map to_plugin =
+    WM.broadcast (fun w -> return(Pipe.close w)) pipe_map
+    >>| fun () -> Pipe.close to_plugin
 
   let send pipe_map tset = 
     let treat_worker to_worker =
@@ -98,9 +92,9 @@ module Make(WB: sig
     WM.broadcast treat_worker pipe_map
 
   let action level chrono msg = {
-      Trail.sameleaf = (fun k () v -> Trail.singleton k v);
-      Trail.emptyfull = (fun trail -> trail);
-      Trail.fullempty = Trail.map (fun _ () -> level,chrono,msg);
+      T.sameleaf = (fun k () v -> T.singleton k v);
+      T.emptyfull = (fun trail -> trail);
+      T.fullempty = T.map (fun _ () -> level,chrono,msg);
     }
 
   (* This is a branching function telling all slave workers:
@@ -115,7 +109,7 @@ module Make(WB: sig
          trigger the exploration of the second branch (with newb).
    *)
 
-  let branch state cont new1 new2 msg =
+  let branch state cont msg new1 =
     let aux to_worker new_from_pl1 new_to_pl1 new_from_pl2 new_to_pl2 =
       Lib.write to_worker (MsgBranch(new_from_pl1,new_to_pl1,new_from_pl2,new_to_pl2))
     in
@@ -126,61 +120,58 @@ module Make(WB: sig
         new_pipe_map2 =
       WM.clone aux state.pipe_map
     in
-    (Lib.dispatch state.from_workers [new_to_pl1; new_to_pl2],
-     Deferred.all_unit tasks >>= fun () -> 
-     Dump.print ["concur",1] (fun p -> p "%s" "Everybody cloned themselves; now starting first branch");
-     let newstate1 = { state with
-                       from_workers = new_from_workers1;
-                       to_plugin = new_to_pl1;
-                       pipe_map  = new_pipe_map1;
-                       waiting4  = AS.all;
-                       level     = state.level+1;
-                       chrono    = state.chrono+1;
-                       trail = Trail.merge_poly
-                                 (action (state.level+1) (state.chrono+1) msg)
-                                 new1
-                                 state.trail }
-     in
-     send new_pipe_map1 new1 >>= fun () ->
-     cont newstate1 >>| fun ans ->
-     let newstate2 = { state with
-                       from_workers = new_from_workers2;
-                       to_plugin = new_to_pl2;
-                       pipe_map  = new_pipe_map2;
-                       waiting4  = AS.all;
-                       level     = state.level+1;
-                       chrono    = state.chrono+1;
-                       trail = Trail.merge_poly
-                                 (action (state.level+1) (state.chrono+1) msg)
-                                 new2
-                                 state.trail }
-     in
-     (ans,
-      (fun () -> (Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
-                  send new_pipe_map2 new2 >>= fun () ->
-                  cont newstate2)),
-      (fun () -> kill_pipes newstate2)
-     )
+    Deferred.all_unit tasks >>= fun () -> 
+    Dump.print ["concur",1] (fun p -> p "%s" "Everybody cloned themselves; now starting first branch");
+    let newstate1 = { state with
+                      from_workers = new_from_workers1;
+                      to_plugin = new_to_pl1;
+                      pipe_map  = new_pipe_map1;
+                      waiting4  = AS.all;
+                      level     = state.level+1;
+                      chrono    = state.chrono+1;
+                      trail = T.merge_poly
+                                (action (state.level+1) (state.chrono+1) (T.Decided msg))
+                                new1
+                                state.trail }
+    in
+    send new_pipe_map1 new1 >>= fun () ->
+    cont newstate1 >>| fun ans ->
+    (ans,
+     (fun msg1 msg2 ->
+       let WB(_,Propa(_,Straight new1)) = msg1 in
+       (* send new_pipe_map2 new1 >>= fun () -> *)
+       (* let trail = T.merge_poly *)
+       (*               (action state.level (state.chrono+1) (T.Propagated msg1)) *)
+       (*               new1 *)
+       (*               state.trail *)
+       (* in *)
+       let WB(_,Propa(_,Straight new2)) = msg2 in
+       send new_pipe_map2 new2 >>= fun () ->
+       let trail = T.merge_poly
+                     (action state.level (state.chrono+2) (T.Propagated msg2))
+                     new2
+                     state.trail
+       in
+       Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
+       let newstate2 = { state with
+                         from_workers = new_from_workers2;
+                         to_plugin = new_to_pl2;
+                         pipe_map  = new_pipe_map2;
+                         waiting4  = AS.all;
+                         chrono    = state.chrono+1;
+                         trail     = trail }
+       in
+       cont newstate2),
+     (fun () -> kill_pipes new_pipe_map2 new_to_pl2)
     )
 
-  (* A wrapper for the Whiteboard's straight function; the latter
-         is not called in case the extra literals newset added by the
-         straight step are not used in the proof. *)
-
-  let resolve msg1 = function
-    | A(WB(_,Propa(thset,Unsat)) as msg2) when
-           (let WB(_,Propa(_,Straight newset)) = msg1 in
-            let inter = WB.DS.TSet.inter thset newset in       
-            not (WB.DS.TSet.is_empty inter))
-
-      -> let msg3 = WB.resolve msg1 msg2 in
-         (* Lib.write clause_writer msg3 *)
-         (* >>= fun () -> *)
-         return(A msg3)
-
-    | msg2 -> return msg2
-    
-    
+      
+  (* Select message function:
+     reads input channel and selects a message to process;
+     buffers branching requests and makes sure every agent has
+     finished talking before processing one of the buffered branching requests
+   *)
+      
   let rec select_msg state =
     Dump.print ["concur",2]
       (fun p-> p "Wanna hear from %a" AS.print_in_fmt state.waiting4);
@@ -229,7 +220,8 @@ module Make(WB: sig
       (* rest being empty means that all theories have
                 stamped the set of literals consset as being consistent
                 with them, so we can finish, closing all pipes *)
-      then kill_pipes state >>| fun () -> F current
+      then kill_pipes state.pipe_map state.to_plugin >>| fun () ->
+           F current
 
       (* some theories still haven't stamped that set of
                 literals consset as being consistent with them, so we
@@ -255,79 +247,61 @@ module Make(WB: sig
             main_worker (WB.sat thmsg newcurrent) state
 
          | Propa(tset,Unsat) -> 
-            Dump.print ["concur",1] (fun p -> p "%a" WB.print_in_fmt thmsg);
+            Dump.print ["concur",1] (fun p -> p "Conflict %a" WB.print_in_fmt thmsg);
             (* A theory found a proof. We stop and close all pipes. *)
             (* if not(DS.TSet.subset tset state.trail) *)
             (* then ( Dump.print ["concur",0] (fun p -> p "Pb: %a\n%a" WB.print_in_fmt thmsg DS.TSet.print_in_fmt (DS.TSet.diff tset state.trail)); *)
             (*        failwith "Master213" ); *)
-            (kill_pipes state >>| fun () -> A thmsg)
+            let conflict,level,term = T.analyse state.trail thmsg in
+            Dump.print ["concur",0] (fun p -> p "Current level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a"
+                                                state.level level DS.Term.print_in_fmt term WB.print_in_fmt conflict);
+            kill_pipes state.pipe_map state.to_plugin >>| fun () ->
+            A(conflict,level,term)
 
          | Propa(old,Straight newa) ->
-            Dump.print ["concur",1] (fun p -> p "%a" WB.print_in_fmt thmsg);
+            Dump.print ["concur",1] (fun p -> p "Level %i; chrono %i; %a" state.level (state.chrono+1) WB.print_in_fmt thmsg);
             (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
-            send state.pipe_map newa
-            >>= fun () ->
+            send state.pipe_map newa >>= fun () ->
             main_worker current
-              { state with waiting4 = AS.all;
-                           chrono = state.chrono;
-                           trail = Trail.merge_poly
-                                     (action state.level (state.chrono+1) (Propagated thmsg))
-                                     newa
-                                     state.trail }
-            >>= resolve thmsg
+              { state with
+                waiting4 = AS.all;
+                chrono = state.chrono+1;
+                trail = T.merge_poly
+                          (action state.level (state.chrono+1) (T.Propagated thmsg))
+                          newa
+                          state.trail }
 
-         | Propa(old,Both(newa,newb)) ->
-            Dump.print ["concur",1] (fun p -> p "%a" WB.print_in_fmt thmsg);
+         | Propa(old,Both(newa,_)) ->
+            Dump.print ["concur",1] (fun p ->
+                p "Level %i; chrono %i; %a"
+                  (state.level+1) (state.chrono+1) WB.print_in_fmt thmsg);
             (* A theory is asking to branch conjonctively *)
-            let dispatcher,def =
-              branch state (main_worker current) newa newb (Decided thmsg)
-            in
-            Deferred.both
-              dispatcher
-              (def
-               >>= fun (ans1, def_ans2, kill2) -> 
-               begin match ans1 with
-               | A(WB(_,Propa(tset,Unsat)) as ans1)
-                    when not(DS.TSet.is_empty(DS.TSet.inter newa tset))
-                 -> (if !Flags.memo
-                     then
-                       begin
-                         (* let msg = WB.curryfy tset ans1 in *)
-                         (* Dump.print ["concur",0] (fun p-> p "Recording %a" print_in_fmt msg); *)
-                         (* Lib.write to_pl0 (Msg(None,Say msg)) *)
-                         Lib.write clause_writer ans1
-                       end
-                     else return())
-                    >>= fun () ->
-                    def_ans2() >>= fun ans2 ->
-                    kill_pipes state >>= fun () ->
-                    let newstraight = WB.both2straight thmsg ans1 in
-                    (* let WB(_,Propa(tset,Straight _)) = newstraight in *)
-                    (* if not(DS.TSet.subset tset state.trail) *)
-                    (* then *)
-                    (*   (Dump.print ["concur",0] (fun p -> p "Pb: %a\n%a" WB.print_in_fmt newstraight DS.TSet.print_in_fmt (DS.TSet.diff tset state.trail)); *)
-                    (*    failwith "Master265"); *)
-                    resolve newstraight ans2
-               | _ -> kill2() >>= fun ()->
-                      kill_pipes state >>| fun () ->
-                      ans1
-               end
-              )
-            >>| fun ((),ans) -> ans
+            branch state (main_worker current) thmsg newa
+            >>= fun (ans1, def_ans2, kill2) -> 
+            kill_pipes state.pipe_map state.to_plugin >>= fun () ->
+            begin match ans1 with
+            | A(ans1,level,term) when
+                   (* Dump.print ["concur",0] (fun p -> 
+                      p "Backtrack level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a" *)
+                   (* state.level level DS.Term.print_in_fmt term WB.print_in_fmt ans1); *)
+                   level==state.level
+              ->
+               (if !Flags.memo
+                then Lib.write clause_writer ans1
+                else return ())
+               >>= fun () ->
+               def_ans2
+                 (WB.both2straight thmsg ans1)
+                 (WB.curryfy (DS.TSet.singleton term) ans1)
+                        
+            | _ -> kill2() >>| fun () -> ans1
+            end
 
          | Propa(old,Either(newa,newb)) ->
-            (* A theory is asking to branch disjonctively *)
-            let dispatcher,def =
-              branch state (main_worker current) newa newb (failwith "TODO")
-            in
-            def
-            >>= fun (ans1, def_ans2, kill2) ->
-            begin match ans1 with
-            | A _ -> kill2() >>| fun ()-> failwith "TODO"
-            | F _ -> def_ans2() >>| failwith "TODO"
-            end
-            : (unsat WB.t, sat WB.t) sum Deferred.t)
+            failwith "TODO"
+
+            : (unsat WB.t * int * DS.Term.t, sat WB.t) sum Deferred.t)
 
     in
     let state = {
@@ -339,10 +313,12 @@ module Make(WB: sig
         waiting4     = AS.all;
         level        = 0;
         chrono       = 0;
-        trail        = Trail.map (fun _ () -> 0,0,Original) tset
+        trail        = T.map (fun _ () -> 0,0,T.Original) tset
       }
     in
     send state.pipe_map tset >>= fun () ->
-    main_worker (WB.sat_init tset) state
+    main_worker (WB.sat_init tset) state >>| function
+    | A(conflict,_,_) -> A conflict
+    | F msg -> F msg
     
 end

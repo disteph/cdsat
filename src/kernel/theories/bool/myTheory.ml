@@ -90,8 +90,7 @@ struct
       let make t = {
           term = t;
           simpl =
-            let o,_ = proj(Terms.data t) in
-            match o with
+            match (proj(Terms.data t)).asclause with
             | None -> Sums.F(None)
             | Some lset -> Sums.A(lset,[])               
         }
@@ -234,8 +233,7 @@ including the term representing the clause (that TSet can directly be
 used in a ThStraight or ThProvable message. *)
 
   let explain (clause : uc_clause) : TSet.t =
-    let o,_ = proj(Terms.data clause.term) in
-    match o with
+    match (proj(Terms.data clause.term)).asclause with
     | None -> failwith "Clause should not be trivially true"
     | Some original ->
        let inc = function
@@ -431,8 +429,8 @@ used in a ThStraight or ThProvable message. *)
     both () TSet.empty (TSet.singleton t) (TSet.singleton nt)
 
   let unfold term =
-    match proj(Terms.data term) with
-    | _, Some set when LSet.info set > 1 ->
+    match (proj(Terms.data term)).nasclause with
+    | Some set when LSet.info set > 1 ->
        let tset = LSet.fold (fun l -> TSet.add (litAsTerm(LitF.negation l))) set TSet.empty in
        Dump.print ["bool",2]
          (fun p-> p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);

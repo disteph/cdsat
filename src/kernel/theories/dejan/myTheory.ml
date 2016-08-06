@@ -3,7 +3,7 @@ open Messages
 open Specs
 
 open Algo
-open Trail
+open Dtrail
 
 type sign = unit
 

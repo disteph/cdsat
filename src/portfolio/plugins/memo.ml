@@ -59,99 +59,123 @@ module Make(WB : WhiteBoardExt.Type) = struct
     let equal _ _ = true
     let hash _ = 0
   end
+
   module H' = H.Init(NoBackIndex)(Bogus)
-               
-  module Config = struct
+
+  module Fixed : sig
+    type t
+    val init : t
+    val extend : TSet.t -> t -> t
+    val notfixed : t -> TSet.t -> TSet.t
+    val is_fixed : Term.t -> t -> bool
+    val are_fixed : TSet.t -> t -> bool
+  end = struct
+    type t = TSet.t
+    let init = TSet.empty
+    let extend = TSet.union
+    let notfixed fixed set = TSet.diff set fixed
+    let is_fixed = TSet.mem
+    let are_fixed = TSet.subset
+  end
+
+  module Constraint : sig
+    type t
+    val id : t -> int
+    val msg : t -> unsat WB.t
+    val make : unsat WB.t -> t
+    val tset : t -> TSet.t
+    val simplify : Fixed.t -> t -> t
+  end = struct
+    type t = H'.t
+    let id = H.id
+    let msg = H.reveal
+    let make = H'.build
+    let tset c =
+      let WB(_,Propa(tset,Unsat)) = msg c in
+      tset
+    let simplify _ msg = msg
+  end
+
+          
+  module Config
+         : (TwoWatchedLits.Config with type Var.t = Term.t
+                                   and type Constraint.t = Constraint.t
+                                   and type fixed = Fixed.t) = struct
     
     (*******************************************************************)
     (* These are the ingredients to feed the 2-watched literals module *)
     (*******************************************************************)
 
     (* Constraints are unsat messages. *)
-
-    module Constraint =
-      (struct
-        type t = H'.t
-        let id = H.id
-        let msg = H.reveal
-        let make = H'.build
-        let tset c =
-          let WB(_,Propa(tset,Unsat)) = msg c in
-          tset
-        let simplify _ msg = msg
-      end : sig
-        type t
-        val id : t -> int
-        val msg : t -> unsat WB.t
-        val make : unsat WB.t -> t
-        val tset : t -> TSet.t
-        val simplify : TSet.t -> t -> t
-      end)
+    module Constraint = Constraint
 
     module Var = struct
       include Term
       let compare = Terms.compare
     end
 
-    type fixed = TSet.t
-    let init_fixed = TSet.empty
-
+    type fixed = Fixed.t
+                   
     let simplify = Constraint.simplify
-                              
+                     
     let pick_another fixed (c : Constraint.t) (var : Var.t) : Var.t option =
-      let tset = TSet.diff (Constraint.tset c) fixed in
+      let tset = Fixed.notfixed fixed (Constraint.tset c) in
       let tochoose = 
         if TSet.mem var tset
         then TSet.remove var tset
         else tset
       in
+      Dump.print ["memo",-1] (fun p->
+          p "Memo: Already watching %a in %a\nWatching choosing from %a"
+            Term.print_in_fmt var TSet.print_in_fmt (Constraint.tset c) TSet.print_in_fmt tochoose);
       if TSet.is_empty tochoose
       then None
       else let newvar,_ = TSet.next tochoose in Some newvar
-  end
+                                                     
+  end 
 
   module P = TwoWatchedLits.Make(Config)
-      
-  module WR =
-    (struct
-      
-      let watchref = ref P.init
-      let watchcount = ref 0
+                                
+  module WR : sig
+    val add : Constraint.t -> unit
+    val treat : Config.fixed -> TSet.t -> (Config.Constraint.t*Term.t) option
+  end = struct
+    
+    let watchref = ref P.init
+    let watchcount = ref 0
 
-      let prove tset =
-        let watch = TSet.fold P.fix tset (P.reset !watchref) in
-        let rec aux watch =
-          match P.next tset watch with
-          | None,_ -> false
-          | Some(c,var),_ when TSet.mem var tset ->
-             Dump.print ["watch",1] (fun p-> p "Already know");
-             true
-          | Some _,watch -> aux watch
-        in
-        aux watch
-                           
-      let add c =
-        let tset = Config.Constraint.tset c in
-        if not(TSet.is_empty tset)
+    let prove tset =
+      let watch = TSet.fold P.fix tset (P.reset !watchref) in
+      let fixed = Fixed.extend tset Fixed.init in
+      let rec aux watch =
+        match P.next fixed watch with
+        | None,_ -> false
+        | Some(c,var),_ when TSet.mem var tset ->
+           Dump.print ["watch",1] (fun p-> p "Already know");
+           true
+        | Some _,watch -> aux watch
+      in
+      aux watch
+          
+    let add c =
+      let tset = Constraint.tset c in
+      if not(TSet.is_empty tset)
+      then
+        let t1,newtset = TSet.next tset in
+        if not(TSet.is_empty newtset)&&not(prove tset)
         then
-          let t1,newtset = TSet.next tset in
-          if not(TSet.is_empty newtset)&&not(prove tset)
-          then
-            let t2,_ = TSet.next newtset in
-            watchref := P.addconstraintNpick c t1 t2 !watchref;
-            incr watchcount;
-            Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
+          let t2,_ = TSet.next newtset in
+          watchref := P.addconstraintNpick c t1 t2 !watchref;
+          incr watchcount;
+          Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 
-      let treat fixed tset =
-        let watch = TSet.fold P.fix tset !watchref in
-        let msg, watch = P.next fixed watch in
-        watchref := watch;
-        msg
-               
-    end : sig
-      val add : Config.Constraint.t -> unit
-      val treat : TSet.t -> TSet.t -> (Config.Constraint.t*Term.t) option
-    end)
+    let treat fixed tset =
+      let watch = TSet.fold P.fix tset !watchref in
+      let msg, watch = P.next fixed watch in
+      watchref := watch;
+      msg
+        
+  end
 
 
   let rec flush reader writer msg =
@@ -167,13 +191,16 @@ module Make(WB : WhiteBoardExt.Type) = struct
              flush newreader2 newwriter2 msg
            ]
     in
-    Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
+    Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       reader aux
 
-  let rec loop_read fixed from_pl to_pl =
+  let rec loop_read (fixed:Config.fixed) from_pl to_pl =
     let aux = function 
       | MsgStraight tset
-        -> loop_write (WR.treat fixed tset) (TSet.union fixed tset) from_pl to_pl
+        ->
+         let fixed = Fixed.extend tset fixed in
+         (* Dump.print ["memo",1] (fun p-> p "Memo: adding %a" TSet.print_in_fmt tset); *)
+         loop_write (WR.treat fixed tset) fixed from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
         -> Deferred.all_unit
              [ loop_read fixed newreader1 newwriter1 ;
@@ -191,11 +218,10 @@ module Make(WB : WhiteBoardExt.Type) = struct
          [ Lib.write to_pl (Msg(None,Ack));
            loop_read fixed from_pl to_pl ]
     | Some(msg,term) ->
-       let msg = Config.Constraint.msg msg in
-       (* print (Dump.toString (fun p-> p "Outputting message %a" print_in_fmt (Msg(hdl,msg)))) >>= fun () ->  *)
-       if TSet.mem term fixed
+       let msg = Constraint.msg msg in
+       if Fixed.is_fixed term fixed
        then
-         (Dump.print ["memo",1] (fun p-> p "Memo: found memoised conflict %a" WB.print_in_fmt msg);
+         (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.print_in_fmt msg);
           let msg = Msg(None,Say msg) in
           Deferred.all_unit
             [ Lib.write to_pl msg;
@@ -204,17 +230,23 @@ module Make(WB : WhiteBoardExt.Type) = struct
          (Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
                 WB.print_in_fmt msg Term.print_in_fmt term);
-          let msg = Msg(None,Say(WB.curryfy (TSet.singleton term) msg)) in
-          Deferred.all_unit
-            [ Lib.write to_pl msg;
-              loop_read fixed from_pl to_pl ])
+          let msg = WB.curryfy (TSet.singleton term) msg in
+          let WB(_,Propa(_,Straight tset)) = msg in
+          if Fixed.are_fixed tset fixed
+          then
+            loop_read fixed from_pl to_pl
+          else
+            (Dump.print ["memo",0] (fun p-> p "Memo: useful prop");
+             Deferred.all_unit
+               [ Lib.write to_pl (Msg(None,Say msg));
+                 loop_read fixed from_pl to_pl ]))
 
 
-  let make = loop_read TSet.empty
+  let make = loop_read Fixed.init
 
   let rec make_listener clause_reader = 
     let aux msg =
-      WR.add (Config.Constraint.make msg);
+      WR.add (Constraint.make msg);
       Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.print_in_fmt msg);
       make_listener clause_reader
     in

@@ -95,26 +95,40 @@ The bool in propagated indicates whether we know the level of this propagation f
 
   end
 
-  module Trail = PATMap.Make(DestWInfo)(I)
-
+  include PATMap.Make(DestWInfo)(I)
 
   let rec analyse
-            (trail : Trail.t)
+            (trail : t)
             (conflict : unsat WB.t)
           : unsat WB.t * int * Term.t =
     let WB.WB(_,Propa(tset,_)) = conflict in
-    let conflictWinfo = Trail.inter_poly (fun _ () v->v) tset trail in
-    let info = Trail.info conflictWinfo in
-    match info.nature() with
+    let conflictWinfo = inter_poly (fun _ () v->v) tset trail in
+    let data = info conflictWinfo in
+    match data.nature() with
       
     | Decided _
-      | Original -> 
-       conflict, info.level, info.term()
+      | Original ->
+       let next = remove (data.term()) conflictWinfo in
+       Dump.print ["trail",1] (fun p ->
+           p "conflict level: %i; second level: %i\n%a"
+             data.level
+             (info next).level
+             WB.print_in_fmt conflict
+         );
+       conflict, (info next).level, data.term()
 
-    | Propagated _ when info.is_uip() && info.level >0 ->
-       conflict, info.level, info.term()
+    | Propagated _ when data.is_uip() && data.level > 0 ->
+       let next = remove (data.term()) conflictWinfo in
+       conflict, (info next).level, data.term()
 
     | Propagated msg ->
+       Dump.print ["trail",1] (fun p ->
+           let level,chrono,_ = find (data.term()) trail in
+           p "Term: %a; term_level: %i; term_chrono: %i\nmessage: %a"
+             Term.print_in_fmt (data.term())
+             level chrono
+             WB.print_in_fmt msg
+         );
        analyse trail (WB.resolve msg conflict)   
 
     | Tried -> failwith "TODO"

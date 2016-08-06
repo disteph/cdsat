@@ -4,12 +4,10 @@
 (* Contains variable affectation and inequalities   *)
 (****************************************************)
 
-include Num
-include Equation
-include Interval
-include Hashtbl
-
 open Num
+open Equation
+open Interval
+open Hashtbl
 
 (* Represent data in a state of the resolution *)
 type trail =

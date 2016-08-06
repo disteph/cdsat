@@ -1,3 +1,5 @@
+open Num
+
 open Top
 open Algo
 

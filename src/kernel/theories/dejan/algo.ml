@@ -2,10 +2,10 @@
 (* Internal implementation of dejean's algorithm *)
 (******************************)
 
-include Trail
-include FourierMotzkin
+open Dtrail
+open FourierMotzkin
 
-exception Unsat_failure of Equation.equation list * Trail.trail list
+exception Unsat_failure of Equation.equation list * trail list
 
 
 let rec dejeanAlgoRec stack =
@@ -16,11 +16,11 @@ let rec dejeanAlgoRec stack =
 
     (* recalculate the constraints each time... *)
     (*print_string "calculating constraints\n";*)
-    let cons = Trail.createConstraints head in
+    let cons = createConstraints head in
 
     (* here we have : either None which means there is no contradiction up to now,
        either two contradicting equations *)
-    match  Trail.checkConstraints cons with
+    match  checkConstraints cons with
     | Some(t1,t2) ->
       (* print_string "Failure in constraints\n";*)
       (* there is a failure, let's go back*)
@@ -46,19 +46,19 @@ and fmResolve stack eqs =
     Equation.print_eqs eqs; *)
     (* Printf.printf "there are %i states if we want to go back\n" (List.length (b::q)); *)
     (* print_string "All but this variable will be eliminated : ";
-    print_int (Trail.getLastAssignedVariable a); print_string "\n"; *)
+    print_int (getLastAssignedVariable a); print_string "\n"; *)
 
     (* FM resolution should at least return an inequation *)
     (*print_string "Resolving fm on ";print_int (List.length eqs);print_string " equations\n";*)
 
-    match FourierMotzkin.fourierMotzkin (Trail.getLastAssignedVariable a) eqs with
+    match FourierMotzkin.fourierMotzkin (getLastAssignedVariable a) eqs with
     | Some neweq ->
       (* print_string "FM resolution output is the following : ";
       Equation.print neweq; print_string "\n"; *)
 
       (* new equation found by resolution FM  *)
       (* we go back and erase the current state, then add our new equation *)
-      let newstack = (Trail.addEq b neweq)::q in
+      let newstack = (addEq b neweq)::q in
       (* back to constraint computing. There could be another failure*)
       dejeanAlgoRec newstack
     | None ->
@@ -73,18 +73,18 @@ and variableChoosing stack cons =
   match stack with
   | [] -> failwith "Stack was empty but should not"
   | head::tail ->
-     match Trail.chooseUnassignedVariable head with
+     match chooseUnassignedVariable head with
       (* the model is complete*)
-     | None -> (Trail.getCurrentModel head), stack
+     | None -> (getCurrentModel head), stack
      | Some var ->
 
         (* choose a value according to the constraints *)
-        let v = Trail.chooseValue cons var in
+        let v = chooseValue cons var in
 
         (* print_string "Assigning the value : ";print_string (string_of_num v);
         print_string " to : ";print_int var; print_string "\n"; *)
 
-        let newState = Trail.assignValue head var v in
+        let newState = assignValue head var v in
         dejeanAlgoRec (newState::head::tail)
 
 
@@ -104,7 +104,7 @@ let goBackAndResume l stack =
     match vars, stack with
     | _,[] -> failwith "Unknown error : empty stack"
     | [],stack -> stack
-    | t::q,s::sq when List.mem t (Trail.getAssignedVariables s) ->
+    | t::q,s::sq when List.mem t (getAssignedVariables s) ->
         back (t::q) sq
     | t::q, s::sq -> back q  (s::sq)
   in
@@ -112,21 +112,21 @@ let goBackAndResume l stack =
       (fun stack eq -> back (Equation.getActiveVars eq) stack) stack l in
   match newstack with
    | [] -> failwith "Unknown error : Empty stack in Dejean algorithm"
-   | s::q -> dejeanAlgoRec ((Trail.addEqs s l)::q)
+   | s::q -> dejeanAlgoRec ((addEqs s l)::q)
 
 (* here, we add new equations. This is what is done
 when calling the "add" function on this theory *)
 let resumeDejeanAlgo l stack =
   (* print_string "resuming dejean\n"; *)
   match stack with
-  | [] -> let trail = Trail.create l in
+  | [] -> let trail = create l in
           let stack = [trail] in
           dejeanAlgoRec stack
   | s::q ->
   (* try first the current model *)
   let neweqs =
     try (
-      Some(applyCurrentModel l (Trail.getCurrentModel s));
+      Some(applyCurrentModel l (getCurrentModel s));
     )
     with CurrentModelIncompatible -> None
   in
@@ -134,4 +134,4 @@ let resumeDejeanAlgo l stack =
     (* if it does not work, we go back *)
     | None -> goBackAndResume l stack
     (* if it works, fine. Add them to the current state *)
-    | Some(eqs) -> dejeanAlgoRec ((Trail.addEqs s eqs)::q)
+    | Some(eqs) -> dejeanAlgoRec ((addEqs s eqs)::q)
