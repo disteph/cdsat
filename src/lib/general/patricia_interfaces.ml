@@ -110,19 +110,33 @@ module type PATMapType = sig
   val singleton: keys -> values -> t
   val remove : keys -> t -> t
   val add    : keys -> (values option -> values) -> t -> t
-  type ('v1,'i1,'v2,'i2) merge = {
-      sameleaf  : keys -> 'v1 -> 'v2 -> t;
-      emptyfull  : ('v2,'i2) param -> t;
-      fullempty  : ('v1,'i1) param -> t
+  type ('v1,'i1,'v2,'i2,'a) merge = {
+      sameleaf  : keys -> 'v1 -> 'v2 -> 'a;
+      emptyfull : ('v2,'i2) param -> 'a;
+      fullempty : ('v1,'i1) param -> 'a;
+      combine   : 'a -> 'a -> 'a
     }
-  val merge_poly : ('v1,'i1,'v2,'i2) merge -> ('v1,'i1)param -> ('v2,'i2)param -> t
-  val merge : ?equal:(('v,'i)param -> t) -> ('v,'i,'v,'i) merge -> ('v,'i)param -> ('v,'i)param -> t
-  val union  : (values -> values -> values) -> t -> t -> t
-  val inter  : (keys -> values -> values -> values) -> t -> t -> t
-  val inter_poly  : (keys -> 'v1 -> 'v2 -> values) -> ('v1,_)param -> ('v2,_)param -> t
-  val subset : (values -> values -> bool) -> t -> t -> bool
-  val diff   : (keys -> values -> values -> t) -> t -> t -> t
-  val diff_poly   : (keys -> values -> 'v -> t) -> t -> ('v,_)param  -> t
+  val merge_poly : ('v1,'i1,'v2,'i2,'a) merge
+                   -> ('v1,'i1) param
+                   -> ('v2,'i2) param
+                   -> 'a
+  val merge      : ?equal:(('v,'i)param -> 'a)
+                   -> ('v,'i,'v,'i,'a) merge
+                   -> ('v,'i) param
+                   -> ('v,'i) param
+                   -> 'a
+  val union_poly : (keys -> 'v1 -> 'v2 -> values)
+                    -> (('v1,'i1) param -> t)
+                    -> (('v2,'i2) param -> t)
+                    -> ('v1,'i1) param
+                    -> ('v2,'i2) param
+                    -> t
+  val union      : (values -> values -> values) -> t -> t -> t
+  val inter      : (keys -> values -> values -> values) -> t -> t -> t
+  val inter_poly : (keys -> 'v1 -> 'v2 -> values)  -> ('v1,_)param -> ('v2,_)param -> t
+  val diff       : (keys -> values -> values -> t) -> t -> t -> t
+  val diff_poly  : (keys -> values -> 'v -> t) -> t -> ('v,_)param  -> t
+  val subset     : (values -> values -> bool)  -> t -> t -> bool
   val sub :
     (bool -> keys -> values -> values option -> (unit, 'a) almost) ->
     (t -> t) -> bool -> t -> t -> (unit, 'a) almost

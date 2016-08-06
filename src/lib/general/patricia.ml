@@ -261,19 +261,20 @@ module Poly(I:Intern) = struct
       | Leaf(k,_) -> tag k
       | Branch(p,_,_,_) -> p
 
-    let merge u1 u2 =
+    let join u1 u2 =
       if is_empty u1 then u2
       else if is_empty u2 then u1
       else join (prefix u1, u1, prefix u2, u2)
 
-    type ('v1,'i1,'v2,'i2) merge = {
-        sameleaf  : keys -> 'v1 -> 'v2 -> t;
-        emptyfull  : ('v2,'i2) param -> t;
-        fullempty  : ('v1,'i1) param -> t
+    type ('v1,'i1,'v2,'i2,'a) merge = {
+        sameleaf  : keys -> 'v1 -> 'v2 -> 'a;
+        emptyfull : ('v2,'i2) param -> 'a;
+        fullempty : ('v1,'i1) param -> 'a;
+        combine   : 'a -> 'a -> 'a
       }
 
     let disjoint action s1 s2 =
-      merge (action.fullempty s1) (action.emptyfull s2)
+      action.combine (action.fullempty s1) (action.emptyfull s2)
                                      
     let merge_trans reccall action s1 s2 =
       match reveal s1, reveal s2 with
@@ -291,9 +292,9 @@ module Poly(I:Intern) = struct
          let tagk = tag k in
 	  if match_prefix tagk p m then
 	    if check tagk m then 
-	      merge (reccall s1 t1) (action.emptyfull t2)
+	      action.combine (reccall s1 t1) (action.emptyfull t2)
 	    else
-	      merge (action.emptyfull t1) (reccall s1 t2)
+	      action.combine (action.emptyfull t1) (reccall s1 t2)
 	  else
 	    disjoint action s1 s2
                 
@@ -301,23 +302,23 @@ module Poly(I:Intern) = struct
          let tagk = tag k in
 	  if match_prefix tagk p m then
 	    if check tagk m then 
-	      merge (reccall t1 s2) (action.fullempty t2)
+	      action.combine (reccall t1 s2) (action.fullempty t2)
 	    else
-	      merge (action.fullempty t1) (reccall t2 s2)
+	      action.combine (action.fullempty t1) (reccall t2 s2)
 	  else
 	    disjoint action s1 s2
 
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
-	   merge (reccall l1 l2) (reccall r1 r2)
+	   action.combine (reccall l1 l2) (reccall r1 r2)
 	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	   if check p2 m1
-           then merge (reccall l1 s2) (action.fullempty r1)
-	   else merge (action.fullempty l1) (reccall r1 s2)
+           then action.combine (reccall l1 s2) (action.fullempty r1)
+	   else action.combine (action.fullempty l1) (reccall r1 s2)
 	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	   if check p1 m2
-           then merge (reccall s1 l2) (action.emptyfull r2)
-	   else merge (action.emptyfull l2) (reccall s1 r2)
+           then action.combine (reccall s1 l2) (action.emptyfull r2)
+	   else action.combine (action.emptyfull l2) (reccall s1 r2)
 	 else
 	    disjoint action s1 s2
 
@@ -341,18 +342,20 @@ module Poly(I:Intern) = struct
           | Some f -> failwith "Patricia tries not hconsed"
           | None -> merge_poly action )
           
-    let union_poly_action f = {
-        sameleaf = (fun k v1 v2 -> singleton k (f k (Some v1) (Some v2)));
-        emptyfull = (fun a -> map (fun k v2 -> f k None (Some v2)) a);
-        fullempty = (fun a -> map (fun k v1 -> f k (Some v1) None) a);
+    let union_poly_action f emptyfull fullempty = {
+        sameleaf = (fun k v1 v2 -> singleton k (f k v1 v2));
+        emptyfull = emptyfull;
+        fullempty = fullempty;
+        combine   = join
       }
                            
-    let union_poly f = merge_poly (union_poly_action f)
+    let union_poly f fullempty emptyfull s1 s2 = merge_poly (union_poly_action f emptyfull fullempty) s1 s2
 
     let union_action f = {
         sameleaf = (fun k v1 v2 -> singleton k (f v1 v2));
         emptyfull = (fun a -> a);
         fullempty = (fun a -> a);
+        combine   = join
       }
 
     let union =
@@ -365,6 +368,7 @@ module Poly(I:Intern) = struct
         sameleaf = (fun k v1 v2 -> singleton k (f k v1 v2));
         emptyfull = (fun _ -> empty);
         fullempty = (fun _ -> empty);
+        combine   = join
       }
                            
     let inter_poly f s1 s2 = merge_poly (inter_action f) s1 s2
@@ -378,6 +382,7 @@ module Poly(I:Intern) = struct
         sameleaf = (fun _ _ _ -> empty);
         emptyfull = (fun _ -> empty);
         fullempty = (fun a -> a);
+        combine   = join
       }
                            
     let diff_poly f s1 s2 = merge_poly (diff_action f) s1 s2
@@ -387,25 +392,19 @@ module Poly(I:Intern) = struct
       then (fun f s1 s2 -> merge ~equal:(fun a->empty) (diff_action f) s1 s2)
       else diff_poly
 
+    let sub_action f = {
+        sameleaf = (fun _ x y -> f x y);
+        emptyfull = (fun _ -> true);
+        fullempty = (fun _ -> false);
+        combine   = (&&)
+      }
+                           
+    let sub_poly f s1 s2 = merge_poly (sub_action f) s1 s2
 
-    let rec subset f s1 s2 =
-      if is_hcons && s1==s2 then true
-      else match reveal s1, reveal s2 with
-      | Empty, _            -> true
-      | _, Empty            -> false
-      | Leaf(k,x), _        -> mem k s2 &&(let y = find k s2 in f x y)
-      | Branch _, Leaf(k,_) -> false
-      | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then
-	   subset f l1 l2 && subset f r1 r2
-	 else if bcompare m2 m1 < 0 && match_prefix p1 p2 m2 then
-	   if check p1 m2 then 
-	     subset f l1 l2 && subset f r1 l2
-	   else 
-	     subset f l1 r2 && subset f r1 r2
-	 else
-	   false
-
+    let subset =
+      if is_hcons
+      then (fun f s1 s2 -> merge ~equal:(fun a->true) (sub_action f) s1 s2)
+      else sub_poly
 
   (* Advanced version of subset, returning 
      Yes()     if it is a subset,

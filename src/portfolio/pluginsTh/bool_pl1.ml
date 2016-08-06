@@ -74,14 +74,11 @@ struct
   let bump_value = ref 1.
   let since_last = ref 1
 
-  let action() = {
-      LMap.sameleaf = (fun k () v -> LMap.singleton k (v +. !bump_value));
-      LMap.emptyfull = (fun trail -> trail);
-      LMap.fullempty = LMap.map (fun _ () -> !bump_value);
-    }
-                       
   let bump lset =
-    scores := LMap.merge_poly (action()) lset !scores;
+    scores := LMap.union_poly (fun _ () v -> v +. !bump_value)
+                (LMap.map (fun _ () -> !bump_value))
+                (fun scores -> scores)
+                lset !scores;
     incr since_last;
     bump_value := !bump_value *. decay;
     if !since_last > 100

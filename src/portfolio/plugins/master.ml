@@ -91,11 +91,11 @@ module Make(WB: sig
     in
     WM.broadcast treat_worker pipe_map
 
-  let action level chrono msg = {
-      T.sameleaf = (fun k () v -> T.singleton k v);
-      T.emptyfull = (fun trail -> trail);
-      T.fullempty = T.map (fun _ () -> level,chrono,msg);
-    }
+  let trail_ext level chrono msg =
+    T.union_poly
+      (fun _ () v -> v)
+      (T.map (fun _ () -> level+1,chrono+1,msg))
+      (fun trail -> trail)
 
   (* This is a branching function telling all slave workers:
 
@@ -129,8 +129,9 @@ module Make(WB: sig
                       waiting4  = AS.all;
                       level     = state.level+1;
                       chrono    = state.chrono+1;
-                      trail = T.merge_poly
-                                (action (state.level+1) (state.chrono+1) (T.Decided msg))
+                      trail = trail_ext (state.level+1)
+                                (state.chrono+1)
+                                (T.Decided msg)
                                 new1
                                 state.trail }
     in
@@ -141,16 +142,13 @@ module Make(WB: sig
        let WB(_,Propa(_,Straight new1)) = msg1 in
        (* send new_pipe_map2 new1 >>= fun () -> *)
        (* let trail = T.merge_poly *)
-       (*               (action state.level (state.chrono+1) (T.Propagated msg1)) *)
+       (*               (trail_ext state.level (state.chrono+1) (T.Propagated msg1)) *)
        (*               new1 *)
        (*               state.trail *)
        (* in *)
        let WB(_,Propa(_,Straight new2)) = msg2 in
        send new_pipe_map2 new2 >>= fun () ->
-       let trail = T.merge_poly
-                     (action state.level (state.chrono+2) (T.Propagated msg2))
-                     new2
-                     state.trail
+       let trail = trail_ext state.level (state.chrono+2) (T.Propagated msg2) new2 state.trail
        in
        Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
        let newstate2 = { state with
@@ -267,8 +265,10 @@ module Make(WB: sig
               { state with
                 waiting4 = AS.all;
                 chrono = state.chrono+1;
-                trail = T.merge_poly
-                          (action state.level (state.chrono+1) (T.Propagated thmsg))
+                trail = trail_ext
+                          state.level
+                          (state.chrono+1)
+                          (T.Propagated thmsg)
                           newa
                           state.trail }
 
