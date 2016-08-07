@@ -379,7 +379,7 @@ module Poly(I:Intern) = struct
       else inter_poly
 
     let diff_action f = {
-        sameleaf = (fun _ _ _ -> empty);
+        sameleaf  = f;
         emptyfull = (fun _ -> empty);
         fullempty = (fun a -> a);
         combine   = join

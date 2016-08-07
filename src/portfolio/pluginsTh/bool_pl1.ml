@@ -52,8 +52,8 @@ end
 
 module LMap = PATMap.Make(DMap)(I)
 
-let decay = 2.
-let factor = decay**100.
+let decay = 3.
+let factor = decay**1000.
                 
 module Make(DS: sig 
   include GTheoryDSType
@@ -81,7 +81,7 @@ struct
                 lset !scores;
     incr since_last;
     bump_value := !bump_value *. decay;
-    if !since_last > 100
+    if !since_last > 1000
     then (scores := LMap.map (fun _ score -> score /. factor) !scores;
           bump_value := !bump_value /. factor;
           since_last := 1)
@@ -140,9 +140,13 @@ struct
                    begin
                      match (proj(Terms.data t)).asclause with (* Let's look at its clausal structure *)
                      | Some lset when LSet.info lset > 1 ->
-                        (* Every literal in lset that we have never seen before is given score 1. *)
-                        let toadd = LMap.map (fun _ () -> 1.) lset in
-                        scores := LMap.union (fun score _ -> score) !scores toadd
+                        (* Every literal in lset that we have never seen before is given score !bump_value. *)
+                        scores := LMap.union_poly
+                                    (fun _ score () -> score)
+                                    (fun scores -> scores)
+                                    (LMap.map (fun _ () -> !bump_value))
+                                    !scores
+                                    lset
                      | _ -> () (* Otherwise nothing to do *)
                    end;
                    let c = Config.Constraint.make t in
