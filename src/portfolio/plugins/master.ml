@@ -94,7 +94,7 @@ module Make(WB: sig
   let trail_ext level chrono msg =
     T.union_poly
       (fun _ () v -> v)
-      (T.map (fun _ () -> level+1,chrono+1,msg))
+      (T.map (fun _ () -> level,chrono,msg))
       (fun trail -> trail)
 
   (* This is a branching function telling all slave workers:
@@ -138,17 +138,10 @@ module Make(WB: sig
     send new_pipe_map1 new1 >>= fun () ->
     cont newstate1 >>| fun ans ->
     (ans,
-     (fun msg1 msg2 ->
-       let WB(_,Propa(_,Straight new1)) = msg1 in
-       (* send new_pipe_map2 new1 >>= fun () -> *)
-       (* let trail = T.merge_poly *)
-       (*               (trail_ext state.level (state.chrono+1) (T.Propagated msg1)) *)
-       (*               new1 *)
-       (*               state.trail *)
-       (* in *)
+     (fun msg2 ->
        let WB(_,Propa(_,Straight new2)) = msg2 in
        send new_pipe_map2 new2 >>= fun () ->
-       let trail = trail_ext state.level (state.chrono+2) (T.Propagated msg2) new2 state.trail
+       let trail = trail_ext state.level (state.chrono+1) (T.Propagated msg2) new2 state.trail
        in
        Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
        let newstate2 = { state with
@@ -216,14 +209,14 @@ module Make(WB: sig
       Dump.print ["concur",2] (fun p-> p "\nMain_worker enters new loop");
       if HandlersMap.is_empty rest
       (* rest being empty means that all theories have
-                stamped the set of literals consset as being consistent
-                with them, so we can finish, closing all pipes *)
+         stamped the set of literals consset as being consistent
+         with them, so we can finish, closing all pipes *)
       then kill_pipes state.pipe_map state.to_plugin >>| fun () ->
            F current
 
       (* some theories still haven't stamped that set of
-                literals consset as being consistent with them, so we
-                read what the theories have to tell us *)
+         literals consset as being consistent with them, so we
+         read what the theories have to tell us *)
       else
         select_msg state
         >>= fun (Say(WB(_,msg) as thmsg), state) ->
@@ -247,17 +240,26 @@ module Make(WB: sig
          | Propa(tset,Unsat) -> 
             Dump.print ["concur",1] (fun p -> p "Conflict %a" WB.print_in_fmt thmsg);
             (* A theory found a proof. We stop and close all pipes. *)
-            (* if not(DS.TSet.subset tset state.trail) *)
-            (* then ( Dump.print ["concur",0] (fun p -> p "Pb: %a\n%a" WB.print_in_fmt thmsg DS.TSet.print_in_fmt (DS.TSet.diff tset state.trail)); *)
-            (*        failwith "Master213" ); *)
+            if not(T.subset_poly (fun () _ -> true) tset state.trail)
+            then ( Dump.print ["concur",0] (fun p ->
+                       p "Pb: %a"
+                         WB.print_in_fmt thmsg
+                     );
+                   failwith "Master213" );
             let conflict,level,term = T.analyse state.trail thmsg in
-            Dump.print ["concur",0] (fun p -> p "Current level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a"
-                                                state.level level DS.Term.print_in_fmt term WB.print_in_fmt conflict);
+            Dump.print ["concur",0] (fun p ->
+                p "Current level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a"
+                  state.level
+                  level
+                  DS.Term.print_in_fmt term
+                  WB.print_in_fmt conflict);
             kill_pipes state.pipe_map state.to_plugin >>| fun () ->
             A(conflict,level,term)
 
          | Propa(old,Straight newa) ->
-            Dump.print ["concur",1] (fun p -> p "Level %i; chrono %i; %a" state.level (state.chrono+1) WB.print_in_fmt thmsg);
+            Dump.print ["concur",1] (fun p ->
+                p "Level %i; chrono %i; %a"
+                  state.level (state.chrono+1) WB.print_in_fmt thmsg);
             (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
             send state.pipe_map newa >>= fun () ->
@@ -292,7 +294,7 @@ module Make(WB: sig
                 else return ())
                >>= fun () ->
                def_ans2
-                 (WB.both2straight thmsg ans1)
+                 (* (WB.both2straight thmsg ans1) *)
                  (WB.curryfy (DS.TSet.singleton term) ans1)
                         
             | _ -> kill2() >>| fun () -> ans1

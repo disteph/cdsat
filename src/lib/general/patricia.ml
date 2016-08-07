@@ -399,12 +399,12 @@ module Poly(I:Intern) = struct
         combine   = (&&)
       }
                            
-    let sub_poly f s1 s2 = merge_poly (sub_action f) s1 s2
+    let subset_poly f s1 s2 = merge_poly (sub_action f) s1 s2
 
     let subset =
       if is_hcons
       then (fun f s1 s2 -> merge ~equal:(fun a->true) (sub_action f) s1 s2)
-      else sub_poly
+      else subset_poly
 
   (* Advanced version of subset, returning 
      Yes()     if it is a subset,

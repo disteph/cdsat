@@ -136,6 +136,7 @@ module type PATMapType = sig
   val inter_poly : (keys -> 'v1 -> 'v2 -> values)  -> ('v1,_)param -> ('v2,_)param -> t
   val diff       : (keys -> values -> values -> t) -> t -> t -> t
   val diff_poly  : (keys -> values -> 'v -> t) -> t -> ('v,_)param  -> t
+  val subset_poly: ('v1 -> 'v2 -> bool) -> ('v1,_)param -> ('v2,_)param -> bool
   val subset     : (values -> values -> bool)  -> t -> t -> bool
   val sub :
     (bool -> keys -> values -> values option -> (unit, 'a) almost) ->
