@@ -33,7 +33,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let display_aset atoms =
     let latoms = UASet.fold (fun x l -> x::l) atoms [] in
-    let show a = Format.printf "\t%a\n%!" LitF.print_in_fmt a in
+    let show a = Format.printf "\t%a\n%!" print_litF_in_fmt a in
     List.iter show latoms
 
   let display_farray forms = 
@@ -171,34 +171,37 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   let rec solve = function
     | Jackpot ans -> ans
     | InsertCoin(Notify(seq,sigma,_,execute,ad)) -> 
-      print_hrule '=';
-      display_ad ad;
-      display_seq seq sigma;
-      print_hrule '-';
-      print_endline "Status: Notify";
-      Format.printf "Hit enter to continue > %!";
-      Dump.wait ();
-      let newad = el_wrap (branch OrNode (ad [])) in
-      solve (execute (true,newad,accept,fNone))
+       (* print_hrule '='; *)
+       (* display_ad ad; *)
+       (* display_seq seq sigma; *)
+       (* print_hrule '-'; *)
+       (* print_endline "Status: Notify"; *)
+       (* Format.printf "Hit enter to continue > %!"; *)
+       (* Dump.wait (); *)
+       let newad = el_wrap (branch OrNode (ad [])) in
+       solve (execute (true,newad,accept,fNone))
     | InsertCoin(AskFocus(seq,sigma,pforms,more,checked,execute,ad)) -> 
-      print_hrule '=';
-      display_ad ad;
-      display_seq seq sigma;
-      print_hrule '-';
-      print_endline "Status: AskFocus";
-      let ans = ask_focus seq (FSet.forPlugin pforms) more checked ad in
-      solve (execute ans)
+       let _ = Sys.command "clear" in
+       print_hrule '=';
+       display_ad ad;
+       display_seq seq sigma;
+       print_hrule '-';
+       print_endline "Status: AskFocus";
+       let ans = ask_focus seq (FSet.forPlugin pforms) more checked ad in
+       solve (execute ans)
     | InsertCoin(AskSide (seq,sigma, execute,ad)) -> 
-      print_hrule '=';
-      display_ad ad;
-      display_seq seq sigma;
-      print_hrule '-';
-      print_endline "Status: AskSide";
-      let side = ask_side () in
-      solve (execute(side,branch_two(branch OrNode (ad[]))))
+       let _ = Sys.command "clear" in
+       print_hrule '=';
+       display_ad ad;
+       display_seq seq sigma;
+       print_hrule '-';
+       print_endline "Status: AskSide";
+       let side = ask_side () in
+       solve (execute(side,branch_two(branch OrNode (ad[]))))
     | InsertCoin(Stop(b1,b2, execute)) ->
-      print_hrule '=';
-      print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
-      solve (execute ())
-	
+       let _ = Sys.command "clear" in
+       print_hrule '=';
+       print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
+       solve (execute ())
+	     
 end

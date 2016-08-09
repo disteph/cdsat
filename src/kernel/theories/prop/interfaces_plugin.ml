@@ -66,6 +66,8 @@ module type FrontEndType = sig
   module FSet : CollectKernel with type e = IForm.t
   module ASet : CollectKernel with type e = LitF.t
 
+  val print_litF_in_fmt : Format.formatter -> Literals.LitF.t -> unit
+    
   (* The kernel has a module for polarity assignment for literals, and how to compute the polarity of a formula *)
 
   module Pol : sig

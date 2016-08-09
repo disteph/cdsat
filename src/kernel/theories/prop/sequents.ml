@@ -93,6 +93,9 @@ module Make(PlDS: PlugDSType) = struct
       let atom = Term.term_of_id index in
       if b then atom else Term.bC Symbols.Neg [atom]
 
+    let print_litF_in_fmt fmt lit =
+      Term.print_in_fmt fmt (litF_as_term lit)
+                                  
     let rec makes_senseF f w =
       match FormulaF.reveal f with
       | LitF l  -> makes_sense (litF_as_term l) w
@@ -179,13 +182,13 @@ module Make(PlDS: PlugDSType) = struct
       let print_in_fmt_aux fmt = function
 	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
 	  -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
-          ASet.print_in_fmt atomsN
+          TSet.print_in_fmt (asTSet atomsN)
           IForm.print_in_fmt focused
           FSet.print_in_fmt formuP
           FSet.print_in_fmt formuPSaved
 	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)
           -> fprintf fmt " \\DerOSNeg {%a} {%a} {%a \\cdot %a}"
-          ASet.print_in_fmt atomsN
+          TSet.print_in_fmt (asTSet atomsN)
           FSet.print_in_fmt unfocused
           FSet.print_in_fmt formuP
           FSet.print_in_fmt formuPSaved
