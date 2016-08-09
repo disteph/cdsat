@@ -154,14 +154,14 @@ module World = struct
   let print_in_fmtEM fmt w =
     let ar = data w in 
     let aux fmt =
-      IntMap.fold (fun i j () -> Format.fprintf fmt "%a -> #%i; " Eigen.print_in_fmt (IntMap.find i ar.ithE) j) ar.depEM ()
+      IntMap.fold (fun i j () -> Format.fprintf fmt "(%a fresh for #%i); " Eigen.print_in_fmt (IntMap.find i ar.ithE) j) ar.depEM ()
     in
-    Format.fprintf fmt "?%i; %t" ar.next_meta aux 
+    Format.fprintf fmt "next meta: ?%i; %t" ar.next_meta aux 
 
   let print_in_fmtME fmt w = 
     let ar = data w in 
     let aux fmt =
-      IntMap.fold (fun i j () -> Format.fprintf fmt "?%a -> #%i; " Meta.print_in_fmt (IntMap.find i ar.ithM) j) ar.depME ()
+      IntMap.fold (fun i j () -> Format.fprintf fmt "(?%a fresh for #%i); " Meta.print_in_fmt (IntMap.find i ar.ithM) j) ar.depME ()
     in
     Format.fprintf fmt "%i; %t" ar.next_eigen aux 
 

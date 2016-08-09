@@ -52,7 +52,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let display_seq seq sigma =
     let display_gen atomN formP formPSaved =
-      print_endline "Atoms: ";
+      print_endline "Literals: ";
       display_aset atomN;
       print_endline "Positive formulae:";
       display_fset formP;

@@ -136,13 +136,11 @@ let print_in_fmtK = IntSort.print_in_fmt
 let print_in_fmtV = KTerm.print_in_fmt
 
 let print_in_fmt fmt u =
-  let aux fmt =
-    TMap.fold
-      (fun key term () -> fprintf fmt "k%a -> %a; " print_in_fmtK key print_in_fmtV term)
-      u.map
-      ()
+  let aux =
+    TMap.print_in_fmt
+      (fun fmt (key,term) -> fprintf fmt "(k%a -> %a)" print_in_fmtK key print_in_fmtV term)
   in
-  fprintf fmt "{next=%i; map = %t}" u.next_key aux
+  fprintf fmt "next key=%i; map = %a" u.next_key aux u.map
 
 
 (* We are going to construct maps between keys and mets *)

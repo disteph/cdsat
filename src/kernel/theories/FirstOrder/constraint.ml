@@ -19,7 +19,7 @@ let topconstraint = { ar  = World.init;
                       unifier = IU.empty }
 
 let print_in_fmt fmt sigma = 
-  Format.fprintf fmt "{ar = {%a} || mk = {%a} || u = {%a}}"
+  Format.fprintf fmt "  dependencies = %a\n  meta->key    = %a\n  unifier      = %a"
     World.print_in_fmtEM sigma.ar
     MKcorr.print_in_fmt  sigma.mk
     IU.print_in_fmt      sigma.unifier

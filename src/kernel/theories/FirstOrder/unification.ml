@@ -34,7 +34,10 @@ module MKcorr = (struct
 
   let fold f mk = IU.MMap.fold f mk.get_key
   let print_in_fmt fmt mk = 
-    IU.MMap.fold (fun mv key () -> Format.fprintf fmt "%a -> k%a; " Meta.print_in_fmt mv IU.print_in_fmtK key) mk.get_key ()
+    IU.MMap.print_in_fmt
+      (fun fmt (mv,key) -> Format.fprintf fmt "(?%a -> k%a)" Meta.print_in_fmt mv IU.print_in_fmtK key)
+      fmt
+      mk.get_key
 
 end: sig
   type t
