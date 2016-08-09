@@ -6,16 +6,13 @@ open Combo
 open Top
 open HCons
 open Messages
-open Specs
 open Theories_register
 
 open General
 open SetConstructions
 
 open PluginsTh_tools
-
-open LoadPluginsTh
-
+       
 type sign = unit
               
 module Make(WB : WhiteBoardExt.Type) = struct
@@ -118,60 +115,69 @@ module Make(WB : WhiteBoardExt.Type) = struct
                    
     let simplify = Constraint.simplify
                      
-    let pick_another fixed (c : Constraint.t) (var : Var.t) : Var.t option =
+    let pick_another fixed (c : Constraint.t) i (previous : Var.t list) : Var.t list option =
       let tset = Fixed.notfixed fixed (Constraint.tset c) in
-      let tochoose = 
-        if TSet.mem var tset
-        then TSet.remove var tset
-        else tset
+      let newlist =
+        PluginsTh_tools.TwoWatchedLits.pick_another_make
+          ~is_empty:TSet.is_empty
+          ~mem:TSet.mem
+          ~next:TSet.next
+          ~remove:TSet.remove
+          tset i previous
       in
-      Dump.print ["memo",-1] (fun p->
-          p "Memo: Already watching %a in %a\nWatching choosing from %a"
-            Term.print_in_fmt var TSet.print_in_fmt (Constraint.tset c) TSet.print_in_fmt tochoose);
-      if TSet.is_empty tochoose
-      then None
-      else let newvar,_ = TSet.next tochoose in Some newvar
-                                                     
+      Dump.print ["memo",2] (fun p ->
+          match newlist with
+          | Some newlist ->
+             p "%t" (fun fmt ->
+                 Format.fprintf fmt "Memo: Have to watch %i terms in %a\nHave chosen %a from %a"
+                   i
+                   TSet.print_in_fmt (Constraint.tset c)
+                   (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") Term.print_in_fmt) newlist
+                   TSet.print_in_fmt tset)
+          | None ->
+             p "%t" (fun fmt ->
+                 Format.fprintf fmt "Memo: Unable to pick %i terms to watch in %a\nMust choose from %a"
+                   i
+                   TSet.print_in_fmt (Constraint.tset c)
+                   TSet.print_in_fmt tset
+        ));
+      newlist
+        
   end 
 
   module P = TwoWatchedLits.Make(Config)
                                 
   module WR : sig
-    val add : Constraint.t -> unit
-    val treat : Config.fixed -> TSet.t -> (Config.Constraint.t*Term.t) option
+    val add : Constraint.t -> Term.t -> Term.t option -> unit
+    val treat : Config.fixed -> TSet.t -> (Config.Constraint.t*Term.t list) option
   end = struct
     
     let watchref = ref P.init
     let watchcount = ref 0
 
     let prove tset =
-      let watch = TSet.fold P.fix tset (P.reset !watchref) in
+      let watch = TSet.fold P.fix tset !watchref in
       let fixed = Fixed.extend tset Fixed.init in
       let rec aux watch =
-        match P.next fixed watch with
+        match P.next fixed ~howmany:1 watch with
         | None,_ -> false
-        | Some(c,var),_ when TSet.mem var tset ->
+        | Some(c,_),_ ->
            Dump.print ["watch",1] (fun p-> p "Already know");
            true
-        | Some _,watch -> aux watch
       in
       aux watch
           
-    let add c =
+    let add c term1 term2 =
       let tset = Constraint.tset c in
-      if not(TSet.is_empty tset)
+      if not(prove tset)
       then
-        let t1,newtset = TSet.next tset in
-        if not(TSet.is_empty newtset)&&not(prove tset)
-        then
-          let t2,_ = TSet.next newtset in
-          watchref := P.addconstraintNpick c t1 t2 !watchref;
-          incr watchcount;
-          Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
+        watchref := P.addconstraintNflag c (term1::(match term2 with None -> [] | Some t2 -> [t2])) !watchref;
+        incr watchcount;
+        Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 
     let treat fixed tset =
       let watch = TSet.fold P.fix tset !watchref in
-      let msg, watch = P.next fixed watch in
+      let msg, watch = P.next ~howmany:2 fixed watch in
       watchref := watch;
       msg
         
@@ -196,11 +202,11 @@ module Make(WB : WhiteBoardExt.Type) = struct
 
   let rec loop_read (fixed:Config.fixed) from_pl to_pl =
     let aux = function 
-      | MsgStraight tset
+      | MsgStraight(tset,chrono)
         ->
          let fixed = Fixed.extend tset fixed in
-         (* Dump.print ["memo",1] (fun p-> p "Memo: adding %a" TSet.print_in_fmt tset); *)
-         loop_write (WR.treat fixed tset) fixed from_pl to_pl
+         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" TSet.print_in_fmt tset);
+         loop_write (WR.treat fixed tset) fixed chrono from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
         -> Deferred.all_unit
              [ loop_read fixed newreader1 newwriter1 ;
@@ -209,44 +215,50 @@ module Make(WB : WhiteBoardExt.Type) = struct
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
       from_pl aux
 
-  and loop_write outmsg fixed from_pl to_pl =
+  and loop_write outmsg fixed chrono from_pl to_pl =
 
     match outmsg with
     | None -> 
        Dump.print ["memo",2] (fun p-> p "Memo: no output msg");
        Deferred.all_unit
-         [ Lib.write to_pl (Msg(None,Ack));
+         [ Lib.write to_pl (Msg(None,Ack,chrono));
            loop_read fixed from_pl to_pl ]
-    | Some(msg,term) ->
-       let msg = Constraint.msg msg in
-       if Fixed.is_fixed term fixed
+    | Some(constr,termlist) ->
+       let msg = Constraint.msg constr in
+       let tset = Constraint.tset constr in
+       if Fixed.are_fixed tset fixed
        then
          (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.print_in_fmt msg);
-          let msg = Msg(None,Say msg) in
+          let msg = Msg(None,Say msg,chrono) in
           Deferred.all_unit
             [ Lib.write to_pl msg;
               flush from_pl to_pl msg ])
        else
+         let terms = Fixed.notfixed fixed tset in
          (Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
-                WB.print_in_fmt msg Term.print_in_fmt term);
-          let msg = WB.curryfy (TSet.singleton term) msg in
+                WB.print_in_fmt msg TSet.print_in_fmt terms);
+          let msg = WB.curryfy terms msg in
           let WB(_,Propa(_,Straight tset)) = msg in
           if Fixed.are_fixed tset fixed
           then
-            loop_read fixed from_pl to_pl
+            (Dump.print ["memo",0] (fun p->
+                 p "Memo: %a already known" TSet.print_in_fmt tset);
+             Deferred.all_unit
+               [ Lib.write to_pl (Msg(None,Ack,chrono));
+                 loop_read fixed from_pl to_pl ])
           else
             (Dump.print ["memo",0] (fun p-> p "Memo: useful prop");
              Deferred.all_unit
-               [ Lib.write to_pl (Msg(None,Say msg));
+               [ Lib.write to_pl (Msg(None,Say msg,chrono));
                  loop_read fixed from_pl to_pl ]))
 
 
   let make = loop_read Fixed.init
 
   let rec make_listener clause_reader = 
-    let aux msg =
-      WR.add (Constraint.make msg);
+    let aux (msg,term1,term2) =
+      WR.add (Constraint.make msg) term1 term2;
       Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.print_in_fmt msg);
       make_listener clause_reader
     in

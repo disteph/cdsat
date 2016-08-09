@@ -18,5 +18,6 @@ module type Type = sig
   end)
     : sig
       val solve : WB.DS.TSet.t -> (unsat WB.t, sat WB.t) sum 
-    end
+      val clear : unit -> unit
+  end
 end

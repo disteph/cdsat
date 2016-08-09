@@ -10,7 +10,7 @@ module type GetPlugins = sig
   val make :
     (module GTheoryDSType with type Term.datatype = 't and type TSet.t = 'ts)
     -> ('t,agglo) projList
-    -> 'ts sslot_machine HandlersMap.t
+    -> 'ts sslot_machine HandlersMap.t * (unit->unit)
 end
 
 val make : unit HandlersMap.t -> (module GetPlugins)

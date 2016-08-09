@@ -13,12 +13,15 @@ module I : Intern with type keys = LitF.t
                       
 (* LSet = Sets of literals, patricia tries implementation (hconsed) *)
 
-module LSet : PATSetType
-       with type e = LitF.t
-        and type infos = int
-        and type ('v, 'i) param =
-                   (LitF.t, 'v, I.common, I.branching, 'i) General.Patricia.poly
-                     
+module LSet : sig
+
+  include PATSetType
+          with type e = LitF.t
+           and type infos = int
+           and type ('v, 'i) param =
+                      (LitF.t, 'v, I.common, I.branching, 'i) General.Patricia.poly
+  val next : t -> e*t
+end
      
 (* Representation of terms for boolean reasoning, knowing about
    disjunction, negation, true and false *)

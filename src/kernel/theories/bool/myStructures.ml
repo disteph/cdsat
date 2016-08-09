@@ -15,10 +15,13 @@ module DSet = struct
   let kcompare   = LitF.compare
   type infos     = int
   let info_build = c_info_build
-  let treeHCons  = Some LitF.id
+  let treeHCons  = None (* Some LitF.id  *)
 end
 
-module LSet = PATSet.Make(DSet)(I)
+module LSet = struct
+  include PATSet.Make(DSet)(I)
+  let next lset = let lit = choose lset in lit, remove lit lset
+end
   
 (* Representation of terms for boolean reasoning, knowing about
    disjunction, negation, true and false *)

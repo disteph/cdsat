@@ -117,5 +117,6 @@ module Make(DS: sig
     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = machine {treated=TSet.empty; splits=[]; stack=[]}
+  let clear () = ()
 
 end

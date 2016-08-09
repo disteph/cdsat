@@ -12,26 +12,32 @@ module type GetPlugins = sig
   val make :
     (module Specs.GTheoryDSType with type Term.datatype = 't and type TSet.t = 'ts)
     -> ('t,agglo) projList
-    -> 'ts sslot_machine HandlersMap.t
+    -> ('ts sslot_machine) HandlersMap.t * (unit->unit)
 end
 
 let make theories : (module GetPlugins) =
   HandlersMap.fold
     (fun (Handlers.Handler sign as hdl) () gp
-    -> let module GP = (val gp: GetPlugins) in
-       let module PluginTh = (val get_default sign) in
-       (module struct
-         type agglo = PluginTh.ThDS.t * GP.agglo
-         let dataList = ConsData((module PluginTh.ThDS),GP.dataList)
-         let make (type t)(type ts) ds (ConsProj(g,projlist)) =
-           let module DS = (val ds: Specs.GTheoryDSType with type Term.datatype = t and type TSet.t = ts) in
-           let module S = PluginTh.Make(struct include DS let proj = g end) in
-           HandlersMap.add hdl (Signed(PluginTh.hdl,S.init)) (GP.make ds projlist)
-       end: GetPlugins)
+     -> let module GP = (val gp: GetPlugins) in
+        let module PluginTh: PluginTh.Type = (val get_default sign) in
+        (module struct
+
+           type agglo = PluginTh.ThDS.t * GP.agglo
+
+           let dataList = ConsData((module PluginTh.ThDS),GP.dataList)
+
+           let make (type t)(type ts) ds (ConsProj(g,projlist)) =
+             let module DS = (val ds: Specs.GTheoryDSType with type Term.datatype = t and type TSet.t = ts) in
+             let module S = PluginTh.Make(struct include DS let proj = g end) in
+             let hdlmap,clear = GP.make ds projlist in
+             HandlersMap.add hdl (Signed(PluginTh.hdl,S.init)) hdlmap,
+             (fun () -> clear();S.clear())
+               
+               end: GetPlugins)
     )
     theories
     (module struct 
-      type agglo = unit
-      let dataList = NoData
-      let make _ NoProj = HandlersMap.empty
-    end:GetPlugins)
+       type agglo = unit
+       let dataList = NoData
+       let make _ NoProj = HandlersMap.empty,(fun()->())
+                                               end:GetPlugins)

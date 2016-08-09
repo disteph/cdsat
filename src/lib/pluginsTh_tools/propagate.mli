@@ -39,27 +39,23 @@ module type Config = sig
      constraints *)
   val init_fixed : fixed
 
+  (* type used in function constreat *)
 
-  (* type used in the following function *)
   type result =
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
-    | Meh of fixed
-    | Watch of fixed * Var.t * Var.t
+    | Meh       of fixed
 
-  (* constreat constraint
-     treats the addition of constraint.
-     2 cases occur: 
-     - either there are at least 2 indeterminate variables in
-       constraint, in which case we just output 2 of them;
-     - or constraint is unit or constant, in which case we provide a
-       function that affects a constraints map, returning a new one,
-       together with one of 3 cases:
+  (* constreat constraint fixed
+     treats a constraint that has popped up as not being able to watch enough
+     variables that aren't fixed in fixed.
+     In the 2-watched case, constraint is unit or constant, in which case 
+     we provide one of three results:
      -- the range of a variable has become empty, we return UNSAT msg,
-        where msg is the message announcing the conflict;
+        where typically msg is the message announcing the conflict;
      -- the range of a variable has become a singleton, we return
         Propagate(fixed,varlist), where varlist are the variables whose value
-        has become forced and fixed is the new structure recording the
+        have become forced and fixed is the new structure recording the
         determined variables (now including varlist);
      -- we have recorded the unit or constant constraint, and no
         conflict or propagation has been triggered, we return Meh.
@@ -90,6 +86,6 @@ module Make(C: Config) : sig
      - or we return a new state, where all propagations have been
      performed without generating a conflict, together with some messages describing the propagations that we have performed. 
   *)
-  val treat : C.Constraint.t -> t -> (C.stop, t) Sums.sum
+  val treat : C.Constraint.t -> int -> t -> (C.stop, t) Sums.sum
   val extract_msg: t -> C.msg option * t
 end

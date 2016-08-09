@@ -25,5 +25,5 @@ module Make(WB : WhiteBoardExt.Type) : sig
     -> msg2pl Pipe.Writer.t
     -> unit Deferred.t
 
-  val make_listener : unsat WB.t Pipe.Reader.t -> unit Deferred.t
+  val make_listener : (unsat WB.t*Term.t*Term.t option) Pipe.Reader.t -> unit Deferred.t
 end

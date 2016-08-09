@@ -48,7 +48,7 @@ let make theories : (module Plugin.Type) =
       every (involved) theory handler to (the initial state of) a
       decision procedure for it. *)
 
-      let m_init = make (module WB.DS) WB.projList
+      let m_init,clear = make (module WB.DS) WB.projList
 
       (* Main code for master thread, parameterised by the original
          set of formulae we want to prove inconsistent *)

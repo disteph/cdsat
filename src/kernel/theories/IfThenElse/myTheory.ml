@@ -115,5 +115,6 @@ struct
       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = machine { treated = TSet.empty; known = LMap.empty; todo = []; solved = TSet.empty }
-
+  let clear () = ()
+                   
 end

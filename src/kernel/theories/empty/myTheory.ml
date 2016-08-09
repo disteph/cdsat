@@ -43,5 +43,6 @@ module Make(DS: GTheoryDSType) = struct
       end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = machine TSet.empty
-
+  let clear () = ()
+                   
 end

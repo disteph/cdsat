@@ -40,17 +40,20 @@ module type Config = sig
    *)
   val simplify: fixed -> Constraint.t -> Constraint.t
 
-  (* pick_another constraint var
+  (* pick_another constraint number previous var
 
-     looks for another variable that constraint can watch:
-     - var is the other variable that constraint was watching (which
-     may or may not, at this point, be determined, but in any case
-     it should not be picked).
+     looks for (number) new variables that constraint can watch:
+     - previous is the previous list of variables that contraint watched
+     (its length might be different from (number), typically for a new 
+     constraint, previous will be the empty list).
 
-     The output provides (Some var'), if var' is the new variable to
-     watch, or None, if no variable could be picked (in which case the
-     constraint is unit or constant). *)
-  val pick_another: fixed -> Constraint.t -> Var.t -> (Var.t option)
+     The output provides (Some varlist), if varlist is the new list of length
+     (number) of variable to watch, or None, if (number) could not be reached. *)
+  val pick_another: fixed
+                    -> Constraint.t
+                    -> int
+                    -> Var.t list
+                    -> Var.t list option
 end
 
 (* Given such a configuration module C, Make(C) provides an
@@ -65,20 +68,6 @@ module Make(C : Config) : sig
   (* Initial datatstructure where nobody whatches nobody *)
   val init : t
 
-  (* addconstraint constraint var1 var2 whowatcheswhat
-
-     adds, to the datastructure whowatcheswhat, a constraint
-     constraint, that watches var1 and var2.
-     We assume that constraint does not already exist in
-     whowatcheswhat, and that var1 and var2 are distinct. *)
-  val addconstraint : Constraint.t -> Var.t -> Var.t -> t -> t
-
-  (* addconstraintNcheck constraint var1 var2 whowatcheswhat
-
-     does the same as above, but also queues constraint for new 
-     watched variables selection. *)
-  val addconstraintNpick : Constraint.t -> Var.t -> Var.t -> t -> t
-
   (* fix var whowatcheswhat
 
      declares in whowatcheswhat that var should no longer be watched.
@@ -86,18 +75,42 @@ module Make(C : Config) : sig
      watch another variable" instead. *)
   val fix  : Var.t -> t -> t
 
-  (* next fixed whowatcheswhat
+  (* addconstraint constraint varlist whowatcheswhat
+
+     adds, to the datastructure whowatcheswhat, a constraint
+     constraint watching varlist. *)
+
+  val addconstraint : Constraint.t -> Var.t list -> t -> t
+
+  (* addconstraintNflag constraint varlist whowatcheswhat
+
+     same as above, but also flags constraint for scheduling new
+     watched variables picking *)
+  val addconstraintNflag : Constraint.t -> Var.t list -> t -> t
+
+  (* next fixed ?howmany whowatcheswhat
 
      triggers computation: constraints in whowatcheswhat that were
-     declared as "needing to watch another variable" will effectively
-     pick a new variable to watch that is not in fixed.
+     declared as "needing to watch new variables" will effectively
+     pick (?howmany) new variables to watch that are not in fixed.
+     If (?howmany) is not specified, it will be the same number as 
+     the constraint used to watch.
 
      The first clause that fails to do so, call it constraint, stops
-     the computation and is output as (Some constraint); if all
-     constraints manage to do so we get None. In both cases, the new
-     state of whowatcheswhat is also output. *)
-  val next : fixed -> t -> (Constraint.t*Var.t) option * t
-
-  val reset : t -> t
+     the computation and is output as Some(constraint,watched);
+     where watched is the (unchanged) list of variables that constraint 
+     watched; if all constraints manage to do so we get None. 
+     In both cases, the new state of whowatcheswhat is also output. *)
+  val next : fixed -> ?howmany:int -> t -> (Constraint.t*Var.t list) option * t
 
 end
+
+val pick_another_make
+    : is_empty:('varset -> bool) ->
+      mem     :('var -> 'varset -> bool) ->
+      next    :('varset -> 'var * 'varset) ->
+      remove  :('var -> 'varset -> 'varset) ->
+      'varset ->
+      int ->
+      'var list ->
+      'var list option

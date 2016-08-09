@@ -13,12 +13,10 @@ open MyStructures
        
 type sign = unit
   
-module Make
-  (DS: sig 
-    include GTheoryDSType
-    val proj: Term.datatype -> ThDS.t
-  end) =
-struct
+module Make(DS: sig 
+                include GTheoryDSType
+                val proj: Term.datatype -> ThDS.t
+              end) = struct
 
   open DS
          
@@ -30,7 +28,7 @@ struct
     type values    = Term.t
     type infos     = unit
     let info_build = empty_info_build
-    let treeHCons  = Some(LitF.id,Terms.id,Terms.equal)
+    let treeHCons  = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
 
   module LMap = PATMap.Make(DMap)(I)
@@ -44,28 +42,27 @@ struct
     else Term.bC Symbols.Neg [Term.term_of_id i]
 
                            
-  module L2Term =
-    (struct
-      type t = LMap.t*LMap.t
-      let reveal t = t
-      let empty = LMap.empty,LMap.empty
-      let add l (t,tn) =
-        Dump.print ["bool",2]
-          (fun p->p "Setting this term to true: %a" Term.print_in_fmt (litAsTerm l));
-        let ln = LitF.negation l in
-        let dejavu = function
-          | Some _ -> failwith "Literal already determined!"
-          | None -> litAsTerm l
-        in
-        let t = LMap.add l dejavu t in
-        let tn = LMap.add ln dejavu tn in
-        LMap.find l t, (t,tn)
-    end : sig
+  module L2Term : sig
       type t
       val reveal : t -> LMap.t*LMap.t
       val empty : t
       val add : LitF.t -> t -> (Term.t*t)
-    end)
+  end = struct
+    type t = LMap.t*LMap.t
+    let reveal t = t
+    let empty = LMap.empty,LMap.empty
+    let add l (t,tn) =
+      Dump.print ["bool",2]
+        (fun p->p "Setting this term to true: %a" Term.print_in_fmt (litAsTerm l));
+      let ln = LitF.negation l in
+      let dejavu = function
+        | Some _ -> failwith "Literal already determined!"
+        | None -> litAsTerm l
+      in
+      let t = LMap.add l dejavu t in
+      let tn = LMap.add ln dejavu tn in
+      LMap.find l t, (t,tn)
+  end
 
   (*******************************************************************)
   (* These are the ingredients to feed the 2-watched literals module *)
@@ -79,59 +76,61 @@ struct
       keys are literals set to false and values are the input terms
       whose assertion made these literals false *)
 
-  module Constraint =
-    (struct
-
-      type t = {
-          term : Term.t;
-          simpl: (LSet.t*(L2Term.t list), Term.t option) Sums.sum;
-        }
-
-      let make t = {
-          term = t;
-          simpl =
-            match (proj(Terms.data t)).asclause with
-            | None -> Sums.F(None)
-            | Some lset -> Sums.A(lset,[])               
-        }
-                     
-      let id c = Terms.id c.term
-      let term  c = c.term
-      let simpl c = c.simpl
-
-      (* simplify is used to simplify a clause according to the
-      currently fixed literals *)
-
-      let simplify l2term c =
-        match c.simpl with
-
-        (* If clause was already simplified to true: *)
-        | Sums.F _ -> c
-
-        | Sums.A(set,j) ->
-           let astrue,asfalse = L2Term.reveal l2term in
-           let inter = LMap.inter_poly (fun _ v () -> v) astrue set in
-           if LMap.is_empty inter
-           then
-             (* If fixed literals do not make the clause true: *)
-
-             let updated_clause = LSet.diff_poly set asfalse in
-             { c with simpl = Sums.A(updated_clause, l2term::j ) }
-           else
-             (* If clause gets simplified to true: *)
-
-             let _,term = LMap.choose inter in
-             {c with simpl = Sums.F(Some term)}
-
-                 
-    end : sig
+  module Constraint : sig
       include FromHConsed
       val make : Term.t -> t
       val term : t -> Term.t
       val simpl: t -> (LSet.t*(L2Term.t list), Term.t option) Sums.sum
+      val verysimpl: t -> (LSet.t, Term.t option) Sums.sum
       val simplify : L2Term.t->t->t
-    end)
+    end = struct
 
+    type t = {
+        term : Term.t;
+        simpl: (LSet.t*(L2Term.t list), Term.t option) Sums.sum;
+      }
+
+    let make t = {
+        term = t;
+        simpl =
+          match (proj(Terms.data t)).asclause with
+          | None -> Sums.F(None)
+          | Some lset -> Sums.A(lset,[])               
+      }
+                   
+    let id c = Terms.id c.term
+    let term  c = c.term
+    let simpl c = c.simpl
+    let verysimpl c = match c.simpl with
+      | Sums.A(lset,_) -> Sums.A lset
+      | Sums.F s -> Sums.F s
+
+    (* simplify is used to simplify a clause according to the
+      currently fixed literals *)
+
+    let simplify l2term c =
+      match c.simpl with
+
+      (* If clause was already simplified to true: *)
+      | Sums.F _ -> c
+
+      | Sums.A(set,j) ->
+         let astrue,asfalse = L2Term.reveal l2term in
+         let inter = LMap.inter_poly (fun _ v () -> v) astrue set in
+         if LMap.is_empty inter
+         then
+           (* If fixed literals do not make the clause true: *)
+
+           let updated_clause = LSet.diff_poly set asfalse in
+           { c with simpl = Sums.A(updated_clause, l2term::j ) }
+         else
+           (* If clause gets simplified to true: *)
+
+           let _,term = LMap.choose inter in
+           {c with simpl = Sums.F(Some term)}
+             
+  end
+       
   (* Type for a clause that has become unit or constant, given as: the
 term representing it, the simplified form (None for constant clause,
 Some l if remaining lit is l), and the stack of models used for this
@@ -152,6 +151,8 @@ simplification.  *)
                               let compare = Terms.compare
                             end)
 
+  type straight = (sign,TSet.t,Messages.straight) message
+                                                  
   (* Type of the data-structures recording which literals are fixed:
   - field asTrueFalse
 fixed literals, mapped to the "literal terms" whose assertion made
@@ -172,6 +173,7 @@ original clauses that have simplified to true
       asTrueFalse  : L2Term.t;
       justification: uc_clause T2Clause.t;
       propagation  : Term.t Pqueue.t;
+      unfolds      : straight Pqueue.t;
       orig_clauses : TSet.t;
       true_clauses : TSet.t
     }
@@ -182,44 +184,15 @@ original clauses that have simplified to true
       asTrueFalse   = L2Term.empty;
       justification = T2Clause.empty;
       propagation   = Pqueue.empty;
+      unfolds       = Pqueue.empty;
       orig_clauses  = TSet.empty;
       true_clauses  = TSet.empty
     }
 
 
   let simplify fixed = Constraint.simplify fixed.asTrueFalse
-                     
-  (* Given a clause, together with a set of fixed lits and a lit,
-       pick another lit to watch *)
-                                 
-  let pick_another _ (c :Constraint.t) (var :LitF.t) : LitF.t option =
 
-    match Constraint.simpl c with
-
-    (* If clause not already true *)
-    | Sums.A(set,_) ->
-       let tochoose = 
-         if LSet.mem var set
-         then LSet.remove var set
-         else set
-       in
-       if LSet.is_empty tochoose
-       then None
-       else Some(LSet.choose tochoose)
-
-    (* If clause is already true: *)
-    | Sums.F _ -> None
-
-
-  (* Type declarations needed for the 2-watched literals functor *)
-  type straight = (sign,TSet.t,Messages.straight) message
-                    
-  type msg =
-    | Msg : (sign,TSet.t,_) message -> msg
-    | SplitBut : (Term.t,unit) LSet.param -> msg
-
-  type stop = straight list * ((sign,TSet.t,unsat) message) * Term.t
-
+                                                  
   (***********************************************************)
   (* This is the generation of explanations, for e.g. conflict
   analysis *)
@@ -285,69 +258,80 @@ used in a ThStraight or ThProvable message. *)
   (*******************************************************************)
   (* These are the ingredients to feed the propagate literals module *)
   (*******************************************************************)
-        
+
   let solve_clause term slitterm fixed =
     (* Assume term encodes a clause that is satisfied by slitterm. If
        the clause was in orig_clauses, we remove it; in any case we
        add it to true_clauses together with the literal term that
        makes the clause true. *)
-
+    Dump.print ["bool",2]
+      (fun p-> p "Solve_clause:term=%a\nslitterm=%a"
+                 Term.print_in_fmt term
+                 (fun fmt slitterm ->
+                   match slitterm with
+                   | None -> ()
+                   | Some litterm -> Format.fprintf fmt "%a" Term.print_in_fmt litterm
+                 )
+                 slitterm
+      );
     let orig_clauses =
       if TSet.mem term fixed.orig_clauses
       then TSet.remove term fixed.orig_clauses
       else fixed.orig_clauses
     in
-    let true_clauses =
-      match slitterm with
-      | Some litterm -> TSet.add litterm fixed.true_clauses
-      | None -> fixed.true_clauses
-    in
-    { fixed with
-      orig_clauses = orig_clauses;
-      true_clauses = TSet.add term true_clauses }
-
-
-  (* extract_msg constraints
-     extracts from constraints the message declaring the propagations
-     that have been performed *)
-
-  let extract_msg fixed : (msg * fixed) option =
-    match Pqueue.pop fixed.propagation with
-    | Some(litterm,propa) ->
+    match slitterm with
+    | Some litterm ->
+       let true_clauses = TSet.add litterm (TSet.add term fixed.true_clauses) in
        begin
-         match formThStraight litterm fixed.justification with
-         | None -> failwith "Should not happen: extract_msg"
-         | Some(term,_,msg,justif) ->
-            let fixed = {fixed with justification = justif; propagation = propa} in            
-            Some(Msg msg, solve_clause term (Some litterm) fixed)
-       end
-    | None ->
-       if TSet.is_empty fixed.orig_clauses
-       then
-         let msg = sat () fixed.true_clauses in
-         Some(Msg msg, fixed)
-       else
-         let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
-         Dump.print ["bool",2]
-           (fun p-> let f =
-                      LMap.print_in_fmt 
-                        (fun fmt (lit,_)->LitF.print_in_fmt fmt lit)
-                    in p "Is true: %a\nIs false: %a" f asTrue f asFalse
-           );
-         let lset = LMap.union
-                      (fun _ _ -> failwith "extract_msg: shouldn't happen")
-                      asTrue
-                      asFalse
-         in
-         Some(SplitBut lset, fixed)
+         match (proj(Terms.data litterm)).nasclause with
+         | Some set when LSet.info set > 1
+           ->
 
+            let tset = LSet.fold
+                         (fun l -> TSet.add (litAsTerm(LitF.negation l)))
+                         set
+                         TSet.empty
+            in
+            Dump.print ["bool",2]
+              (fun p-> p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);
+
+            let msg = straight () (TSet.singleton litterm) tset in
+            { fixed with
+              orig_clauses = TSet.diff(TSet.union orig_clauses tset) true_clauses;
+              unfolds      = Pqueue.push msg fixed.unfolds;
+              true_clauses = true_clauses }
+
+         | Some _ -> 
+            { fixed with
+              orig_clauses = orig_clauses;
+              true_clauses = true_clauses }
+
+         | None ->
+            Dump.print ["bool",2]
+              (fun p-> p "negation of slitterm is true clause");
+            let msg = straight () (TSet.singleton litterm) (TSet.singleton(Term.bC Symbols.False [])) in
+            { fixed with
+              orig_clauses = orig_clauses;
+              unfolds      = Pqueue.push msg fixed.unfolds;
+              true_clauses = true_clauses }
+       end
+         
+    | None -> { fixed with
+                orig_clauses = orig_clauses;
+                true_clauses = TSet.add term fixed.true_clauses }
+
+        
+    
+
+
+  (* Type declarations needed for the 2-watched literals functor *)
+  type stop = straight list * ((sign,TSet.t,unsat) message) * Term.t
     
   (* type used in the following function *)
   type result =
     | UNSAT     of stop
     | Propagate of fixed * LitF.t list
     | Meh   of fixed
-    | Watch of fixed * LitF.t * LitF.t
 
   (* constreat constraint
        treats the addition of constraint (=clause).
@@ -355,7 +339,6 @@ used in a ThStraight or ThProvable message. *)
        - the clause has become true
        - the clause has become empty (=false)
        - the clause has become unit
-       - the clause has at least 2 undetermined literals, which we can watch
    *)
   let constreat c fixed =
     let term = Constraint.term c in
@@ -389,18 +372,17 @@ used in a ThStraight or ThProvable message. *)
                UNSAT(List.rev_append msgs [], unsat () tset, term)
 
             | Leaf(l,()) ->
-               (* The clause has becom unit, the last literal being l. We
+               (* The clause has become unit, the last literal being l. We
            set l to true and its negation nl to false, generating the
            term litterm to propagate. That term is pushed in the
            propagation queue, and mapped to the unit clause in the
            justification map. *)
 
-               Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt (litAsTerm l));
                let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
+               Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt litterm);
                let fixed =
                  if Terms.equal litterm term
-                 then { fixed with asTrueFalse = asTrueFalse;
-                                   true_clauses = TSet.add term fixed.true_clauses }
+                 then solve_clause term (Some litterm) { fixed with asTrueFalse = asTrueFalse }
                  else
                    let uc_clause = { term = term; simpl = Some l ; justif = justif } in
                    {
@@ -412,29 +394,67 @@ used in a ThStraight or ThProvable message. *)
                in
                Propagate(fixed, [l; LitF.negation l])
 
-            | Branch(_,_,set1,set2) ->
-               (* The clause is neither true not unsat nor unit: we can
-           pick 2 literals to watch. We record it as a clause that
-           remains to be satisfied. *)
+            | Branch(_,_,_,_) -> failwith "bool: not supposed to see 2 literals in a clause triggerd for UP or conflict"
 
-               Dump.print ["bool",2] (fun p->p "Clause is now watched");
-               let fixed = { fixed with orig_clauses = TSet.add term fixed.orig_clauses} in
-               Watch(fixed, LSet.choose set1, LSet.choose set2)
           end
       end
+
+  type msg =
+    | Msg : (sign,TSet.t,_) message -> msg
+    | SplitBut : (Term.t,unit) LSet.param -> msg
+
+  (* extract_msg constraints
+     extracts from constraints the message declaring the propagations
+     that have been performed *)
+
+  let extract_msg fixed : (msg * fixed) option =
+    Dump.print ["bool",1]
+      (fun p-> p "Starting msg extraction");
+    match Pqueue.pop fixed.propagation, Pqueue.pop fixed.unfolds with
+
+    | Some(litterm,propa),_ ->
+       begin
+         match formThStraight litterm fixed.justification with
+         | None -> failwith "Should not happen: extract_msg"
+         | Some(term,_,msg,justif) ->
+            let fixed = {fixed with justification = justif; propagation = propa} in            
+            Dump.print ["bool",1]
+              (fun p-> p "Found a message: %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
+            Some(Msg msg, solve_clause term (Some litterm) fixed)
+       end
+
+    | None,Some(msg,unfolds) ->
+       Some(Msg msg, { fixed with unfolds = unfolds })
+
+    | None,None ->
+       if TSet.is_empty fixed.orig_clauses
+       then
+         let msg = sat () fixed.true_clauses in
+         Some(Msg msg, fixed)
+       else(
+         Dump.print ["bool",2]
+           (fun p-> p "orig_clauses: %a" TSet.print_in_fmt fixed.orig_clauses);
+         let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
+         Dump.print ["bool",2]
+           (fun p-> let f =
+                      LMap.print_in_fmt 
+                        (fun fmt (lit,_)->LitF.print_in_fmt fmt lit)
+                    in p "Is true: %a\nIs false: %a" f asTrue f asFalse
+           );
+         let lset = LMap.union
+                      (fun _ _ -> failwith "extract_msg: shouldn't happen")
+                      asTrue
+                      asFalse
+         in
+         Some(SplitBut lset, fixed)
+       )
+
         
   let split lit =
     let t = litAsTerm lit in
     let nt = litAsTerm (LitF.negation lit) in
     both () TSet.empty (TSet.singleton t) (TSet.singleton nt)
 
-  let unfold term =
-    match (proj(Terms.data term)).nasclause with
-    | Some set when LSet.info set > 1 ->
-       let tset = LSet.fold (fun l -> TSet.add (litAsTerm(LitF.negation l))) set TSet.empty in
-       Dump.print ["bool",2]
-         (fun p-> p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);
-       Some(straight () (TSet.singleton term) tset)
-    | _ -> None
-          
+  let clear() = LSet.clear();LMap.clear()
+
 end

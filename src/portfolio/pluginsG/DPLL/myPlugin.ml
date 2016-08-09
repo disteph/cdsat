@@ -53,17 +53,15 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
          Some(updated_clause,UASet.diff setn just_fixed)
       | _ -> None
       
-    let pick_another _ fclause var =
+    let pick_another _ fclause i varlist =
       match fclause with
-      | _,Some(set,_) ->
-         let tochoose = 
-           if UASet.mem var set
-           then UASet.remove var set
-           else set
-         in
-         if UASet.is_empty tochoose
-         then None
-         else Some(UASet.choose tochoose)
+      | _,Some(left,_) ->
+         PluginsTh_tools.TwoWatchedLits.pick_another_make
+           ~is_empty:UASet.is_empty
+           ~mem:UASet.mem
+           ~next:UASet.next
+           ~remove:UASet.remove
+           left i varlist
       | _ -> None
   end
 
@@ -339,7 +337,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                  treat_stack { data with 
                    remlits = remlits();
                    stack = stack;
-                   up_state = UP.addconstraint (form,Some(aset,naset)) lit1 lit2 data.up_state}
+                   up_state = UP.addconstraint (form,Some(aset,naset)) [lit1;lit2] data.up_state}
                    form_checked
               | [lit] -> 
                  (* print_string ("1-watched"^"\n"); *)

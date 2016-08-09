@@ -37,12 +37,10 @@ The bool in propagated indicates whether we know the level of this propagation f
                       (* and type branching = I.branching *)
                       and type ('v,'i) param = (Term.t,'v,int,int,'i) Patricia.poly
   (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
-
-
   (* First int is level, second int is timestamp*)
 
   val analyse : t
                 -> unsat WB.t
-                -> unsat WB.t * int * Term.t
+                -> unsat WB.t * Term.t * int * Term.t option
                            
 end

@@ -43,5 +43,7 @@ end) = struct
     state
 
   let init = init_rec MyCC.init
-      
+
+  let clear () = ()
+
 end

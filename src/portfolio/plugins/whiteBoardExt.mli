@@ -13,10 +13,10 @@ module type Type = sig
 
   type _ answer = Ack : ack answer | Say : _ t -> say answer
     
-  type msg2pl = Msg : Handlers.t option * _ answer -> msg2pl
+  type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
                                   
   type msg2th =
-    | MsgStraight of TSet.t
+    | MsgStraight of TSet.t*int
     | MsgBranch of (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
                    * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
 
@@ -32,10 +32,10 @@ module Make(WB: WhiteBoard) : sig
 
   type _ answer = Ack : ack answer | Say : _ WB.t -> say answer
     
-  type msg2pl = Msg : Handlers.t option * _ answer -> msg2pl
+  type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
                                   
   type msg2th =
-    | MsgStraight of TSet.t
+    | MsgStraight of TSet.t*int
     | MsgBranch of (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
                    * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
 

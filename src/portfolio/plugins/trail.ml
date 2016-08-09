@@ -11,6 +11,7 @@ open General
 open Patricia_interfaces
 open Patricia
 open SetConstructions
+open Sums
        
 (* This module implements conflict analysis *)
 
@@ -97,29 +98,40 @@ The bool in propagated indicates whether we know the level of this propagation f
 
   include PATMap.Make(DestWInfo)(I)
 
+  let output conflict conflictWinfo =
+    let data = info conflictWinfo in
+    let next = remove (data.term()) conflictWinfo in
+    let second = if is_empty next then None
+                 else Some((info next).term())
+    in
+    Dump.print ["trail",1] (fun p ->
+        p "conflict level: %i; first term: %a; second level: %i; second term:%a"
+          data.level
+          Term.print_in_fmt (data.term())
+          (info next).level
+          (pp_print_option Term.print_in_fmt) second
+      );
+    (conflict,
+     data.term(),
+     (info next).level,
+     second)
+                     
   let rec analyse
             (trail : t)
             (conflict : unsat WB.t)
-          : unsat WB.t * int * Term.t =
+          : unsat WB.t * Term.t * int * Term.t option =
+    Dump.print ["trail",1] (fun p ->
+        p "Analysing Conflict: %a" WB.print_in_fmt conflict);
     let WB.WB(_,Propa(tset,_)) = conflict in
     let conflictWinfo = inter_poly (fun _ () v->v) tset trail in
     let data = info conflictWinfo in
     match data.nature() with
       
     | Decided _
-      | Original ->
-       let next = remove (data.term()) conflictWinfo in
-       Dump.print ["trail",1] (fun p ->
-           p "conflict level: %i; second level: %i\n%a"
-             data.level
-             (info next).level
-             WB.print_in_fmt conflict
-         );
-       conflict, (info next).level, data.term()
+      | Original -> output conflict conflictWinfo
 
     | Propagated _ when data.is_uip() && data.level > 0 ->
-       let next = remove (data.term()) conflictWinfo in
-       conflict, (info next).level, data.term()
+       output conflict conflictWinfo
 
     | Propagated msg ->
        Dump.print ["trail",1] (fun p ->

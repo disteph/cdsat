@@ -2,6 +2,7 @@ open General
 open Patricia
 open Kernel.Top.Messages
 
+
 module type Config = sig
 
   include TwoWatchedLits.Config
@@ -15,7 +16,6 @@ module type Config = sig
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
     | Meh       of fixed
-    | Watch     of fixed * Var.t * Var.t
 
   val constreat  : Constraint.t -> fixed -> result
 
@@ -37,32 +37,26 @@ module Make(C: Config) = struct
     watch = WL.init
   }
 
-  let rec treat_simplified c t = 
+  let rec propagate ?howmany c t = 
     match C.constreat c t.fixed with
-    | C.Watch(fixed',var1,var2) ->
-       run {
-           fixed = fixed';
-           watch = WL.addconstraint c var1 var2 t.watch
-         }
     | C.UNSAT stop -> Sums.A stop
     | C.Propagate(fixed',varlist) ->
-       run {
+       run ?howmany {
            fixed = fixed';
            watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
          }
     | C.Meh fixed' ->
-       run { t with fixed = fixed' }
+       run ?howmany { t with fixed = fixed' }
 
-  and run t = 
-    let res, watch' = WL.next t.fixed t.watch in
+  and run ?howmany t = 
+    let res, watch' = WL.next t.fixed ?howmany t.watch in
     let t = { t with watch = watch' } in
     match res with
-    | Some(c,_) -> treat_simplified c t
+    | Some(c,_) -> propagate ?howmany c t
     | None   -> Sums.F t
 
-  let treat c t =
-    let c = C.simplify t.fixed c in
-    treat_simplified c t
+  let treat c howmany t =
+    run ~howmany:howmany { t with watch = WL.addconstraintNflag c [] t.watch }
 
   let extract_msg t =
     match C.extract_msg t.fixed with

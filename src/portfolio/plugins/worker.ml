@@ -36,8 +36,8 @@ module Make(WB: WhiteBoardExt.Type) = struct
     let aux msg =
       Dump.print ["worker",1] (fun p-> p "%a reads %a" Sig.print_in_fmt hdl print2th_in_fmt msg);
       match msg with
-      | MsgStraight tset
-        -> loop_write hdl (add cont (Some tset)) from_pl to_pl
+      | MsgStraight(tset,chrono)
+        -> loop_write hdl (add cont (Some tset)) chrono from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
         -> let Output(_,newcont) = clone cont in
            Deferred.all_unit
@@ -47,7 +47,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "%a dies" Sig.print_in_fmt hdl)))
       from_pl aux
 
-  and loop_write hdl (Output(output_msg,cont)) from_pl to_pl =
+  and loop_write hdl (Output(output_msg,cont)) chrono from_pl to_pl =
 
     let hhdl = Some(Handlers.Handler hdl) in
 
@@ -58,12 +58,12 @@ module Make(WB: WhiteBoardExt.Type) = struct
        Dump.print ["worker",1] (fun p-> p "%a: no output msg" Sig.print_in_fmt hdl);
        Deferred.all_unit
          [
-           Lib.write to_pl (Msg(hhdl,Ack)) ;
+           Lib.write to_pl (Msg(hhdl,Ack,chrono)) ;
            loop_read hdl cont from_pl to_pl
          ]
     | Some msg ->
        Dump.print ["worker",1] (fun p-> p "%a: Outputting message %a" Sig.print_in_fmt hdl Msg.print_in_fmt msg);
-       let msg2pl = Msg(hhdl,Say(WB.stamp hdl msg)) in
+       let msg2pl = Msg(hhdl,Say(WB.stamp hdl msg),chrono) in
        Deferred.all_unit
          [
            Lib.write to_pl msg2pl ;

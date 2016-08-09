@@ -85,9 +85,9 @@ module Make(WB: sig
     WM.broadcast (fun w -> return(Pipe.close w)) pipe_map
     >>| fun () -> Pipe.close to_plugin
 
-  let send pipe_map tset = 
+  let send pipe_map tset chrono = 
     let treat_worker to_worker =
-      Lib.write to_worker (MsgStraight tset)
+      Lib.write to_worker (MsgStraight(tset,chrono))
     in
     WM.broadcast treat_worker pipe_map
 
@@ -135,12 +135,11 @@ module Make(WB: sig
                                 new1
                                 state.trail }
     in
-    send new_pipe_map1 new1 >>= fun () ->
+    send new_pipe_map1 new1 newstate1.chrono >>= fun () ->
     cont newstate1 >>| fun ans ->
     (ans,
      (fun msg2 ->
        let WB(_,Propa(_,Straight new2)) = msg2 in
-       send new_pipe_map2 new2 >>= fun () ->
        let trail = trail_ext state.level (state.chrono+1) (T.Propagated msg2) new2 state.trail
        in
        Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
@@ -152,6 +151,7 @@ module Make(WB: sig
                          chrono    = state.chrono+1;
                          trail     = trail }
        in
+       send new_pipe_map2 new2 newstate2.chrono >>= fun () ->
        cont newstate2),
      (fun () -> kill_pipes new_pipe_map2 new_to_pl2)
     )
@@ -178,20 +178,19 @@ module Make(WB: sig
        Pipe.read state.from_workers
        >>= (function
             | `Eof -> failwith "Eof"
-            | `Ok(Msg(agent,msg)) ->
+            | `Ok(Msg(agent,msg,chrono)) ->
                Dump.print ["concur",2] (fun p-> p "Hearing from %a" Agents.print_in_fmt agent);
                let state =
                  match msg with
                  | Say(WB(_,Propa(_,Straight _))) -> state
-                 | _ -> { state with
-                          waiting4 =
-                            if AS.mem agent state.waiting4
-                            then AS.remove agent state.waiting4
-                            else state.waiting4
-                        }
+                 | _ -> 
+                    if (chrono == state.chrono)&&(AS.mem agent state.waiting4)
+                    then { state with waiting4 = AS.remove agent state.waiting4 }
+                    else state
                in
                match msg with
                | Ack ->
+                  Dump.print ["concur",2] (fun p-> p "Hearing Ack %i from %a" chrono Agents.print_in_fmt agent);
                   select_msg state
                | Say(WB(_,Propa(_,Both _))) -> 
                   select_msg { state with thAnd_list = msg::state.thAnd_list }
@@ -242,34 +241,41 @@ module Make(WB: sig
             (* A theory found a proof. We stop and close all pipes. *)
             if not(T.subset_poly (fun () _ -> true) tset state.trail)
             then ( Dump.print ["concur",0] (fun p ->
-                       p "Pb: %a"
-                         WB.print_in_fmt thmsg
+                       p "Pb: these terms are not in the trail: %a"
+                         DS.TSet.print_in_fmt
+                         (T.merge_poly { T.sameleaf  = (fun _ _ _ -> DS.TSet.empty);
+                                         T.emptyfull = (fun _ -> DS.TSet.empty);
+                                         T.fullempty = (fun a -> a);
+                                         T.combine   = DS.TSet.union }
+                            tset state.trail)
                      );
                    failwith "Master213" );
-            let conflict,level,term = T.analyse state.trail thmsg in
+            let conflict,uip,second_level,second_term =
+              T.analyse state.trail thmsg in
             Dump.print ["concur",0] (fun p ->
-                p "Current level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a"
+                p "Current level: %i, Conflict second level: %i, UIP: %a, Conflict:\n%a"
                   state.level
-                  level
-                  DS.Term.print_in_fmt term
+                  second_level
+                  DS.Term.print_in_fmt uip
                   WB.print_in_fmt conflict);
             kill_pipes state.pipe_map state.to_plugin >>| fun () ->
-            A(conflict,level,term)
+            A(conflict,uip,second_level,second_term)
 
          | Propa(old,Straight newa) ->
+            let chrono = state.chrono+1 in
             Dump.print ["concur",1] (fun p ->
                 p "Level %i; chrono %i; %a"
-                  state.level (state.chrono+1) WB.print_in_fmt thmsg);
+                  state.level chrono WB.print_in_fmt thmsg);
             (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
-            send state.pipe_map newa >>= fun () ->
+            send state.pipe_map newa chrono >>= fun () ->
             main_worker current
               { state with
                 waiting4 = AS.all;
-                chrono = state.chrono+1;
+                chrono = chrono;
                 trail = trail_ext
                           state.level
-                          (state.chrono+1)
+                          chrono
                           (T.Propagated thmsg)
                           newa
                           state.trail }
@@ -283,14 +289,17 @@ module Make(WB: sig
             >>= fun (ans1, def_ans2, kill2) -> 
             kill_pipes state.pipe_map state.to_plugin >>= fun () ->
             begin match ans1 with
-            | A(ans1,level,term) when
-                   (* Dump.print ["concur",0] (fun p -> 
-                      p "Backtrack level: %i, Conflict level: %i, UIP: %a, Conflict:\n%a" *)
-                   (* state.level level DS.Term.print_in_fmt term WB.print_in_fmt ans1); *)
+            | A(ans1,term,level,term') when
+                   Dump.print ["concur",0] (fun p -> 
+                       p "Backtrack level: %i, Second conflict level: %i, UIP: %a, Conflict:\n%a"
+                         (state.level+1)
+                         level
+                         DS.Term.print_in_fmt term
+                         WB.print_in_fmt ans1);
                    level==state.level
               ->
                (if !Flags.memo
-                then Lib.write clause_writer ans1
+                then Lib.write clause_writer (ans1,term,term')
                 else return ())
                >>= fun () ->
                def_ans2
@@ -303,7 +312,8 @@ module Make(WB: sig
          | Propa(old,Either(newa,newb)) ->
             failwith "TODO"
 
-            : (unsat WB.t * int * DS.Term.t, sat WB.t) sum Deferred.t)
+            : (unsat WB.t * DS.Term.t * int * DS.Term.t option,
+               sat WB.t) sum Deferred.t)
 
     in
     let state = {
@@ -318,9 +328,9 @@ module Make(WB: sig
         trail        = T.map (fun _ () -> 0,0,T.Original) tset
       }
     in
-    send state.pipe_map tset >>= fun () ->
+    send state.pipe_map tset 0 >>= fun () ->
     main_worker (WB.sat_init tset) state >>| function
-    | A(conflict,_,_) -> A conflict
+    | A(conflict,_,_,_) -> A conflict
     | F msg -> F msg
     
 end
