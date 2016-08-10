@@ -248,7 +248,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       | a -> a
     in
     match UASet.fold aux newatoms None with
-    | Some a -> Dump.print ["dpll_wl",2] (fun p->p "Yes %a" IForm.print_in_fmt a);
+    | Some a -> Dump.print ["dpll_wl",2] (fun p->
+                    p "Yes %a" (fun fmt -> IForm.print_in_fmt fmt) a);
       address:=Yes((data_of_ad ad).i);
       count.(1)<-count.(1)+1;
       let now = count.(0) in
@@ -288,9 +289,15 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   let clause_pick h l =
     if not(!stack=[]) then failwith("pas []");
     match UFSet.rchoose h l with
-    | A a       -> Dump.print ["dpll_wl",2] (fun p->p "Random focus on %a" IForm.print_in_fmt a); a
+    | A a       -> Dump.print ["dpll_wl",2] (fun p->
+                       p "Random focus on %a"
+                         (fun fmt -> IForm.print_in_fmt fmt) a);
+                   a
     | _         -> let a = UFSet.choose l in
-	           Dump.print ["dpll_wl",2] (fun p->p "Random problematic focus on %a" IForm.print_in_fmt a); a
+	           Dump.print ["dpll_wl",2] (fun p->
+                       p "Random problematic focus on %a"
+                         (fun fmt -> IForm.print_in_fmt fmt) a);
+                   a
 
 
     (* We look at the stack to see if there is any unit propagation left to do:

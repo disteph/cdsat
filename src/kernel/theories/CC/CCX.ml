@@ -98,6 +98,8 @@ struct
           (toTSet justif)
           (TSet.singleton l)
 
+      let suicide _ = ()
+
     end: SlotMachineCC with type t = outputCC)
 
   let init = machine TSet.empty Alg.init

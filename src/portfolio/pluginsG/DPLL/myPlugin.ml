@@ -129,9 +129,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	
   let clause_pick h l =
     match UFSet.rchoose h l with
-    | A a -> Dump.print ["dpll",2] (fun p->p "Random focus on %a" IForm.print_in_fmt a); a
+    | A a -> Dump.print ["dpll",2] (fun p->p "Random focus on %a" (fun fmt->IForm.print_in_fmt fmt) a); a
     | _   -> let a = UFSet.choose l in
-	     Dump.print ["dpll",2] (fun p->p "Random problematic focus on %a" IForm.print_in_fmt a); a
+	     Dump.print ["dpll",2] (fun p->p "Random problematic focus on %a" (fun fmt->IForm.print_in_fmt fmt) a); a
 
 
   (**************************************************)

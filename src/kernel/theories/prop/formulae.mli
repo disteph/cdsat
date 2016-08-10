@@ -54,7 +54,7 @@ module FormulaF : sig
 
   include HCons.S with type 'a initial = ('a,FormulaB.t free) form
 
-  val print_in_fmt : formatter -> _ generic -> unit
+  val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> 'a generic -> unit
 
   module type Extra = sig
     type t
@@ -64,7 +64,11 @@ module FormulaF : sig
   module type S = sig
     type datatype
 
-    include PHCons with type t = datatype generic
+    type t = datatype generic
+    val id : t -> int
+    val clear : unit -> unit
+    val compare : t -> t -> int
+    val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 
     type revealed  = datatype g_revealed
 

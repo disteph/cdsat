@@ -31,6 +31,7 @@ module type S = sig
   val clear : unit -> unit
   val print_in_fmt: Format.formatter -> t -> unit
   val printtl_in_fmt: Format.formatter -> t list -> unit
+  val print_of_id: Format.formatter -> int -> unit
   module Homo(Mon: MonadType) : sig
     val lift :
       ('a -> leaf Mon.t) -> ('a,_) term -> (leaf,datatype) term Mon.t

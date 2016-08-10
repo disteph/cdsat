@@ -16,6 +16,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
 
   let add   (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.add
   let clone (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.clone()
+  let suicide (type sign) (cont: (sign,TSet.t) slot_machine) = let module Cont = (val cont) in Cont.suicide
 
   let rec flush reader writer msg =
     let aux = function
@@ -28,6 +29,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
              flush newreader1 newwriter1 msg;
              flush newreader2 newwriter2 msg
            ]
+      | KillYourself _ -> return()
     in
     Lib.read reader aux
 
@@ -43,6 +45,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
            Deferred.all_unit
              [loop_read hdl cont    newreader1 newwriter1 ;
               loop_read hdl newcont newreader2 newwriter2 ]
+      | KillYourself(WB(_,msg),_,_) -> return(suicide cont msg)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "%a dies" Sig.print_in_fmt hdl)))
       from_pl aux
@@ -75,7 +78,6 @@ module Make(WB: WhiteBoardExt.Type) = struct
               loop_read hdl cont from_pl to_pl
          ]
 
-         
   let make (Signed(hdl,init)) = loop_read hdl init
 
 end

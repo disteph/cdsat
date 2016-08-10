@@ -23,7 +23,7 @@ open PluginsG_tools.SetInterface
 module UT  = struct
   include TypesFromHConsed(LitF)
   let compare = LitF.compare
-  let print_in_fmt = LitF.print_in_fmt
+  let print_in_fmt fmt = LitF.print_in_fmt fmt
   let tString = None
   let keyhash = tag
 end
@@ -71,10 +71,10 @@ module UFSet = struct
   module UT   = struct
     include LexProduct(UT0)(UT1)
     let compare = FormulaF.compare
-    let print_in_fmt = FormulaF.print_in_fmt
+    let print_in_fmt fmt = FormulaF.print_in_fmt fmt
     let cstring fmt ((a,_):common) = fprintf fmt "%a" UASet.print_in_fmt a
     let bstring fmt (g:branching) = match g with
-      | A(at)-> fprintf fmt "%a" LitF.print_in_fmt at
+      | A(at)-> fprintf fmt "%a" (fun fmt -> LitF.print_in_fmt fmt) at
       | _    -> fprintf fmt "Bits"
     let tString = None (* Some(cstring,bstring) *)
     let keyhash = FormulaF.id

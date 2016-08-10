@@ -8,7 +8,7 @@ open Kernel.Top.Interfaces_basic
 open Kernel.Prop.Interfaces_plugin
 
 
-module PHCons_ext(A:PHCons) = struct
+module PHCons_ext(A: sig type t val id : t -> int end) = struct
   include A
   let equal a1 a2 = (id a1 = id a2)
   let hash = id

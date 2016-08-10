@@ -91,16 +91,23 @@ module Make
     let cut_series seq data alternative (a,f) =
       if AS.is_empty a then
 	if FS.is_empty f then
-          (Dump.print ["memo",2] (fun p->p "Found no previous success for %a" Seq.print_in_fmt seq);
+          (Dump.print ["memo",2] (fun p->
+               p "Found no previous success for %a" Seq.print_in_fmt seq);
            Dump.Plugin.incr_count 9;
 	   alternative())
 	else let toCut, _ = FS.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
-              Dump.print ["memo",2](fun p->p "Found approx. in pos form of\n%a\n%a" Seq.print_in_fmt seq IForm.print_in_fmt toCut);
+              Dump.print ["memo",2](fun p->
+                  p "Found approx. in pos form of\n%a\n%a"
+                    Seq.print_in_fmt seq
+                    (fun fmt -> IForm.print_in_fmt fmt) toCut);
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
       else let toCut, _ = AS.next a in
 	   Dump.Plugin.incr_count 8;
-           Dump.print ["memo",2] (fun p->p "Found approx. in atoms of\n%a\n%a" Seq.print_in_fmt seq LitF.print_in_fmt toCut);
+           Dump.print ["memo",2] (fun p->
+               p "Found approx. in atoms of\n%a\n%a"
+                 Seq.print_in_fmt seq
+                 print_in_fmtL toCut);
            Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4provable ans =

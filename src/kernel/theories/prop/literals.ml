@@ -16,12 +16,18 @@ module LitF = struct
 
   include Init(HCons.NoBackIndex)
 
-  let print_in_fmt fmt l =
+  let print_in_fmt ?print_atom fmt l =
     let b,a = reveal l in
+    let print_atom fmt =
+      match print_atom, !Dump.display with
+      | Some f,_ -> f fmt a
+      | None,Dump.Latex -> fprintf fmt "l_{%i}" a
+      | None,_          -> fprintf fmt "l_%i" a
+    in
     match !Dump.display with
-    | Dump.Latex -> fprintf fmt "%s{l_{%i}}" (if b then "" else "\\overline") a
-    | _ -> fprintf fmt "%sl_%i" (if b then "" else "¬") a
-
+    | Dump.Latex -> fprintf fmt "%s{%t}" (if b then "" else "\\overline") print_atom
+    | _ -> fprintf fmt "%s%t" (if b then "" else "¬") print_atom
+                
   let negation l = 
     let b,a = reveal l in build(not b,a)
 

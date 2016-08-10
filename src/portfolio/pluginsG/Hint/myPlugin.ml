@@ -33,16 +33,16 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let display_aset atoms =
     let latoms = UASet.fold (fun x l -> x::l) atoms [] in
-    let show a = Format.printf "\t%a\n%!" print_litF_in_fmt a in
+    let show a = Format.printf "\t%a\n%!" print_in_fmtL a in
     List.iter show latoms
 
   let display_farray forms = 
-    let showith i a = Format.printf "\t%d: %a\n%!" i IForm.print_in_fmt a in
+    let showith i a = Format.printf "\t%d: %a\n%!" i (fun fmt -> IForm.print_in_fmt fmt) a in
     Array.iteri showith forms
 
   let display_fset forms = 
     let lforms = UFSet.fold (fun x l -> x::l) forms [] in
-    let show a = Format.printf "\t%a\n%!" IForm.print_in_fmt a in
+    let show a = Format.printf "\t%a\n%!" (fun fmt -> IForm.print_in_fmt fmt) a in
     List.iter show lforms
 
   let display_ad ad =
@@ -63,7 +63,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       match seq with
       | Seq.EntF(atomN, g, formP, formPSaved, polar, ar) -> 
         display_gen (ASet.forPlugin atomN) (FSet.forPlugin formP) (FSet.forPlugin formPSaved);
-        Format.printf "Goal:\t[ %a]\n%!" IForm.print_in_fmt g
+        Format.printf "Goal:\t[ %a]\n%!" (fun fmt -> IForm.print_in_fmt fmt) g
       | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
         display_gen (ASet.forPlugin atomN) (FSet.forPlugin formP) (FSet.forPlugin formPSaved)
     in

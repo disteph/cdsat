@@ -83,7 +83,7 @@ let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
 
 
 (* Displays a formula *)
-let print_in_fmt_latex (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
+let print_in_fmt_latex (type a)(type b) ?print_atom (pSub:(b,formatter->unit)func) pRec =
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
@@ -91,7 +91,7 @@ let print_in_fmt_latex (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
-  | LitF l       -> fprintf fmt "%a" LitF.print_in_fmt l
+  | LitF l       -> fprintf fmt "%a" (LitF.print_in_fmt ?print_atom) l
   | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
   | TrueP        -> fprintf fmt "%s" "\\trueP"
   | TrueN        -> fprintf fmt "%s" "\\trueN"
@@ -112,7 +112,7 @@ let print_in_fmt_latex (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
      in fun reveal fmt t -> aux fmt (reveal t)
 
 (* Displays a formula *)
-let print_in_fmt_utf8 (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
+let print_in_fmt_utf8 (type a)(type b) ?print_atom (pSub:(b,formatter->unit)func) pRec =
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
@@ -120,7 +120,7 @@ let print_in_fmt_utf8 (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
-  | LitF l       -> fprintf fmt "%a" LitF.print_in_fmt l
+  | LitF l       -> fprintf fmt "%a" (LitF.print_in_fmt ?print_atom) l
   | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
   | TrueP        -> fprintf fmt "%s" "⊤+"
   | TrueN        -> fprintf fmt "%s" "⊤-"
@@ -138,10 +138,10 @@ let print_in_fmt_utf8 (type a)(type b) (pSub:(b,formatter->unit)func) pRec =
   | ExistsB(so, f)-> print_quantif_in_fmtB fmt "∃" so f
      in fun reveal fmt t -> aux fmt (reveal t)
 
-let print_in_fmt fmt = match !Dump.display with
-  | Dump.Latex -> print_in_fmt_latex fmt
-  | _ -> print_in_fmt_utf8 fmt
-
+let print_in_fmt ?print_atom fmt = match !Dump.display with
+  | Dump.Latex -> print_in_fmt_latex ?print_atom fmt
+  | _ -> print_in_fmt_utf8 ?print_atom fmt
+                           
 (* Negates a formula *)
 let negation (type a)(type b) (nSub:(b,b)func_prim) nRec reveal build =
   let aux : (a,b)form -> (a,b)form = function
@@ -165,13 +165,12 @@ let negation (type a)(type b) (nSub:(b,b)func_prim) nRec reveal build =
 
 
 module Abbrev
-  (I: sig
-    type a
-    type b
-    val build:(a,b)form->a
-  end)
-  =
-struct
+         (I: sig
+              type a
+              type b
+              val build:(a,b)form->a
+            end)
+  = struct
   let trueN         = I.build TrueN
   let trueP         = I.build TrueP
   let falseN        = I.build FalseN
@@ -230,9 +229,9 @@ module FormulaF = struct
 
   include HCons.Make(F)
 
-  let print_in_fmt =
-    let rec aux fmt t = print_in_fmt (FreeFunc(fun t fmt->FormulaB.print_in_fmt fmt t)) aux reveal fmt t
-    in aux
+  let print_in_fmt ?print_atom fmt t =
+    let rec aux fmt t = print_in_fmt ?print_atom (FreeFunc(fun t fmt->FormulaB.print_in_fmt fmt t)) aux reveal fmt t
+    in aux fmt t
 
   module type Extra = sig
     type t
@@ -242,7 +241,11 @@ module FormulaF = struct
   module type S = sig
     type datatype
 
-    include PHCons with type t = datatype generic
+    type t = datatype generic
+    val id : t -> int
+    val clear : unit -> unit
+    val compare : t -> t -> int
+    val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 
     type revealed  = datatype g_revealed
 
@@ -264,54 +267,56 @@ module FormulaF = struct
     val bC : int -> Symbols.t  -> t list -> t
   end
 
-  module Make(Fdata: Extra)
-    = (struct
+  module Make(Fdata: Extra): (S with type datatype = Fdata.t) = struct
 
-      include InitData(HCons.NoBackIndex)(struct type t = Fdata.t let build _ = Fdata.build end)
+    include InitData(HCons.NoBackIndex)(struct
+                type t = Fdata.t
+                let build _ = Fdata.build
+              end)
 
-      type datatype = Fdata.t
+    type datatype = Fdata.t
 
-      let compare = compare
-      let id = id
-      let print_in_fmt = print_in_fmt
+    let compare = compare
+    let id = id
+    let print_in_fmt = print_in_fmt
 
-      let negation =
-        let rec aux t = negation (FreeFunc FormulaB.negation) aux reveal build t
-        in aux
+    let negation =
+      let rec aux t = negation (FreeFunc FormulaB.negation) aux reveal build t
+      in aux
 
-      include Abbrev(struct
-        type a = t
-        type b = FormulaB.t free
-        let build = build
-      end)
-      let lit l        = build(LitF l)
-      let forall(so,f,d)  = build(ForAllF(so,f,d))
-      let exists(so,f,d)  = build(ExistsF(so,f,d))
+    include Abbrev(struct
+                type a = t
+                type b = FormulaB.t free
+                let build = build
+              end)
+    let lit l        = build(LitF l)
+    let forall(so,f,d)  = build(ForAllF(so,f,d))
+    let exists(so,f,d)  = build(ExistsF(so,f,d))
 
-      let bV tag _ = lit(LitF.build(true,tag))
+    let bV tag _ = lit(LitF.build(true,tag))
 
-      let bC tag =
-        let const c = function
-          | [] -> c
-          | _  -> raise(ModelError "ModelError_Formulae.ml: Expected 0 arguments")
-        and mono f = function
-          | [a] -> f a
-          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 1 arguments")
-        and bi f = function
-          | [a;b] -> f(a,b)
-          | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 2 arguments")
-        in function
-        | True       -> const trueP
-        | False      -> const falseN
-        | Neg        -> mono negation
-        | And        -> bi andP
-        | Or         -> bi orN
-        | Imp        -> bi (fun(a,b) -> orN(negation a,b))
-        | Xor        -> bi (fun(a,b) -> andP(orN(a,b),orN(negation a,negation b)))
-        | Eq Sorts.Prop  -> bi (fun(a,b) -> andP(orN(negation a,b),orN(negation b,a)))
-        | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
-        | _          -> bV tag
+    let bC tag =
+      let const c = function
+        | [] -> c
+        | _  -> raise(ModelError "ModelError_Formulae.ml: Expected 0 arguments")
+      and mono f = function
+        | [a] -> f a
+        | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 1 arguments")
+      and bi f = function
+        | [a;b] -> f(a,b)
+        | _ -> raise(ModelError "ModelError_Formulae.ml: Expected 2 arguments")
+      in function
+      | True       -> const trueP
+      | False      -> const falseN
+      | Neg        -> mono negation
+      | And        -> bi andP
+      | Or         -> bi orN
+      | Imp        -> bi (fun(a,b) -> orN(negation a,b))
+      | Xor        -> bi (fun(a,b) -> andP(orN(a,b),orN(negation a,negation b)))
+      | Eq Sorts.Prop  -> bi (fun(a,b) -> andP(orN(negation a,b),orN(negation b,a)))
+      | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
+      | _          -> bV tag
 
-    end:S with type datatype = Fdata.t)
+  end
 
 end

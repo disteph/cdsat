@@ -58,10 +58,24 @@ module Make(PlDS: PlugDSType) = struct
     type dsubsts     = DSubst.t
     type constraints = Constraint.t
     let print_in_fmtC = Constraint.print_in_fmt
-
-    module IForm = Semantic
-    module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
-    module ASet = DblSet(MakeCollection(LitF))(PlDS.UASet)
+    let print_in_fmtL = LitF.print_in_fmt ~print_atom:Term.print_of_id
+                        
+    module LitF_print = struct
+      include LitF
+      let print_in_fmt fmt lit =
+        print_in_fmt ~print_atom:Term.print_of_id fmt lit
+    end
+                    
+    module IForm = struct
+      include Semantic
+      let print_in_fmt ?(print_atom=Term.print_of_id) fmt lit =
+        print_in_fmt ~print_atom fmt lit
+    end
+    module FSet = DblSet(MakeCollection(struct
+                             include IForm
+                             let print_in_fmt fmt = print_in_fmt fmt
+                           end))(PlDS.UFSet)
+    module ASet = DblSet(MakeCollection(LitF_print))(PlDS.UASet)
 
     let iatom_build d l =
       let b,atom = LitB.reveal l in
@@ -93,9 +107,6 @@ module Make(PlDS: PlugDSType) = struct
       let atom = Term.term_of_id index in
       if b then atom else Term.bC Symbols.Neg [atom]
 
-    let print_litF_in_fmt fmt lit =
-      Term.print_in_fmt fmt (litF_as_term lit)
-                                  
     let rec makes_senseF f w =
       match FormulaF.reveal f with
       | LitF l  -> makes_sense (litF_as_term l) w
@@ -183,7 +194,7 @@ module Make(PlDS: PlugDSType) = struct
 	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
 	  -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
           TSet.print_in_fmt (asTSet atomsN)
-          IForm.print_in_fmt focused
+          (fun fmt -> IForm.print_in_fmt fmt) focused
           FSet.print_in_fmt formuP
           FSet.print_in_fmt formuPSaved
 	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)

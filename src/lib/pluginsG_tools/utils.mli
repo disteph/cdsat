@@ -1,7 +1,8 @@
 open Kernel.Top.Interfaces_basic
 open Kernel.Prop.Interfaces_plugin
 
-module PHCons_ext(A:PHCons) : Hashtbl.HashedType with type t = A.t
+module PHCons_ext(A: sig type t val id : t -> int end)
+       : Hashtbl.HashedType with type t = A.t
 
 module FEext(FE:FrontEndType): sig
   open FE

@@ -47,7 +47,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
          if !Flags.unitp
          then (match UFSet.schoose h l with
 	 | A a       ->
-           Dump.print ["dpll_pat",1] (fun p->p "Yes %a" IForm.print_in_fmt a);
+           Dump.print ["dpll_pat",1] (fun p->p "Yes %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	   address:=Yes(olda);
 	   count.(1)<-count.(1)+1;
 	     (* let now = count.(4) in *)
@@ -57,7 +57,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	     (* in *)
 	   Focus(a,(olda,olda),accept,fNone)
 	 | F(Some a) ->
-           Dump.print ["dpll_pat",1] (fun p->p "Almost %a" IForm.print_in_fmt a);
+           Dump.print ["dpll_pat",1] (fun p->p "Almost %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	   address:=Almost(olda);
 	   count.(2)<-count.(2)+1;
 	   Focus(a,(olda,olda),accept,fNone)
@@ -66,11 +66,11 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	   count.(3)<-count.(3)+1;
 	   match UFSet.rchoose h l with
 	   | A a       -> 
-             Dump.print ["dpll_pat",1] (fun p->p "Random focus on %a" IForm.print_in_fmt a);
+             Dump.print ["dpll_pat",1] (fun p->p "Random focus on %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	     Focus(a,(olda,olda),accept,fNone)
 	   | _         -> 
              let a = UFSet.choose l in
-             Dump.print ["dpll_pat",1] (fun p->p "Random problematic focus on %a" IForm.print_in_fmt a);
+             Dump.print ["dpll_pat",1] (fun p->p "Random problematic focus on %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	     Focus(a,(olda,olda),accept,fNone))
          else
 	   Focus(UFSet.choose l,(olda,olda),accept,fNone)

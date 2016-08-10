@@ -26,6 +26,8 @@ module Make(DS: GTheoryDSType) = struct
 
       let clone () = Output(None, state atomN)
 
+      let suicide _ = ()
+
     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = state TSet.empty

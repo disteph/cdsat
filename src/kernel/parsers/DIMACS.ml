@@ -33,7 +33,7 @@ let rec print_list = function
 
 let rec parse_cnf cnf_so_far = function
   | []     -> List.rev cnf_so_far
-  | "0"::l -> parse_cnf ([]::cnf_so_far) l
+  | "0"::l -> parse_cnf ((* []:: *)cnf_so_far) l
   | l -> let rec parse_clause clause_so_far ispos = function
       | []     -> parse_cnf ((List.rev clause_so_far)::cnf_so_far) []
       | "0"::l -> parse_cnf ((List.rev clause_so_far)::cnf_so_far) l
@@ -55,7 +55,7 @@ type afterglance = (bool*string) list list
 let glance contents = 
   parse_cnf_file(list_from_string contents [] 0)
 
-let guessThDecProc _ = Some ["empty"; "bool"]
+let guessThDecProc _ = Some ["bool"]
 
 let parse (type t) l i = 
 

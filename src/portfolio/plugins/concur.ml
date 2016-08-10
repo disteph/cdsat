@@ -37,6 +37,7 @@ let make theories : (module Plugin.Type) =
                       end) = struct
 
       module WBE = WhiteBoardExt.Make(WB)
+                     
       module M = Master.Make(struct
                      include WB
                      include WBE
@@ -73,7 +74,7 @@ let make theories : (module Plugin.Type) =
            finished with answer a, and we return a. *)
         main_worker from_workers to_pl pipe_map tset >>= fun a ->
         Dump.print ["concur",1] (fun p-> p "Finished computation");
-        Deferred.all_unit (clause_listener_kill()::clause_listener::workers_list)
+        Deferred.all_unit workers_list
         >>| fun () -> a
 
       (* Finally, we launch the scheduler on mysolve tset, waiting for

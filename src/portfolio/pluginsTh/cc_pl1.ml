@@ -38,6 +38,7 @@ end) = struct
            | MyCC.SAT(msg,cont) -> Output(Some msg, init_rec cont)
       let normalise _ = failwith "Not a theory with normaliser"
       let clone () = Output(None,state)
+      let suicide _ = ()
     end)
     in
     state

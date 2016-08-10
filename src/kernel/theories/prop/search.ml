@@ -362,6 +362,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	-> 
 
 	let rec lk_solvef formPChoose conschecked formP formPSaved action0 data sigma cont = 
+          Dump.print ["prop_search",2] (fun p -> p "---attack lk_solvef\n %a" Seq.print_in_fmt seq);
 
 	  if ((FSet.is_empty formPChoose) && (FSet.is_empty formPSaved) && conschecked) 
 	  then cont (throw(totalfail seq))
@@ -394,7 +395,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                   if not (makes_senseF toCut ar)
                   then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		  Dump.Kernel.incr_count 5;
-                  Dump.print ["prop_search",2] (fun p->p "Cut3 on %a" IForm.print_in_fmt toCut);
+                  Dump.print ["prop_search",2] (fun p->p "Cut3 on %a" (fun fmt -> IForm.print_in_fmt fmt) toCut);
                   let u1 = lk_solve true (Seq.EntF (atomN, toCut, formP, formPSaved, polar,ar)) (bleft newdata1) in
                   let u2 = lk_solve true (Seq.EntUF (atomN, FSet.add (IForm.negation toCut) FSet.empty, formP, formPSaved, polar,ar)) (bright newdata1) in
                   let u3 = lk_solvef formPChoose conschecked formP formPSaved l newdata in
@@ -458,6 +459,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 		    then raise (WrongInstructionException "Trying to restore formulae on which focus has already been placed,
  but there still are formulae that you have not tried;
  your treatment is unfair");
+                    Dump.print ["prop_search",1] (fun p->p "Restoring");
 		    let u = lk_solvef (FSet.union formPChoose formPSaved) conschecked (FSet.union formP formPSaved) FSet.empty l newdata
                     in straight (intercept inter_fun u) (fun a->a) (fun a->a) (fun a->a) seq sigma cont
 

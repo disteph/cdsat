@@ -183,6 +183,10 @@ module Make(WB : WhiteBoardExt.Type) = struct
         
   end
 
+  let suicide msg term1 term2 =
+    if !Flags.memo
+    then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.print_in_fmt msg);
+          WR.add (Constraint.make msg) term1 term2)
 
   let rec flush reader writer msg =
     Dump.print ["memo",2] (fun p-> p "Memo enters flush");
@@ -196,21 +200,22 @@ module Make(WB : WhiteBoardExt.Type) = struct
              flush newreader1 newwriter1 msg;
              flush newreader2 newwriter2 msg
            ]
+      | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       reader aux
 
   let rec loop_read (fixed:Config.fixed) from_pl to_pl =
     let aux = function 
-      | MsgStraight(tset,chrono)
-        ->
+      | MsgStraight(tset,chrono) ->
          let fixed = Fixed.extend tset fixed in
          Dump.print ["memo",1] (fun p-> p "Memo: adding %a" TSet.print_in_fmt tset);
          loop_write (WR.treat fixed tset) fixed chrono from_pl to_pl
-      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
-        -> Deferred.all_unit
-             [ loop_read fixed newreader1 newwriter1 ;
-               loop_read fixed newreader2 newwriter2 ]
+      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) ->
+         Deferred.all_unit
+           [ loop_read fixed newreader1 newwriter1 ;
+             loop_read fixed newreader2 newwriter2 ]
+      | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
       from_pl aux
@@ -253,16 +258,6 @@ module Make(WB : WhiteBoardExt.Type) = struct
                [ Lib.write to_pl (Msg(None,Say msg,chrono));
                  loop_read fixed from_pl to_pl ]))
 
-
   let make = loop_read Fixed.init
-
-  let rec make_listener clause_reader = 
-    let aux (msg,term1,term2) =
-      WR.add (Constraint.make msg) term1 term2;
-      Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.print_in_fmt msg);
-      make_listener clause_reader
-    in
-    Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo recorder dies")))
-      clause_reader aux
                        
 end

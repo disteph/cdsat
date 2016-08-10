@@ -114,6 +114,8 @@ module Make(DS: sig
 
       let clone () = Output(None, machine state)
 
+      let suicide _ = ()
+
     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
 
   let init = machine {treated=TSet.empty; splits=[]; stack=[]}

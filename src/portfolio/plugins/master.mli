@@ -55,9 +55,6 @@ module Make(WB: sig
 
   end
 
-  val clause_listener :  unit Deferred.t
-  val clause_listener_kill : unit -> unit Deferred.t
-
   module AS : sig
     type t
     val all : t

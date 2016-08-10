@@ -60,6 +60,7 @@ module type S = sig
   val clear : unit -> unit
   val print_in_fmt: Format.formatter -> t -> unit
   val printtl_in_fmt: Format.formatter -> t list -> unit
+  val print_of_id: Format.formatter -> int -> unit
   module Homo(Mon: MonadType) : sig
     val lift : 
       ('a -> leaf Mon.t) -> ('a,_) term -> (leaf,datatype) term Mon.t
@@ -103,7 +104,11 @@ struct
     | t :: l ->
       if l = [] then print_in_fmt fmt t
       else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
-	
+
+  let print_of_id fmt index =
+    let atom = term_of_id index in
+    print_in_fmt fmt atom
+                   
   module Homo(Mon: MonadType) = struct
     let rec lift update t
         = match reveal t with

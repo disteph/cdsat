@@ -16,7 +16,7 @@ open Formulae
 
 module type PrintableType = sig 
   type t 
-  val print_in_fmt: formatter -> t -> unit
+  val print_in_fmt: ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 end
 
 module MyCollectImplem (MyPType:PrintableType) = struct
@@ -32,7 +32,8 @@ module MyCollectImplem (MyPType:PrintableType) = struct
   let add x l = if mem x l then l else x::l
 
   let rec remove x = function
-    | [] -> failwith(Dump.toString (fun p->p "%a is not in list!" MyPType.print_in_fmt x))
+    | [] -> failwith(Dump.toString (fun p->
+                         p "%a is not in list!" (fun fmt -> MyPType.print_in_fmt fmt) x))
     | y::l when y=x -> l
     | y::l -> y::(remove x l)
 
@@ -55,10 +56,10 @@ module MyCollectImplem (MyPType:PrintableType) = struct
     | a::l -> fold f l (f a init)
     | [] -> init
 
-  let rec print_in_fmt fmt = function
+  let rec print_in_fmt ?print_atom fmt = function
     | []    -> ()
-    | f::[] -> fprintf fmt "%a" MyPType.print_in_fmt f
-    | f::l  -> fprintf fmt "%a, %a" MyPType.print_in_fmt f print_in_fmt l
+    | f::[] -> fprintf fmt "%a" (MyPType.print_in_fmt ?print_atom)f
+    | f::l  -> fprintf fmt "%a, %a" (MyPType.print_in_fmt ?print_atom) f (print_in_fmt ?print_atom) l
 
   let choose = function 
     | [] -> None

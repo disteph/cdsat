@@ -93,7 +93,8 @@ module Make(DS: sig
 
   let bump lset =
     scores := LMap.union_poly (fun _ () v -> v +. !bump_value)
-                (LMap.map (fun _ () -> !bump_value))
+                (* (LMap.map (fun _ () -> !bump_value)) *)
+                (fun _ -> LMap.empty)
                 (fun scores -> scores)
                 lset !scores;
     Dump.print ["bool_pl1",2] (fun p ->
@@ -191,10 +192,10 @@ module Make(DS: sig
                  begin
                    match Propa.treat c 2 state.propastate with
                    | A(list,unsat,term) ->
-                      begin match (proj(Terms.data term)).asclause with
-                      | None -> failwith "Clause is false, cannot be true"
-                      | Some lset -> bump lset
-                      end;
+                      (* begin match (proj(Terms.data term)).asclause with *)
+                      (* | None -> failwith "Clause is false, cannot be true" *)
+                      (* | Some lset -> bump lset *)
+                      (* end; *)
                       begin match list with
                       | []     -> Output(Some unsat,fail_state)
                       | msg::l ->
@@ -246,7 +247,7 @@ module Make(DS: sig
                        let Propa(_,Both(t1,t2)) = msg in
                        Dump.print ["bool_pl1",2] (fun p ->
                            p "Splitting on literal %a: %a"
-                             LitF.print_in_fmt
+                             (LitF.print_in_fmt ~print_atom:Term.print_of_id)
                              lit
                              (Messages.print_msg_in_fmt TSet.print_in_fmt)
                              msg     );
@@ -273,6 +274,13 @@ module Make(DS: sig
                          
        let clone = (fun () -> Output(None, machine { state with already = None }))
                      
+       let suicide (Propa(tset,Unsat)) =
+         let aux term lset =
+           LSet.add ((proj(Terms.data term)).aslit) lset
+         in
+         let lset = TSet.fold aux tset LSet.empty in
+         bump lset
+
      end)
       
   let init = machine

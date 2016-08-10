@@ -57,6 +57,7 @@ module type FrontEndType = sig
 
   type constraints
   val print_in_fmtC: Format.formatter -> constraints -> unit
+  val print_in_fmtL: Format.formatter -> LitF.t -> unit
 
   (* The kernel defines the datastructure for formulae, instantiated
   formulae, sets of instantiated formulae, and sets of instantiated
@@ -66,8 +67,6 @@ module type FrontEndType = sig
   module FSet : CollectKernel with type e = IForm.t
   module ASet : CollectKernel with type e = LitF.t
 
-  val print_litF_in_fmt : Format.formatter -> Literals.LitF.t -> unit
-    
   (* The kernel has a module for polarity assignment for literals, and how to compute the polarity of a formula *)
 
   module Pol : sig

@@ -82,6 +82,7 @@ module type SlotMachine = sig
   val add      : tset option -> newoutput
   val clone    : unit -> newoutput
   val normalise: tset -> newoutput
+  val suicide  : ('sign,tset,Messages.unsat) Messages.message -> unit
 end
 
 type ('sign,'tset) slot_machine
@@ -99,4 +100,5 @@ let fail_state (type sign) (type ts) : (sign,ts) slot_machine = (module struct
   let add     _ = failwith "Are you dumb? I already told you it was provable"
   let normalise _ = failwith "Are you dumb? I already told you it was provable"
   let clone   _ = failwith "Are you dumb? I already told you it was provable"
+  let suicide _ = failwith "Are you dumb? I already told you it was provable"
 end)
