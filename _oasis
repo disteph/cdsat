@@ -1,14 +1,17 @@
 OASISFormat: 0.4
 Name:        Psyche
-Version: 2.0
+Version: 2.1
 Synopsis:    Proof-Search factorY for Collaborative HEuristics
 Authors: Stephane Graham-Lengrand, CNRS
          Assia Mahboubi, INRIA
+         Jean-Marc Notin, CNRS
          Alexis Bernadet, Ecole Polytechnique
          Mahfuza Farooque, CNRS
+         Guillaume Hétier, Ecole Polytechnique
          Zelda Mariet, Ecole Polytechnique
          Clément Pit-Claudel, Ecole Polytechnique
          Damien Rouhling, ENS Lyon
+         André Schrottenloher, Ecole Polytechnique
          Matthieu Vegreville, Ecole Polytechnique
 License:     CeCILL-C
 LicenseFile: LICENCE.txt

@@ -41,8 +41,8 @@ let options =
                          match !notheories with
                          | None   -> ()
                          | Some l -> addtheories:= Some(s::l)), "XXX forces use of theory XXX");
-    ("-alltheories", Unit(fun ()-> addtheories:= None), "all theories are used, except those specified by -no option");
-    ("-notheories",  Unit(fun ()-> notheories := None), "no theories are used, except those specified by -th option");
+    ("-alltheories", Unit(fun ()-> addtheories:= None), "makes Psyche use all theories, except those specified by -no option");
+    ("-notheories",  Unit(fun ()-> notheories := None), "makes Psyche use no theories, except those specified by -th option");
     ("-fo",          Clear mode,                      "selects the first-order sequent calculus mode");
     ("-plugin",      Set_string myplugin,             "XXX selects XXX as the main plugin (among async)");
     ("-pluginG",     Set_string mypluginG,            "XXX selects XXX as the pure logic plugin (among naive, hint, dpll_pat, dpll_wl)");
