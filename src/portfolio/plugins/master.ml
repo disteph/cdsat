@@ -211,7 +211,7 @@ module Make(WB: sig
          stamped the set of literals consset as being consistent
          with them, so we can finish, closing all pipes *)
       then kill_pipes state.pipe_map state.to_plugin >>| fun () ->
-           F current
+           Case2 current
 
       (* some theories still haven't stamped that set of
          literals consset as being consistent with them, so we
@@ -260,7 +260,7 @@ module Make(WB: sig
                   WB.print_in_fmt conflict);
             send state.pipe_map (KillYourself(conflict,uip,second_term)) >>= fun () ->
             kill_pipes state.pipe_map state.to_plugin >>| fun () ->
-            A(conflict,uip,second_level)
+            Case1(conflict,uip,second_level)
 
          | Propa(old,Straight newa) ->
             let chrono = state.chrono+1 in
@@ -290,7 +290,7 @@ module Make(WB: sig
             >>= fun (ans1, def_ans2, kill2) -> 
             kill_pipes state.pipe_map state.to_plugin >>= fun () ->
             begin match ans1 with
-            | A(ans1,term,level) when level==state.level
+            | Case1(ans1,term,level) when level==state.level
               ->
                Dump.print ["concur",0] (fun p -> 
                    p "Backtrack level: %i, Second conflict level: %i, UIP: %a, Conflict:\n%a"
@@ -326,7 +326,7 @@ module Make(WB: sig
     in
     send state.pipe_map (MsgStraight(tset,0)) >>= fun () ->
     main_worker (WB.sat_init tset) state >>| function
-    | A(conflict,_,_) -> A conflict
-    | F msg -> F msg
+    | Case1(conflict,_,_) -> Case1 conflict
+    | Case2 msg -> Case2 msg
     
 end

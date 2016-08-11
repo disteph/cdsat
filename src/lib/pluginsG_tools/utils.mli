@@ -8,7 +8,7 @@ module FEext(FE:FrontEndType): sig
   open FE
   val accept  : receive
   val fNone   : 'a alt_action
-  val isProvable   :answer->bool
-  val isNotProvable:answer->bool
-  val model   :Seq.t->ASet.ps
+  val isProvable   :'a answer->bool
+  val isNotProvable:'a answer->bool
+  val model   : seqU seq->ASet.ps
 end

@@ -513,22 +513,22 @@ module Poly(I:Intern) = struct
 
     let find_su yes singleton empty union su bp cond cond' k t =
       let rec aux t = match reveal t with
-        | Empty      -> F empty
+        | Empty      -> Case2 empty
         | Leaf (j,x) -> (match su (tag j) k None with
-	  | Yes _                -> A(yes j x) 
-	  | Almost n when cond n -> F(singleton j x n)
-	  | _                    -> F empty)
+	  | Yes _                -> Case1(yes j x) 
+	  | Almost n when cond n -> Case2(singleton j x n)
+	  | _                    -> Case2 empty)
         | Branch (p,m,l,r) ->
 	  let (prems,deuz)=if bp then (r,l) else (l,r) in
 	  let f b = match aux prems with
-	    | F c when b c ->(match aux deuz with
-	      | F d -> F(union c d)
+	    | Case2 c when b c ->(match aux deuz with
+	      | Case2 d -> Case2(union c d)
 	      | v   -> v)
 	    | v -> v
 	  in match su p k (Some m) with
 	  | Yes _                -> f(fun c-> cond' c &&((bp=check k m)||cond m))
 	  | Almost n when cond n -> f(fun c-> cond' c &&  bp=check k m)
-	  | _                    -> F empty
+	  | _                    -> Case2 empty
       in aux t
 
   end

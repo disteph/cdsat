@@ -23,11 +23,12 @@ module type Type = sig
   module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				  and  type FSet.ps     = DS.UFSet.t
 				  and  type ASet.ps     = DS.UASet.t)
-    : sig
-      (* A user can embark his own data on the proof-search.
+         : sig
+    open FE
+    (* A user can embark his own data on the proof-search.
 	 Set it to unit if not used *)
-      type data
-      val initial_data : FE.Seq.t -> bool list -> data
-      val solve        : data FE.output -> FE.answer
-    end
+    type data
+    val initial_data : seqU seq -> bool list -> data
+    val solve        : data output -> seqU answer
+  end
 end

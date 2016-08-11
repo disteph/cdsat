@@ -72,7 +72,7 @@ module Make(DS: sig
       match Constraint.verysimpl c with
 
       (* If clause not already true *)
-      | Sums.A set ->
+      | Sums.Case1 set ->
          PluginsTh_tools.TwoWatchedLits.pick_another_make
            ~is_empty:LSet.is_empty
            ~mem:LSet.mem
@@ -81,7 +81,7 @@ module Make(DS: sig
            set i varlist
 
       (* If clause is already true: *)
-      | Sums.F _ -> None
+      | Sums.Case2 _ -> None
 
   end
 
@@ -191,7 +191,7 @@ module Make(DS: sig
                  let c = Config.Constraint.make t in
                  begin
                    match Propa.treat c 2 state.propastate with
-                   | A(list,unsat,term) ->
+                   | Case1(list,unsat,term) ->
                       (* begin match (proj(Terms.data term)).asclause with *)
                       (* | None -> failwith "Clause is false, cannot be true" *)
                       (* | Some lset -> bump lset *)
@@ -202,7 +202,7 @@ module Make(DS: sig
                          let state = { state with finalsay = Some(l,unsat) } in
                          Output(Some msg, machine state)
                       end
-                   | F propastate ->
+                   | Case2 propastate ->
                       aux { state with todo = todo;
                                        propastate = propastate  }
                  end

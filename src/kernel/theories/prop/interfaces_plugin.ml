@@ -76,36 +76,49 @@ module type FrontEndType = sig
   end
 
   (* The kernel has a module to implement the notion of sequent;
-     the type of sequent states that there are two kinds:
 
-     - focussed sequents of the form
-     EntF(atomN, g, formP, formPSaved, polar)
-     atomN are the atoms assumed to be true
-     g is the formula in focus (i.e. being decomposed)
-     formP are the positive formulae on which we could later place focus
-     formPSaved are the positive formulae on which we have placed focus
-     but we could focus on them again if need be
-     polar is a assignment mapping atoms to polarities
+     All sequents have fields:
+     (* lits = negative atoms/lits found in asynchronous phase (negation symbol not stored) *)
+     (* formP = positive formulae found in asynchronous phase (focus to be placed on them later) *)
+     (* formPSaved = positive formulae on which focus has been placed but we could focus on them again if need be  *)
+     (* (The formulae in formP have priority for focus -> ensures fairness) *)
+     (* polar is a assignment mapping atoms to polarities *)
+     (* world describes the free variables (eigenvariables or metavariables) *)
+     (* that exist in the world where the sequent lives *)
 
-     - unfocussed sequents of the form
-     EntUF(atomN, delta, formP, formPSaved, polar)
-     The arguments are the same as above, except there is no formula in
-     focus; instead, there is a set of formulae delta: the formulae to
-     be decomposed into atomic elements without creating backtrack
-     points along the way
+     The last remaining field, rhs (for right-hand side),
+     distinguishes 2 kinds of sequents: focussed and unfocussed
 
-     simplify takes a sequent and outputs the set of atoms and the set
-     of positive formulae (union of formP and formPSaved) 
+     - focussed sequents have as their right-hand side 
+     a formula g in focus, so the field contains (F g)
+     it is the formula that is currently being synchronously decomposed.
 
-     print_in_fmt does the prettyprinting 
-  *)
+     - unfocussed sequents have as their right-hand side a set of formulae
+     delta: the formulae to be asynchronously decomposed, without creating 
+     backtrack points along the way
+
+     print_seq_in_fmt and print_in_fmt do the prettyprinting 
+   *)
+
+  type seqU = private SeqU
+  type seqF = private SeqF
+  type _ rhs =
+    | U : FSet.t  -> seqU rhs
+    | F : IForm.t -> seqF rhs
+
+  type 'a seq = {
+      lits : ASet.t;
+      rhs  : 'a rhs;
+      formP: FSet.t;
+      formPSaved:FSet.t;
+      polar : Pol.t;
+      world : World.t }
 
   module Seq : sig
-    type t = private
-    | EntF  of ASet.t * IForm.t * FSet.t * FSet.t * Pol.t * World.t
-    | EntUF of ASet.t * FSet.t * FSet.t * FSet.t * Pol.t * World.t
-    val forPlugin : t -> ASet.ps*FSet.ps
+    type t = Seq : _ seq -> t
+    val forPlugin : 'a seq -> ASet.ps*FSet.ps
     val print_in_fmt: Format.formatter -> t -> unit
+    val print_seq_in_fmt: Format.formatter -> 'a seq -> unit
   end
 
   (* PT is the module implementing proof-trees:
@@ -127,9 +140,9 @@ module type FrontEndType = sig
      - a failure of proof-search (carrying the sequent for which no proof was found)
   *)
 
-  type answer = private Provable of Seq.t*Proof.t*constraints | NotProvable of Seq.t
-  val sequent  : answer->Seq.t
-  val print_in_fmt: Format.formatter -> answer -> unit
+  type 'a answer = Provable of 'a seq*Proof.t*constraints | NotProvable of 'a seq
+  val sequent  : 'a answer-> 'a seq
+  val print_in_fmt: Format.formatter -> 'a answer -> unit
 
   (* Now comes the heart of the API: 
      the actions that a plugin can order to kernel to trigger
@@ -202,7 +215,7 @@ module type FrontEndType = sig
 
   *)
 
-  type receive = answer -> unit
+  type receive = seqU answer -> unit
 
   type 'a focusCoin = 
   | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
@@ -211,7 +224,7 @@ module type FrontEndType = sig
   | Polarise   of ASet.e*('a address)*receive
   | DePolarise of ASet.e*('a address)*receive
   | Get      of bool*bool*('a alt_action)
-  | Propose  of answer
+  | Propose  of seqU answer
   | Restore  of ('a address)*receive*('a alt_action)
   and 'a alt_action = unit -> ('a focusCoin option)
 
@@ -290,12 +303,12 @@ module type FrontEndType = sig
 
   *)
 
-  type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
+  type 'a output = Jackpot of seqU answer | InsertCoin of 'a insertcoin
   and  'a insertcoin = 
-  | Notify   of Seq.t*constraints*bool*('a notified -> 'a output)*('a address)
-  | AskFocus of Seq.t*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
-  | AskSide  of Seq.t*constraints*('a sideCoin  -> 'a output)*('a address)
-  | Stop     of bool*bool*(unit -> 'a output)
+    | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
+    | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
+    | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
+    | Stop     of bool*bool*(unit -> 'a output)
 
 end
 

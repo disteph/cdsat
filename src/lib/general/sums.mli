@@ -1,6 +1,6 @@
 (* Standard type constructs *)
 
-type ('a,'b) sum = A of 'a | F of 'b
+type ('a,'b) sum = Case1 of 'a | Case2 of 'b
 
 type ('a,'b) almost =
   | Yes of 'a

@@ -89,37 +89,37 @@ module LexProduct
     
   type branching = (I1.branching,I2.branching) sum
   let bcompare b1 b2 = match b1,b2 with
-    | A(a),A(a') -> I1.bcompare a a'
-    | F(a),F(a') -> I2.bcompare a a'
-    | A(a),F(a') -> -1 
-    | F(a),A(a') -> 1
+    | Case1(a),Case1(a') -> I1.bcompare a a'
+    | Case2(a),Case2(a') -> I2.bcompare a a'
+    | Case1(a),Case2(a') -> -1 
+    | Case2(a),Case1(a') -> 1
 
   let check (p1,p2) = function
-    | A(a1)-> I1.check p1 a1
-    | F(a2)-> I2.check p2 a2
+    | Case1(a1)-> I1.check p1 a1
+    | Case2(a2)-> I2.check p2 a2
 
   let match_prefix (q1,q2) (p1,p2) = function
-    | A(a)-> I1.match_prefix q1 p1 a
-    | F(a)-> (I1.pequals q1 p1) && I2.match_prefix q2 p2 a
+    | Case1(a)-> I1.match_prefix q1 p1 a
+    | Case2(a)-> (I1.pequals q1 p1) && I2.match_prefix q2 p2 a
 
   let disagree (p1,p2) (p1',p2') = 
     if I1.pequals p1 p1'
-    then let (p2'',d,c) = I2.disagree p2 p2' in ((p1,p2''),F(d),c)
-    else let (p1'',d,c) = I1.disagree p1 p1' in ((p1'',p2),A(d),c)
+    then let (p2'',d,c) = I2.disagree p2 p2' in ((p1,p2''),Case2(d),c)
+    else let (p1'',d,c) = I1.disagree p1 p1' in ((p1'',p2),Case1(d),c)
 
   let sub sub1 sub2 alm (k1,k2) (p1,p2) =
-    let lift1 = function Almost a->Almost(A a) | Yes _ -> Yes() | No->No in
-    let lift2 = function Almost a->Almost(F a) | Yes _ -> Yes() | No->No in
+    let lift1 = function Almost a->Almost(Case1 a) | Yes _ -> Yes() | No->No in
+    let lift2 = function Almost a->Almost(Case2 a) | Yes _ -> Yes() | No->No in
     let aux b = match sub1 alm k1 p1 None with
       | Yes _   -> lift2(sub2 alm k2 p2 b)
       | Almost f-> begin match sub2 false k2 p2 b with
-	  | Yes _ -> Almost (A f)
+	  | Yes _ -> Almost (Case1 f)
 	  | _     -> No
 	end
       | No       -> No
     in function
-      | Some(A(a)) -> lift1(sub1 alm k1 p1 (Some a))
-      | Some(F(a)) -> aux (Some a)
+      | Some(Case1(a)) -> lift1(sub1 alm k1 p1 (Some a))
+      | Some(Case2(a)) -> aux (Some a)
       | None       -> aux None
 
   let pequals pequals2 (p1,p2) (p1',p2')=I1.pequals p1 p1' && pequals2 p2 p2'

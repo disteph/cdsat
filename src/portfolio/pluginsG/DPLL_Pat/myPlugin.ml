@@ -34,10 +34,10 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
        l is the set of (negated) clauses
        schoose looks at whether there is a (begated) clause in l such
        that every literal in it is in h
-       - answers A(a) if a is such a clause
-       - answers F(Some a) if a is almost such a clause (were it not
+       - answers Case1(a) if a is such a clause
+       - answers Case2(Some a) if a is almost such a clause (were it not
        for one literal)
-       - answers F(None) if there is no clause satisfying the above
+       - answers Case2(None) if there is no clause satisfying the above
     *)
 
   let focus_pick seq l olda ()=count.(0)<-count.(0)+1; 
@@ -46,7 +46,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     else let (h,_)=Seq.forPlugin seq in
          if !Flags.unitp
          then (match UFSet.schoose h l with
-	 | A a       ->
+	 | Case1 a       ->
            Dump.print ["dpll_pat",1] (fun p->p "Yes %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	   address:=Yes(olda);
 	   count.(1)<-count.(1)+1;
@@ -56,7 +56,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	     (*   | _-> failwith "Expected Success" *)
 	     (* in *)
 	   Focus(a,(olda,olda),accept,fNone)
-	 | F(Some a) ->
+	 | Case2(Some a) ->
            Dump.print ["dpll_pat",1] (fun p->p "Almost %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	   address:=Almost(olda);
 	   count.(2)<-count.(2)+1;
@@ -65,7 +65,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	   address:=No;
 	   count.(3)<-count.(3)+1;
 	   match UFSet.rchoose h l with
-	   | A a       -> 
+	   | Case1 a       -> 
              Dump.print ["dpll_pat",1] (fun p->p "Random focus on %a" (fun fmt -> IForm.print_in_fmt fmt) a);
 	     Focus(a,(olda,olda),accept,fNone)
 	   | _         -> 

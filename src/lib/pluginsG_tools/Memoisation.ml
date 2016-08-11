@@ -27,7 +27,7 @@ module Make
       let kcompare (a1,f1)(a2,f2) =
 	let c=AS.compare a1 a2 in
 	  if c==0 then FS.compare f1 f2 else c
-      type values  = answer*int
+      type values  = seqU answer*int
       type infos     = unit
       let info_build = empty_info_build
       let treeHCons  = None
@@ -46,15 +46,15 @@ module Make
     let byes j x = x
     let bempty   = (AS.empty,FS.empty)
     let bsingleton j x = function
-      | A a -> (AS.add a AS.empty,FS.empty)
-      | F a -> (AS.empty,FS.add a FS.empty)
+      | Case1 a -> (AS.add a AS.empty,FS.empty)
+      | Case2 a -> (AS.empty,FS.add a FS.empty)
     let bunion (a,b)(a',b')=if AS.is_empty a&&FS.is_empty b then (a',b') else (a,b)
     (* let bunion (a,b)(a',b')=(AS.union a a',FS.union b b')  *)
 
     let find_sub alm (k1,k2) =
       let filter =function
-	| F f  -> alm
-	| A ia -> alm && not (AS.mem (LitF.negation ia) k1) (* && not (FS.is_in (Form.lit a,tl) k2) *)
+	| Case2 f  -> alm
+	| Case1 ia -> alm && not (AS.mem (LitF.negation ia) k1) (* && not (FS.is_in (Form.lit a,tl) k2) *)
       in
 	MP.find_su byes bsingleton bempty bunion (sub alm) true filter (fun _-> true) (k1,k2)
 
@@ -73,16 +73,24 @@ module Make
       let s = sequent ans in
       let k = Seq.forPlugin s in
       match algo k !table with
-      | F _ ->
+      | Case2 _ ->
          Dump.Plugin.incr_count 4;
-	 Dump.print ["memo",2]
-           (fun p->p "%i/%i Recording %s for\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s);
+	 Dump.print ["memo",2] (fun p->
+             p "%i/%i Recording %s for\n%a"
+               (Dump.Plugin.read_count 4)
+               (Dump.Plugin.read_count 5)
+               (if b then "success" else "failure")
+               Seq.print_seq_in_fmt s);
 	 table := MP.add k (fun _ -> (ans, 1)) !table;
          if b then Some k else None
-      | A a ->
+      | Case1 a ->
          Dump.Plugin.incr_count 5;
-	 Dump.print ["memo",2]
-           (fun p->p "%i/%i Already know better %s than\n%a" (Dump.Plugin.read_count 4) (Dump.Plugin.read_count 5) (if b then "success" else "failure") Seq.print_in_fmt s);
+	 Dump.print ["memo",2] (fun p->
+             p "%i/%i Already know better %s than\n%a"
+               (Dump.Plugin.read_count 4)
+               (Dump.Plugin.read_count 5)
+               (if b then "success" else "failure")
+               Seq.print_seq_in_fmt s);
          None
 
     let search4success b s = find_sub b (Seq.forPlugin s) !tableS
@@ -92,21 +100,21 @@ module Make
       if AS.is_empty a then
 	if FS.is_empty f then
           (Dump.print ["memo",2] (fun p->
-               p "Found no previous success for %a" Seq.print_in_fmt seq);
+               p "Found no previous success for %a" Seq.print_seq_in_fmt seq);
            Dump.Plugin.incr_count 9;
 	   alternative())
 	else let toCut, _ = FS.next f in
 	     (Dump.Plugin.incr_count 6; (*Never happens in DPLL_WL*)
               Dump.print ["memo",2](fun p->
                   p "Found approx. in pos form of\n%a\n%a"
-                    Seq.print_in_fmt seq
+                    Seq.print_seq_in_fmt seq
                     (fun fmt -> IForm.print_in_fmt fmt) toCut);
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
       else let toCut, _ = AS.next a in
 	   Dump.Plugin.incr_count 8;
            Dump.print ["memo",2] (fun p->
                p "Found approx. in atoms of\n%a\n%a"
-                 Seq.print_in_fmt seq
+                 Seq.print_seq_in_fmt seq
                  print_in_fmtL toCut);
            Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
 
@@ -114,26 +122,37 @@ module Make
       snd (MP.find (Seq.forPlugin (sequent ans)) !tableS)
 
     let reset_stats4provable ans =
-      tableS := MP.add (Seq.forPlugin (sequent ans)) (function None -> failwith "Sequent should be in the table - stats" | Some _ -> (ans, 0)) !tableS
+      tableS := MP.add
+                  (Seq.forPlugin (sequent ans))
+                  (function None -> failwith "Sequent should be in the table - stats"
+                          | Some _ -> (ans, 0))
+                  !tableS
 
     let search4provableNact seq data alternative () =
       match search4success !Flags.almo seq with
-      | A a ->
+      | Case1 a ->
          Dump.Plugin.incr_count 7;
-         Dump.print ["memo",2] (fun p->p "Found previous success for %a" Seq.print_in_fmt seq);
+         Dump.print ["memo",2] (fun p->
+             p "Found previous success for %a" Seq.print_seq_in_fmt seq);
          let ans, count = a in
-         tableS := MP.add (Seq.forPlugin (sequent ans)) (function None -> failwith "Sequent should be in the table" | Some _ -> (ans, count+1)) !tableS;
+         tableS := MP.add
+                     (Seq.forPlugin (sequent ans))
+                     (function None -> failwith "Sequent should be in the table"
+                             | Some _ -> (ans, count+1))
+                     !tableS;
          Some(Propose ans)
-      | F(d1,d2) -> cut_series seq data alternative (d1,d2)
+      | Case2(d1,d2) -> cut_series seq data alternative (d1,d2)
      
 
     let search4notprovableNact seq alternative =
       match search4failure false seq with
-      | A a ->
-         Dump.print ["memo",2] (fun p->p "Found previous failure for %a" Seq.print_in_fmt seq);
+      | Case1 a ->
+         Dump.print ["memo",2] (fun p->
+             p "Found previous failure for %a" Seq.print_seq_in_fmt seq);
 	 Propose (fst a)
       | _   ->
-         Dump.print ["memo",2] (fun p->p "Found no previous failure for %a" Seq.print_in_fmt seq);
+         Dump.print ["memo",2] (fun p->
+             p "Found no previous failure for %a" Seq.print_seq_in_fmt seq);
 	 alternative()
 
     let report() = 

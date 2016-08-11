@@ -167,54 +167,68 @@ module Make(PlDS: PlugDSType) = struct
     end
 
     (* Module of Sequents *)
+    type seqU = private SeqU
+    type seqF = private SeqF
+    type _ rhs =
+      | U : FSet.t  -> seqU rhs
+      | F : IForm.t -> seqF rhs
+    type 'a seq = {
+        lits : ASet.t;
+        rhs  : 'a rhs;
+        formP: FSet.t;
+        formPSaved:FSet.t;
+        polar : Pol.t;
+        world : World.t }
 
     module Seq = struct
 
-      type t = 
-        | EntF  of ASet.t*IForm.t*FSet.t*FSet.t*Pol.t*World.t
-        | EntUF of ASet.t*FSet.t*FSet.t*FSet.t*Pol.t*World.t
+      type t = Seq : _ seq -> t
 
-      let interesting = function
-	| EntF(atomN, g, formP, formPSaved, polar,ar)      -> (atomN, formP::formPSaved::[])
-	| EntUF(atomN, delta, formP, formPSaved, polar,ar) -> (atomN, formP::formPSaved::delta::[])
+      let interesting (type a) (t : a seq) =
+        t.lits,
+        t.formP::t.formPSaved::(match t.rhs with U delta -> [delta] | F _ -> [])
 
       let forPlugin s = match interesting s with
         | (a,formP::formPSaved::l) -> (ASet.forPlugin a, PlDS.UFSet.union (FSet.forPlugin formP)(FSet.forPlugin formPSaved))
         | _ -> failwith "Not enough items in interesting"
 
       let subseq s1 s2 =
-        match s1,s2 with
-        | EntUF(atomN1, delta1, formP1, formPSaved1,_,_),EntUF(atomN2, delta2, formP2, formPSaved2,_,_)
-          -> (ASet.subset atomN1 atomN2)&&(FSet.subset delta1 delta2)&&(FSet.subset (FSet.union formP1 formPSaved1) (FSet.union formP2 formPSaved2))
-        | _,_ -> failwith "Incomparable sequents"
+        let U delta1, U delta2 = s1.rhs,s2.rhs in
+        (ASet.subset s1.lits s2.lits)
+        &&(FSet.subset delta1 delta2)
+        &&(FSet.subset (FSet.union s1.formP s1.formPSaved) (FSet.union s2.formP s2.formPSaved))
 	  
       (* Displays sequent *)
 
-      let print_in_fmt_aux fmt = function
-	| EntF(atomsN, focused, formuP, formuPSaved,_,_)
-	  -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
-          TSet.print_in_fmt (asTSet atomsN)
-          (fun fmt -> IForm.print_in_fmt fmt) focused
-          FSet.print_in_fmt formuP
-          FSet.print_in_fmt formuPSaved
-	| EntUF(atomsN, unfocused, formuP, formuPSaved,_,_)
-          -> fprintf fmt " \\DerOSNeg {%a} {%a} {%a \\cdot %a}"
-          TSet.print_in_fmt (asTSet atomsN)
-          FSet.print_in_fmt unfocused
-          FSet.print_in_fmt formuP
-          FSet.print_in_fmt formuPSaved
+      let print_in_fmt_aux fmt (type a) : a seq -> unit = function
+          t ->
+          match t.rhs with
+	  | F focused
+            -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
+                 TSet.print_in_fmt (asTSet t.lits)
+                 (fun fmt -> IForm.print_in_fmt fmt) focused
+                 FSet.print_in_fmt t.formP
+                 FSet.print_in_fmt t.formPSaved
+	  | U unfocused
+            -> fprintf fmt " \\DerOSNeg {%a} {%a} {%a \\cdot %a}"
+                 TSet.print_in_fmt (asTSet t.lits)
+                 FSet.print_in_fmt unfocused
+                 FSet.print_in_fmt t.formP
+                 FSet.print_in_fmt t.formPSaved
 
-      let print_in_fmt fmt seq =
-        if !Flags.printrhs then print_in_fmt_aux fmt seq
-        else match seq with
-        | EntUF(atms,_,_,_,_,ar) -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms World.print_in_fmt ar
-        | EntF(atms,_,_,_,_,ar)  -> fprintf fmt "%a\nin %a" ASet.print_in_fmt atms World.print_in_fmt ar
+      let print_seq_in_fmt fmt (type a) : a seq -> unit = function
+          seq -> 
+          if !Flags.printrhs then print_in_fmt_aux fmt seq
+          else fprintf fmt "%a\nin %a" ASet.print_in_fmt seq.lits World.print_in_fmt seq.world
+
+      let print_in_fmt fmt (Seq t) = print_seq_in_fmt fmt t
 
     end
 
     (* Module of Proofs *)
 
     module Proof:(ProofType with type seq = Seq.t) = struct
+
       type ('a,'b) pt = 
       | Axiom of 'b 
       | OnePre of 'b*'a 
@@ -249,7 +263,7 @@ module Make(PlDS: PlugDSType) = struct
 
     (* Type of final answers, private in interface FrontEndType. *)
 
-    type answer = Provable of Seq.t*Proof.t*Constraint.t | NotProvable of Seq.t
+    type 'a answer = Provable of 'a seq*Proof.t*Constraint.t | NotProvable of 'a seq
 
     let sequent = function
       | Provable(s,_,_) -> s
@@ -258,7 +272,7 @@ module Make(PlDS: PlugDSType) = struct
     (* Displays answer *)
     let print_in_fmt fmt = function
       | Provable(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.print_in_fmt p;
-      | NotProvable s   -> fprintf fmt "\\textsf {The following sequent is not provable} \\[%a\\]" Seq.print_in_fmt s
+      | NotProvable s   -> fprintf fmt "\\textsf {The following sequent is not provable} \\[%a\\]" Seq.print_seq_in_fmt s
 
     (* Generator of local answer types, either genuine answer or a fake answer *)
     type ('a,'b) local = Genuine of 'a | Fake  of 'b
@@ -281,8 +295,7 @@ module Make(PlDS: PlugDSType) = struct
     *)
 
     type 'a intern =
-    | Success of 
-        (Seq.t*Proof.t , bool) local * Constraint.t * 'a computations
+    | Success of (Seq.t*Proof.t , bool) local * Constraint.t * 'a computations
     | Fail    of (Seq.t,bool) local * 'a computations
     and 'a computations = bool -> Constraint.t -> ('a intern -> 'a) -> 'a
 
@@ -297,7 +310,7 @@ module Make(PlDS: PlugDSType) = struct
 
     type 'a sideCoin  = bool*('a address * 'a address)
 
-    type receive = answer -> unit
+    type receive = seqU answer -> unit
 
     type 'a focusCoin = 
     | Focus    of IForm.t*('a address*'a address)*receive*('a alt_action)
@@ -306,17 +319,17 @@ module Make(PlDS: PlugDSType) = struct
     | Polarise   of ASet.e*('a address)*receive
     | DePolarise of ASet.e*('a address)*receive
     | Get      of bool*bool*('a alt_action)
-    | Propose  of answer
+    | Propose  of seqU answer
     | Restore  of ('a address)*receive*('a alt_action)
     and 'a alt_action = unit -> ('a focusCoin option)
 
     type 'a notified = bool*('a address)*receive*('a alt_action)
 
-    type 'a output = Jackpot of answer | InsertCoin of 'a insertcoin
+    type 'a output = Jackpot of seqU answer | InsertCoin of 'a insertcoin
     and  'a insertcoin = 
-    | Notify   of Seq.t*Constraint.t*bool*('a notified -> 'a output)*('a address)
-    | AskFocus of Seq.t*Constraint.t*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
-    | AskSide  of Seq.t*Constraint.t*('a sideCoin -> 'a output)*('a address)
+    | Notify   of seqU seq*Constraint.t*bool*('a notified -> 'a output)*('a address)
+    | AskFocus of seqU seq*Constraint.t*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
+    | AskSide  of seqF seq*Constraint.t*('a sideCoin -> 'a output)*('a address)
     | Stop     of bool*bool*(unit -> 'a output)
 
   end

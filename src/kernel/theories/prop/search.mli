@@ -13,6 +13,6 @@ module ProofSearch(PlDS: PlugDSType) : sig
       module FE : (FrontEndType  with type IForm.datatype = PlDS.UF.t
 			         and  type FSet.ps     = PlDS.UFSet.t
 			         and  type ASet.ps     = PlDS.UASet.t)
-      val machine : FormulaB.t -> (FE.Seq.t -> 'a FE.address) -> 'a FE.output
+      val machine : FormulaB.t -> (FE.seqU FE.seq -> 'a FE.address) -> 'a FE.output
     end                                                                                    
 end

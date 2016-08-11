@@ -39,7 +39,7 @@ module Make(C: Config) = struct
 
   let rec propagate ?howmany c t = 
     match C.constreat c t.fixed with
-    | C.UNSAT stop -> Sums.A stop
+    | C.UNSAT stop -> Sums.Case1 stop
     | C.Propagate(fixed',varlist) ->
        run ?howmany {
            fixed = fixed';
@@ -53,7 +53,7 @@ module Make(C: Config) = struct
     let t = { t with watch = watch' } in
     match res with
     | Some(c,_) -> propagate ?howmany c t
-    | None   -> Sums.F t
+    | None   -> Sums.Case2 t
 
   let treat c howmany t =
     run ~howmany:howmany { t with watch = WL.addconstraintNflag c [] t.watch }

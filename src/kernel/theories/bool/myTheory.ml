@@ -94,16 +94,16 @@ module Make(DS: sig
         term = t;
         simpl =
           match (proj(Terms.data t)).asclause with
-          | None -> Sums.F(None)
-          | Some lset -> Sums.A(lset,[])               
+          | None -> Sums.Case2(None)
+          | Some lset -> Sums.Case1(lset,[])               
       }
                    
     let id c = Terms.id c.term
     let term  c = c.term
     let simpl c = c.simpl
     let verysimpl c = match c.simpl with
-      | Sums.A(lset,_) -> Sums.A lset
-      | Sums.F s -> Sums.F s
+      | Sums.Case1(lset,_) -> Sums.Case1 lset
+      | Sums.Case2 s -> Sums.Case2 s
 
     (* simplify is used to simplify a clause according to the
       currently fixed literals *)
@@ -112,9 +112,9 @@ module Make(DS: sig
       match c.simpl with
 
       (* If clause was already simplified to true: *)
-      | Sums.F _ -> c
+      | Sums.Case2 _ -> c
 
-      | Sums.A(set,j) ->
+      | Sums.Case1(set,j) ->
          let astrue,asfalse = L2Term.reveal l2term in
          let inter = LMap.inter_poly (fun _ v () -> v) astrue set in
          if LMap.is_empty inter
@@ -122,12 +122,12 @@ module Make(DS: sig
            (* If fixed literals do not make the clause true: *)
 
            let updated_clause = LSet.diff_poly set asfalse in
-           { c with simpl = Sums.A(updated_clause, l2term::j ) }
+           { c with simpl = Sums.Case1(updated_clause, l2term::j ) }
          else
            (* If clause gets simplified to true: *)
 
            let _,term = LMap.choose inter in
-           {c with simpl = Sums.F(Some term)}
+           {c with simpl = Sums.Case2(Some term)}
              
   end
        
@@ -350,7 +350,7 @@ used in a ThStraight or ThProvable message. *)
           (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
         match Constraint.simpl c with
 
-        | Sums.F slitterm ->
+        | Sums.Case2 slitterm ->
            (* The clause is satisfied. If it was in orig_clauses, we
        remove it; in any case we add it to true_clauses together with
        the literal term that makes the clause true. *)
@@ -358,7 +358,7 @@ used in a ThStraight or ThProvable message. *)
            Dump.print ["bool",2] (fun p->p "Clause is satisfied");
            Meh(solve_clause term slitterm fixed)
 
-        | Sums.A(set,justif) -> begin
+        | Sums.Case1(set,justif) -> begin
             match LSet.reveal set with
             | Empty ->
                (* The clause has become empty/unsat. We collect in tset

@@ -22,12 +22,12 @@ module Make
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   : sig
     open FE
-    val tomem          : answer -> (AS.t*FS.t) option
+    val tomem          : seqU answer -> (AS.t*FS.t) option
 
-    val get_usage_stats4provable : answer->int 
-    val reset_stats4provable     : answer->unit
-    val search4provableNact    : Seq.t-> ('a address*'a address) -> 'a alt_action->'a alt_action
-    val search4notprovableNact : Seq.t->(unit->'a focusCoin)->'a focusCoin
+    val get_usage_stats4provable : seqU answer->int 
+    val reset_stats4provable     : seqU answer->unit
+    val search4provableNact    : seqU seq-> ('a address*'a address) -> 'a alt_action->'a alt_action
+    val search4notprovableNact : seqU seq->(unit->'a focusCoin)->'a focusCoin
 
     val report         : unit->unit
     val clear          : unit->unit

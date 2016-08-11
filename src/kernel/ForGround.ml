@@ -55,7 +55,7 @@ module GTh2Th
     let res = MDP.solve a in
     MDP.clear();
     match res with
-    | A(WB(_,Propa(b,Unsat)))
+    | Case1(WB(_,Propa(b,Unsat)))
       -> if TSet.subset b a
          then Guard(b,sigma,fun _ -> NoMore)
          else
@@ -63,7 +63,7 @@ module GTh2Th
                  p "Theories came back with extra assumptions\n%a"
                    TSet.print_in_fmt (TSet.diff b a));
              failwith "ForGround1" )
-    | F(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
+    | Case2(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
       -> NoMore
     | _ -> failwith "Combo: Not a definitive answer"
 
@@ -76,7 +76,7 @@ module GTh2Th
     let res = MDP.solve a' in
     MDP.clear();
     match res with
-    | A(WB(_,Propa(b,Unsat)))
+    | Case1(WB(_,Propa(b,Unsat)))
       -> if TSet.subset b a'
          then Guard((if TSet.mem nont b then TSet.remove nont b else b),sigma,fun _ -> NoMore)
          else
@@ -84,7 +84,7 @@ module GTh2Th
                  p "Theories came back with extra assumptions\n%a"
                    TSet.print_in_fmt (TSet.diff b a'));
              failwith "ForGround2" )
-    | F(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
+    | Case2(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
       -> NoMore
     | _ -> failwith "Combo: Not a definitive answer"
 

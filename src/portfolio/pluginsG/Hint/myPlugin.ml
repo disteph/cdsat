@@ -59,13 +59,15 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       print_endline "Positive formulae on which focus has already been placed:";
       display_fset formPSaved;
     in
-    let display_full seq = 
-      match seq with
-      | Seq.EntF(atomN, g, formP, formPSaved, polar, ar) -> 
-        display_gen (ASet.forPlugin atomN) (FSet.forPlugin formP) (FSet.forPlugin formPSaved);
-        Format.printf "Goal:\t[ %a]\n%!" (fun fmt -> IForm.print_in_fmt fmt) g
-      | Seq.EntUF(atomN, delta, formP, formPSaved, polar, ar) ->
-        display_gen (ASet.forPlugin atomN) (FSet.forPlugin formP) (FSet.forPlugin formPSaved)
+    let display_full (type a) (seq: a seq) =
+      display_gen
+        (ASet.forPlugin seq.lits)
+        (FSet.forPlugin seq.formP)
+        (FSet.forPlugin seq.formPSaved);
+      match seq.rhs with
+      | F g ->
+         Format.printf "Goal:\t[ %a]\n%!" (fun fmt -> IForm.print_in_fmt fmt) g
+      | U _ -> ()
     in
     display_full seq;
     print_endline "Current constraint:";

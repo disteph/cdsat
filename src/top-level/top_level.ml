@@ -90,10 +90,10 @@ let init th =
        if !Flags.latex then
          let display = !Dump.display in
          Dump.display := Dump.Latex;
-         let ans = Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+         let ans = Some(Case1(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
          in Dump.display := display; ans
-       else Some(A(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
-    | Some _ -> Some(F())
+       else Some(Case1(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+    | Some _ -> Some(Case2())
 
 
 (* Now we run on a particular input, trying out various parsers *)
@@ -138,7 +138,7 @@ type ('a,'b)wrap = {init: 'a ; accu: 'a->string->(bool->'b option)->'a ; final: 
 let latex_wrap =
   { init  = "";
     accu  = (fun aux text output ->
-	       aux^"Trying to prove: "^text^"\n\n"^(match output true with Some(A o) -> o | _ -> "No run")^"\n\\vspace{30pt}\n\n") ;
+	       aux^"Trying to prove: "^text^"\n\n"^(match output true with Some(Case1 o) -> o | _ -> "No run")^"\n\\vspace{30pt}\n\n") ;
     final = IO.write_to_file "latex/output.tex" }
 
 let empty_wrap =

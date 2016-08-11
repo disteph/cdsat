@@ -112,8 +112,8 @@ module UFSet = struct
     let print_in_fmt fmt = FormulaF.print_in_fmt fmt
     let cstring fmt ((a,_):common) = fprintf fmt "%a" UASet.print_in_fmt a
     let bstring fmt (g:branching) = match g with
-      | A(at)-> fprintf fmt "%a" (fun fmt->LitF.print_in_fmt fmt) at
-      | _    -> fprintf fmt "Bits"
+      | Case1 at -> fprintf fmt "%a" (fun fmt->LitF.print_in_fmt fmt) at
+      | Case2 _  -> fprintf fmt "Bits"
     let tString = None (* Some(cstring,bstring) *)
     let keyhash = FormulaF.id
   end
@@ -129,8 +129,8 @@ module UFSet = struct
     | _            -> failwith("Shouldn't be a union here")
 
   let filter atms =function
-    | A a-> not (UASet.mem (LitF.negation a) atms)
-    | _  -> true
+    | Case1 a -> not (UASet.mem (LitF.negation a) atms)
+    | Case2 _ -> true
 
   let yes _ _ _ = Yes() 
 
