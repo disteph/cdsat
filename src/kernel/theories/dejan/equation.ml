@@ -104,7 +104,8 @@ let mergeGuardians coeffs guardians1 guardians2 =
         (
         match updateGuardians coeffs guardians2 with
         | None, None -> Some(a), None
-        | _, Some(b) | Some(b), _ when b == a -> Some(a), None
+        | _, Some(b)  when b == a -> Some(a), None
+        | Some(b), _  when b == a -> Some(a), None
         | _, Some(b) | Some(b), _ -> Some(a), Some(b)
         )
   | Some(a), Some(b) -> Some(a), Some(b)
