@@ -1,4 +1,5 @@
 (set-logic FO)
+(declare-sort Term 0)
 (declare-fun f (Term) Bool)
 (declare-fun g (Term) Bool)
 (declare-fun p (Term) Bool)

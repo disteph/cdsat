@@ -24,45 +24,61 @@
 (**************************************************************************)
 (* Main file *)
 
-open Flags
-open Run_tools.IO
-open Run_tools.Test
 open Arg
+
+open Flags
+open IO
+open Top_level
 
 (* Deals with command line arguments *)
 let options =
-  ("-theory",        String(fun s->
-			      mytheory:=
-				Some(try ThDecProc_register.getbyname s
-				     with ThDecProc_register.NotFound msg
-					 -> failwith msg)),"selects theory (among empty, lra)")::
-    ("-gplugin",     String(fun s->
-			      mygplugin:=
-				Some(try GPlugins_register.getbyname s
-				     with GPlugins_register.NotFound msg
-					 -> failwith msg)),"selects generic plugin (among naive, hint, dpll_pat, dpll_wl)")::
-    ("-latex",       Unit(fun()->latex:=true;printrhs:=true),        "allows latex output")::
-    ("-alphasort",   Unit(fun()->sizesort:=false),    "treats input files in alphabetical order (default is from smaller to bigger)")::
-    ("-examples",    Unit(fun()->texamples:=true),    "treats theory examples instead of standard input")::
-    ("-skipsat",     Unit(fun()->skipsat:=true),      "skips instances expected to be sat")::
-    ("-skipunsat",   Unit(fun()->skipunsat:=true),    "skips instances expected to be unsat")::
-    ("-skipunprovable",Unit(fun()->skipsat:=true),    "skips instances expected to be unprovable")::
-    ("-skipprovable",  Unit(fun()->skipunsat:=true),  "skips instances expected to be provable")::
-    ("-skipunknown", Unit(fun()->skipunknown:=true),  "skips instances without any result expectation")::
-    ("-nocuts",      Unit(fun()->cuts:=false),        "disallows cuts")::
-    ("-nodepol",     Unit(fun()->depol:=false),       "disallows depolarisation of literals")::
-    ("-fair",        Unit(fun()->fair:=true),         "ensures fairness between formulae for focus")::
-    ("-noweakenings",Unit(fun()->weakenings:=false),  "disallows conflict analysis")::
-    ("-debug",       Int(fun i->debug:=i),            "decides level of debug printing (0,1,2); 0 is no debug")::
-    ("-printrhs",    Unit(fun ()->printrhs:=true),    "when debug printing allowed, prints right-hand sides of sequents")::
-    ("-nomemo",      Unit(fun ()->memo:=false),       "disallows memoisation")::
-    ("-noalmo",      Unit(fun ()->almo:=false),       "memoisation is done on exact match only")::
-    ("-nounitpropagation",Unit(fun()->printrhs:=true),"disallows eager unit propagation in MyPatricia")::
-    ("-restarts",    Set_string restarts_strategy,    "select a restart stratedy (from constant, arithmetic, geometric, exponential, luby, and none; default: none; DPLL_WL specific)")::
-    ("-rsettings",   Tuple [Set_int restarts_p1; Set_int restarts_p2], "fine-tunes the restart strategy, specifying the initial restart threshold and a strategy-specific setting (defaults: 10 0; some strategies discard the second parameter; DPLL_WL specific)")::
-    ("-plot",        Set plot,                        "prints large amounts of debug data, formatted for input to a plotting script")::
-    ("-version", Unit(fun ()-> print_endline Version.version_string; Pervasives.exit 0), "prints version and exits")::
-    []
+  [
+    ("-no",          String(fun s-> 
+                         match !notheories with
+                         | None   -> ()
+                         | Some l -> notheories:= Some(s::l)), "XXX forbids use of theory XXX");
+    ("-th",          String(fun s-> 
+                         match !notheories with
+                         | None   -> ()
+                         | Some l -> addtheories:= Some(s::l)), "XXX forces use of theory XXX");
+    ("-alltheories", Unit(fun ()-> addtheories:= None), "makes Psyche use all theories, except those specified by -no option");
+    ("-notheories",  Unit(fun ()-> notheories := None), "makes Psyche use no theories, except those specified by -th option");
+    ("-fo",          Clear mode,                      "selects the first-order sequent calculus mode");
+    ("-plugin",      Set_string myplugin,             "XXX selects XXX as the main plugin (among async)");
+    ("-pluginG",     Set_string mypluginG,            "XXX selects XXX as the pure logic plugin (among naive, hint, dpll_pat, dpll_wl)");
+    ("-parser",      String(fun s-> 
+                         match !parser with
+                         | None   -> parser:= Some [s]
+                         | Some l -> parser:= Some(s::l)),    "XXX authorises XXX among the parsers to try (among dimacs, smtlib2)");
+    ("-latex",       Unit(fun()->latex:=true;printrhs:=true), "allows latex output");
+    ("-alphasort",   Clear sizesort,                  "treats input files in alphabetical order (default is from smaller to bigger)");
+    ("-skipsat",     Set skipsat,                     "skips instances expected to be sat");
+    ("-skipunsat",   Set skipunsat,                   "skips instances expected to be unsat");
+    ("-skipunprovable",Set skipsat,                   "skips instances expected to be unprovable");
+    ("-skipprovable",  Set skipunsat,                 "skips instances expected to be provable");
+    ("-skipunknown", Set skipunknown,                 "skips instances without any result expectation");
+    ("-nocuts",      Clear cuts,                      "disallows cuts");
+    ("-nodepol",     Clear depol,                     "disallows depolarisation of literals");
+    ("-fair",        Set fair,                        "ensures fairness between formulae for focus");
+    ("-noweakenings",Clear weakenings,                "disallows conflict analysis");
+    ("-debug",       Tuple[
+                         Set_string dtag;
+                         Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],
+                                                      "XXX iii prints on stdout those debug messages whose tags contain XXX and whose level is at most iii");
+    ("-step",        Unit(fun ()->
+                         match !dtags with
+                         | [] -> failwith "-step option only makes sense after the -debug option"
+                         | (dtag,i,_)::next->dtags:=(dtag,i,true)::next),
+                                                      "waits for keystroke after printing each debug message (applies to latest -debug)");
+    ("-printrhs",    Set printrhs,                    "when debug printing allowed, prints right-hand sides of sequents");
+    ("-nomemo",      Clear memo,                      "disallows memoisation");
+    ("-noalmo",      Clear almo,                      "memoisation is done on exact match only");
+    ("-nounitpropagation", Set printrhs,              "disallows eager unit propagation in MyPatricia");
+    ("-restarts",    Set_string restarts_strategy,    "select a restart stratedy (from constant, arithmetic, geometric, exponential, luby, and none; default: none; DPLL_WL specific)");
+    ("-rsettings",   Tuple [Set_int restarts_p1; Set_int restarts_p2], "fine-tunes the restart strategy, specifying the initial restart threshold and a strategy-specific setting (defaults: 10 0; some strategies discard the second parameter; DPLL_WL specific)");
+    ("-plot",        Set plot,                        "prints large amounts of debug data, formatted for input to a plotting script");
+    ("-version", Unit(fun ()-> print_endline Version.version_string; Pervasives.exit 0), "prints version and exits")
+  ]
 
 let description =
 "=====================================================================
@@ -87,12 +103,12 @@ Available options are:";;
 *)
 
 Arg.parse options (fun a->fname:= a::!fname) description;
-let (trname,trexamples,trstdin)=treatprimitives() in
+Dump.init();
+let trname, trstdin = treatprimitives() in
 let rec treat = function
   | []      -> ()
   | name::l -> trname name; treat l
 in
   match !fname with
-    | [] when !texamples-> trexamples ()
     | []                -> trstdin    ()
     | l                 -> treat (collect_sort l)

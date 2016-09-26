@@ -1,0 +1,12 @@
+autodotmerlin()
+{
+  # Findlib packages
+  # [ -f _tags ] && { echo "PKG $(grep -o 'package([^)]*)' _tags | sed -e 's/package(//' -e 's/)//' | tr ','$'\n' '  ')"; }
+  [ -f _tags ] && { echo "PKG $(grep -o 'pkg_[^)]*' _tags | sed -e 's/pkg_//' -e 's///' | tr '\n' '  ')"; }
+  # Find source files
+  find . \( -name \*.ml* -and \! -name myocamlbuild\* \) -printf 'S %h\n' | sort -u
+  # Find build files
+  find . \( -name \*.cm* -and \! -name myocamlbuild\* \) -printf 'B %h\n' | sort -u
+}
+
+autodotmerlin > .merlin

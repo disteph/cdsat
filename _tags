@@ -1,8 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: f743ec7175bfdfbf108789f5006834d8)
-# Ignore VCS directories, you can use the same kind of rule outside 
-# OASIS_START/STOP if you want to exclude directories that contains 
+# DO NOT EDIT (digest: 0de4f5589a01800a42b3b7f1bbfd2f87)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
+true: annot, bin_annot
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
 ".bzr": -traverse
@@ -14,24 +15,48 @@
 "_darcs": -traverse
 "_darcs": not_hygienic
 # Executable psyche
+<src/main.{native,byte}>: pkg_async
+<src/main.{native,byte}>: pkg_threads
+<src/*.ml{,i,y}>: pkg_async
+<src/*.ml{,i,y}>: pkg_threads
 # OASIS_STOP
 
-<src> or <src/gplugins> or <src/theories> or <src/parsers>: include
-<src/lib/*.cmx>:                      for-pack(Lib)
-<src/kernel/*.cmx>:                   for-pack(Kernel)
-<src/run_tools/*.cmx>:                for-pack(Run_tools)
-<src/parsers/SMTLib2_tools/*>:        for-pack(SMTLib2_tools)
-<src/theories/Empty/*.cmx>:           for-pack(Empty)
-<src/theories/CC/*.cmx>:              for-pack(CC)
-<src/theories/LRA/libSimplex/*.cmx>:  for-pack(LRA.LibSimplex)
-<src/theories/LRA/*.cmx>:             for-pack(LRA)
-<src/theories/FirstOrder/*.cmx>:      for-pack(FirstOrder)
-<src/theories/Tools/*.cmx>:           for-pack(Tools)
-<src/gplugins/Common/*.cmx>:          for-pack(Common)
-<src/gplugins/DPLL_Pat/*.cmx>:        for-pack(DPLL_Pat)
-<src/gplugins/DPLL_WL/*.cmx>:         for-pack(DPLL_WL)
-<src/gplugins/Naive/*.cmx>:           for-pack(Naive)
-<src/gplugins/RestartsFunctor/*.cmx>: for-pack(RestartsFunctor)
-<src/gplugins/Hint/*.cmx>:            for-pack(Hint)
-<src/*.{byte,native}>:                use_nums, use_str, use_unix
-<**/*.ml>: annot
+<src> or <src/lib> or <src/portfolio> or <src/specs> or <src/top-level>: include
+
+<src/kernel/top/*.cmx>           : for-pack(Kernel.Top)
+
+<src/kernel/theories/prop/*>     : for-pack(Kernel.Prop)
+<src/kernel/theories/empty/*>    : for-pack(Kernel.Empty)
+<src/kernel/theories/arrays/*>    : for-pack(Kernel.Arrays)
+<src/kernel/theories/dejan/*>    : for-pack(Kernel.Dejan)
+<src/kernel/theories/CC/*>       : for-pack(Kernel.CC)
+<src/kernel/theories/FirstOrder/*>    : for-pack(Kernel.FirstOrder)
+<src/kernel/theories/IfThenElse/*>    : for-pack(Kernel.IfThenElse)
+<src/kernel/theories/bool/*>     : for-pack(Kernel.Bool)
+
+<src/kernel/*.cmx>               : for-pack(Kernel)
+<src/kernel/theories/*.cmx>      : for-pack(Kernel)
+
+<src/kernel/parsers/*.cmx>       : for-pack(Kernel.Parsers)
+<src/kernel/parsers/SMTLib2_tools/*>: for-pack(Kernel.Parsers.SMTLib2_tools)
+
+<src/lib/general/*.cmx>:              for-pack(General)
+<src/lib/pluginsG_tools/*.cmx>:       for-pack(PluginsG_tools)
+<src/lib/pluginsTh_tools/*.cmx>:      for-pack(PluginsTh_tools)
+
+<src/portfolio/plugins/*.cmx>:        for-pack(Plugins)
+
+<src/portfolio/pluginsG/*.cmx>:       for-pack(PluginsG)
+<src/portfolio/pluginsG/DPLL_Pat/*.cmx>:        for-pack(PluginsG.DPLL_Pat)
+<src/portfolio/pluginsG/DPLL_WL/*.cmx>:         for-pack(PluginsG.DPLL_WL)
+<src/portfolio/pluginsG/DPLL/*.cmx>:            for-pack(PluginsG.DPLL)
+<src/portfolio/pluginsG/Naive/*.cmx>:           for-pack(PluginsG.Naive)
+<src/portfolio/pluginsG/RestartsFunctor/*.cmx>: for-pack(PluginsG.RestartsFunctor)
+<src/portfolio/pluginsG/Hint/*.cmx>:            for-pack(PluginsG.Hint)
+
+<src/portfolio/pluginsTh/*.cmx>:      for-pack(PluginsTh)
+
+<src/*.{byte,native}>:                 use_str
+<src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async
+
+true: debug

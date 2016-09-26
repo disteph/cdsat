@@ -6,12 +6,15 @@ Copyright (C) 2012 - 2015
 
 Stephane Graham-Lengrand <graham-lengrand@lix.polytechnique.fr>, CNRS
 Assia Mahboubi <assia.mahboubi@inria.fr>, INRIA
+Jean-Marc Notin <notin@lix.polytechnique.fr>, CNRS
 
 Alexis Bernadet, Ecole Polytechnique
 Mahfuza Farooque, CNRS
+Guillaume Hétier, Ecole Polytechnique
 Zelda Mariet, Ecole Polytechnique
 Clément Pit-Claudel, Ecole Polytechnique
 Damien Rouhling, ENS Lyon
+André Schrottenloher, Ecole Polytechnique
 Matthieu Vegreville, Ecole Polytechnique
 
 Some plugins use some (unmodified) code
