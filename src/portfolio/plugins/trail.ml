@@ -2,6 +2,8 @@
 (* Conflict analysis *)
 (*********************)
 
+open Async.Std
+       
 open Kernel
 open Combo
 open Top
@@ -51,6 +53,7 @@ The bool in propagated indicates whether we know the level of this propagation f
       term : unit -> Term.t;
       nature : unit -> nature;
       is_uip : unit -> bool;
+      has_guess : unit -> bool
     }
 
   module DestWInfo = struct
@@ -67,6 +70,7 @@ The bool in propagated indicates whether we know the level of this propagation f
           term =  (fun()->failwith "Empty TTrack");
           nature = (fun()->failwith "Empty TTrack");
           is_uip = (fun()->failwith "Empty TTrack");
+          has_guess = (fun()->failwith "Empty TTrack");
         };
 
         leaf_info = (fun x (i,j,v) ->
@@ -76,6 +80,10 @@ The bool in propagated indicates whether we know the level of this propagation f
             term = (fun()-> x);
             nature = (fun()-> v);
             is_uip = (fun()-> true);
+            has_guess =
+              match v with
+              | Tried -> fun()->true
+              | Decided _ | Propagated _ | Original -> fun()->false;
           }
         );
 
@@ -84,11 +92,11 @@ The bool in propagated indicates whether we know the level of this propagation f
           else if a.level > b.level then a
           else
             let c =
-              if a.chrono < b.chrono
-              then b else a
+              if a.chrono < b.chrono then b else a
             in
             { c with
-              is_uip = (fun()-> false) }
+              is_uip    = (fun() -> false);
+              has_guess = (fun() -> a.has_guess() || b.has_guess()) }
         );
       }
                        
@@ -98,53 +106,106 @@ The bool in propagated indicates whether we know the level of this propagation f
 
   include PATMap.Make(DestWInfo)(I)
 
-  let output conflict conflictWinfo =
-    let data = info conflictWinfo in
-    let next = remove (data.term()) conflictWinfo in
-    let second = if is_empty next then None
-                 else Some((info next).term())
-    in
-    Dump.print ["trail",1] (fun p ->
-        p "conflict level: %i; first term: %a; second level: %i; second term:%a"
-          data.level
-          Term.print_in_fmt (data.term())
-          (info next).level
-          (pp_print_option Term.print_in_fmt) second
-      );
-    (conflict,
-     data.term(),
-     (info next).level,
-     second)
-                     
+  let get_data trail ?(semsplit=TSet.empty) msg =
+    let WB.WB(_,Propa(tset,_)) = msg in
+    inter_poly (fun _ () v->v) (TSet.diff tset semsplit) trail
+
   let rec analyse
             (trail : t)
-            (conflict : unsat WB.t)
-          : unsat WB.t * Term.t * int * Term.t option =
+            ?(semsplit=TSet.empty)  (* This is where we collect semsplit points *)
+            ?level                  (* Level of latest contributing decision, only present if it is a guess *)
+            (conflict : unsat WB.t) (* The conflict to analyse *)
+            ?(conflictWdata = get_data trail ~semsplit conflict) (* The conflict's data *)
+            learn                   (* A function to which we can pass stuff to learn *)
+          : (unsat WB.t, int * straight WB.t) sum Deferred.t
+    =
+
     Dump.print ["trail",1] (fun p ->
         p "Analysing Conflict: %a" WB.print_in_fmt conflict);
-    let WB.WB(_,Propa(tset,_)) = conflict in
-    let conflictWinfo = inter_poly (fun _ () v->v) tset trail in
-    let data = info conflictWinfo in
-    match data.nature() with
-      
-    | Decided _
-      | Original -> output conflict conflictWinfo
 
-    | Propagated _ when data.is_uip() && data.level > 0 ->
-       output conflict conflictWinfo
+    let data = info conflictWdata in
 
-    | Propagated msg ->
-       Dump.print ["trail",1] (fun p ->
-           let level,chrono,_ = find (data.term()) trail in
-           p "Term: %a; term_level: %i; term_chrono: %i\nmessage: %a"
-             Term.print_in_fmt (data.term())
-             level chrono
-             WB.print_in_fmt msg
-         );
-       analyse trail (WB.resolve msg conflict)   
+    let finalise msg =
+      let next = get_data trail msg in          
+      let second = if is_empty next then None
+                   else Some((info next).term()) in
+      Dump.print ["trail",1] (fun p ->
+          p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n%a"
+            data.level
+            Term.print_in_fmt (data.term())
+            (info next).level
+            (pp_print_option Term.print_in_fmt) second
+            WB.print_in_fmt msg
+        );
+      learn conflict (data.term()) second >>| fun ()->
+      Case2((info next).level, msg)
+    in
 
-    | Tried -> failwith "TODO"
+    match level with
+    | Some level when level > data.level
+      -> (* Presence of level means latest contributing decision, of level level, is a guess.
+            Everything in the conflict that is of level >= level is a semsplit element.
+            It's time to do the split.
+          *)
+       let t1,rest = TSet.next semsplit in
+       let t2,_ = TSet.next rest in
+       learn conflict t1 (Some t2) >>| fun ()->
+       Case2(level-1, WB.curryfy semsplit conflict)
 
+    | _ ->
+       begin match data.nature() with
 
+       | Tried -> failwith "Latest formula in conflict is a guess"    
                            
+       | Original     -> return(Case1 conflict)
+
+       | Decided msg  -> finalise (WB.both2straight msg conflict)
+
+       | Propagated msg ->
+
+          let curry =
+            if (TSet.is_empty semsplit) (* If we are not in semsplit *)
+               && (data.is_uip())       (* and data.term() is a UIP *)
+               && data.level > 0        (* and conflict is not of level 0 *)
+            then (* ...we might use that UIP to switch branches *)
+              Some((WB.curryfy (TSet.singleton(data.term())) conflict))
+            else None
+          in
+          begin match curry with
+          | Some(WB.WB(_,Propa(_,Straight tset)) as msg)
+               when not(subset_poly (fun() _ -> true) tset trail)
+                       (* ...but only if the negation of the UIP is new knowledge *)
+            -> finalise msg
+          | _ ->
+             Dump.print ["trail",1] (fun p ->
+                 let level,chrono,_ = find (data.term()) trail in
+                 p "Explaining %a of level %i and chrono %i, using message\n%a"
+                   Term.print_in_fmt (data.term())
+                   level chrono
+                   WB.print_in_fmt msg
+               );
+             (* Proposed new conflict, and its data *)
+             let newconflict = WB.resolve msg conflict in
+             let newconflictWdata = get_data trail ~semsplit newconflict  in
+             if (info newconflictWdata).has_guess()
+             then
+               (* The latest contributing decision is a guess,
+                 and is among the nodes we are about to add:
+                 we refuse to resolve *)
+               analyse trail
+                 ~semsplit:(TSet.add (data.term()) semsplit)
+                 ~level:data.level
+                 conflict
+                 ~conflictWdata
+                 learn
+             else
+               analyse trail
+                 ~semsplit
+                 ?level
+                 newconflict
+                 ~conflictWdata:newconflictWdata
+                 learn
+          end
+       end
+      
 end

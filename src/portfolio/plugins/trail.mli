@@ -2,12 +2,15 @@
 (* Conflict analysis *)
 (*********************)
 
+open Async.Std
+
 open Kernel
 open Combo
 open Top.Messages
 
 open General
 open Patricia_interfaces
+open Sums
        
 (* This module implements conflict analysis *)
 
@@ -40,7 +43,11 @@ The bool in propagated indicates whether we know the level of this propagation f
   (* First int is level, second int is timestamp*)
 
   val analyse : t
+                -> ?semsplit:TSet.t
+                -> ?level:int
                 -> unsat WB.t
-                -> unsat WB.t * Term.t * int * Term.t option
+                -> ?conflictWdata:t
+                -> (unsat WB.t -> Term.t -> Term.t option -> unit Deferred.t)
+                -> (unsat WB.t, int * straight WB.t) sum Deferred.t
                            
 end

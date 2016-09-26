@@ -13,7 +13,9 @@ module type Extra = sig
   type ack = private AckL
   type say = private MsgL
 
-  type _ answer = Ack : ack answer | Say : _ t -> say answer
+  type _ answer = Ack :         ack answer
+                | Say : _ t  -> say answer
+                | Try : term -> say answer
     
   type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
                                   

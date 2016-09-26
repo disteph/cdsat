@@ -75,6 +75,7 @@ module Make(WB: sig
       pipe_map   : WM.t;
       thAnd_list : say answer list;
       thOr_list  : say answer list;
+      try_list   : say answer list;
       waiting4   : AS.t;
       level      : int;
       chrono     : int;
@@ -166,20 +167,22 @@ module Make(WB: sig
   let rec select_msg state =
     Dump.print ["concur",2]
       (fun p-> p "Wanna hear from %a" AS.print_in_fmt state.waiting4);
-    match state.thAnd_list, state.thOr_list with
+    match state.thAnd_list, state.thOr_list, state.try_list with
 
-    | thmsg::l, _  when AS.is_empty state.waiting4 ->
+    | thmsg::l, _, _  when AS.is_empty state.waiting4 ->
        return(thmsg, { state with thAnd_list = l } )
 
-    | _, thmsg::l  when AS.is_empty state.waiting4 ->
+    | _, thmsg::l, _  when AS.is_empty state.waiting4 ->
        return(thmsg, { state with thOr_list = l } )
 
-    | _, _ ->
+    | _, _, thmsg::l  when AS.is_empty state.waiting4 ->
+       return(thmsg, { state with try_list = l } )
+
+    | _, _, _ ->
        Pipe.read state.from_workers
        >>= (function
             | `Eof -> failwith "Eof"
             | `Ok(Msg(agent,msg,chrono)) ->
-               Dump.print ["concur",2] (fun p-> p "Hearing from %a" Agents.print_in_fmt agent);
                let state =
                  match msg with
                  | Say(WB(_,Propa(_,Straight _))) -> state
@@ -192,11 +195,17 @@ module Make(WB: sig
                | Ack ->
                   Dump.print ["concur",2] (fun p-> p "Hearing Ack %i from %a" chrono Agents.print_in_fmt agent);
                   select_msg state
+               | Try term -> 
+                  Dump.print ["concur",2] (fun p-> p "Hearing guess %a from %a" DS.Term.print_in_fmt term Agents.print_in_fmt agent);
+                  select_msg { state with try_list = msg::state.try_list }
                | Say(WB(_,Propa(_,Both _))) -> 
+                  Dump.print ["concur",2] (fun p-> p "Hearing split demand from %a" Agents.print_in_fmt agent);
                   select_msg { state with thAnd_list = msg::state.thAnd_list }
                | Say(WB(_,Propa(_,Either _))) -> 
+                  Dump.print ["concur",2] (fun p-> p "Hearing either demand from %a" Agents.print_in_fmt agent);
                   select_msg { state with thOr_list = msg::state.thOr_list }
                | Say(WB _) ->
+                  Dump.print ["concur",2] (fun p-> p "Hearing from %a:" Agents.print_in_fmt agent);
                   return (msg, state) )
 
   (* Main loop of the master thread *)
@@ -218,98 +227,92 @@ module Make(WB: sig
          read what the theories have to tell us *)
       else
         select_msg state
-        >>= fun (Say(WB(_,msg) as thmsg), state) ->
-        (match msg with
-           
-         | Sat newtset -> 
-            Dump.print ["concur",1] (fun p -> p "Sat");
-            Dump.print ["concur",3] (fun p -> p "%a" WB.print_in_fmt thmsg);
-            (* A theory found a counter-model newtset. If it is the
+        >>= function
+        | Try term, state -> failwith "TODO"
+                                      
+        | Say(WB(_,msg) as thmsg), state ->
+           (match msg with
+              
+            | Sat newtset -> 
+               Dump.print ["concur",1] (fun p -> p "Sat");
+               Dump.print ["concur",3] (fun p -> p "%a" WB.print_in_fmt thmsg);
+               (* A theory found a counter-model newtset. If it is the
                 same as tset, then it means the theory has stamped the
                 model for which we were collecting stamps. If not, now
                 all other theories need to stamp newtset. *)
 
-            let newcurrent =
-              if WB.DS.TSet.equal newtset consset
-              then current
-              else WB.sat_init newtset
-            in
-            main_worker (WB.sat thmsg newcurrent) state
+               let newcurrent =
+                 if WB.DS.TSet.equal newtset consset
+                 then current
+                 else WB.sat_init newtset
+               in
+               main_worker (WB.sat thmsg newcurrent) state
 
-         | Propa(tset,Unsat) -> 
-            Dump.print ["concur",1] (fun p -> p "Conflict %a" WB.print_in_fmt thmsg);
-            (* A theory found a proof. We stop and close all pipes. *)
-            if not(T.subset_poly (fun () _ -> true) tset state.trail)
-            then ( Dump.print ["concur",0] (fun p ->
-                       p "Pb: these terms are not in the trail: %a"
-                         DS.TSet.print_in_fmt
-                         (T.merge_poly { T.sameleaf  = (fun _ _ _ -> DS.TSet.empty);
-                                         T.emptyfull = (fun _ -> DS.TSet.empty);
-                                         T.fullempty = (fun a -> a);
-                                         T.combine   = DS.TSet.union }
-                            tset state.trail)
-                     );
-                   failwith "Master213" );
-            let conflict,uip,second_level,second_term =
-              T.analyse state.trail thmsg in
-            Dump.print ["concur",0] (fun p ->
-                p "Current level: %i, Conflict second level: %i, UIP: %a, Conflict:\n%a"
-                  state.level
-                  second_level
-                  DS.Term.print_in_fmt uip
-                  WB.print_in_fmt conflict);
-            send state.pipe_map (KillYourself(conflict,uip,second_term)) >>= fun () ->
-            kill_pipes state.pipe_map state.to_plugin >>| fun () ->
-            Case1(conflict,uip,second_level)
+            | Propa(tset,Unsat) -> 
+               Dump.print ["concur",1] (fun p -> p "Conflict %a" WB.print_in_fmt thmsg);
+               (* A theory found a proof. We stop and close all pipes. *)
+               if not(T.subset_poly (fun () _ -> true) tset state.trail)
+               then ( Dump.print ["concur",0] (fun p ->
+                          p "Pb: these terms are not in the trail: %a"
+                            DS.TSet.print_in_fmt
+                            (T.merge_poly { T.sameleaf  = (fun _ _ _ -> DS.TSet.empty);
+                                            T.emptyfull = (fun _ -> DS.TSet.empty);
+                                            T.fullempty = (fun a -> a);
+                                            T.combine   = DS.TSet.union }
+                               tset state.trail)
+                        );
+                      failwith "Master213" );
+               let finalise conflict uip second_term =
+                 send state.pipe_map (KillYourself(conflict,uip,second_term))
+               in
+               T.analyse state.trail thmsg finalise >>= fun ans ->
+               kill_pipes state.pipe_map state.to_plugin >>| fun () ->
+               Case1 ans
 
-         | Propa(old,Straight newa) ->
-            let chrono = state.chrono+1 in
-            Dump.print ["concur",1] (fun p ->
-                p "Level %i; chrono %i; %a"
-                  state.level chrono WB.print_in_fmt thmsg);
-            (* A theory deduced literals newa from literals
+            | Propa(old,Straight newa) ->
+               let chrono = state.chrono+1 in
+               Dump.print ["concur",1] (fun p ->
+                   p "Level %i; chrono %i; %a"
+                     state.level chrono WB.print_in_fmt thmsg);
+               (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
-            send state.pipe_map (MsgStraight(newa,chrono)) >>= fun () ->
-            main_worker current
-              { state with
-                waiting4 = AS.all;
-                chrono = chrono;
-                trail = trail_ext
-                          state.level
-                          chrono
-                          (T.Propagated thmsg)
-                          newa
-                          state.trail }
+               send state.pipe_map (MsgStraight(newa,chrono)) >>= fun () ->
+               main_worker current
+                 { state with
+                   waiting4 = AS.all;
+                   chrono = chrono;
+                   trail = trail_ext
+                             state.level
+                             chrono
+                             (T.Propagated thmsg)
+                             newa
+                             state.trail }
 
-         | Propa(old,Both(newa,_)) ->
-            Dump.print ["concur",1] (fun p ->
-                p "Level %i; chrono %i; %a"
-                  (state.level+1) (state.chrono+1) WB.print_in_fmt thmsg);
-            (* A theory is asking to branch conjonctively *)
-            branch state (main_worker current) thmsg newa
-            >>= fun (ans1, def_ans2, kill2) -> 
-            kill_pipes state.pipe_map state.to_plugin >>= fun () ->
-            begin match ans1 with
-            | Case1(ans1,term,level) when level==state.level
-              ->
-               Dump.print ["concur",0] (fun p -> 
-                   p "Backtrack level: %i, Second conflict level: %i, UIP: %a, Conflict:\n%a"
-                     (state.level+1)
-                     level
-                     DS.Term.print_in_fmt term
-                     WB.print_in_fmt ans1);
-               def_ans2
-                 (* (WB.both2straight thmsg ans1) *)
-                 (WB.curryfy (DS.TSet.singleton term) ans1)
-                        
-            | _ -> kill2() >>| fun () -> ans1
-            end
+            | Propa(old,Both(newa,_)) ->
+               Dump.print ["concur",1] (fun p ->
+                   p "Level %i; chrono %i; %a"
+                     (state.level+1) (state.chrono+1) WB.print_in_fmt thmsg);
+               (* A theory is asking to branch conjonctively *)
+               branch state (main_worker current) thmsg newa
+               >>= fun (ans1, def_ans2, kill2) -> 
+               kill_pipes state.pipe_map state.to_plugin >>= fun () ->
+               begin match ans1 with
+               | Case1(Case2(level,msg)) when level==state.level
+                 ->
+                  Dump.print ["concur",0] (fun p -> 
+                      p "Backtrack level: %i, Propagation:\n%a"
+                        (state.level+1)
+                        WB.print_in_fmt msg);
+                  def_ans2 msg
+                           
+               | _ -> kill2() >>| fun () -> ans1
+               end
 
-         | Propa(old,Either(newa,newb)) ->
-            failwith "TODO"
+            | Propa(old,Either(newa,newb)) ->
+               failwith "TODO"
 
-            : (unsat WB.t * DS.Term.t * int,
-               sat WB.t) sum Deferred.t)
+               : ((unsat WB.t, int * straight WB.t) sum,
+                  sat WB.t) sum Deferred.t)
 
     in
     let state = {
@@ -318,6 +321,7 @@ module Make(WB: sig
         pipe_map     = pipe_map;
         thAnd_list   = [];
         thOr_list    = [];
+        try_list     = [];
         waiting4     = AS.all;
         level        = 0;
         chrono       = 0;
@@ -326,7 +330,8 @@ module Make(WB: sig
     in
     send state.pipe_map (MsgStraight(tset,0)) >>= fun () ->
     main_worker (WB.sat_init tset) state >>| function
-    | Case1(conflict,_,_) -> Case1 conflict
+    | Case1(Case1 conflict) -> Case1 conflict
+    | Case1(Case2 _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg
     
 end

@@ -342,61 +342,56 @@ used in a ThStraight or ThProvable message. *)
    *)
   let constreat c fixed =
     let term = Constraint.term c in
-    if TSet.mem term fixed.true_clauses
-    then Meh fixed
-    else
-      begin
-        Dump.print ["bool",2]
-          (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
-        match Constraint.simpl c with
+    Dump.print ["bool",0]
+      (fun p->p "Adding constraint: %a" Term.print_in_fmt term );
+    match Constraint.simpl c with
 
-        | Sums.Case2 slitterm ->
-           (* The clause is satisfied. If it was in orig_clauses, we
+    | Sums.Case2 slitterm ->
+       (* The clause is satisfied. If it was in orig_clauses, we
        remove it; in any case we add it to true_clauses together with
        the literal term that makes the clause true. *)
-           
-           Dump.print ["bool",2] (fun p->p "Clause is satisfied");
-           Meh(solve_clause term slitterm fixed)
+       
+       Dump.print ["bool",2] (fun p->p "Clause is satisfied");
+       Meh(solve_clause term slitterm fixed)
 
-        | Sums.Case1(set,justif) -> begin
-            match LSet.reveal set with
-            | Empty ->
-               (* The clause has become empty/unsat. We collect in tset
+    | Sums.Case1(set,justif) -> begin
+        match LSet.reveal set with
+        | Empty ->
+           (* The clause has become empty/unsat. We collect in tset
            the terms that have been used to simplify it to empty, then
            we recursively collect the propagations messages that led
            to the conflict and haven't been communicated yet. *)
 
-               Dump.print ["bool",2] (fun p->p "Clause is unsat");
-               let tset = explain { term = term; simpl = None ; justif = justif } in
-               let msgs,_ = explain_relevant tset fixed.justification in
-               UNSAT(List.rev_append msgs [], unsat () tset, term)
+           Dump.print ["bool",2] (fun p->p "Clause is unsat");
+           let tset = explain { term = term; simpl = None ; justif = justif } in
+           let msgs,_ = explain_relevant tset fixed.justification in
+           UNSAT(List.rev_append msgs [], unsat () tset, term)
 
-            | Leaf(l,()) ->
-               (* The clause has become unit, the last literal being l. We
+        | Leaf(l,()) ->
+           (* The clause has become unit, the last literal being l. We
            set l to true and its negation nl to false, generating the
            term litterm to propagate. That term is pushed in the
            propagation queue, and mapped to the unit clause in the
            justification map. *)
 
-               let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
-               Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt litterm);
-               let fixed =
-                 if Terms.equal litterm term
-                 then solve_clause term (Some litterm) { fixed with asTrueFalse = asTrueFalse }
-                 else
-                   let uc_clause = { term = term; simpl = Some l ; justif = justif } in
-                   {
-                     fixed with
-                     asTrueFalse   = asTrueFalse;
-                     justification = T2Clause.add litterm uc_clause fixed.justification;
-                     propagation   = Pqueue.push litterm fixed.propagation
-                   }
-               in
-               Propagate(fixed, [l; LitF.negation l])
+           let litterm,asTrueFalse = L2Term.add l fixed.asTrueFalse in
+           Dump.print ["bool",2] (fun p->p "Clause is unit on %a" Term.print_in_fmt litterm);
+           let fixed =
+             if Terms.equal litterm term
+             then solve_clause term (Some litterm) { fixed with asTrueFalse = asTrueFalse }
+             else
+               let uc_clause = { term = term; simpl = Some l ; justif = justif } in
+               {
+                 fixed with
+                 asTrueFalse   = asTrueFalse;
+                 justification = T2Clause.add litterm uc_clause fixed.justification;
+                 propagation   = Pqueue.push litterm fixed.propagation
+               }
+           in
+           Propagate(fixed, [l; LitF.negation l])
 
-            | Branch(_,_,_,_) -> failwith "bool: not supposed to see 2 literals in a clause triggerd for UP or conflict"
+        | Branch(_,_,_,_) -> failwith "bool: not supposed to see 2 literals in a clause triggerd for UP or conflict"
 
-          end
       end
 
   type msg =
@@ -432,7 +427,7 @@ used in a ThStraight or ThProvable message. *)
          let msg = sat () fixed.true_clauses in
          Some(Msg msg, fixed)
        else(
-         Dump.print ["bool",2]
+         Dump.print ["bool",1]
            (fun p-> p "orig_clauses: %a" TSet.print_in_fmt fixed.orig_clauses);
          let asTrue,asFalse = L2Term.reveal fixed.asTrueFalse in
          Dump.print ["bool",2]

@@ -38,7 +38,6 @@ module Make(WB : WhiteBoardExt.Type) = struct
           -> TSet.equal tset1 tset2 && TSet.equal tset1' tset2' && TSet.equal tset1'' tset2''
         | Propa(tset1,Either(tset1',tset1'')), Propa(tset2, Either(tset2',tset2''))
           -> TSet.equal tset1 tset2 && TSet.equal tset1' tset2' && TSet.equal tset1'' tset2''
-        | _ -> false
 
     let hash (type a) _ _ (WB(hdls,msg):a WB.t) =
       match msg with

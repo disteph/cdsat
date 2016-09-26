@@ -176,7 +176,7 @@ module Make(DS: sig
                                   !scores;
                       Dump.print ["bool_pl1",2] (fun p ->
                           p "Cardinal of !scores: %i" (LMap.cardinal !scores));
-                      Dump.print ["bool_pl1",2] (fun p ->
+                      Dump.print ["bool_pl1",3] (fun p ->
                           p "All scored lits\n%a"
                             (LMap.print_in_fmt
                                (fun fmt (l,_) -> LitF.print_in_fmt fmt l)
@@ -229,7 +229,7 @@ module Make(DS: sig
                         !scores
                         lset
                     in
-                    Dump.print ["bool_pl1",2] (fun p ->
+                    Dump.print ["bool_pl1",3] (fun p ->
                         p "All scored lits\n%a"
                           (LMap.print_in_fmt
                              (fun fmt (l,_) -> LitF.print_in_fmt fmt l)
