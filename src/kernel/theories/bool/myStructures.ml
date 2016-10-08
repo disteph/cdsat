@@ -6,7 +6,8 @@ open General
 open Patricia
 open SetConstructions
 
-(* LSet = Sets of literals, patricia tries implementation (hconsed) *)
+(* LSet = Sets of literals, patricia tries implementation.
+The only extra information that is stored is the cardinality of the set *)
 
 module I = TypesFromHConsed(LitF)
   
