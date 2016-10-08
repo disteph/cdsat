@@ -22,6 +22,11 @@ module Poly(I:Intern) = struct
 
   module ToInclude = struct
     type ('v,'i) param = (keys,'v,common,branching,'i) poly
+    type branching = I.branching
+    type common = I.common
+    let reveal f = f.reveal
+    let id f     = f.id
+    let info f   = f.info
   end
     
   let equal rec_eq kcompare vequal t1 t2 =
@@ -43,20 +48,14 @@ module Poly(I:Intern) = struct
      structure for sets, below *)
     module BackOffice = struct
 
-      include D
       include ToInclude
-      type branching = I.branching
-      type common = I.common
+      include D
 
       (* Our Patricia trees can be HConsed *)
 
       let is_hcons = match treeHCons with
         | None -> false
         | Some _ -> true
-
-      let reveal f = f.reveal
-      let id f     = f.id
-      let info f   = f.info
 
       (* Primitive type of Patricia trees to feed the HashTable Make
          functor *)
@@ -100,27 +99,24 @@ module Poly(I:Intern) = struct
       let uniqq =ref 0
       let build a =
         let f = {reveal =  a; id = !uniqq ; info = info_gen a} in
-	match treeHCons with
-        | None   -> f
-        | Some _ ->
-	  try H.find table f
-	  with Not_found -> incr uniqq; H.add table f f; f
+        if is_hcons
+        then try H.find table f
+	     with Not_found -> incr uniqq; H.add table f f; f
+        else f
 
       let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
 
-      let compare t1 t2 = 
-        match treeHCons with 
-        | None   -> failwith "No function compare when patricia trees are not HConsed"
-        | Some _ -> Pervasives.compare (id t1) (id t2)
+      let compare =
+        if is_hcons then fun t1 t2 -> Pervasives.compare (id t1) (id t2)
+        else fun _ _ -> failwith "No function compare when patricia trees are not HConsed"
 
-      let equal = match treeHCons with
-        | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
-        | Some _ -> fun t t' -> t==t'
+      let equal =
+        if is_hcons then fun t t' -> t==t'
+        else fun t t' -> failwith "No function equal when patricia trees are not HConsed"
 
-      let hash = match treeHCons with
-        | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
-        | Some _ -> id
-
+      let hash =
+        if is_hcons then id
+        else fun t -> failwith "No function hash when patricia trees are not HConsed"
                                        
     (* Now we start the standard functions on maps/sets *)
 
@@ -253,9 +249,6 @@ module Poly(I:Intern) = struct
       let aux k x () = f k x in
       fold aux t ()
              
-  (* In merge, union, inter, subset, diff,
-     argument f says what to do in case a key is assigned a value in both u1 and u2 *)
-
     let prefix t = match reveal t with
       | Empty -> failwith "Patricia.prefix: empty"
       | Leaf(k,_) -> tag k
@@ -265,6 +258,13 @@ module Poly(I:Intern) = struct
       if is_empty u1 then u2
       else if is_empty u2 then u1
       else join (prefix u1, u1, prefix u2, u2)
+
+    (* Following type used in merge, union, inter, subset, diff, etc.
+       each field says what to do in case 
+       - same key is found on both sides
+       - first arg is empty
+       - second arg is empty
+       - we separated into 2 tasks, computed 2 results, what to do with them *)
 
     type ('v1,'i1,'v2,'i2,'a) merge = {
         sameleaf  : keys -> 'v1 -> 'v2 -> 'a;
@@ -322,9 +322,9 @@ module Poly(I:Intern) = struct
 	 else
 	    disjoint action s1 s2
 
-    let merge_poly action s1 s2 =
+    let merge_poly action =
       let rec aux s1 s2 = merge_trans aux action s1 s2
-      in aux s1 s2
+      in aux
 
     let merge =
       if is_hcons
@@ -349,7 +349,7 @@ module Poly(I:Intern) = struct
         combine   = join
       }
                            
-    let union_poly f fullempty emptyfull s1 s2 = merge_poly (union_poly_action f emptyfull fullempty) s1 s2
+    let union_poly f fullempty emptyfull = merge_poly (union_poly_action f emptyfull fullempty)
 
     let union_action f = {
         sameleaf = (fun k v1 v2 -> singleton k (f v1 v2));
@@ -360,8 +360,8 @@ module Poly(I:Intern) = struct
 
     let union =
       if is_hcons
-      then (fun f s1 s2 -> merge ~equal:(fun a->a) (union_action f) s1 s2)
-      else (fun f s1 s2 -> merge_poly (union_action f) s1 s2)
+      then (fun f -> merge ~equal:(fun a->a) (union_action f))
+      else (fun f -> merge_poly (union_action f))
 
 
     let inter_action f = {
@@ -371,11 +371,11 @@ module Poly(I:Intern) = struct
         combine   = join
       }
                            
-    let inter_poly f s1 s2 = merge_poly (inter_action f) s1 s2
+    let inter_poly f = merge_poly (inter_action f)
 
     let inter =
       if is_hcons
-      then (fun f s1 s2 -> merge ~equal:(fun a->a) (inter_action f) s1 s2)
+      then (fun f -> merge ~equal:(fun a->a) (inter_action f))
       else inter_poly
 
     let diff_action f = {
@@ -385,7 +385,7 @@ module Poly(I:Intern) = struct
         combine   = join
       }
                            
-    let diff_poly f s1 s2 = merge_poly (diff_action f) s1 s2
+    let diff_poly f = merge_poly (diff_action f)
 
     let diff =
       if is_hcons
@@ -399,11 +399,11 @@ module Poly(I:Intern) = struct
         combine   = (&&)
       }
                            
-    let subset_poly f s1 s2 = merge_poly (sub_action f) s1 s2
+    let subset_poly f = merge_poly (sub_action f)
 
     let subset =
       if is_hcons
-      then (fun f s1 s2 -> merge ~equal:(fun a->true) (sub_action f) s1 s2)
+      then (fun f -> merge ~equal:(fun a->true) (sub_action f))
       else subset_poly
 
   (* Advanced version of subset, returning 
@@ -499,7 +499,7 @@ module Poly(I:Intern) = struct
       | Leaf(k,x) -> (k,x)
       | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
 	
-    let make f l     = List.fold_right (function (k,x)->add k (f x)) l empty
+    let make f l = List.fold_left (fun m (k,x)->add k (f x) m) empty l
 
     let elements s =
       let rec elements_aux acc t = match reveal t with
