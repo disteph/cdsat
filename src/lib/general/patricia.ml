@@ -389,22 +389,31 @@ module Poly(I:Intern) = struct
 
     let diff =
       if is_hcons
-      then (fun f s1 s2 -> merge ~equal:(fun a->empty) (diff_action f) s1 s2)
+      then (fun f -> merge ~equal:(fun a->empty) (diff_action f))
       else diff_poly
 
     let sub_action f = {
-        sameleaf = (fun _ x y -> f x y);
-        emptyfull = (fun _ -> true);
-        fullempty = (fun _ -> false);
-        combine   = (&&)
+        sameleaf = (fun _ x y () -> f x y);
+        emptyfull = (fun _ () -> true);
+        fullempty = (fun _ () -> false);
+        combine   = fun l r () -> l() && r()
       }
-                           
-    let subset_poly f = merge_poly (sub_action f)
+
+    let subset_poly f =
+      let action = sub_action f in
+      let rec aux s1 s2 () = merge_trans aux action s1 s2 ()
+      in fun s1 s2 -> aux s1 s2 ()
 
     let subset =
       if is_hcons
-      then (fun f -> merge ~equal:(fun a->true) (sub_action f))
-      else subset_poly
+      then 
+        (fun f ->
+          let action = sub_action f in
+          let rec aux s1 s2 () =
+            if s1==s2 then true else merge_trans aux action s1 s2 ()
+          in fun s1 s2 -> aux s1 s2 ())
+      else
+        subset_poly 
 
   (* Advanced version of subset, returning 
      Yes()     if it is a subset,
