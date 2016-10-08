@@ -26,16 +26,17 @@ end
 (* Representation of terms for boolean reasoning, knowing about
    disjunction, negation, true and false *)
 
+(* Representation of a clause, together with its negation: None is
+   used to represent the trivially true clause, i.e. the negation of
+   the empty clause. Apart from this case, a clause and its negation
+   are usually Some a, Some b, with one of a or b being a singleton
+   and the other one being non-empty. *)
+
 type data = private {
     aslit    : LitF.t;
     asclause : LSet.t option;
     nasclause: LSet.t option
   }
                                                            
-(* Representation of a clause, together with its negation: None is
-     used to represent the trivially true clause, i.e. the negation of
-     the empty clause. Apart from this case, a clause and its negation
-     are usually Some a, Some b, with one of a or b being a singleton
-     and the other one being non-empty. *)
 
 module ThDS : DataType with type t = data
