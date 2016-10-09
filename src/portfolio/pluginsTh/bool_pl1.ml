@@ -65,7 +65,7 @@ module Make(DS: sig
   module Config = struct
     include MyTheory.Make(DS)
     module Var = LitF
-
+    let howmany = 2
     let pick_another _ (c :Constraint.t) i (varlist :LitF.t list)
         : LitF.t list option =
 
@@ -108,9 +108,10 @@ module Make(DS: sig
                                    
                                    
   type state = {
-      todo      : Term.t Pqueue.t;          (* Set of terms to be passed to kernel *)
+      todo      : Term.t Pqueue.t; (* Set of terms to be passed to kernel *)
       finalsay  : (Config.straight list
-                   * (sign, TSet.t, unsat) message) option; (* Has the kernel already found a conflict? *)
+                   * (sign, TSet.t, unsat) message) option;
+      (* Has the kernel already found a conflict? *)
       propastate: Propa.t;                  (* State of the 2-watched algorithm *)
       already   : (TSet.t*TSet.t) option    (* Last split we have asked for, if any *)
     }
@@ -188,9 +189,9 @@ module Make(DS: sig
                       Dump.print ["bool_pl1",2] (fun p ->
                           p "Term %a is already true" Term.print_in_fmt t);
                  end;
-                 let c = Config.Constraint.make t in
                  begin
-                   match Propa.treat c 2 state.propastate with
+                   let c = Config.Constraint.make t in
+                   match Propa.treat c state.propastate with
                    | Case1(list,unsat,term) ->
                       (* begin match (proj(Terms.data term)).asclause with *)
                       (* | None -> failwith "Clause is false, cannot be true" *)

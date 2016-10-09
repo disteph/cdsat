@@ -228,7 +228,7 @@ module Poly(I:Intern) = struct
 	   | Branch(p,m,t0,t1)->
               let auxd = aux indent in
               fprintf fmt "%a, %a" auxd t0 auxd t1
-         in fprintf fmt "\n%a" (aux (fun fmt -> ())) t
+         in fprintf fmt "%a" (aux (fun fmt -> ())) t
 
   (* argument f says what to do in case a binding is already found *)
 

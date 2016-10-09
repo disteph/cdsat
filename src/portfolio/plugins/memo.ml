@@ -157,20 +157,19 @@ module Make(WB : WhiteBoardExt.Type) = struct
     let prove tset =
       let watch = TSet.fold P.fix tset !watchref in
       let fixed = Fixed.extend tset Fixed.init in
-      let rec aux watch =
-        match P.next fixed ~howmany:1 watch with
-        | None,_ -> false
-        | Some(c,_),_ ->
-           Dump.print ["watch",1] (fun p-> p "Already know");
-           true
-      in
-      aux watch
+      match P.next fixed ~howmany:1 watch with
+      | None,_ -> false
+      | Some(c,_),_ ->
+         Dump.print ["watch",1] (fun p-> p "Already know");
+         true
           
     let add c term1 term2 =
       let tset = Constraint.tset c in
       if not(prove tset)
       then
-        watchref := P.addconstraintNflag c (term1::(match term2 with None -> [] | Some t2 -> [t2])) !watchref;
+        watchref := P.addconstraintNflag c
+                      (term1::(match term2 with None -> [] | Some t2 -> [t2]))
+                      !watchref;
         incr watchcount;
         Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 

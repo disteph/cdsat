@@ -7,6 +7,7 @@ module type Config = sig
 
   include TwoWatchedLits.Config
 
+  val howmany: int
   type stop
   type msg
 
@@ -37,27 +38,29 @@ module Make(C: Config) = struct
     watch = WL.init
   }
 
-  let rec propagate ?howmany c t = 
+  let rec propagate c t = 
     match C.constreat c t.fixed with
     | C.UNSAT stop -> Sums.Case1 stop
-    | C.Propagate(fixed',varlist) ->
-       run ?howmany {
-           fixed = fixed';
-           watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
-         }
+    | C.Propagate(fixed',varlist) -> fix fixed' varlist t
     | C.Meh fixed' ->
-       run ?howmany { t with fixed = fixed' }
+       run { t with fixed = fixed' }
 
-  and run ?howmany t = 
-    let res, watch' = WL.next t.fixed ?howmany t.watch in
+  and run t = 
+    let res, watch' = WL.next t.fixed ~howmany:C.howmany t.watch in
     let t = { t with watch = watch' } in
     match res with
-    | Some(c,_) -> propagate ?howmany c t
+    | Some(c,_) -> propagate c t
     | None   -> Sums.Case2 t
 
-  let treat c howmany t =
-    run ~howmany:howmany { t with watch = WL.addconstraintNflag c [] t.watch }
-
+  and fix fixed varlist t =
+    run {
+        fixed = fixed;
+        watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
+      }
+                           
+  let treat c t =
+    run { t with watch = WL.addconstraintNflag c [] t.watch }
+        
   let extract_msg t =
     match C.extract_msg t.fixed with
     | None -> None, t

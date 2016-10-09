@@ -23,6 +23,7 @@ module Make
     include FromHConsed
     val make : Term.t -> t
     val verysimpl: t -> (LSet.t, Term.t option) Sums.sum
+    val print_in_fmt : Format.formatter -> t -> unit
   end
 
   type fixed

@@ -57,17 +57,12 @@ module Make (C : Config) = struct
     todo = Pqueue.empty
   }
 
-  let addconstraint c ?oldwatched newwatchedlist t =
-    (* The previously watched variables, as a VarSet *)
-    let oldwatched = match oldwatched with
-      | None -> VarSet.empty
-      | Some ow -> ow
-    in
+  let addconstraint c ?(oldwatched=VarSet.empty) newwatchedlist t =
     (* The newly watched variables, as a VarSet *)
     let newwatched = VarSet.of_list newwatchedlist in
-    (* Those that are really new *)
-    let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really old *)
+    let reallyold = VarSet.diff oldwatched newwatched in
+    (* Those that are really new *)
     let reallynew = VarSet.diff newwatched oldwatched in
     (* For each really old variable, we remove c from 
        the set of constraints that were watching it *)
