@@ -9,8 +9,17 @@ type ('a,'b) almost =
 
 open Format
 
-val pp_print_option : ?pp_none:(formatter -> unit -> unit) ->
-                      (formatter -> 'a -> unit)
-                      -> formatter
-                      -> 'a option
-                      -> unit
+val print_alm_in_fmt :
+  ?pp_yes:(formatter -> 'a -> unit)
+  -> ?pp_almost:(formatter -> 'b -> unit)
+  -> unit
+  -> formatter
+  -> ('a,'b) almost
+  -> unit
+
+val pp_print_option :
+  ?pp_none:(formatter -> unit -> unit)
+  -> (formatter -> 'a -> unit)
+  -> formatter
+  -> 'a option
+  -> unit

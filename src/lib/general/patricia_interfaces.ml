@@ -151,10 +151,16 @@ module type PATMapType = sig
   val make :
     ('a -> values option -> values) -> (keys * 'a) list -> t
   val elements : t -> (keys * values) list
-  val print_in_fmt: 
-    ?tree:((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit))
-    -> (Format.formatter -> (keys * values) -> unit)
-    -> Format.formatter -> t -> unit
+  val print_tree_in_fmt:
+    ?common      :(Format.formatter -> common -> unit)
+    -> ?branching:(Format.formatter -> branching -> unit)
+    -> (Format.formatter -> (keys * 'v) -> unit)option
+    -> Format.formatter -> ('v,_) param -> unit
+  val print_in_fmt:
+    ?tree:((Format.formatter -> common -> unit)
+           *(Format.formatter -> branching -> unit))
+    -> (Format.formatter -> (keys * 'v) -> unit)
+    -> Format.formatter -> ('v,_) param -> unit
   val find_su :
     (keys -> values -> 'a) ->
     (keys -> values -> branching -> 'b) ->
@@ -225,7 +231,6 @@ module type PATSetType = sig
     (t -> t) ->
     bool -> t -> t -> (unit, e) almost
   val iter   : (e -> unit) -> t -> unit
-  (* val map    : (e -> unit) -> t -> t *)
   val fold   : (e -> 'a -> 'a) -> t -> 'a -> 'a
   val choose : t -> e
   val elements : t -> e list
@@ -239,8 +244,14 @@ module type PATSetType = sig
     bool ->
     (branching -> bool) ->
     ('b -> bool) -> common -> t -> ('a, 'b) sum
-  val print_in_fmt: 
-    ?tree:((Format.formatter -> common -> unit) * (Format.formatter -> branching -> unit))
+  val print_tree_in_fmt:
+    ?common      :(Format.formatter -> common -> unit)
+    -> ?branching:(Format.formatter -> branching -> unit)
+    -> (Format.formatter -> e -> unit)option
+    -> Format.formatter -> t -> unit
+  val print_in_fmt:
+    ?tree:((Format.formatter -> common -> unit)
+           *(Format.formatter -> branching -> unit))
     -> (Format.formatter -> e -> unit)
     -> Format.formatter -> t -> unit
   val make    : e list -> t

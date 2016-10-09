@@ -15,6 +15,8 @@ type ('keys,'values,'common,'branching,'infos) poly =
    id:int ;
    info: 'infos}
 
+let print_nothing _ _ = ()
+let print_dot fmt _ = fprintf fmt "."
 
 module Poly(I:Intern) = struct
 
@@ -27,6 +29,26 @@ module Poly(I:Intern) = struct
     let reveal f = f.reveal
     let id f     = f.id
     let info f   = f.info
+    let rec checktree aux t = match reveal t with
+      | Empty               -> true
+      | Leaf (j,_)          -> List.fold_left (fun b m -> let g = check (tag j) m in if not g then print_endline("Warning leaf"); b&&g) true aux
+      | Branch (_, m, l, r) ->
+    	 let aux' = m::aux in
+    	 let o = match aux with
+    	   | []   -> true
+    	   | a::l when bcompare a m < 0 -> true
+    	   | _    -> false
+    	 in
+    	 if not o then print_endline("Warning Branch");
+    	 o&&(checktree aux r)&&(checktree aux' l)
+
+    let is_empty t = match reveal t with Empty -> true | _ -> false
+
+    let rec cardinal t = match reveal t with
+      | Empty  -> 0
+      | Leaf _ -> 1
+      | Branch (_,_,t0,t1) -> cardinal t0 + cardinal t1
+
   end
     
   let equal rec_eq kcompare vequal t1 t2 =
@@ -75,15 +97,8 @@ module Poly(I:Intern) = struct
 
       end
 
-      include PATPrimitive
-
+      type t = PATPrimitive.t
       type pat = (t,keys,values,common,branching) poly_rev
-
-      let rec size t = match reveal t with
-        | Empty               -> 0
-        | Leaf (j,_)          -> 1
-        | Branch (_, _, l, r) -> size l + size r
-
 
       let info_gen = function
         | Empty            -> info_build.empty_info
@@ -97,11 +112,13 @@ module Poly(I:Intern) = struct
       let table = incr pattreenum; H.create 5003 
 
       let uniqq =ref 0
-      let build a =
-        let f = {reveal =  a; id = !uniqq ; info = info_gen a} in
+      let build =
+        let f a = {reveal =  a; id = !uniqq ; info = info_gen a} in
         if is_hcons
-        then try H.find table f
-	     with Not_found -> incr uniqq; H.add table f f; f
+        then (fun a ->
+          let f = f a in
+          try H.find table f
+	  with Not_found -> incr uniqq; H.add table f f; f)
         else f
 
       let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
@@ -117,23 +134,8 @@ module Poly(I:Intern) = struct
       let hash =
         if is_hcons then id
         else fun t -> failwith "No function hash when patricia trees are not HConsed"
-                                       
-    (* Now we start the standard functions on maps/sets *)
-
-      let rec checktree aux t = match reveal t with
-        | Empty               -> true
-        | Leaf (j,_)          -> List.fold_left (fun b m -> let g =(check (tag j) m) in if not g then print_endline("Warning leaf"); b&&g) true aux
-        | Branch (_, m, l, r) ->
-    	  let aux' = m::aux in
-    	  let o = match aux with
-    	    | []   -> true
-    	    | a::l when bcompare a m < 0 -> true
-    	    | _    -> false
-    	  in
-    	  if not o then print_endline("Warning Branch");
-    	  o&&(checktree aux r)&&(checktree aux' l)
-
-      let is_empty t = match reveal t with Empty -> true | _ -> false
+                               
+      (* Now we start the standard functions on maps/sets *)
 
       let rec mem k t = match reveal t with
         | Empty               -> false
@@ -145,12 +147,8 @@ module Poly(I:Intern) = struct
         | Leaf (j,x)          -> if kcompare k j == 0 then x else raise Not_found
         | Branch (_, m, l, r) -> find k (if check (tag k) m then l else r)
 
-      let rec cardinal t = match reveal t with
-        | Empty  -> 0
-        | Leaf _ -> 1
-        | Branch (_,_,t0,t1) -> cardinal t0 + cardinal t1
 
-    (* Smart constructors, using both the HConsing techniques and
+      (* Smart constructors, using both the HConsing techniques and
        assuring some invariant of Patricia trees *)
 
       let empty      = build Empty
@@ -161,7 +159,7 @@ module Poly(I:Intern) = struct
         | (_,_,t,e) when (reveal e=Empty) -> t
         | (c,b,t0,t1)   -> build(Branch (c,b,t0,t1))
 
-    (* Assumed in function join:
+      (* Assumed in function join:
        p0 is the common part of tree t0
        p1 is the common part of tree t1
        p0 and p1 are not equal *)
@@ -170,52 +168,67 @@ module Poly(I:Intern) = struct
         let c,m,b = disagree p0 p1 in
 	if b then branch (c, m, t0, t1) else branch (c, m, t1, t0)
 
-    (* remove_aux function: argument f says what to do in case the key is found *)
+      (* remove_aux function: argument f says what to do in case the key is found *)
 
       let remove_aux f k t =
         let rec rmv t = match reveal t with
 	  | Empty      -> failwith "Remove: Was not there -empty"
 	  | Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith "Remove: Was not there -leaf"
 	  | Branch (p,m,t0,t1) ->
-	    if match_prefix (tag k) p m then
-	      if check (tag k) m then branch (p, m, rmv t0, t1)
-              else branch (p, m, t0, rmv t1)
-	    else failwith "Remove: Was not there -branch"
+	     if match_prefix (tag k) p m then
+	       if check (tag k) m then branch (p, m, rmv t0, t1)
+               else branch (p, m, t0, rmv t1)
+	     else failwith "Remove: Was not there -branch"
         in rmv t
 
-    (* remove function: argument f of remove_aux says "delete the key altogether" *)
+      (* remove function: argument f of remove_aux says "delete the key altogether" *)
 
       let remove = remove_aux (fun _ _ -> empty)
 
-    (* argument f says how to print a key,
-       argument b decides whether to print the map as a list [b=None]
-       or as a tree [b=Some(g,h)], with g printing prefixes and h printing branchings *)
-
-      let print_in_fmt ?tree f fmt t =
-        let rec aux indent fmt t = match reveal t with
-	  | Empty            -> fprintf fmt "{}"
-	  | Leaf(j,x)        -> 
-            (match tree with
-	    | None -> fprintf fmt "%a" f (j,x) 
-	    | _    -> fprintf fmt "%t%s%a" indent "   " f (j,x))
-	  | Branch(p,m,t0,t1)->
-	    match tree with
-	    | None     -> let auxd = aux indent in
-                          fprintf fmt "%a, %a" auxd t0 auxd t1
-	    | Some(g,h)-> let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent g p s h m) in
-                          fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
-        in match tree with
-	| None   -> aux (fun fmt -> ()) fmt t
-	| Some _ -> fprintf fmt "\n%a" (aux (fun fmt -> ())) t
-
-
-  (* Now we have finished the material that is common to Maps AND Sets,
+    (* Now we have finished the material that is common to Maps AND Sets,
      closing module BackOffice *)
     end
 
     include BackOffice
 
-  (* Now starting functions specific to Maps, not Sets *)
+    (* Now starting functions specific to Maps, not Sets *)
+
+    (* Printing as a tree
+       argument common says how to print a common,
+       argument branching says how to print a branching,
+       argument keyvalue says how to print a pair (key,value) *)
+
+    let print_tree_in_fmt
+          ?(common   =print_nothing)
+          ?(branching=print_nothing)
+          keyvalue
+          fmt t =
+      let rec aux indent fmt t = match reveal t with
+	| Empty            -> fprintf fmt "{}"
+	| Leaf(j,x)        -> fprintf fmt "%t%s%a" indent "   "
+                                (match keyvalue with
+                                 | Some f -> f
+                                 | None -> print_dot)
+                                (j,x)
+	| Branch(p,m,t0,t1)->
+           let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent common p s branching m) in
+           fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
+      in fprintf fmt "\n%a" (aux (fun fmt -> ())) t
+
+    (* argument f says how to print a pair (key,value) *)
+
+    let print_in_fmt ?tree keyvalue fmt t =
+      match tree with
+      | Some(common,branching) ->
+         print_tree_in_fmt ~common ~branching (Some keyvalue) fmt t
+      | None -> 
+         let rec aux indent fmt t = match reveal t with
+	   | Empty            -> fprintf fmt "{}"
+	   | Leaf(j,x)        -> fprintf fmt "%a" keyvalue (j,x) 
+	   | Branch(p,m,t0,t1)->
+              let auxd = aux indent in
+              fprintf fmt "%a, %a" auxd t0 auxd t1
+         in fprintf fmt "\n%a" (aux (fun fmt -> ())) t
 
   (* argument f says what to do in case a binding is already found *)
 
@@ -290,23 +303,23 @@ module Poly(I:Intern) = struct
 
       | Leaf(k,x), Branch(p,m,t1,t2) ->
          let tagk = tag k in
-	  if match_prefix tagk p m then
-	    if check tagk m then 
-	      action.combine (reccall s1 t1) (action.emptyfull t2)
-	    else
-	      action.combine (action.emptyfull t1) (reccall s1 t2)
-	  else
-	    disjoint action s1 s2
+	 if match_prefix tagk p m then
+	   if check tagk m then
+	     action.combine (reccall s1 t1) (action.emptyfull t2)
+	   else
+             action.combine (action.emptyfull t1) (reccall s1 t2)
+         else
+           disjoint action s1 s2
                 
       | Branch(p,m,t1,t2), Leaf(k,x) ->
          let tagk = tag k in
-	  if match_prefix tagk p m then
-	    if check tagk m then 
-	      action.combine (reccall t1 s2) (action.fullempty t2)
-	    else
-	      action.combine (action.fullempty t1) (reccall t2 s2)
-	  else
-	    disjoint action s1 s2
+	 if match_prefix tagk p m then
+	   if check tagk m then 
+	     action.combine (reccall t1 s2) (action.fullempty t2)
+	   else
+	     action.combine (action.fullempty t1) (reccall t2 s2)
+	 else
+	   disjoint action s1 s2
 
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
@@ -318,10 +331,11 @@ module Poly(I:Intern) = struct
 	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	   if check p1 m2
            then action.combine (reccall s1 l2) (action.emptyfull r2)
-	   else action.combine (action.emptyfull l2) (reccall s1 r2)
+	   else
+             action.combine (action.emptyfull l2) (reccall s1 r2)
 	 else
-	    disjoint action s1 s2
-
+	   disjoint action s1 s2
+                    
     let merge_poly action =
       let rec aux s1 s2 = merge_trans aux action s1 s2
       in aux
@@ -392,15 +406,15 @@ module Poly(I:Intern) = struct
       then (fun f -> merge ~equal:(fun a->empty) (diff_action f))
       else diff_poly
 
-    let sub_action f = {
-        sameleaf = (fun _ x y () -> f x y);
+    let subset_action f = {
+        sameleaf  = (fun _ x y () -> f x y);
         emptyfull = (fun _ () -> true);
         fullempty = (fun _ () -> false);
         combine   = fun l r () -> l() && r()
       }
 
     let subset_poly f =
-      let action = sub_action f in
+      let action = subset_action f in
       let rec aux s1 s2 () = merge_trans aux action s1 s2 ()
       in fun s1 s2 -> aux s1 s2 ()
 
@@ -408,49 +422,55 @@ module Poly(I:Intern) = struct
       if is_hcons
       then 
         (fun f ->
-          let action = sub_action f in
+          let action = subset_action f in
           let rec aux s1 s2 () =
             if s1==s2 then true else merge_trans aux action s1 s2 ()
           in fun s1 s2 -> aux s1 s2 ())
       else
         subset_poly 
 
-  (* Advanced version of subset, returning 
+    (* Advanced version of subset, returning
      Yes()     if it is a subset,
      No        if not
      If alm=true, it can also output
      Almost(a) if it is almost a subset, were it not for element a
-     Almost may only be produced by the call to f 
+     Almost may only be produced by the call to f
      
      We start with an auxiliary function for sub below *)
 
-    let aux_and v1 v2 alm = match v1 alm with
-      | Yes()    -> (*print_endline("left Yes");*)v2 alm
-      | Almost x -> ((*print_endline("left Almost");*)match v2 false with Yes() -> Almost x | _-> No)
-      | No       -> (*print_endline("left No");*)No
+    let aux_combine v1 v2 alm =
+      match v1 alm with
+      | Yes()    -> v2 alm
+      | Almost x -> (match v2 false with Yes() -> Almost x | _-> No)
+      | No       -> No
 
-    let sub f locprune alm s1 s2 =
-      let rec aux s1 s2 alm=
-      if is_hcons && s1==s2 then Yes() else
-        match reveal(locprune s1), reveal(locprune s2) with
-        | Empty, _                        -> Yes()
-        | Leaf(k,x), _      when mem k s2 -> let y = find k s2 in f alm k x (Some y)
-        | Leaf(k,x), _                    -> f alm k x None
-        | Branch(_,_,l,r),Leaf _ when alm -> aux_and(aux l s2)(aux r s2)true
-        | Branch(p1,m1,l1,r1),Branch (p2,m2,l2,r2) when bcompare m1 m2==0 && match_prefix p1 p2 m1
-	    -> aux_and(aux l1 l2)(aux r1 r2) alm
-        | Branch(p1,m1,l1,r1),Branch (p2,m2,l2,r2) when bcompare m2 m1 < 0 && match_prefix p1 p2 m2
-	    -> if check p1 m2 then 
-	        aux_and(aux l1 l2)(aux r1 l2)alm
-	      else 
-	        aux_and(aux l1 r2)(aux r1 r2)alm
-        | Branch(p1,m1,l1,r1),Branch (p2,m2,l2,r2) when bcompare m1 m2 < 0 && match_prefix p2 p1 m1
-	    -> if check p2 m1 then 
-	        aux_and(aux r1 empty)(aux l1 s2)alm
-	      else 
-	        aux_and(aux l1 empty)(aux r1 s2)alm
-        | _ -> No
-      in aux s1 s2 alm
+    let sub_action f locprune = {
+        sameleaf  = (fun k x y alm -> f alm k x (Some y));
+        emptyfull = (fun _ _ -> Yes());
+        fullempty =
+          (let rec aux s alm =
+             match reveal(locprune s) with
+             | Empty     -> Yes()
+             | Leaf(k,x) -> f alm k x None
+             | Branch(_,_,l,r) when alm -> aux_combine (aux l) (aux r) true
+             | Branch(_,_,_,_) -> No
+           in aux);
+        combine   = aux_combine
+      }
+
+    let sub =
+      if is_hcons
+      then 
+        (fun f locprune ->
+          let action = sub_action f locprune in
+          let rec aux s1 s2 alm =
+            if s1==s2 then Yes() else merge_trans aux action (locprune s1) (locprune s2) alm
+          in fun alm s1 s2 -> aux s1 s2 alm)
+      else
+        (fun f locprune ->
+          let action = sub_action f locprune in
+          let rec aux s1 s2 alm = merge_trans aux action (locprune s1) (locprune s2) alm
+          in fun alm s1 s2 -> aux s1 s2 alm)
 
   (* first_diff indicates where 2 patricia trees s1 and s2 start
      differing: It produces (g,b), where
@@ -466,7 +486,7 @@ module Poly(I:Intern) = struct
 
      The notion of "element contained in a map" is deliberately vague,
      it can be taylored to your needs by choosing f, min and
-     cfompare. 
+     cfompare.
 
      We start with the obvious lifting of cfompare to option types. *)
 
@@ -481,26 +501,26 @@ module Poly(I:Intern) = struct
       let select (d1,b1)(d2,b2)= if ocompare(d1,d2)<0 then (d1,b1) else (d2,b2) in
       let rec aux s1 s2 =
         let (m1,m2)=(min s1,min s2) in
-	if ocompare (m1,m2) ==0 then match reveal s1,reveal s2 with
-	| Empty,Empty -> (None,true)
-	| Leaf(k,x), _  when mem k s2 -> (let y = find k s2 in match f k x y with
-	  | (None,_) -> (min(remove k s2),false)
-	  | a        -> a)
-	| _,Leaf _     -> let (b,c) = aux s2 s1 in (b,not c)
-	| Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	  let (rec1,rec2,i)=
-	    if (bcompare m1 m2==0) &&  match_prefix p1 p2 m1 then 
-	      (aux l1 l2,aux r1 r2,1)
-	    else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	      let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
-	      (aux friend s2,aux foe empty,2)
-	    else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	      let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
-	      (aux s1 friend,aux empty foe,3)
-	    else (aux s1 empty,aux empty s2,4)
-	  in select rec1 rec2
-	| _ -> failwith("Should not happen, mins must be the same!")
-	else select (m1,true) (m2,false)
+        if ocompare (m1,m2) ==0 then match reveal s1,reveal s2 with
+        | Empty,Empty -> (None,true)
+        | Leaf(k,x), _  when mem k s2 -> (let y = find k s2 in match f k x y with
+          | (None,_) -> (min(remove k s2),false)
+          | a        -> a)
+        | _,Leaf _     -> let (b,c) = aux s2 s1 in (b,not c)
+        | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
+          let (rec1,rec2,i)=
+            if (bcompare m1 m2==0) &&  match_prefix p1 p2 m1 then
+              (aux l1 l2,aux r1 r2,1)
+            else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
+              let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in
+              (aux friend s2,aux foe empty,2)
+            else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+              let (friend,foe) = if check p1 m2 then (l2,r2) else (r2,l2) in
+              (aux s1 friend,aux empty foe,3)
+            else (aux s1 empty,aux empty s2,4)
+          in select rec1 rec2
+        | _ -> failwith("Should not happen, mins must be the same!")
+        else select (m1,true) (m2,false)
       in aux s1 s2
 
     let rec choose t =  match reveal t with
@@ -528,7 +548,7 @@ module Poly(I:Intern) = struct
 	  | Almost n when cond n -> Case2(singleton j x n)
 	  | _                    -> Case2 empty)
         | Branch (p,m,l,r) ->
-	  let (prems,deuz)=if bp then (r,l) else (l,r) in
+	  let prems, deuz =if bp then r,l else l,r in
 	  let f b = match aux prems with
 	    | Case2 c when b c ->(match aux deuz with
 	      | Case2 d -> Case2(union c d)
@@ -576,28 +596,33 @@ module Poly(I:Intern) = struct
 
     let singleton k= PM.singleton k ()
     let add k t    = PM.add k (fun _ -> ()) t
-    let union      = PM.union (fun _ _ -> ())
-    let inter      = PM.inter (fun _ _ _ -> ())
+    let union      = PM.union (fun _ () -> ())
+    let inter      = PM.inter (fun _ () () -> ())
     let inter_poly a b = PM.inter_poly (fun _ _ _ -> ()) a b
-    let subset: t -> t -> bool = PM.subset(fun _ _ -> true)
+    let subset a b = PM.subset(fun () () -> true) a b
     let diff       = PM.diff  (fun _ _ _ -> empty)
     let diff_poly a b = PM.diff_poly (fun _ _ _ -> empty) a b
     let first_diff = PM.first_diff (fun _ ()()->(None,true)) D.kcompare
-    let sub        = PM.sub (fun alm k () -> function
-      | Some()         -> Yes()
-      | None  when alm -> Almost k
-      | _              -> No)
-    let iter f a   = PM.iter (fun k x -> f k) a
-    let map f a    = PM.map  (fun k x -> f k) a
+    let sub a b    = PM.sub (fun alm k () -> function
+                         | Some()         -> Yes()
+                         | None  when alm -> Almost k
+                         | _              -> No)
+                       a b
+    let iter f a   = PM.iter (fun k () -> f k) a
     let fold f a init = PM.fold (fun k x -> f k) a init
-    let choose t   = let (k,_) = PM.choose t in k
+    let choose t   = let k,_ = PM.choose t in k
     let elements s = List.map (function (k,x)->k) (PM.elements s)
     let find_su yes single = PM.find_su (fun j () -> yes j) (fun j () m->single j m)
 
-  (* Now starting functions specific to Sets, without equivalent
+    (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-    let print_in_fmt ?tree f fmt a = print_in_fmt ?tree (fun fmt (x,y)->f fmt x) fmt a
+    let print_tree_in_fmt ?common ?branching f =
+      PM.print_tree_in_fmt ?common ?branching
+        (match f with Some f -> Some(fun fmt (x,())->f fmt x) | None -> None)
+
+    let print_in_fmt ?tree f fmt a =
+      PM.print_in_fmt ?tree (fun fmt (x,())->f fmt x) fmt a
 
     let make l     = List.fold_right add l empty
 
