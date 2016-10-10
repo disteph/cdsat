@@ -31,18 +31,19 @@ module Make
   val simplify: fixed -> Constraint.t -> Constraint.t
 
   type straight = (sign,TSet.t,Messages.straight) message
-  type stop = straight list * ((sign,TSet.t,unsat) message) * Term.t
+  type stop = straight list * ((sign,TSet.t,unsat) message)
 
   val init_fixed : fixed
 
-  (* type used in the following function *)
+  (* type used in the following functions *)
   type result =
     | UNSAT     of stop
     | Propagate of fixed * LitF.t list
     | Meh   of fixed
 
-  val constreat  : Constraint.t -> fixed -> result
-
+  val constreat : Constraint.t -> fixed -> result
+  val fix : Term.t -> fixed -> result
+    
   type msg =
     | Msg : (sign,TSet.t,_) message -> msg
     | SplitBut : (Term.t,unit) LSet.param -> msg

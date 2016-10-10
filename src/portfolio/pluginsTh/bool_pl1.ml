@@ -189,21 +189,17 @@ module Make(DS: sig
                       Dump.print ["bool_pl1",2] (fun p ->
                           p "Term %a is already true" Term.print_in_fmt t);
                  end;
+                 let c = Config.Constraint.make t in
+                 let propastate = Propa.add_constraint c state.propastate in
                  begin
-                   let c = Config.Constraint.make t in
-                   match Propa.treat c state.propastate with
-                   | Case1(list,unsat,term) ->
-                      (* begin match (proj(Terms.data term)).asclause with *)
-                      (* | None -> failwith "Clause is false, cannot be true" *)
-                      (* | Some lset -> bump lset *)
-                      (* end; *)
-                      begin match list with
-                      | []     -> Output(Some unsat,fail_state)
-                      | msg::l ->
-                         let state = { state with finalsay = Some(l,unsat) } in
-                         Output(Some msg, machine state)
-                      end
-                   | Case2 propastate ->
+                   (* match Propa.fix (Config.fix t) propastate with *)
+                   match Propa.fix (fun fixed -> Config.Meh fixed) propastate with
+                   | Case1([],unsat)     ->
+                      Output(Some unsat,fail_state)
+                   | Case1(msg::l,unsat) ->
+                      let state = { state with finalsay = Some(l,unsat) } in
+                      Output(Some msg, machine state)
+                   | Case2 propastate    ->
                       aux { state with todo = todo;
                                        propastate = propastate  }
                  end

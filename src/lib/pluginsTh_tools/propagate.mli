@@ -80,21 +80,27 @@ module Make(C: Config) : sig
 
   (* Type of the datastructures for the propagation *)
   type t 
+
   (* Initial state of this datastructure *)
   val init  : t
-  (* treat constraint state     
-     treats the addition of a new constraint:
+
+  (* run state
      - either a conflict is detected, in which case we get Sums.A stop,
      where stop is the data resulting from the conflict
      - or we return a new state, where all propagations have been
      performed without generating a conflict, together with some messages
      describing the propagations that we have performed. 
   *)
-  val treat : C.Constraint.t -> t -> (C.stop, t) Sums.sum
-  (* fix fixed varlist state     
-     allows to manually change the fixed literals in the state, and run. 
+  val run : t -> (C.stop, t) Sums.sum
+
+  (* Variant of the above, where we provide a function that
+     does some computation from the current fixed *)
+  val fix : (C.fixed -> C.result) -> t -> (C.stop, t) Sums.sum
+
+  (* add_constraint constraint state     
+     treats the addition of a new constraint:
   *)
-  val fix : C.fixed -> C.Var.t list -> t -> (C.stop, t) Sums.sum
+  val add_constraint : C.Constraint.t -> t -> t
 
   val extract_msg: t -> C.msg option * t
 end

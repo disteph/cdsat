@@ -38,28 +38,28 @@ module Make(C: Config) = struct
     watch = WL.init
   }
 
-  let rec propagate c t = 
-    match C.constreat c t.fixed with
+  let rec analyse t = function
     | C.UNSAT stop -> Sums.Case1 stop
-    | C.Propagate(fixed',varlist) -> fix fixed' varlist t
+    | C.Propagate(fixed',varlist) ->
+       run
+         {
+           fixed = fixed';
+           watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
+         }
     | C.Meh fixed' ->
        run { t with fixed = fixed' }
-
+               
   and run t = 
     let res, watch' = WL.next t.fixed ~howmany:C.howmany t.watch in
     let t = { t with watch = watch' } in
     match res with
-    | Some(c,_) -> propagate c t
+    | Some(c,_) -> analyse t (C.constreat c t.fixed)
     | None   -> Sums.Case2 t
-
-  and fix fixed varlist t =
-    run {
-        fixed = fixed;
-        watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
-      }
                            
-  let treat c t =
-    run { t with watch = WL.addconstraintNflag c [] t.watch }
+  let add_constraint c t =
+    { t with watch = WL.addconstraintNflag c [] t.watch }
+
+  let fix f t = analyse t (f t.fixed)
         
   let extract_msg t =
     match C.extract_msg t.fixed with

@@ -400,7 +400,7 @@ used in a ThStraight or ThProvable message. *)
      - the unsat message which is the contradiction
      - the term representing the unsat clause
    *)
-  type stop = straight list * ((sign,TSet.t,unsat) message) * Term.t
+  type stop = straight list * ((sign,TSet.t,unsat) message)
     
   (* type used in the following function *)
   type result =
@@ -438,7 +438,7 @@ used in a ThStraight or ThProvable message. *)
            Dump.print ["bool",2] (fun p->p "Clause is unsat");
            let tset = explain { term = term; simpl = None ; justif = justif } in
            let msgs,_ = explain_relevant tset fixed.justification in
-           UNSAT(List.rev_append msgs [], unsat () tset, term)
+           UNSAT(List.rev_append msgs [], unsat () tset)
 
         | Leaf(l,()) ->
            (* The clause has become unit, the last literal being l. We
@@ -479,6 +479,20 @@ used in a ThStraight or ThProvable message. *)
 
       end
 
+  let fix term fixed =
+    let asTrue, asFalse = Model.reveal fixed.asTrueFalse in
+    let l = (proj(Terms.data term)).aslit in
+    if LMap.mem l asFalse then
+      let tset = TSet.singleton(LMap.find l asFalse) in
+      let msgs,_ = explain_relevant tset fixed.justification in
+      UNSAT(List.rev_append msgs [], unsat () (TSet.add term tset))
+    else if LMap.mem l asTrue then Meh fixed
+    else
+      let _,asTrueFalse = Model.add l fixed.asTrueFalse in
+      let fixed = { fixed with asTrueFalse = asTrueFalse;
+                               orig_clauses = TSet.add term fixed.orig_clauses } in
+      Propagate(fixed,[l;LitF.negation l])
+                                  
   (* The is the type of data we want to extract from a fixed that we have saturated
      with our reasoning steps, but where we haven't found a contradiction:
      - either a message
