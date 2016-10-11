@@ -47,7 +47,6 @@ module type Config = sig
   type result =
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
-    | Meh       of fixed
 
   (* constreat constraint fixed
      treats a constraint that has popped up as not being able to watch enough
@@ -60,8 +59,6 @@ module type Config = sig
         Propagate(fixed,varlist), where varlist are the variables whose value
         have become forced and fixed is the new structure recording the
         determined variables (now including varlist);
-     -- we have recorded the constraint, and no conflict or propagation has 
-        been triggered, we return Meh.
   *)
   val constreat  : Constraint.t -> fixed -> result
 

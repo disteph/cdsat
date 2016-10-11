@@ -39,7 +39,6 @@ module Make
   type result =
     | UNSAT     of stop
     | Propagate of fixed * LitF.t list
-    | Meh   of fixed
 
   val constreat : Constraint.t -> fixed -> result
   val fix : Term.t -> fixed -> result

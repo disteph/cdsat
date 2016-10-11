@@ -134,7 +134,7 @@ module ThDS = struct
     | Symbols.Or, [a;b] -> oor tag a b
     | Symbols.And,[a;b] -> aand tag a b
     | Symbols.Imp,[a;b] -> iimp tag a b
-    | Symbols.Neg,[a] when is_neg a -> build_lit(LitF.negation a.aslit)
+    (* | Symbols.Neg,[a] when is_neg a -> build_lit(LitF.negation a.aslit) *)
     | Symbols.Neg,[a]   -> negation a
     | Symbols.IsTrue,[a] -> build_lit a.aslit
     | _,_ ->  bV tag l
