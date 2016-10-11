@@ -54,7 +54,7 @@ module Make (C : Config) = struct
   let init = {
     var2cons = VarMap.empty;
     cons2var = CMap.empty;
-    todo = Pqueue.empty
+    todo = Pqueue.empty()
   }
 
   let addconstraint c ?(oldwatched=VarSet.empty) newwatchedlist t =

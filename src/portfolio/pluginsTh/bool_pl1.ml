@@ -286,7 +286,7 @@ module Make(DS: sig
      end)
       
   let init = machine
-               { todo = Pqueue.empty;
+               { todo = Pqueue.empty();
                  finalsay = None;
                  propastate = Propa.init;
                  already  = None }

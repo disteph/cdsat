@@ -39,9 +39,8 @@ terms seen so far
   type fixed = {
       asTrueFalse  : Model.t;
       justification: uc_clause T2Clause.t;
-      propagation  : Term.t Pqueue.t;
-      unfolds      : straight Pqueue.t;
-      clauses         : TSet.t;
+      outgoing     : (Term.t,Term.t*straight) Sums.sum Pqueue.t;
+      clauses      : TSet.t;
       seen         : TSet.t
     }
 
@@ -50,9 +49,8 @@ terms seen so far
   let init_fixed = {
       asTrueFalse   = Model.empty;
       justification = T2Clause.empty;
-      propagation   = Pqueue.empty;
-      unfolds       = Pqueue.empty;
-      clauses          = TSet.empty;
+      outgoing      = Pqueue.empty();
+      clauses       = TSet.empty;
       seen          = TSet.empty
     }
 
@@ -108,23 +106,22 @@ terms seen so far
            we create the uc_clause, we update asTrueFalse,
            we record that litterm is there because of the uc_clause,
            and is something that the outside world needs to propagate *)
-      let uc_clause = { term = term; simpl = Some l ; justif = justif } in
+      let uc_clause = { term = term; info = Sums.Case1(Some l, justif) } in
       {
         fixed with
         justification = T2Clause.add litterm uc_clause fixed.justification;
-        propagation   = Pqueue.push litterm fixed.propagation
+        outgoing      = Pqueue.push (Sums.Case1 litterm) fixed.outgoing
       }    
 
 
-  let rec unit term ?(justif=[]) l ?(todo=[]) ?(tofix=[]) fixed =
+  let rec unit term justif l todo tofix fixed =
 
-    (* Finally, we tell the 2-watched literal module to mark 
-       litterm and its negation as fixed *)
-    let litterm,fixed = unit_base term justif l fixed in
+    let tofix = l::(LitF.negation l)::tofix in
+    let term,fixed = unit_base term justif l fixed in
 
-    (* Now is this litterm actually a conjunction?
+    (* Now is this term actually a conjunction?
        It suffices to look at its field nasclause (negation as clause) *)
-    match (proj(Terms.data litterm)).nasclause with
+    match (proj(Terms.data term)).nasclause with
     | Some set when LSet.info set > 1
       ->
        (* It is a conjunction, we need to satisfy the conjuncts.
@@ -138,13 +135,22 @@ terms seen so far
            set
            (TSet.empty,todo)
        in
+       let reason = { term = term; info = Sums.Case2 tset } in
+       let justification =
+         TSet.fold (fun conjunct justification
+                    -> T2Clause.add conjunct reason justification)
+           tset
+           fixed.justification
+       in
        Dump.print ["bool",2] (fun p->
            p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);
-       (* Forming the message that litterm entails the conjuncts *)
-       let msg = straight () (TSet.singleton litterm) tset in
+       (* Forming the message that term entails the conjuncts *)
+       let msg = straight () (TSet.singleton term) tset in
        (* We return the fixed with the non-obviously true conjuncts added,
                and the thStraight message queued *)
-       run mytodo tofix { fixed with unfolds = Pqueue.push msg fixed.unfolds }
+       run mytodo tofix { fixed with
+           outgoing = Pqueue.push (Sums.Case2(term,msg)) fixed.outgoing;
+           justification = justification }
 
     | _ -> (* It's not a conjunction. Nothing to do. *)
        run todo tofix fixed
@@ -172,9 +178,9 @@ terms seen so far
       (Dump.print ["bool",2] (fun p->
            p "term as lit already set to false because of %a"
              Term.print_in_fmt otherterm);
-       let tset = TSet.singleton otherterm in
+       let tset = TSet.add term (TSet.singleton otherterm) in
        let msgs,_ = explain_relevant tset fixed.justification in
-       UNSAT(List.rev_append msgs [], unsat () (TSet.add term tset)))
+       UNSAT(List.rev_append msgs [], unsat () tset))
 
     else if LMap.mem l asTrue then
       (* Literal already true, nothing to see here. *)
@@ -187,9 +193,7 @@ terms seen so far
       (* As a literal, term is undetermined. Must set it to true. *)
       (Dump.print ["bool",2] (fun p->
            p "term as lit being set to true");
-       let tofix = l::(LitF.negation l)::tofix in
-       unit term l ~tofix ~todo fixed )
-
+       unit term [] l todo tofix fixed )
 
   let fix term fixed = treat term [] [] fixed
                               
@@ -197,13 +201,12 @@ terms seen so far
      A clause is justified as being true, under the proviso that slitterm is.
      We remove term from clauses. *)
 
-  let solve_clause fixed term = function
-    | Some litterm when not(TSet.mem litterm fixed.seen)
-      -> failwith "bool: you are cheating"
-    | _ ->
-       if TSet.mem term fixed.clauses
-       then { fixed with clauses = TSet.remove term fixed.clauses }
-       else fixed
+  let solve_term fixed term (* terms *) =
+    (* if not(TSet.subset terms fixed.seen) *)
+    (* then failwith "bool: you are cheating"; *)
+    if TSet.mem term fixed.clauses
+    then { fixed with clauses = TSet.remove term fixed.clauses }
+    else fixed
 
   (* constreat c fixed
      is called when the 2-watched literals module can no longer find 2 lits to watch
@@ -218,11 +221,11 @@ terms seen so far
         p "Adding constraint: %a" Term.print_in_fmt term );
     match Constraint.simpl c with
 
-    | Sums.Case2 slitterm ->
+    | Sums.Case2 _ ->
        (* The clause is satisfied. We call solve_clause. *)
        
        Dump.print ["bool",2] (fun p->p "Clause is satisfied");
-       Propagate(solve_clause fixed term slitterm, [])
+       Propagate(solve_term fixed term (* TSet.empty *), [])
 
     | Sums.Case1(set,justif) -> begin
         match LSet.reveal set with
@@ -233,14 +236,14 @@ terms seen so far
            to the conflict and haven't been communicated yet. *)
 
            Dump.print ["bool",2] (fun p->p "Clause is unsat");
-           let tset = explain { term = term; simpl = None ; justif = justif } in
+           let tset   = explain term None justif in
            let msgs,_ = explain_relevant tset fixed.justification in
            UNSAT(List.rev_append msgs [], unsat () tset)
 
         | Leaf(l,()) ->
            (* The clause has become unit, the last literal being l. 
               We call unit. *)
-           unit term ~justif l fixed
+           unit term justif l [] [] fixed
 
         | Branch(_,_,_,_) ->
            failwith "bool: not supposed to see 2 literals in a clause triggerd for UP or conflict"
@@ -264,39 +267,55 @@ terms seen so far
   let extract_msg fixed : (msg * fixed) option =
     Dump.print ["bool",1] (fun p->
         p "Starting msg extraction");
-    match Pqueue.pop fixed.propagation, Pqueue.pop fixed.unfolds with
+    match Pqueue.pop fixed.outgoing with
 
-    | Some(litterm,propa),_ ->
+    | Some(item,outgoing) ->
        begin
-         (* We form the thStraight message propagating litterm *)
-         match formThStraight litterm fixed.justification with
-         | None -> (* if litterm was in the queue, 
+         let oldterm,msg,justif =
+           match item with
+           | Sums.Case1 litterm -> begin
+               (* We form the thStraight message propagating litterm *)
+               match formThStraight litterm fixed.justification with
+               | None -> (* if litterm was in the queue, 
                       we must have recorded a justification for it, 
                       so the message forming should not fail *)
-            failwith "Should not happen: extract_msg"
-         | Some(term,_,msg,justif) ->
-            let fixed = {fixed with justification = justif; propagation = propa} in
-            Dump.print ["bool",1] (fun p->
-                p "Found a message: %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
-            (* We return the message, together with the new fixed where
+                  failwith "Should not happen: extract_msg"
+               | Some(term,msg,justif) ->
+                  term,msg,justif
+             end
+           | Sums.Case2(term,msg) ->
+              let Propa(_,Straight conjuncts) = msg in
+              let justif = TSet.fold
+                             (fun conjunct justif ->
+                               if T2Clause.mem conjunct justif
+                               then T2Clause.remove conjunct justif
+                               else justif)
+                             conjuncts
+                             fixed.justification
+              in
+              term, msg, justif
+         in
+         let fixed = { fixed with justification = justif; outgoing = outgoing } in
+         Dump.print ["bool",1] (fun p->
+             p "Found a message: %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
+         (* We return the message, together with the new fixed where
                the propagation has been popped and its justification removed,
                and the clause has been solved *)
-            Some(Msg msg, solve_clause fixed term (Some litterm))
+         Some(Msg msg, solve_term fixed oldterm)
        end
 
-    | None,Some(msg,unfolds) ->
-       (* No more propagations, but some unfoldings to communicate *)
-       Some(Msg msg, { fixed with unfolds = unfolds })
-
-    | None,None ->
+    | None ->
        (* Nothing to declare. Have all the clauses been solved? *)
        if TSet.is_empty fixed.clauses
        then (* if so, the Boolean theory has completed its model *)
          let msg = sat () fixed.seen in
          Some(Msg msg, fixed)
+
        else( (* if not, there must be literals that we should decide *)
+
          Dump.print ["bool",1] (fun p->
-             p "clauses: %a" TSet.print_in_fmt fixed.clauses);
+             p "unsolved clauses: %a" TSet.print_in_fmt fixed.clauses);
+         
          (* We give our go-ahead for a split,
             but we need to compute the literals on which we forbid splitting
             (because they are already determined) *)
