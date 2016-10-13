@@ -113,11 +113,9 @@ module Make (C : Config) = struct
               in None, addconstraint c' ~oldwatched:watched varlist t
          end
       | Branch(_,_,l,r) -> 
-         begin
-           match aux t l with
-	   | None, t          -> aux t r
-	   | Some _ as ans, t -> ans, {t with todo = Pqueue.push r t.todo}
-         end
+         match aux t l with
+	 | None, t          -> aux t r
+	 | Some _ as ans, t -> ans, {t with todo = Pqueue.push r t.todo}
     in
     aux t cset
 
@@ -136,9 +134,7 @@ module Make (C : Config) = struct
   let addconstraintNflag constr varlist t =
     let t = addconstraint constr varlist t in
     let cset = CSet.singleton constr in
-    { t with
-      todo = Pqueue.push cset t.todo
-    }
+    { t with todo = Pqueue.push cset t.todo }
 
   let fix var t = 
     if VarMap.mem var t.var2cons
