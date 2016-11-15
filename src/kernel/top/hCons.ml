@@ -6,8 +6,8 @@ type some = private S
 type none = private N
 
 type (_,_) optionGADT = 
-| SomeGADT: 'a -> ('a,some) optionGADT
-| NoneGADT: ('a,none) optionGADT
+  | SomeGADT: 'a -> ('a,some) optionGADT
+  | NoneGADT: ('a,none) optionGADT
 
 module type OptionValue = sig
   type t
@@ -63,7 +63,7 @@ module MakePoly
         type revealed = (Par.t,Data.t) g_revealed
 
         module Arg = struct
-          type t = (Par.t,Data.t) generic
+          type nonrec t = t
           let equal a b = M.equal (fun x y -> x == y) Par.equal a.reveal b.reveal
           let hash a    = M.hash id Par.hash a.reveal
         end

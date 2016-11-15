@@ -98,7 +98,6 @@ module Poly(I:Intern) = struct
       end
 
       type t = PATPrimitive.t
-      type pat = (t,keys,values,common,branching) poly_rev
 
       let info_gen = function
         | Empty            -> info_build.empty_info

@@ -92,11 +92,10 @@ module type PATMapType = sig
 
   type ('v,'i) param
   type t = (values,infos) param
-  type pat = (t,keys,values,common,branching) poly_rev
 
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> pat
+  val reveal : t -> (t,keys,values,common,branching) poly_rev
   val id     : t -> int
   val info   : t -> infos
   val clear    : unit -> unit
@@ -202,10 +201,9 @@ module type PATSetType = sig
 
   type ('v,'i) param
   type t = (unit,infos) param
-  type pat = (t,e,unit,common,branching) poly_rev
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> pat
+  val reveal : t -> (t,e,unit,common,branching) poly_rev
   val id     : t -> int
   val info   : t -> infos
   val clear  : unit -> unit
