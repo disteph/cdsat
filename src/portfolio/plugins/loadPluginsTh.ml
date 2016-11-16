@@ -17,9 +17,8 @@ end
 
 let make theories : (module GetPlugins) =
   HandlersMap.fold
-    (fun (Handlers.Handler sign as hdl) () gp
-     -> let module GP = (val gp: GetPlugins) in
-        let module PluginTh: PluginTh.Type = (val get_default sign) in
+    (fun (Handlers.Handler sign as hdl) () (module GP : GetPlugins)
+     -> let (module PluginTh: PluginTh.Type) = get_default sign in
         (module struct
 
            type agglo = PluginTh.ThDS.t * GP.agglo
