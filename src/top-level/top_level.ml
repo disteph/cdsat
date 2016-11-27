@@ -11,13 +11,12 @@ as possibly indicated by the parser when glancing at the input *)
 
 let init th =
 
-  let mypluginG = PluginsG_register.get !Flags.mypluginG in
-  let module MyPluginG = (val mypluginG) in
+  let (module MyPluginG) = PluginsG_register.get !Flags.mypluginG in
 
   let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
   let propds = (module PS.Semantic: Top.Specs.DataType with type t = PS.Semantic.t) in
 
-  let mode : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
+  let (module Mode) : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
     = if !Flags.mode
       then
         let open Theories_register in
@@ -33,11 +32,9 @@ let init th =
         in
         print_endline(Dump.toString (fun p->
                           p "Using theories: %a" HandlersMap.print_in_fmt theories));
-        let myplugin = Plugins_register.get !Flags.myplugin theories in
-        let module MyPlugin = (val myplugin) in
+        let (module MyPlugin) = Plugins_register.get !Flags.myplugin theories in
         let datalistWprop = Combo.ConsData(propds,MyPlugin.dataList) in
-        let wb,Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
-        let module WB = (val wb) in
+        let (module WB), Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
         let module Res = ForGround.GTh2Th(WB)
                            (struct type formulae = PS.Semantic.t let asF = asForm end)
                            (MyPlugin.Strategy(struct include WB let projList = projlist end))
@@ -47,7 +44,6 @@ let init th =
         let module FO = FirstOrder.MyTheory.Make(PS.Semantic) in
         (module FO)
   in
-  let module Mode  = (val mode) in
 
   let module Src   = PS.Make(Mode) in
   let module Strat = MyPluginG.Strategy(Src.FE) in
@@ -100,8 +96,7 @@ let init th =
 
 let parseNrun input =
   let rec trying = function
-    | parser::other_parsers ->
-      let module MyParser = (val parser:Top.Parser.ParserType) in
+    | (module MyParser:Top.Parser.ParserType)::other_parsers ->
       begin
 	try 
           let aft = MyParser.glance input in

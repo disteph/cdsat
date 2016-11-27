@@ -176,8 +176,8 @@ let rec list_index a accu = function
 
 let parse (type t) aft i =
 
-  let module I =
-    (val i (SM.fold (fun s () l -> s::l) aft.decso []): InterpretType with type t=t)
+  let (module I: InterpretType with type t=t) =
+    i (SM.fold (fun s () l -> s::l) aft.decso [])
   in
   
   let rec transformTermBase env boundvarlist s l =

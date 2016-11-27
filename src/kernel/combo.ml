@@ -67,11 +67,9 @@ let noTheory: (module DataType with type t = unit) =
 (* Incremental case in the traversal *)
 
 let addTheory (type a)(type b)
-    (th:(module DataType with type t = a))
-    (i :(module DataType with type t = b)) 
+    (module Th: DataType with type t = a)
+    (module I: DataType with type t = b)
     :(module DataType with type t = a*b) =
-  let module Th = (val th) in
-  let module I = (val i) in
   (module Pairing(Th)(I))
 
 (* Now, this is what we mean by "a list of Top.Specs.DataType
@@ -116,8 +114,7 @@ let make (type a)
 
   (* First we do the traversal *)
 
-  let dt,pl = make_datastruct l in
-  let module DT = (val dt) in
+  let (module DT),pl = make_datastruct l in
 
   (module struct
 

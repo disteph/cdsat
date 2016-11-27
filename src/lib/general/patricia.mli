@@ -18,7 +18,6 @@ module PATMap: sig
         and  type common = I.common
         and  type branching = I.branching
         and  type ('v,'i) param = (D.keys,'v,I.common,I.branching,'i) poly
-        and  type t = (D.keys,D.values,I.common,I.branching,D.infos) poly
 end
 
 module PATSet: sig
@@ -33,7 +32,6 @@ module PATSet: sig
         and  type common = I.common
         and  type branching = I.branching
         and  type ('v,'i) param = (D.keys,'v,I.common,I.branching,'i) poly
-        and  type t = (D.keys,unit,I.common,I.branching,D.infos) poly
 end
 
 (* Gives the standard inhabitant info_build when info type is unit *)

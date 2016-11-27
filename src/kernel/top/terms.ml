@@ -108,14 +108,13 @@ struct
   let print_of_id fmt index =
     let atom = term_of_id index in
     print_in_fmt fmt atom
-                   
+                 
   module Homo(Mon: MonadType) = struct
     let rec lift update t
-        = match reveal t with
-        | V i    -> Mon.bind (fun v -> Mon.return (bV v)) (update i)
-        | C(f,l) -> Mon.bind (fun l -> Mon.return (bC f l)) (lifttl update l)
-    and
-        lifttl update
+      = match reveal t with
+      | V i    -> Mon.bind (fun v -> Mon.return (bV v)) (update i)
+      | C(f,l) -> Mon.bind (fun l -> Mon.return (bC f l)) (lifttl update l)
+    and lifttl update
         = function
         | []    -> Mon.return []
         | t::tl -> let aux t' tl' = Mon.return(t'::tl') in
@@ -128,8 +127,8 @@ struct
 end 
 
 module EmptyData(Leaf : PHCons) =
-struct
-  type t = unit
-  let bC _ _ _ = ()
-  let bV _ _   = ()
+  struct
+    type t = unit
+    let bC _ _ _ = ()
+    let bV _ _   = ()
 end
