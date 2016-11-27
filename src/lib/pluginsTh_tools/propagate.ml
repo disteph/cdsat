@@ -16,7 +16,6 @@ module type Config = sig
   type result =
     | UNSAT     of stop
     | Propagate of fixed * Var.t list
-    | Meh       of fixed
 
   val constreat  : Constraint.t -> fixed -> result
 
@@ -46,8 +45,6 @@ module Make(C: Config) = struct
            fixed = fixed';
            watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
          }
-    | C.Meh fixed' ->
-       run { t with fixed = fixed' }
                
   and run t = 
     let res, watch' = WL.next t.fixed ~howmany:C.howmany t.watch in

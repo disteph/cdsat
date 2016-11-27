@@ -1,13 +1,13 @@
 (* Standard type constructs *)
 
-type 'a t = 'a list * 'a list
+type 'a t = ('a list * 'a list) ref
 
-let empty = [],[]
+let empty () = ref([],[])
                  
-let push e (l,r) = e::l, r
-                     
-let pop = function
-  | [],[]  -> None
-  | l,e::r -> Some(e,(l,r))
-  | l,[] -> let l' = List.rev l in
-            Some(List.hd l',([],List.tl l'))
+let push e queue = let l,r = !queue in ref(e::l, r)
+
+let pop queue = match !queue with
+  | l,e::r -> Some(e,ref (l,r))
+  | l,[] -> match List.rev l with
+            | [] -> None
+            | e::r as l' -> queue := [], l'; Some(e, ref ([],r))

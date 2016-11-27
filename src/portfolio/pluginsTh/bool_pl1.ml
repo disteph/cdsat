@@ -190,10 +190,15 @@ module Make(DS: sig
                           p "Term %a is already true" Term.print_in_fmt t);
                  end;
                  let c = Config.Constraint.make t in
-                 let propastate = Propa.add_constraint c state.propastate in
+                 let propastate =
+                   match Config.Constraint.verysimpl c with
+                   | Case1 lset when LSet.info lset > 1 ->
+                      Propa.add_constraint c state.propastate
+                   | _ -> state.propastate
+                 in
                  begin
-                   (* match Propa.fix (Config.fix t) propastate with *)
-                   match Propa.fix (fun fixed -> Config.Meh fixed) propastate with
+                   match Propa.fix (Config.fix t) propastate with
+                   (* match Propa.fix (fun fixed -> Config.Meh fixed) propastate with *)
                    | Case1([],unsat)     ->
                       Output(Some unsat,fail_state)
                    | Case1(msg::l,unsat) ->
@@ -281,7 +286,7 @@ module Make(DS: sig
      end)
       
   let init = machine
-               { todo = Pqueue.empty;
+               { todo = Pqueue.empty();
                  finalsay = None;
                  propastate = Propa.init;
                  already  = None }
