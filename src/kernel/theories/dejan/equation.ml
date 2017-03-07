@@ -3,17 +3,27 @@ include Hashtbl
 
 open Num
 
-type var = int
+type var = int [@@deriving eq]
 type value = num
+let equal_value = Num.(=/)
 
+module Coeffs = struct
+  type t = (var, value) Hashtbl.t
+  let included t1 t2 =
+    fold (fun key value b -> b&&(mem t2 key)
+                             &&(equal_value(find t2 key)(find t1 key))) t1 true
+  let equal t1 t2 = included t1 t2 && included t2 t1
+end
+                     
 (* Represents an inequation *)
-type equation = {coeffs : (var, value) Hashtbl.t;  (* Coeffs *)
+type equation = {coeffs : Coeffs.t;                (* Coeffs *)
                  sup : value;                      (* Sup value *)
                  isStrict : bool;                  (* Is the inequality <= ? *)
                  guardians : var option * var option;
                  previous : equation list;         (* equation whose linear combination allowed to find this one *)
                  tag : int option;                 (* tag of the litteral on psyche if any *)
                 }
+                  [@@deriving eq]
 
 
 (* Pretty print an equation *)
@@ -140,7 +150,7 @@ let rec getTag eq = match eq.tag with
   | Some t -> [t]
   | None -> (match eq.previous with
       | [] -> print_string "\n\nNo previous no tag\n\n"; print_exhaustive eq; []
-      | l  -> List.fold_left (fun ll eq -> (getTag eq)@ll) [] l
+      | l  -> List.fold (fun eq ll -> (getTag eq)@ll) l []
     )
 
 (* Return if < or <= *)
@@ -174,14 +184,14 @@ let uniq x =
   let rec uniqRec x accu =
     match x with
     | [] -> accu
-    | t::q when List.mem t accu -> uniqRec q accu
+    | t::q when List.mem [%eq:equation] t accu -> uniqRec q accu
     | t::q -> uniqRec q (t::accu)
   in
   uniqRec x []
 
 
 let getPreviousEqs eqs =
-  uniq (List.fold_left (fun l eq -> (getPrevious eq)@l) [] eqs)
+  uniq (List.fold (fun eq l -> (getPrevious eq)@l) eqs [])
 
 (* Affect a variable in the inequation. It has to built a new
    inequation, even if the variable is not present, for compatibility

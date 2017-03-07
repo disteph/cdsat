@@ -94,7 +94,7 @@ let getLastAssignedVariable trail =
     | (var,value)::q -> var
 
 let getAssignedVariables trail =
-    List.fold_left (fun accu (vr,vl) -> vr::accu) [] trail.affect
+    List.fold (fun (vr,vl) accu -> vr::accu) trail.affect []
 
 exception Var_found of var
 

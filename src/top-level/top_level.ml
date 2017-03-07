@@ -115,7 +115,7 @@ let parseNrun input =
   in
   let parselist = match !Flags.parser with
     | None   -> Parsers_register.all_parsers
-    | Some l -> List.fold_left (fun l s -> (Parsers_register.get s)::l) [] l
+    | Some l -> List.fold (fun s l -> (Parsers_register.get s)::l) l []
   in
   trying parselist
 
@@ -169,9 +169,9 @@ let collect_sort s =
 	let open Unix in
 	let size_of s = (stat s).st_size in
 	let l = List.map (fun filename -> (filename,size_of filename)) s in
-	let l'= List.sort (fun (a,b)(c,d)->Pervasives.compare b d) l in 
+	let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
 	  List.map (fun (filename,size) -> filename) l'
-    | _ -> List.sort Pervasives.compare s
+    | _ -> List.sort [%ord:string] s
 
 let treatdir pack dirname =
   print_endline("Treating directory "^dirname);

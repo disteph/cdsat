@@ -47,6 +47,10 @@ end
 
 type polarity = Pos | Neg | Und
 
+let is_Pos = function Pos -> true | _ -> false
+let is_Neg = function Neg -> true | _ -> false
+let is_Und = function Und -> true | _ -> false
+                              
 
 (* This is the module type that specifies the FrontEnd to which a plugin
    has access *)

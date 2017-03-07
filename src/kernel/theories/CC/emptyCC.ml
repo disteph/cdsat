@@ -85,12 +85,12 @@ module Make(DS: GTheoryDSType)= struct
   let leaves r = TSet.add r TSet.empty
 
   let rec subst p q r =
-    if compare p r = 0 then q else r
+    if Terms.compare p r = 0 then q else r
 
   type res = Sol of v*v | Bot | Top
 
   let solve r r' =
-    if compare r r' = 0 then Top
+    if Terms.compare r r' = 0 then Top
     else Sol(r,r')
 
 end

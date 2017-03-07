@@ -27,7 +27,7 @@ module Make (C : Config) = struct
                           
   module CSetD = struct
     type keys        = Constraint.t
-    let kcompare c1 c2 = Pervasives.compare (Constraint.id c1) (Constraint.id c2)
+    let kcompare     = id2compare Constraint.id
     type infos       = unit
     let info_build   = empty_info_build
     let treeHCons    = None
@@ -35,7 +35,7 @@ module Make (C : Config) = struct
 
   module CMapD = struct
     type keys        = Constraint.t
-    let kcompare c1 c2 = Pervasives.compare (Constraint.id c1) (Constraint.id c2)
+    let kcompare     = id2compare Constraint.id
     type values      = VarSet.t
     type infos       = unit
     let info_build   = empty_info_build

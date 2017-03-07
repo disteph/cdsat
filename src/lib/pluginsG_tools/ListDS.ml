@@ -15,7 +15,7 @@ open Literals
 open Formulae
 
 module type PrintableType = sig 
-  type t 
+  type t [@@deriving eq]
   val print_in_fmt: ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 end
 
@@ -23,7 +23,7 @@ module MyCollectImplem (MyPType:PrintableType) = struct
   type e = MyPType.t
   type t = e list
 
-  let mem = List.mem
+  let mem = List.mem MyPType.equal
 
   let empty = []
 
@@ -34,7 +34,7 @@ module MyCollectImplem (MyPType:PrintableType) = struct
   let rec remove x = function
     | [] -> failwith(Dump.toString (fun p->
                          p "%a is not in list!" (fun fmt -> MyPType.print_in_fmt fmt) x))
-    | y::l when y=x -> l
+    | y::l when MyPType.equal y x -> l
     | y::l -> y::(remove x l)
 
   let rec union gamma1 = function
@@ -69,7 +69,10 @@ end
 
 module Generate = struct
 
-  module UASet = MyCollectImplem(LitF)
+  module UASet = MyCollectImplem(struct
+                     include LitF
+                     let equal l1 l2 = LitF.compare l1 l2 ==0
+                   end)
 
   module UF = struct
     type t   = unit
@@ -78,6 +81,7 @@ module Generate = struct
 
   module UFSet = MyCollectImplem(struct
     type t = UF.t FormulaF.generic
+    let equal l1 l2 = FormulaF.compare l1 l2 ==0
     let print_in_fmt = FormulaF.print_in_fmt
   end)
 

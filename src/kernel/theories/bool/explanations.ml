@@ -15,7 +15,7 @@ module Make(DS: sig
 
   open DS
          
-  include Base.Make(DS)
+  include Basis.Make(DS)
 
   (* Type for a clause that has become unit or false, given as: the
 term representing it, the simplified form (None for the false clause,

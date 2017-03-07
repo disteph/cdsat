@@ -26,9 +26,9 @@ let eliminate var eqs =
     | (t1::q1), l2 ->
 
     complete_result q1 l2
-      (List.fold_left (fun acc eq ->
+      (List.fold (fun eq acc ->
         (Equation.combine ((Num.num_of_int 1)  // (Equation.getCoeff t1 var)) t1
-           ((Num.num_of_int (-1)) // (Equation.getCoeff eq var)) eq)::acc) accu l2)
+           ((Num.num_of_int (-1)) // (Equation.getCoeff eq var)) eq)::acc) l2 accu)
 
   in
   complete_result pos neg nul

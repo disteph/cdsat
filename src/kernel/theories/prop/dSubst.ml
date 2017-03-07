@@ -59,7 +59,7 @@ let print_in_fmt fmt t =
 
 let binit() = build EmptySubst
 
-let compare s s' = Pervasives.compare (id s) (id s')
+let compare = id2compare id
 let clear () = substid := 0;  H.clear table; let _ = binit() in ()
 
 let init = binit()

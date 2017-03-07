@@ -128,22 +128,22 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
     let list = aux r [] in
     (* Create map from nodes to integer indices *)
     let _,idmap = 
-      List.fold_left (fun (i,idmap) n -> (i+1, M.add n i idmap)) (0,M.empty) list
+      List.fold (fun n (i,idmap) -> (i+1, M.add n i idmap)) list (0,M.empty)
     in
     (* create the tree and add the arcs *)
     let _,t =
-      List.fold_left 
-        (fun (i,t) n ->
+      List.fold
+        (fun n (i,t) ->
           let x,_ = M.find n m.father in
           match x with
           | None -> i+1, FCA.add i i (sonsList n m idmap) t
           | Some(j,_) -> i+1, FCA.add i (M.find j idmap) (sonsList n m idmap) t
         )
-        (0,FCA.create list)
         list
+        (0,FCA.create list)
     in
     (* Memoising in m.memo the construction, for future re-use *)
-    m.memo := List.fold_left (fun tmap n -> M.add n t tmap) !(m.memo) list;
+    m.memo := List.fold (fun n tmap -> M.add n t tmap) list !(m.memo);
     t
 
   let fca m i j = 

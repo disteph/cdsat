@@ -284,7 +284,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
       | F g
       (* | Seq.EntF(atomN, g, formP, formPSaved, polar,ar) *)
         -> begin match FormulaF.reveal g with
-	| _ when (Pol.form seq.polar g) <> Pos ->
+	| _ when not(is_Pos(Pol.form seq.polar g)) ->
 	   straight (std1 seq) seq
              (lk_solve { state with seq = { seq with rhs = U(FSet.singleton g)} } )
              sigma cont
@@ -348,7 +348,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
          let toDecompose, newdelta = FSet.next delta in
 	 begin match FormulaF.reveal toDecompose with
 
-	 | _ when (Pol.form seq.polar toDecompose) = Pos ->
+	 | _ when is_Pos (Pol.form seq.polar toDecompose) ->
 
             if (FSet.mem toDecompose seq.formP)||(FSet.mem toDecompose seq.formPSaved)
 	    then let u = lk_solve { state with seq = { seq with rhs = U newdelta }} in
@@ -375,7 +375,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
             let u = lk_solve { state with seq = { seq with rhs = U newdelta }} in
 	    straight (std1 ~form:toDecompose seq) seq u sigma cont
 
-	 | LitF t when (Pol.form seq.polar toDecompose) = Neg ->
+	 | LitF t when is_Neg (Pol.form seq.polar toDecompose) ->
             let t' = LitF.negation t in
 	    if ASet.mem t' seq.lits
 	    then let u = lk_solve { state with seq = { seq with rhs = U newdelta }} in
@@ -392,7 +392,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 		     | _ -> (seqrec,pt))
                    seq u sigma cont
 
-	 | LitF t when (Pol.form seq.polar toDecompose) = Und ->
+	 | LitF t when is_Und(Pol.form seq.polar toDecompose) ->
             let newpolar = Pol.declarePos seq.polar (LitF.negation t) in
             straight (fun a->a) seq
               (lk_solve { state with inloop = false;
@@ -470,7 +470,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 		        
 	         | Cut(3,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*Focused Cut*) ->
 
-                    if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
+                    if not !Flags.cuts then raise (WrongInstructionException "Cuts are not allowed");
                     if not (makes_senseF toCut seq.world)
                     then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		    Dump.Kernel.incr_count 5;
@@ -486,7 +486,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     ou (et (intercept inter_fun1 u1) (intercept inter_fun2 u2) (std2 None seq) seq) u3 (fun a->a) (fun a->a) seq sigma cont
                        
 	         | Cut(7,toCut,(newdata1,newdata), inter_fun1, inter_fun2,l) (*Unfocused Cut*) ->
-                    if !Flags.cuts = false then raise (WrongInstructionException "Cuts are not allowed");
+                    if not !Flags.cuts then raise (WrongInstructionException "Cuts are not allowed");
                     if not (makes_senseF toCut seq.world)
                     then raise (WrongInstructionException "The arity of cut formula is not a prefix of current arity");
 		    Dump.Kernel.incr_count 5;
@@ -518,14 +518,14 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     ou (pythie (MyTheory.consistency (asTSet seq.lits))) u2 (fun a->a) (fun a->a) seq sigma cont
                  (* ou (pythie (fun _ -> myconsistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont *)
 
-	         | Polarise(l,newdata, inter_fun) when (Pol.iatom seq.polar l = Und) ->
+	         | Polarise(l,newdata, inter_fun) when is_Und(Pol.iatom seq.polar l) ->
                     let u = lk_solve { inloop = false;
                                        data   = newdata; 
                                        seq    = { seq with polar = Pol.declarePos seq.polar l }}  in
 		    straight (fun a->a) seq (intercept inter_fun u) sigma cont
                              
-	         | DePolarise(l,newdata, inter_fun) when not (Pol.iatom seq.polar l = Und) ->
-                    if !Flags.depol = false
+	         | DePolarise(l,newdata, inter_fun) when not (is_Und(Pol.iatom seq.polar l)) ->
+                    if not !Flags.depol
                     then raise (WrongInstructionException "Depolarisation is not allowed");
 		    let u = lk_solve { inloop = false;
                                        data   = newdata;
@@ -543,10 +543,10 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     )
                       
 	         | Get(true,b2,l) ->
-                    cont (Success(Fake(!dir=b2),sigma,fun _ -> lk_solvef { state with nextaction = l }))
+                    cont (Success(Fake([%eq:bool] !dir b2),sigma,fun _ -> lk_solvef { state with nextaction = l }))
 
 	         | Get(false,b2,l) ->
-                    cont (Fail(Fake(!dir=b2),fun _ -> lk_solvef { state with nextaction = l }))
+                    cont (Fail(Fake([%eq:bool] !dir b2),fun _ -> lk_solvef { state with nextaction = l }))
                            
 	         | Restore(newdata,inter_fun,l) when not (FSet.is_empty seq.formPSaved)  ->
                     if !Flags.fair && not (FSet.is_empty state.toChoose)

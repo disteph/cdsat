@@ -104,12 +104,12 @@ let goBackAndResume l stack =
     match vars, stack with
     | _,[] -> failwith "Unknown error : empty stack"
     | [],stack -> stack
-    | t::q,s::sq when List.mem t (getAssignedVariables s) ->
+    | t::q,s::sq when List.mem (=) t (getAssignedVariables s) ->
         back (t::q) sq
     | t::q, s::sq -> back q  (s::sq)
   in
-  let newstack = List.fold_left
-      (fun stack eq -> back (Equation.getActiveVars eq) stack) stack l in
+  let newstack = List.fold
+      (fun eq stack -> back (Equation.getActiveVars eq) stack) l stack in
   match newstack with
    | [] -> failwith "Unknown error : Empty stack in Dejean algorithm"
    | s::q -> dejeanAlgoRec ((addEqs s l)::q)

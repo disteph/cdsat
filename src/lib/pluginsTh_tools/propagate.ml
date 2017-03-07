@@ -43,7 +43,7 @@ module Make(C: Config) = struct
        run
          {
            fixed = fixed';
-           watch = List.fold_left (fun a b -> WL.fix b a) t.watch varlist
+           watch = List.fold WL.fix varlist t.watch
          }
                
   and run t = 

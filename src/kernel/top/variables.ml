@@ -18,17 +18,11 @@ module EigenHashed = HashedTypeFromHCons(Eigen)
 
 module FreeVar = struct
 
-  type freeVarExposed = Meta of Meta.t | Eigen of Eigen.t
+  type freeVarExposed = Meta of MetaHashed.t | Eigen of EigenHashed.t [@@deriving eq, hash]
 
   module Arg = struct
-    type _ t = freeVarExposed
-    let equal _ a b = match a,b with
-      | Meta c,  Meta d  when MetaHashed.equal c d  -> true
-      | Eigen c, Eigen d when EigenHashed.equal c d -> true
-      | _,_ -> false 
-    let hash _ = function
-      | Meta c  -> 2*(MetaHashed.hash c)
-      | Eigen c -> 3*(EigenHashed.hash c)
+    type 'a t = freeVarExposed [@@deriving eq, hash]
+    let hash f = Hash.wrap1 hash_fold_t f
   end
 
   include HCons.Make(Arg)
@@ -46,19 +40,11 @@ end
 
 module World = struct
 
-  type 'r worldExposed = Init | NewWorld of bool*Sorts.t*'r
+  type 'r worldExposed = Init | NewWorld of bool*Sorts.t*'r [@@deriving eq, hash]
 
   module Arg = struct
-    type 'r t = 'r worldExposed
-    let equal eq_rec a b = match a,b with
-      | Init, Init -> true
-      | NewWorld(b1,so1,pw1),NewWorld(b2,so2,pw2)
-        -> b1=b2 && so1=so2 && eq_rec pw1 pw2
-      | _,_ -> false
-    let hash hash_rec = function
-      | Init -> 2
-      | NewWorld(b,so,w)
-        -> 3*(if b then 1 else 2)+5*(Hashtbl.hash so) + 7*(hash_rec w)
+    type 'r t = 'r worldExposed [@@deriving eq, hash]
+    let hash hash_rec = Hash.wrap1 hash_fold_t hash_rec
   end
 
   include HCons.Make(Arg)
@@ -139,7 +125,7 @@ module World = struct
       | Some fv -> fv,res
       | None -> failwith "Successful projection should have a last freevar")
 
-  let equal w1 w2 = Pervasives.compare (id w1) (id w2) ==0 
+  let equal = id2equal id
   let hash = id
 
   let rec prefix w1 w2 =
@@ -189,7 +175,7 @@ module MakesSense = struct
     | FreeVar.Eigen ei -> let i,_ = IntSort.reveal ei in (i,-1)
     | FreeVar.Meta mv  -> let i,_ = IntSort.reveal mv in (-1,i)
 
-  let combine (a1,a2) (b1,b2) = (Pervasives.max a1 b1,Pervasives.max a2 b2)
+  let combine (a1,a2) (b1,b2) = (max a1 b1, max a2 b2)
 
   let check (ei_max,mv_max) w = 
     let ar = World.data w in

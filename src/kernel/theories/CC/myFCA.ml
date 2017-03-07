@@ -63,13 +63,19 @@ struct
     let rec aux n d =
       e.(!pos) <- (n,d);
       incr pos;
-      let l = ref (sons t n) in
-      while !l<>[] do
-        aux (List.hd !l) (d+1);
+      (* let l = ref (sons t n) in *)
+      (* while !l<>[] do *)
+      (*   aux (List.hd !l) (d+1); *)
+      (*   e.(!pos) <- (n,d); *)
+      (*   incr pos; *)
+      (*   l := List.tl !l *)
+      (* done *)
+      let treat elt =
+        aux elt (d+1);
         e.(!pos) <- (n,d);
-        incr pos;
-        l := List.tl !l
-      done
+        incr pos
+      in
+      List.iter treat (sons t n)
     in aux r 0;
     e
 
@@ -115,11 +121,8 @@ struct
     if (snd e.(m1)) < (snd e.(m2)) then m1 else m2
 
   module Ord = struct
-      
     type t = int
-
     let compare = Pervasives.compare
-
   end
 
   module M = Map.Make (Ord)

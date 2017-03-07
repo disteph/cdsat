@@ -2,7 +2,7 @@
 (* This is the collection of all known symbols *)
 (***********************************************)
 
-type arity = Sorts.t*(Sorts.t list)
+type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash]
 
 type t =
 
@@ -23,7 +23,8 @@ type t =
 
 (* Arrays *)
 | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
-
+                                                 [@@deriving eq, hash]
+                                                 
 val arity        : t -> arity
 val multiary     : t -> ((('a list->'a list) -> 'a list -> 'a) option)
 val print_in_fmt : Format.formatter -> t -> unit

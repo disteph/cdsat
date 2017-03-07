@@ -60,5 +60,5 @@ val mmc_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys mmc_infos)
    Standard inhabitant info_build when given a comparison function
 *)
 
-type 'keys mm_infos = ('keys * 'keys option) option
-val mm_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys mm_infos) info_build_type
+(* type 'keys mm_infos = ('keys * 'keys option) option *)
+(* val mm_info_build :  ('keys -> 'keys -> int) -> ('keys,'values,'keys mm_infos) info_build_type *)

@@ -75,11 +75,13 @@ module RestartStrategies (UASet: CollectExtra) = struct
     val mutable _next = base
 
     method private update_steps () =
-      if steps = [] then (
+      match steps with
+      | [] -> (
         pow <- pow * 2;
         steps <- luby @ [pow];
         luby <- luby @ luby @ [pow];
-      );
+      )
+      | _ -> ();
 
     method next = _next
       

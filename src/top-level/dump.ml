@@ -18,10 +18,10 @@ let dtags : (int*bool)DTags.t ref = ref DTags.empty
                                         
 let init() =
   dtags:=
-    List.fold_left
-      (fun sofar (tag,level,b) -> DTags.add tag (level,b) sofar)
-      DTags.empty
+    List.fold
+      (fun (tag,level,b) -> DTags.add tag (level,b))
       !Flags.dtags
+      DTags.empty
 
 (**********************)
 (* Printing functions *)
@@ -199,7 +199,7 @@ module Kernel = struct
 
   (* Print Kernel's timely report *)
   let print_time() =
-    if Timer.watch ltimer>float_of_int Flags.every.(8) then
+    if [%ord:float] (Timer.watch ltimer) (float_of_int Flags.every.(8)) < 0 then
       (Timer.reset ltimer;
        print_endline(string_of_int (int_of_float(Timer.watch gtimer))^" seconds");
        print_endline(print_state 1))

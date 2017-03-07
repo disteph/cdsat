@@ -97,7 +97,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	    let l' = H.find watched newlit in
 	    if not(CSet.mem clause l') then failwith "fad2";
 	    let x=CSet.find clause l' in
-	    if not(x=lit) then failwith "fad3")
+	    if not(LitF.compare x lit==0) then failwith "fad3")
 	  set
       ) watched
 
@@ -287,7 +287,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       None
 	
   let clause_pick h l =
-    if not(!stack=[]) then failwith("pas []");
+    if not(List.length !stack = 0) then failwith("pas []");
     match UFSet.rchoose h l with
     | Case1 a       -> Dump.print ["dpll_wl",2] (fun p->
                            p "Random focus on %a"

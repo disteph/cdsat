@@ -66,7 +66,7 @@ struct
 apply the substitutions met since the beginning *)
   let rec add r map sub =
     let map',l' = 
-      List.fold_right 
+      List.fold
         (fun ((p,q),_) (m,l) -> 
 	  let r' = VtoV.find r m in
 	  let r'' = subst p q r' in
@@ -88,7 +88,7 @@ apply the substitutions met since the beginning *)
 (* add a value to the trees of equivalence classes and
 apply the substituions met since the beginning *)
   let addUF r u sub =
-    let u0,r0 = List.fold_right 
+    let u0,r0 = List.fold
       (fun ((p,q),i) (uf,r') ->
         let r'' = subst p q r' in
         U.addLink uf r' r'' i,r'') 
@@ -101,7 +101,7 @@ apply the substituions met since the beginning *)
   let noDbl l = 
     let rec aux li = function
     | [] -> li
-    | a::ta when List.mem a ta -> aux li ta
+    | a::ta when List.mem (equal_input Terms.equal) a ta -> aux li ta
     | a::ta -> aux (a::li) ta
     in aux [] l
 
@@ -123,7 +123,7 @@ apply the substituions met since the beginning *)
   and explPath u l =
     let rec aux r = function
       | []    -> r
-      | (Eq(_,_,_,_) as h)::tl when List.mem h r -> aux r tl
+      | (Eq(_,_,_,_) as h)::tl when List.mem (equal_input Terms.equal) h r -> aux r tl
       | (Eq(_,_,_,_) as h)::tl                   -> aux (h::r) tl
       | Congr(a,b)::tl -> aux (union r (explCongr u a b)) tl
       | NEq(_,_,_,_)::_ -> assert false
@@ -231,7 +231,7 @@ apply the substituions met since the beginning *)
                 (fun t l -> 
 		  TSet.fold 
                     (fun u li -> 
-		      if (root t = root u)&&
+		      if ([%eq: Symbols.t option] (root t) (root u))&&
 		        (equal (directSubterms t) (directSubterms u) delta') 
 		      then (Congr(t,u))::li 
 		      else li)
@@ -263,11 +263,11 @@ apply the substituions met since the beginning *)
       (* we find a good subterm to add *)
       let fs = findSterm (if not (TSet.mem a s.theta) then a else b) s.theta in
       (* this is the L_{delta} of the algorithm *)
-      let ld = List.fold_left
-        (fun e v -> 
+      let ld = List.fold
+        (fun v e -> 
 	  VSet.union e (leaves (VtoV.find (make v) s.delta)))
-	VSet.empty
         (directSubterms fs)
+	VSet.empty
       in
       let gamma' = VSet.fold
         (fun l g -> 
@@ -277,7 +277,7 @@ apply the substituions met since the beginning *)
       (* these are the new congruences *)
       let phi' = TSet.fold 
         (fun t l -> 
-	  if (root fs = root t)&&
+	  if ([%eq: Symbols.t option] (root fs) (root t)) &&
 	    (equal (directSubterms fs) (directSubterms t) s.delta)
           then (Congr(fs,t))::l 
 	  else l)

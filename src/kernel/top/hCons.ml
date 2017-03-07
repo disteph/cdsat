@@ -48,7 +48,7 @@ module MakePoly
       | Some d -> d
       | None -> failwith "HConsed value contains None!"
 
-    let compare a1 a2 = Pervasives.compare a1.id a2.id
+    let compare a b = id2compare id a b
 
     module InitData
       (B: OptionValue)
@@ -151,7 +151,7 @@ struct
   let reveal f = f.TMP.reveal
   let id f     = f.TMP.id
   let data f   = TMP.data f
-  let compare a1 a2 = Pervasives.compare a1.TMP.id a2.TMP.id
+  let compare a b = id2compare id a b
 
   module InitData(B: OptionValue)
     (Data: sig

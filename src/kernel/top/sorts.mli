@@ -7,6 +7,7 @@ type t = | Prop
          | Array of t*t
          | Fun  of t*(t list)
          | User of string
+                     [@@deriving eq, hash]
 
 val print_in_fmt : Format.formatter -> t -> unit
 val parse        : string list -> Parser.sortType -> t

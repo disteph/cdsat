@@ -39,11 +39,12 @@ struct
     | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2,Some(Terms.id a))
     | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2,Some(Terms.id a))
     | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2,Some(Terms.id a))
-    | _ when get_sort a = Sorts.Prop -> Eq(Sorts.Prop,
-                                           a',
-                                           Term.bC (if b then Symbols.True else Symbols.False) [],
-                                           Some(Terms.id a))
-    | _ -> assert false
+    | _ -> match get_sort a with
+           | Sorts.Prop -> Eq(Sorts.Prop,
+                              a',
+                              Term.bC (if b then Symbols.True else Symbols.False) [],
+                              Some(Terms.id a))
+           | _ -> assert false
 
   let fromTSet tset = 
     let tNeqf = NEq(Sorts.Prop, Term.bC Symbols.True [], Term.bC Symbols.False [],None) in
@@ -55,11 +56,12 @@ struct
       -> i
     | Congr(_,_)  -> assert false
 
-  let toTSet = 
-    List.fold_left (fun e a -> 
+  let toTSet a = 
+    List.fold (fun a e -> 
       match toTerm a with 
       | Some i -> TSet.add (Term.term_of_id i) e
       | None   -> e)
+      a
       TSet.empty
       
   module type SlotMachineCC = sig

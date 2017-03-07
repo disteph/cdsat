@@ -16,7 +16,7 @@ let read_from_file filename =
     try
       while true; do
 	let line = input_line chan in
-	  if (length line>0)&&(not (line.[0]='c')) then 
+	  if (length line>0)&&(not ([%eq:char] (line.[0]) 'c')) then 
 	    lines := (!lines)^"\n"^line
       done; ""
     with End_of_file ->

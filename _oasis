@@ -22,7 +22,7 @@ Executable psyche
   Path:       src
   MainIs:     main.ml
   CompiledObject: best
-  BuildDepends: async, threads
+  BuildDepends: async, threads, ppx_deriving.std, ppx_hash
 
 Document "Psyche"
   Type: ocamlbuild

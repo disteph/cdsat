@@ -9,19 +9,32 @@ open Interfaces_basic
 open General
 open Patricia
 open SetConstructions
-       
+
+module HashedTypeFromHCons(M: sig
+  type t
+  val id: t -> int
+end) = struct
+  type t = M.t
+  let hash = M.id
+  let hash_fold_t = Hash.hash2fold hash
+  let equal = id2equal M.id
+end
+
+
 module IntSort = struct
 
   module M = struct
-    type _ t = int*bool*Sorts.t
-    let equal _ (i1,b1,s1) (i2,b2,s2) = (i1=i2) && (b1=b2) && (s1=s2)
-    let hash _ (i,b,s) = 2*i + 3*(if b then 0 else 1) + 5*(Hashtbl.hash s)
+    type 'a t = int*bool*Sorts.t [@@deriving eq, hash]
+    let hash f = Hash.wrap1 hash_fold_t f
   end
 
   module H = HCons.Make(M)
   module HMade = H.Init(HCons.NoBackIndex)
 
-  type t = HMade.t
+  include HashedTypeFromHCons(struct
+              type t = HMade.t
+              let id = H.id
+            end)
 
   let compare = H.compare
   let id = H.id
@@ -50,15 +63,6 @@ module IntMap = Map.Make(struct
   let compare = Pervasives.compare
 end)
 
-module HashedTypeFromHCons(M: sig
-  type t
-  val id: t -> int
-end) = struct
-  type t = M.t
-  let hash = M.id
-  let equal a b = Pervasives.compare (M.id a) (M.id b) == 0
-end
-
 module IdMon = struct
   type 'a t = 'a
   let return a = a
@@ -82,7 +86,7 @@ module MakePATCollection(M: PHCons) = struct
 
   module DSet = struct
     type keys      = M.t
-    let kcompare a b = Pervasives.compare (M.id a) (M.id b)
+    let kcompare   = id2compare M.id
     type infos     = unit
     let info_build = empty_info_build
     let treeHCons  = Some M.id

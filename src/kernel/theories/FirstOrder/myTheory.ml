@@ -22,8 +22,8 @@ module Make(PropDS:DataType) = struct
 
       let bV tag fv = LitF.build(true,tag), MakesSense.fv fv
 
-      let rec list_collect = 
-        List.fold_left (fun sofar (_,ms) -> MakesSense.combine sofar ms) MakesSense.init
+      let rec list_collect a = 
+        List.fold (fun (_,ms) sofar -> MakesSense.combine sofar ms) a MakesSense.init
 
       let negation (a,ms) = LitF.negation a,ms
 
@@ -94,7 +94,7 @@ module Make(PropDS:DataType) = struct
      otherwise we finish with NoMore *)
     try 
       let _ = 
-        aux TSet.empty (=) (goal_consistency t) t atomN sigma
+        aux TSet.empty [%eq:bool] (goal_consistency t) t atomN sigma
       in NoMore
     with
       FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)

@@ -35,6 +35,7 @@ type 'a input =
 | Eq of Sorts.t*'a*'a*(int option)
 | NEq of Sorts.t*'a*'a*(int option)
 | Congr of 'a*'a
+                [@@deriving eq]
 
 (* signature of the theory X in input for CC(X) *)
 

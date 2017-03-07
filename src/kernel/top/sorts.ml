@@ -5,11 +5,13 @@
 open Format
 open Parser
 
-type t = | Prop
-         | Rat
-         | Array of t*t
-         | Fun  of t*(t list)
-         | User of string
+type t =
+  Prop
+| Rat
+| Array of t*t
+| Fun  of t*(t list)
+| User of string
+            [@@deriving eq, hash]
 
 let rec print_in_fmt fmt = function
   | Prop -> fprintf fmt "{\\sf prop}"
@@ -40,7 +42,7 @@ let rec parse declared (Sort(s,l)) = match s with
     | s1::s2::[] -> let so1,so2 = parse declared s1, parse declared s2
                     in Array(so1,so2)
     | _  -> raise (ParsingError("Sort "^s^" is applied to "^string_of_int(List.length l)^" arguments")))
-  | s when List.mem s declared -> User s
+  | s when List.mem [%eq:string] s declared -> User s
   | s -> raise (ParsingError("Cannot understand "^s^" as a sort: not declared"))
 
 let allsorts declared = Prop :: Rat :: List.map (fun s-> User s) declared

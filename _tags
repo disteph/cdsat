@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 0de4f5589a01800a42b3b7f1bbfd2f87)
+# DO NOT EDIT (digest: 47e832d2694562e538a87a2482440385)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,8 +16,12 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Executable psyche
 <src/main.{native,byte}>: pkg_async
+<src/main.{native,byte}>: pkg_ppx_deriving.std
+<src/main.{native,byte}>: pkg_ppx_hash
 <src/main.{native,byte}>: pkg_threads
 <src/*.ml{,i,y}>: pkg_async
+<src/*.ml{,i,y}>: pkg_ppx_deriving.std
+<src/*.ml{,i,y}>: pkg_ppx_hash
 <src/*.ml{,i,y}>: pkg_threads
 # OASIS_STOP
 
@@ -58,5 +62,10 @@ true: annot, bin_annot
 
 <src/*.{byte,native}>:                 use_str
 <src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async
+
+<src/main.ml{,i,y}>:   open(Open)
+<src/*/**/*.ml{,i,y}>: open(Open)
+
+<src/**/*.ml{,i,y}>: pkg_ppx_deriving.std, pkg_ppx_hash
 
 true: debug

@@ -9,7 +9,7 @@ module Sig = struct
     | Dejan : Dejan.MyTheory.sign t
     | IfThenElse: IfThenElse.MyTheory.sign t
     | Bool  : Bool.MyTheory.sign t
-
+                
   let id (type a) : a t -> int = function
     | Empty -> 0
     | CC    -> 1
@@ -30,7 +30,7 @@ end
 module Handlers = struct
   type t = Handler: 'a Sig.t -> t
   let id (Handler hdl) = Sig.id hdl
-  let compare a b = Pervasives.compare (id a) (id b)
+  let compare = id2compare id
   let print_in_fmt fmt (Handler hdl) = Sig.print_in_fmt fmt hdl
 end
 
@@ -74,7 +74,7 @@ module HandlersMap = struct
 
 end
 
-let all_theories = List.fold_right (fun hdl -> HandlersMap.add hdl ()) all_theories_list HandlersMap.empty
+let all_theories = List.fold (fun hdl -> HandlersMap.add hdl ()) all_theories_list HandlersMap.empty
 
 exception NotFound of string
 
@@ -88,5 +88,5 @@ let parse = function
   | "bool"       -> Handlers.Handler Sig.Bool
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
-let get_no l = List.fold_right (fun name -> HandlersMap.remove (parse name)) l all_theories
-let get l = List.fold_right (fun name -> HandlersMap.add (parse name) ()) l HandlersMap.empty
+let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories
+let get l = List.fold (fun name -> HandlersMap.add (parse name) ()) l HandlersMap.empty

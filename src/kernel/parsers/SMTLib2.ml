@@ -12,7 +12,7 @@ type 'a environment =
 
 let rec search symb = function
   | EmptyEnv                       -> None
-  | ConsEnv((s,t),e,l) when s=symb -> Some(t,e)
+  | ConsEnv((s,t),e,l) when [%eq:string] s symb -> Some(t,e)
   | ConsEnv(_,_,l)                 -> search symb l
 
 let getconst = function
@@ -43,10 +43,10 @@ type 'a getsymbType =
 let rec getsymb env = function
   | TermLetTerm(_,(_,l),t) -> 
       let newenv = 
-	List.fold_left 
-	  (fun locenv (VarBindingSymTerm(_,sym,t)) -> ConsEnv((getsymbSymbol sym,t),env,locenv))
-	  env
-	  l in
+	List.fold
+	  (fun (VarBindingSymTerm(_,sym,t)) locenv -> ConsEnv((getsymbSymbol sym,t),env,locenv))
+	  l env
+	  in
 	getsymb newenv t
   | TermQualIdentifier(_,symb)    -> getsymbQualId env [] symb
   | TermQualIdTerm(_,symb,(_,tl)) -> getsymbQualId env tl symb
@@ -102,7 +102,7 @@ type afterglance = {
   form_list : Smtlib2_ast.term list (* The problem instance *)
 }
 
-let transformCommand aft = function
+let transformCommand command aft = match command with
   | CAssert(_,t)                 -> {aft with form_list = t::aft.form_list}
   | CSetLogic(_,symbol)          ->
      begin
@@ -137,7 +137,8 @@ let transformCommand aft = function
   | _                                -> aft
 
 let transformCommands (Commands(_,(_,li))) =
-  List.fold_left transformCommand 
+  List.fold transformCommand 
+    li
     {
       theory = None;
       satprov = true;
@@ -146,7 +147,6 @@ let transformCommands (Commands(_,(_,li))) =
       decsym = SM.empty;
       form_list = []
     }
-    li
 
 let glance input =
   let lexbuf = Lexing.from_string input in
@@ -171,7 +171,7 @@ let guessThDecProc aft =
 
 let rec list_index a accu = function
   | [] -> None
-  | (b,so)::l when a=b -> Some (accu,so)
+  | (b,so)::l when [%eq:string] a b -> Some (accu,so)
   | _::l -> list_index a (accu+1) l
 
 let parse (type t) aft i =

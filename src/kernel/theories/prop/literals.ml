@@ -9,9 +9,8 @@ open Variables
 module LitF = struct
 
   include HCons.Make(struct
-    type _ t = bool*int
-    let equal _ (b,a) (b',a') = b=b' && a=a'
-    let hash _ (b,a) = (if b then 2 else -3) * a
+    type 'a t = bool*int [@@deriving eq,hash]
+    let hash f = Hash.wrap1 hash_fold_t f
   end)
 
   include Init(HCons.NoBackIndex)
@@ -43,13 +42,14 @@ end
 module TermB = Terms.Make(BoundVar)(Terms.EmptyData(BoundVar))
 
 type termB = (BoundVar.t,unit) Terms.term
+let equal_termB = Terms.equal
+let hash_fold_termB = Hash.hash2fold Terms.hash
 
 module LitB = struct
 
   module LF = struct
-    type _ t = bool*termB
-    let equal _ (b,a) (b',a') = b=b' && Terms.equal a a'
-    let hash _ (b,a) = (if b then 2 else -3) * Terms.hash a
+    type 'a t = bool*termB [@@deriving eq,hash]
+    let hash f = Hash.wrap1 hash_fold_t f
   end
 
   include HCons.Make(LF)

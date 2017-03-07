@@ -13,9 +13,9 @@ let rec mapdbl l1 l2 = match l1,l2 with
 
 let symb (output,input) multiary sym_i =
   let interpret l =
-    let (combo,rest) = mapdbl l input in
+    let combo,rest = mapdbl l input in
     let a expsort =
-      if expsort = output  then sym_i combo
+      if Sorts.equal expsort output  then sym_i combo
       else raise (TypingError "TypingError: symbol's output sort does not match expected sort")
     in
     a::rest
@@ -62,7 +62,7 @@ let forParser (type a)
 
      let boundsymb db decsort expsort =
        let pdecsort = parseSort decsort in
-       if expsort = pdecsort then I.bV (IntSort.build(db,expsort))
+       if Sorts.equal expsort pdecsort then I.bV (IntSort.build(db,expsort))
        else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.print_in_fmt pdecsort
                                 ^" but expecting sort"^Dump.stringOf Sorts.print_in_fmt expsort))
 
@@ -75,8 +75,8 @@ let forParser (type a)
                      I.bC sym [aux l']
        in
        function expsort ->
-                if expsort= Sorts.Prop then aux l
-                else raise (TypingError ("TypingError: quantifier produces inhabitant of sort `Prop but expecting sort"
+                if Sorts.equal expsort Sorts.Prop then aux l
+                else raise (TypingError ("TypingError: quantifier produces inhabitant of sort `Prop but expecting sort "
                                          ^Dump.stringOf Sorts.print_in_fmt expsort))
                            
    end : InterpretType with type t = Sorts.t -> a)

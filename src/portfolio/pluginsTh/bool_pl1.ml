@@ -44,7 +44,7 @@ module DMap = struct
           | None,_ -> failwith "Bad1"
           | _,None -> failwith "Bad2"
           | Some(_,s1),Some(_,s2)->
-             if s1 < s2 then x2 else x1
+             if [%ord:float] s1 s2 < 0 then x2 else x1
         )
     }
   let treeHCons  = None (* Some(LitF.id,int_of_float,(=)) *)

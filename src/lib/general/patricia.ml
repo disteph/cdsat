@@ -27,11 +27,10 @@ module Poly(I:Intern) = struct
     type branching = I.branching
     type common = I.common
     let reveal f = f.reveal
-    let id f     = f.id
     let info f   = f.info
     let rec checktree aux t = match reveal t with
       | Empty               -> true
-      | Leaf (j,_)          -> List.fold_left (fun b m -> let g = check (tag j) m in if not g then print_endline("Warning leaf"); b&&g) true aux
+      | Leaf (j,_)          -> List.fold (fun m b -> let g = check (tag j) m in if not g then print_endline("Warning leaf"); b&&g) aux true
       | Branch (_, m, l, r) ->
     	 let aux' = m::aux in
     	 let o = match aux with
@@ -79,6 +78,10 @@ module Poly(I:Intern) = struct
         | None -> false
         | Some _ -> true
 
+      let id =
+        if is_hcons then fun f -> f.id
+        else fun _ -> failwith "No function id when patricia trees are not HConsed"
+
       (* Primitive type of Patricia trees to feed the HashTable Make
          functor *)
 
@@ -123,7 +126,7 @@ module Poly(I:Intern) = struct
       let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
 
       let compare =
-        if is_hcons then fun t1 t2 -> Pervasives.compare (id t1) (id t2)
+        if is_hcons then fun a b -> id2compare id a b
         else fun _ _ -> failwith "No function compare when patricia trees are not HConsed"
 
       let equal =
@@ -154,8 +157,8 @@ module Poly(I:Intern) = struct
       let leaf (k,x) = build (Leaf(k,x))
       let singleton k x = leaf(k,x)
       let branch = function
-        | (_,_,e,t) when (reveal e=Empty) -> t
-        | (_,_,t,e) when (reveal e=Empty) -> t
+        | (_,_,e,t) when is_empty e -> t
+        | (_,_,t,e) when is_empty e -> t
         | (c,b,t0,t1)   -> build(Branch (c,b,t0,t1))
 
       (* Assumed in function join:
@@ -527,7 +530,7 @@ module Poly(I:Intern) = struct
       | Leaf(k,x) -> (k,x)
       | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
 	
-    let make f l = List.fold_left (fun m (k,x)->add k (f x) m) empty l
+    let make f l = List.fold (fun (k,x)->add k (f x)) l empty
 
     let elements s =
       let rec elements_aux acc t = match reveal t with
@@ -554,8 +557,10 @@ module Poly(I:Intern) = struct
 	      | v   -> v)
 	    | v -> v
 	  in match su p k (Some m) with
-	  | Yes _                -> f(fun c-> cond' c &&((bp=check k m)||cond m))
-	  | Almost n when cond n -> f(fun c-> cond' c &&  bp=check k m)
+	  | Yes _                -> f(fun c-> cond' c &&(([%eq:bool] bp (check k m))||cond m))
+	  | Almost n when cond n -> f(fun c-> cond' c &&  [%eq:bool] bp (check k m))
+	  (* | Yes _                -> f(fun c-> cond' c &&((bp=check k m)||cond m)) *)
+	  (* | Almost n when cond n -> f(fun c-> cond' c &&  bp=check k m) *)
 	  | _                    -> Case2 empty
       in aux t
 
@@ -623,7 +628,7 @@ module Poly(I:Intern) = struct
     let print_in_fmt ?tree f fmt a =
       PM.print_in_fmt ?tree (fun fmt (x,())->f fmt x) fmt a
 
-    let make l     = List.fold_right add l empty
+    let make l     = List.fold add l empty
 
     let rec for_all p t = match reveal t with
       | Empty      -> true
@@ -664,8 +669,8 @@ module PATSet = struct
   module type S = PATSetType
 
   module Make(D:SetDestType)(I:Intern with type keys=D.keys) = struct
-      module Base = Poly(I)
-      include Base.SetMake(D)
+      module Basis = Poly(I)
+      include Basis.SetMake(D)
   end
 
 end
@@ -675,8 +680,8 @@ module PATMap = struct
   module type S = PATMapType
 
   module Make(D:MapDestType)(I:Intern with type keys=D.keys) = struct
-      module Base = Poly(I)
-      include Base.MapMake(D)
+      module Basis = Poly(I)
+      include Basis.MapMake(D)
   end
 
 end
@@ -696,7 +701,7 @@ let m_info_build kcompare = {
   branch_info = (fun x1 x2 -> match x1,x2 with
   | None,_ -> failwith "Bad1"
   | _,None -> failwith "Bad2"
-  | Some(v1),Some(v2)-> if kcompare v1 v2<0 then x1 else x2
+  | Some v1,Some v2-> if kcompare v1 v2<0 then x1 else x2
   )
 }
 

@@ -51,13 +51,13 @@ let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2
   | ForAllF(so,x,d), ForAllF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubstHashed.equal d d' && so=so'
+       eqSub2 y && DSubstHashed.equal d d' && Sorts.equal so so'
   | ExistsF(so,x,d), ExistsF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubstHashed.equal d d' && so=so'
-  | ForAllB(so,x), ForAllB(so',y)-> eqRec x y && so=so'
-  | ExistsB(so,x), ExistsB(so',y)-> eqRec x y && so=so'
+       eqSub2 y && DSubstHashed.equal d d' && Sorts.equal so so'
+  | ForAllB(so,x), ForAllB(so',y)-> eqRec x y && Sorts.equal so so'
+  | ExistsB(so,x), ExistsB(so',y)-> eqRec x y && Sorts.equal so so'
   | TrueP, TrueP | TrueN, TrueN
   | FalseP,FalseP | FalseN, FalseN -> true
   | _, _                       -> false

@@ -126,9 +126,9 @@ module Unification = (struct
     | IU.Eigen ei    -> occurs_check_ei fold key0 u ei
     | IU.Key  key    -> occurs_check_k  lax fold key0 u key
     | IU.C(_,l)      -> 
-      List.fold_left 
-        (fun u' t -> occurs_check_v false fold key0 (t,u'))
-        u l
+      List.fold 
+        (fun t u' -> occurs_check_v false fold key0 (t,u'))
+        l u
 
   and occurs_check_k lax fold key0 u key =
     if (not lax)&&(IU.kcompare key key0 ==0) then raise NonUnifiable
@@ -300,7 +300,7 @@ module Unification = (struct
            unification constraints on the arguments (pairwise) and
            continue *)
 
-        | IU.C(a1,l1), IU.C(a2,l2) when a1 = a2 -> aux (combine l (l1,l2)) u1' u2' kkcorr
+        | IU.C(a1,l1), IU.C(a2,l2) when Symbols.equal a1 a2 -> aux (combine l (l1,l2)) u1' u2' kkcorr
 
         (* Two keys: we look at whether they correspond to each
            other according to kkcorr. If they do, we dismiss the

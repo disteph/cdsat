@@ -55,9 +55,9 @@ module Make(DS: sig
    Should be improved by creating new terms *)
   let rec eqToA eq = match Equation.getTag eq with
         | [] -> failwith "Can not convert an equation without tag"
-        | l  -> List.fold_left (fun tset v -> TSet.add (Term.term_of_id v) tset) TSet.empty l
+        | l  -> List.fold (fun v -> TSet.add (Term.term_of_id v)) l TSet.empty
 
-  let toTSet eqs = List.fold_left (fun l e -> TSet.union (eqToA e) l) TSet.empty eqs
+  let toTSet eqs = List.fold (fun e -> TSet.union (eqToA e)) eqs TSet.empty
 
 
   type state = {treated : TSet.t;

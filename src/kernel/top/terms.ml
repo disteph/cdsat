@@ -5,44 +5,22 @@ open Interfaces_basic
 (* A term is either a variable or a function symbol applied to
    arguments *)
 
-type ('a,'b) xterm = V of 'a | C of Symbols.t * ('b list)
+type ('a,'b) xterm = V of 'a | C of Symbols.t * ('b list) [@@deriving eq, hash]
 
 module M = struct
-
-  type ('t,'a) t = ('a,'t) xterm
-
-  let rec equaltl eqRec tl1 tl2 =
-    match tl1,tl2 with
-    | ([], []) -> true
-    | ((t :: l), (t' :: l')) -> eqRec t t' && equaltl eqRec l l'
-    | ([], (_ :: _)) | ((_ :: _), []) -> false 
-
-  let equal eqRec eqL t1 t2 =
-    match t1, t2 with
-    | V(a), V(a')        -> eqL a a'
-    | C(a,tl), C(a',tl') -> a = a' && equaltl eqRec tl tl'
-    | V _, C(_, _) 
-    | C(_, _), V _  -> false 
-
-  let rec hashtl hRec = function
-    | [] -> 1
-    | t :: l -> hRec t + 2 * hashtl hRec l 
-
-  let hash hRec hL = function
-    | V a    -> 1 + 2 * hL a
-    | C(a,l) -> 3 * Hashtbl.hash a + 7 * hashtl hRec l
+  type ('t,'a) t = ('a,'t) xterm [@@deriving eq, hash]
+  let hash hRec hL = Hash.wrap2 hash_fold_t hRec hL
 end
-
 
 include HCons.MakePoly(M)
 
 type ('leaf,'datatype) term = ('leaf,'datatype) generic
 
 let equal t1 t2 = compare t1 t2 ==0
-let equaltl tl1 tl2 = M.equaltl equal tl1 tl2
-let hash  = id
-let hashtl tl = M.hashtl hash tl
-
+let equaltl tl1 tl2 = List.equal equal tl1 tl2
+let hash = id
+let hashtl tl = List.hash hash tl
+                          
 module type DataType = sig
   type t
   type leaf
@@ -96,14 +74,14 @@ struct
     match reveal t with
     | V a -> fprintf fmt "%a" Leaf.print_in_fmt a
     | C(f, newtl) -> fprintf fmt "%a%a" Symbols.print_in_fmt f printtl_in_fmt newtl
-  and printtl_in_fmt fmt tl =
-    if tl <> [] then fprintf fmt "(%a)" printrtl_in_fmt tl
+  and printtl_in_fmt fmt tl = match tl with
+    | []   -> ()
+    | _::_ -> fprintf fmt "(%a)" printrtl_in_fmt tl
   and printrtl_in_fmt fmt tl =
     match tl with
     | [] -> ()
-    | t :: l ->
-      if l = [] then print_in_fmt fmt t
-      else fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
+    | [t] -> print_in_fmt fmt t
+    | t :: l -> fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
 
   let print_of_id fmt index =
     let atom = term_of_id index in

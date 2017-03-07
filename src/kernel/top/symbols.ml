@@ -6,7 +6,11 @@ open Format
 open Parser
 open Multiary
 
-type arity = Sorts.t*(Sorts.t list)
+type num = Num.num
+let equal_num = Num.(=/)
+let hash_fold_num = Hash.fold
+  
+type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash]
 
 type t =
 
@@ -21,27 +25,28 @@ type t =
   | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
 
   (* LRA *)
-  | CstRat of Num.num
+  | CstRat of num
   | Ge | Le | Gt | Lt
   | Plus | Minus | Times | Divide | Op
 
   (* Arrays *)
   | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
+                                                   [@@deriving eq, hash]
 
 let arity = function
   | User(_,ar)                        -> ar
-  | True | False                      -> (Sorts.Prop, [])
-  | Neg | Forall _ | Exists _         -> (Sorts.Prop, [Sorts.Prop])
-  | And | Or | Imp | Xor              -> (Sorts.Prop, [Sorts.Prop;Sorts.Prop])
-  | IsTrue                            -> (Sorts.Prop, [Sorts.Prop])
-  | ITE so                            -> (so, [Sorts.Prop;so;so])
-  | Eq so | NEq so                    -> (Sorts.Prop, [so;so])
-  | CstRat i                          -> (Sorts.Rat, [])
-  | Plus | Minus | Times | Divide     -> (Sorts.Rat, [Sorts.Rat;Sorts.Rat])
-  | Op                                -> (Sorts.Rat, [Sorts.Rat])
-  | Ge | Gt | Le | Lt                 -> (Sorts.Prop, [Sorts.Rat;Sorts.Rat])  
-  | Select(indices,values)            -> (values, [Sorts.Array(indices,values);indices])
-  | Store(indices,values)             -> (Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values])
+  | True | False                      -> Sorts.Prop, []
+  | Neg | Forall _ | Exists _         -> Sorts.Prop, [Sorts.Prop]
+  | And | Or | Imp | Xor              -> Sorts.Prop, [Sorts.Prop;Sorts.Prop]
+  | IsTrue                            -> Sorts.Prop, [Sorts.Prop]
+  | ITE so                            -> so, [Sorts.Prop;so;so]
+  | Eq so | NEq so                    -> Sorts.Prop, [so;so]
+  | CstRat i                          -> Sorts.Rat, []
+  | Plus | Minus | Times | Divide     -> Sorts.Rat, [Sorts.Rat;Sorts.Rat]
+  | Op                                -> Sorts.Rat, [Sorts.Rat]
+  | Ge | Gt | Le | Lt                 -> Sorts.Prop, [Sorts.Rat;Sorts.Rat]
+  | Select(indices,values)            -> values, [Sorts.Array(indices,values);indices]
+  | Store(indices,values)             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
 
 (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
 let multiary = function
@@ -131,7 +136,7 @@ let parse decsorts =
     | ">=" ->[Ge]
     | "<=" ->[Le]
     | "select" -> let aux ind = List.map (fun so -> Select(ind,so)) allsorts
-                  in List.fold_left (fun accu ind -> (aux ind)@accu) [] allsorts
+                  in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
     | "store"  -> let aux ind = List.map (fun so -> Store(ind,so)) allsorts
-                  in List.fold_left (fun accu ind -> (aux ind)@accu) [] allsorts
+                  in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
     | s    -> try [CstRat(Num.num_of_string s)] with _ -> []

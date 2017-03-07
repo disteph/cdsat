@@ -172,7 +172,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
         branch_info = (fun x1 x2 -> match x1,x2 with
                                     | None,_ -> failwith "Bad1"
                                     | _,None -> failwith "Bad2"
-                                    | Some(_,v1),Some(_,v2)-> if v1>v2 then x1 else x2
+                                    | Some(_,v1),Some(_,v2)-> if [%ord:float] v1 v2 > 0 then x1 else x2
                       )
       }
     let treeHCons = None
