@@ -28,7 +28,7 @@ module Sig = struct
 end
 
 module Handlers = struct
-  type t = Handler: 'a Sig.t -> t
+  type t = Handler: 'a Sig.t -> t [@@unboxed]
   let id (Handler hdl) = Sig.id hdl
   let compare = id2compare id
   let print_in_fmt fmt (Handler hdl) = Sig.print_in_fmt fmt hdl

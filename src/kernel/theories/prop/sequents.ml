@@ -182,7 +182,7 @@ module Make(PlDS: PlugDSType) = struct
 
     module Seq = struct
 
-      type t = Seq : _ seq -> t
+      type t = Seq : _ seq -> t [@@unboxed]
 
       let interesting (type a) (t : a seq) =
         t.lits,
@@ -235,7 +235,7 @@ module Make(PlDS: PlugDSType) = struct
       | TwoPre of 'b*'a*'a
 
       (* Type of proof-trees *)
-      type t = Build of (t,Seq.t) pt
+      type t = Build of (t,Seq.t) pt [@@unboxed]
       type seq = Seq.t
 
       let reveal (Build a) = a

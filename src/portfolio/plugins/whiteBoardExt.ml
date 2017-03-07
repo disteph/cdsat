@@ -10,8 +10,8 @@ module type Extra = sig
   type tset
   type _ t
          
-  type ack   = private AckL
-  type say   = private MsgL
+  type ack = private AckL
+  type say = private MsgL
 
   type _ answer = Ack :         ack answer
                 | Say : _ t  -> say answer

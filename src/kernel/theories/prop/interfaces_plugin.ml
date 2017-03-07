@@ -119,7 +119,7 @@ module type FrontEndType = sig
       world : World.t }
 
   module Seq : sig
-    type t = Seq : _ seq -> t
+    type t = Seq : _ seq -> t [@@unboxed]
     val forPlugin : 'a seq -> ASet.ps*FSet.ps
     val print_in_fmt: Format.formatter -> t -> unit
     val print_seq_in_fmt: Format.formatter -> 'a seq -> unit
