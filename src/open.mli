@@ -71,7 +71,4 @@ module Hash : sig
   val wrap2 :
     ('a Ppx_hash_lib.Std.Hash.folder -> 'b Ppx_hash_lib.Std.Hash.folder -> 'c Ppx_hash_lib.Std.Hash.folder) ->
     ('a -> int) -> ('b -> int) -> 'c -> int
-  module type HashedType = sig
-    type t [@@deriving eq, hash]
-  end
 end

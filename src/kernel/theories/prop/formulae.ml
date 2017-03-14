@@ -233,7 +233,7 @@ module FormulaF = struct
   module type S = sig
     type datatype
 
-    include Hash.HashedType with type t = datatype generic
+    type t = datatype generic [@@deriving eq,hash]
     val id : t -> int
     val clear : unit -> unit
     val compare : t -> t -> int

@@ -6,7 +6,7 @@ interacts with the other components of Psyche *)
 (* Generic interface for printable hconsed types *)
 
 module type PHCons = sig
-  include Hash.HashedType
+  type t [@@deriving eq, hash]
   val id: t -> int
   val print_in_fmt: Format.formatter -> t -> unit
   val clear: unit->unit

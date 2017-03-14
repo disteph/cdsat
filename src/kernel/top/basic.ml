@@ -19,7 +19,7 @@ module IntSort = struct
 
   module H = HCons.Make(M)
   module HMade = H.Init(HCons.NoBackIndex)
-  include (HMade:Hash.HashedType with type t = unit H.generic)
+  include (HMade: sig type t = unit H.generic [@@deriving eq,hash] end)
             
   let compare = H.compare
   let id = H.id

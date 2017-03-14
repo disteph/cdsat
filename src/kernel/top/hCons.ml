@@ -52,7 +52,7 @@ module MakePoly
 
     module InitData
       (B: OptionValue)
-      (Par: Hashtbl.HashedType)
+      (Par: sig type t [@@deriving eq, hash] end)
       (Data: sig
         type t
         val build : int -> (Par.t,t) g_revealed -> t
@@ -107,7 +107,7 @@ module MakePoly
 
       end
 
-    module Init(B: OptionValue)(Par: Hashtbl.HashedType) = InitData(B)(Par)(EmptyData)
+    module Init(B: OptionValue)(Par: sig type t [@@deriving eq, hash] end) = InitData(B)(Par)(EmptyData)
 
   end
 
@@ -163,9 +163,9 @@ struct
       val build : int -> t g_revealed -> t
     end)
     = TMP.InitData(B)(struct
-      type t = unit
-      let equal _ _ = failwith "HConsing: parameter equal was called, but HConsed type not polymorphic"
-      let hash _ = failwith "HConsing: parameter hash was called, but HConsed type not polymorphic"
+      type t = unit [@@deriving eq,hash]
+      (* let equal _ _ = failwith "HConsing: parameter equal was called, but HConsed type not polymorphic" *)
+      (* let hash _ = failwith "HConsing: parameter hash was called, but HConsed type not polymorphic" *)
     end)
     (Data)
     

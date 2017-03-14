@@ -52,8 +52,9 @@ module Make(WB : WhiteBoardExt.Type) = struct
 
   module Bogus = struct
     type t = unsat
-    let equal _ _ = true
-    let hash _ = 0
+    let equal _ _ = failwith "Should not be called"
+    let hash _ = failwith "Should not be called"
+    let hash_fold_t _ = failwith "Should not be called"
   end
 
   module H' = H.Init(NoBackIndex)(Bogus)

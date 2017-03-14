@@ -43,22 +43,22 @@ module MakePoly
   include PolyS with type ('t,'a) initial = ('t,'a) M.t
 
   module InitData(B:OptionValue)
-           (Par: Hashtbl.HashedType)
+           (Par:  sig type t [@@deriving eq, hash] end)
            (Data: sig
                 type t
                 val build : int -> (Par.t,t) g_revealed -> t
               end)
          : sig
-    include Hash.HashedType with type t = (Par.t,Data.t) generic
+    type t = (Par.t,Data.t) generic [@@deriving eq,hash]
     type revealed = (Par.t,Data.t) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
     val backindex: (int -> t,B.index) optionGADT
   end
 
-  module Init(B:OptionValue)(Par: Hashtbl.HashedType)
+  module Init(B:OptionValue)(Par: sig type t [@@deriving eq, hash] end)
          : sig
-    include Hash.HashedType with type t = (Par.t,unit) generic
+    type t = (Par.t,unit) generic [@@deriving eq,hash]
     type revealed = (Par.t,unit) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
@@ -92,7 +92,7 @@ module Make
                 val build : int -> t g_revealed -> t
               end)
          : sig
-    include Hash.HashedType with type t = Data.t generic
+    type t = Data.t generic [@@deriving eq,hash]
     type revealed = Data.t g_revealed
     val build : revealed -> t
     val clear : unit -> unit
@@ -100,7 +100,7 @@ module Make
   end
              
   module Init(B:OptionValue) : sig
-    include Hash.HashedType with type t = unit generic
+    type t = unit generic [@@deriving eq,hash]
     type revealed = unit g_revealed
     val build : revealed -> t
     val clear : unit -> unit

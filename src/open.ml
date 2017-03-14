@@ -10,11 +10,6 @@ module Hash = struct
   let fold a = hash2fold Hashtbl.hash a
   let wrap1 hash_fold f = fold2hash (hash_fold (hash2fold f))
   let wrap2 hash_fold f g = fold2hash (hash_fold (hash2fold f) (hash2fold g))
-
-  module type HashedType = sig
-    type t [@@deriving eq, hash]
-  end
-
 end
 
 module Pervasives = Pervasives
