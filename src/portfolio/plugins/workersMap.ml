@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 
 open Kernel.Theories_register
 

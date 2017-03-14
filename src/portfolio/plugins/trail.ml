@@ -2,7 +2,7 @@
 (* Conflict analysis *)
 (*********************)
 
-open Async.Std
+open Async
        
 open Kernel
 open Combo

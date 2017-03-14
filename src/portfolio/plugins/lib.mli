@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 
 val stdin : Reader.t
 val pause : unit -> char Reader.Read_result.t Deferred.t

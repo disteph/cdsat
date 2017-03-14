@@ -9,7 +9,7 @@ with concurrency, as provided by Jane Street's Async library.
    exchanging messages with the master thread, whose code is below.  *)
 (*********************************************************************)
 
-open Async.Std
+open Async
 
 open Kernel
 open Top.Messages

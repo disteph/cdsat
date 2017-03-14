@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 
 let stdin = Reader.create(Fd.stdin())
 let pause() = Reader.read_char stdin

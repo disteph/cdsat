@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 open Lib
 
 open Kernel
