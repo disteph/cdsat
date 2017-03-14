@@ -131,7 +131,7 @@ module Unification = (struct
         l u
 
   and occurs_check_k lax fold key0 u key =
-    if (not lax)&&(IU.kcompare key key0 ==0) then raise NonUnifiable
+    if (not lax)&&(IU.kcompare key key0 =0) then raise NonUnifiable
     else
       match IU.get key u with
       | None   -> u
@@ -294,7 +294,7 @@ module Unification = (struct
         (* Same eigenvariable on both side -> we dismiss the
            constraint and continue *)
 
-        | IU.Eigen i1, IU.Eigen i2 when Eigen.compare i1 i2 ==0  -> aux l u1' u2' kkcorr
+        | IU.Eigen i1, IU.Eigen i2 when Eigen.equal i1 i2  -> aux l u1' u2' kkcorr
 
         (* Same function symbol on both side -> we add the
            unification constraints on the arguments (pairwise) and
@@ -309,7 +309,7 @@ module Unification = (struct
 
         | IU.Key key1, IU.Key key2 when 
             (match KKcorr.get21 kkcorr key2 with
-            | Some i -> IU.kcompare i key1 ==0
+            | Some i -> IU.kcompare i key1 =0
             | None   -> false)
             -> aux l u1' u2' kkcorr
 

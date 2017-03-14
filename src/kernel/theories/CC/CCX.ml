@@ -35,15 +35,15 @@ struct
     let b,t = LitF.reveal(proj(Terms.data a)) in
     let a' = Term.term_of_id t in
     match Terms.reveal a' with
-    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Eq(so,a1,a2,Some(Terms.id a))
-    | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2,Some(Terms.id a))
-    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2,Some(Terms.id a))
-    | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2,Some(Terms.id a))
+    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Eq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2,Some(Term.id a))
     | _ -> match get_sort a with
            | Sorts.Prop -> Eq(Sorts.Prop,
                               a',
                               Term.bC (if b then Symbols.True else Symbols.False) [],
-                              Some(Terms.id a))
+                              Some(Term.id a))
            | _ -> assert false
 
   let fromTSet tset = 

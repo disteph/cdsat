@@ -105,10 +105,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
     (* Constraints are unsat messages. *)
     module Constraint = Constraint
 
-    module Var = struct
-      include Term
-      let compare = Terms.compare
-    end
+    module Var = Term
 
     type fixed = Fixed.t
                    
@@ -203,7 +200,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       reader aux
 
-  let rec loop_read (fixed:Config.fixed) from_pl to_pl =
+  let rec loop_read fixed from_pl to_pl =
     let aux = function 
       | MsgStraight(tset,chrono) ->
          let fixed = Fixed.extend tset fixed in

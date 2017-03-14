@@ -15,14 +15,11 @@
 *)
 
 open Top
+open Interfaces_basic
 open Variables
 
-type t
-val id: t -> int
-val print_in_fmt: Format.formatter -> t -> unit
-val clear: unit->unit
-val compare : t -> t -> int
-
+include PHCons
+          
 val init      : t
 val bind2FV: (FreeVar.t*World.t) -> t -> t
 val get_arity : t -> World.t

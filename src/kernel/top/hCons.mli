@@ -49,7 +49,7 @@ module MakePoly
                 val build : int -> (Par.t,t) g_revealed -> t
               end)
          : sig
-    type t = (Par.t,Data.t) generic
+    include Hash.HashedType with type t = (Par.t,Data.t) generic
     type revealed = (Par.t,Data.t) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
@@ -58,7 +58,7 @@ module MakePoly
 
   module Init(B:OptionValue)(Par: Hashtbl.HashedType)
          : sig
-    type t = (Par.t,unit) generic
+    include Hash.HashedType with type t = (Par.t,unit) generic
     type revealed = (Par.t,unit) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
@@ -92,7 +92,7 @@ module Make
                 val build : int -> t g_revealed -> t
               end)
          : sig
-    type t = Data.t generic
+    include Hash.HashedType with type t = Data.t generic
     type revealed = Data.t g_revealed
     val build : revealed -> t
     val clear : unit -> unit
@@ -100,7 +100,7 @@ module Make
   end
              
   module Init(B:OptionValue) : sig
-    type t = unit generic
+    include Hash.HashedType with type t = unit generic
     type revealed = unit g_revealed
     val build : revealed -> t
     val clear : unit -> unit

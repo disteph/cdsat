@@ -53,7 +53,7 @@ module Make(PropDS:DataType) = struct
                    (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
                    b,atom,ms
 
-    module TSet = MakeCollection(struct include Term let compare = Terms.compare end)
+    module TSet = MakeCollection(Term)
 
     let makes_sense term = MakesSense.check (snd(snd(Terms.data term)))
 

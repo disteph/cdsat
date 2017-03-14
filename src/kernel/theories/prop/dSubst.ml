@@ -9,49 +9,26 @@ open Variables
 
 exception DSubst of string
 
-type aux = EmptySubst | ConsSubst of FreeVar.t*World.t*t
-and t    = {reveal : aux; id : int}
+type 'a aux = EmptySubst | ConsSubst of FreeVar.t*World.t*'a [@@deriving eq, hash]
 
-let id s = s.id
+module M = struct
+  type 'a t = 'a aux [@@deriving eq, hash]
+  let hash t = Hash.wrap1 hash_fold_t t
+end
 
-let equal s1 s2 = match s1, s2 with
-  | EmptySubst, EmptySubst      -> true
-  | ConsSubst(fv1,ar1,s1'), 
-    ConsSubst(fv2,ar2,s2')
-    -> (s1'==s2') && (fv1==fv2) && (World.equal ar1 ar2)
-  | _,_ -> false
+module H = HCons.Make(M)
 
-let hash s =
-  match s with
-  | EmptySubst -> 0
-  | ConsSubst(fv,ar,s') -> 2 * (FreeVar.id fv) + 7 * id s'
-
-module H = Hashtbl.Make(struct
-  type t = aux
-  let hash = hash
-  let equal = equal
-end)
-
-let table = H.create 5003
-
-let substid = ref 0
-
-let build a =
-  try H.find table a
-  with Not_found ->
-    let f = {reveal = a; id = !substid} in
-    incr substid;
-    H.add table a f;
-    f
-
+include H
+include Init(HCons.NoBackIndex)
+            
 let print_in_fmt fmt t =
-  match t.reveal with
+  match reveal t with
   | EmptySubst -> ()
   | ConsSubst(fv,ar,s') ->
-    let rec aux fmt t = match t.reveal with
+    let rec aux fmt t = match reveal t with
       | EmptySubst -> failwith "Should not happen"
       | ConsSubst(fv,ar,s') ->
-        begin match s'.reveal with
+        begin match reveal s' with
         | EmptySubst -> fprintf fmt "%a" FreeVar.print_in_fmt fv
         | _ -> fprintf fmt "%a;%a" FreeVar.print_in_fmt fv aux s'
         end
@@ -59,20 +36,17 @@ let print_in_fmt fmt t =
 
 let binit() = build EmptySubst
 
-let compare = id2compare id
-let clear () = substid := 0;  H.clear table; let _ = binit() in ()
-
 let init = binit()
 let bind2FV (fv,ar) l = build (ConsSubst(fv,ar,l))
 
-let get_arity d = match d.reveal with
+let get_arity d = match reveal d with
   | EmptySubst        -> World.init
   | ConsSubst(_,ar,_) -> ar
 
-let rec get j d = match d.reveal with
+let rec get j d = match reveal d with
   | EmptySubst -> raise (DSubst 
                            (Dump.toString
                               (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j print_in_fmt d)))
   | ConsSubst(fv,ar,d')
-    -> if (j==0) then (fv,ar) else get (j-1) d'
+    -> if j=0 then (fv,ar) else get (j-1) d'
 

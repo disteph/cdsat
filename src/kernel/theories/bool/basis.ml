@@ -116,7 +116,7 @@ module Make(DS: sig
           | Some lset -> Sums.Case1(lset,[])               
       }
 
-    let id c = Terms.id c.term
+    let id c = Term.id c.term
     let term  c = c.term
     let simpl c = c.simpl
     let verysimpl c = match c.simpl with

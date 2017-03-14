@@ -119,18 +119,8 @@ let make (type a)
   (module struct
 
     module DS = struct
-
       module Term = Terms.Make(FreeVar)(DT)
-                              
-      module TSet = MakePATCollection(
-                        struct
-                          type t       = Term.t
-                          let id       = Terms.id
-                          let compare  = Terms.compare
-                          let clear    = Term.clear
-                          let print_in_fmt = Term.print_in_fmt
-                        end)
-
+      module TSet = MakePATCollection(Term)
     end
       
     open DS

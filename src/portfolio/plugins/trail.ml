@@ -21,7 +21,7 @@ module Make(WB : WhiteBoard) = struct
 
   open WB.DS
          
-  module I = TypesFromHConsed(struct include Term let id = Terms.id end)
+  module I = TypesFromHConsed(Term)
 
   (* type nature indicates the status of each formula accumulated in the trail so far.
 The reason it was added to it was either:
@@ -58,7 +58,7 @@ The reason it was added to it was either:
 
   module DestWInfo = struct
     type keys    = Term.t
-    let kcompare = Terms.compare
+    let kcompare = Term.compare
     type values  = int*int*nature
     type infos   = max
 

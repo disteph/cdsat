@@ -26,7 +26,7 @@ module Make
       type keys    =  AS.t*FS.t
       let kcompare (a1,f1)(a2,f2) =
 	let c=AS.compare a1 a2 in
-	  if c==0 then FS.compare f1 f2 else c
+	  if c=0 then FS.compare f1 f2 else c
       type values  = seqU answer*int
       type infos     = unit
       let info_build = empty_info_build

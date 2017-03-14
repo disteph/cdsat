@@ -6,14 +6,6 @@ open Format
 
 open Interfaces_basic
 
-module HashedTypeFromHCons(M: sig
-                               type t
-                               val id: t -> int
-                             end) : sig
-  include Hashtbl.HashedType with type t = M.t
-  val hash_fold_t : t Base__Hash.folder
-end
-  
 module IntSort : sig
   include PHCons
   val reveal : t -> int*Sorts.t

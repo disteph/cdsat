@@ -13,12 +13,9 @@ module Eigen = struct
   let get_sort ei = let _,so = reveal ei in so
 end
 
-module MetaHashed  = HashedTypeFromHCons(Meta)
-module EigenHashed = HashedTypeFromHCons(Eigen)
-
 module FreeVar = struct
 
-  type freeVarExposed = Meta of MetaHashed.t | Eigen of EigenHashed.t [@@deriving eq, hash]
+  type freeVarExposed = Meta of Meta.t | Eigen of Eigen.t [@@deriving eq, hash]
 
   module Arg = struct
     type 'a t = freeVarExposed [@@deriving eq, hash]
@@ -155,10 +152,10 @@ module World = struct
 
   let fold w ei f =
     let ar = data w in
-    let (i,_) = Eigen.reveal ei in
+    let i,_ = Eigen.reveal ei in
     let bound = IntMap.find i ar.depEM in 
     let rec aux j u = 
-      if j == bound then u
+      if j = bound then u
       else
         aux (j+1) (f (IntMap.find j ar.ithM) u)
     in aux 0

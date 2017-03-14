@@ -69,10 +69,7 @@ end
 
 module Generate = struct
 
-  module UASet = MyCollectImplem(struct
-                     include LitF
-                     let equal l1 l2 = LitF.compare l1 l2 ==0
-                   end)
+  module UASet = MyCollectImplem(LitF)
 
   module UF = struct
     type t   = unit
@@ -81,7 +78,7 @@ module Generate = struct
 
   module UFSet = MyCollectImplem(struct
     type t = UF.t FormulaF.generic
-    let equal l1 l2 = FormulaF.compare l1 l2 ==0
+    let equal l1 l2 = FormulaF.compare l1 l2 =0
     let print_in_fmt = FormulaF.print_in_fmt
   end)
 

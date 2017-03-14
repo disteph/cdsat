@@ -14,4 +14,4 @@ end)
   = CCX.Make
   (DS)
   (EmptyCC.Make(DS))
-  (MyPUF.Make(struct include DS.Term let compare = Terms.compare end))
+  (MyPUF.Make(DS.Term))

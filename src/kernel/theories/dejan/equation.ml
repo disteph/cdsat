@@ -108,14 +108,14 @@ let updateGuardians coeffs guardians =
     in newa, newb
 
 let mergeGuardians coeffs guardians1 guardians2 =
-  match (updateGuardians coeffs guardians1) with
+  match updateGuardians coeffs guardians1 with
   | None, None -> updateGuardians coeffs guardians2
   | Some(a), None | None, Some(a) ->
         (
         match updateGuardians coeffs guardians2 with
         | None, None -> Some(a), None
-        | _, Some(b)  when b == a -> Some(a), None
-        | Some(b), _  when b == a -> Some(a), None
+        | _, Some(b)  when b = a -> Some(a), None
+        | Some(b), _  when b = a -> Some(a), None
         | _, Some(b) | Some(b), _ -> Some(a), Some(b)
         )
   | Some(a), Some(b) -> Some(a), Some(b)
@@ -228,7 +228,7 @@ let isAtomic eq = match eq.guardians with
 let isTrivial eq = match eq.guardians with
   | None, None -> true
   | _ -> false
-(*eq.guardians == (None, None)*)
+(*eq.guardians = (None, None)*)
 
 
 let isContradictory eq =

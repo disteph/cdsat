@@ -187,7 +187,7 @@ module Make(WB: sig
                  match msg with
                  | Say(WB(_,Propa(_,Straight _))) -> state
                  | _ -> 
-                    if (chrono == state.chrono)&&(AS.mem agent state.waiting4)
+                    if (chrono = state.chrono)&&(AS.mem agent state.waiting4)
                     then { state with waiting4 = AS.remove agent state.waiting4 }
                     else state
                in
@@ -297,7 +297,7 @@ module Make(WB: sig
                >>= fun (ans1, def_ans2, kill2) -> 
                kill_pipes state.pipe_map state.to_plugin >>= fun () ->
                begin match ans1 with
-               | Case1(Case2(level,msg)) when level==state.level
+               | Case1(Case2(level,msg)) when level=state.level
                  ->
                   Dump.print ["concur",0] (fun p -> 
                       p "Backtrack level: %i, Propagation:\n%a"

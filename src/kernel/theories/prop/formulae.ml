@@ -35,15 +35,10 @@ type (_,_) func_prim =
 
 type ('a,'b) func = ('a,'b free) func_prim
 
-
-module LitFHashed = HashedTypeFromHCons(LitF)
-module LitBHashed = HashedTypeFromHCons(LitB)
-module DSubstHashed  = HashedTypeFromHCons(DSubst)
-
 let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2:(a,b)form) =
   match t1,t2 with
-  | LitF l1, LitF l2           -> LitFHashed.equal l1 l2
-  | LitB l1, LitB l2           -> LitBHashed.equal l1 l2
+  | LitF l1, LitF l2           -> LitF.equal l1 l2
+  | LitB l1, LitB l2           -> LitB.equal l1 l2
   | AndP (x1,x2), AndP (y1,y2) 
   | OrP (x1,x2), OrP (y1,y2)   
   | AndN (x1,x2), AndN (y1,y2) 
@@ -51,11 +46,11 @@ let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2
   | ForAllF(so,x,d), ForAllF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubstHashed.equal d d' && Sorts.equal so so'
+       eqSub2 y && DSubst.equal d d' && Sorts.equal so so'
   | ExistsF(so,x,d), ExistsF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubstHashed.equal d d' && Sorts.equal so so'
+       eqSub2 y && DSubst.equal d d' && Sorts.equal so so'
   | ForAllB(so,x), ForAllB(so',y)-> eqRec x y && Sorts.equal so so'
   | ExistsB(so,x), ExistsB(so',y)-> eqRec x y && Sorts.equal so so'
   | TrueP, TrueP | TrueN, TrueN
@@ -64,8 +59,8 @@ let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2
 
 
 let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
-  | LitF l       -> LitFHashed.hash l
-  | LitB l       -> LitBHashed.hash l
+  | LitF l       -> LitF.hash l
+  | LitB l       -> LitB.hash l
   | TrueP        -> 1
   | TrueN        -> 2
   | FalseP       -> 3
@@ -75,9 +70,9 @@ let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
   | AndN (x1,x2) -> 11*(hRec x1)+23*(hRec x2)
   | OrN (x1,x2)  -> 13*(hRec x1)+29*(hRec x2)
   | ForAllF(so,x,d) -> let FreeFunc hSub1 = hSub in
-                       31*(hSub1 x)*(DSubstHashed.hash d)
+                       31*(hSub1 x)*(DSubst.hash d)
   | ExistsF(so,x,d) -> let FreeFunc hSub1 = hSub in
-                       37*(hSub1 x)*(DSubstHashed.hash d)
+                       37*(hSub1 x)*(DSubst.hash d)
   | ForAllB(so,x) -> 31*(hRec x)
   | ExistsB(so,x) -> 37*(hRec x)
 
@@ -216,13 +211,10 @@ module FormulaB = struct
 end
 
 
-
-module FormulaBHashed = HashedTypeFromHCons(FormulaB)
-
 module F = struct
   type 'a t = ('a, FormulaB.t free) form
-  let equal eqRec = equal (FreeFunc(fun x->FreeFunc(FormulaBHashed.equal x))) eqRec 
-  let hash hRec = hash (FreeFunc FormulaBHashed.hash) hRec
+  let equal eqRec = equal (FreeFunc(fun x->FreeFunc(FormulaB.equal x))) eqRec 
+  let hash hRec = hash (FreeFunc FormulaB.hash) hRec
 end
 
 module FormulaF = struct
@@ -241,7 +233,7 @@ module FormulaF = struct
   module type S = sig
     type datatype
 
-    type t = datatype generic
+    include Hash.HashedType with type t = datatype generic
     val id : t -> int
     val clear : unit -> unit
     val compare : t -> t -> int

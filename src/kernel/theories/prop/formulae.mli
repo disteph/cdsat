@@ -64,7 +64,7 @@ module FormulaF : sig
   module type S = sig
     type datatype
 
-    type t = datatype generic
+    include Hash.HashedType with type t = datatype generic
     val id : t -> int
     val clear : unit -> unit
     val compare : t -> t -> int

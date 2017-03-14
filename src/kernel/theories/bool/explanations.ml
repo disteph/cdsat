@@ -31,10 +31,7 @@ simplification.  *)
   used to record, when a literal has been propagated, which clause was
   used for the propagation *)
                      
-  module T2Clause = Map.Make(struct
-                        type t = Term.t
-                        let compare = Terms.compare
-                      end)
+  module T2Clause = Map.Make(Term)
 
   (* This is a type abbreviation for those propoagation messages that
   we will send to the outside world. *)
@@ -60,7 +57,7 @@ used in a ThStraight or ThProvable message. *)
     | Some original ->
        let inc = function
          | Empty, _ -> true
-         | Leaf(l,()), Some l' when LitF.compare l l' == 0 -> true
+         | Leaf(l,()), Some l' when LitF.equal l l' -> true
          | _ -> false
        in       
        let rec analyse set stack res =

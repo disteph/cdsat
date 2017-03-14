@@ -250,7 +250,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     count.(1)<-count.(1)+1;
     let now = count.(0) in
     let myaccept a =
-      if isProvable a && count.(0)==now
+      if isProvable a && count.(0)=now
       then address:=No
       else failwith "Expected Success2"
     in
@@ -390,7 +390,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
        else
 	 (
-	   (* if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report(); *)
+	   (* if !Flags.debug>0 && (count.(0) mod Flags.every.(7) =0) then report(); *)
 	   count.(0)<-count.(0)+1;
 
 	   let adOr = branch OrNode (ad []) in
@@ -457,12 +457,12 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	             solve_rec (machine (true,el_wrap adOr,tomem,action))
                    with
                    | Backjump(false,cut,aset,fset) 
-                        when (IForm.compare f cut==0
+                        when (IForm.compare f cut=0
                               && ASet.subset aset (data_of_ad adOr).modelb4
                               && FSet.subset fset (data_of_ad adOr).formsb4)
                      -> raise (Backjump(true,cut,aset,fset))
                    | Backjump(b,cut,aset,fset)
-                        when (b || IForm.compare f cut==0)
+                        when (b || IForm.equal f cut)
                              && not (ASet.subset aset (data_of_ad adOr).modelb4
                                      && FSet.subset fset (data_of_ad adOr).formsb4) ->
                       begin

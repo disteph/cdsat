@@ -53,8 +53,8 @@ module Poly(I:Intern) = struct
   let equal rec_eq kcompare vequal t1 t2 =
     match t1.reveal,t2.reveal with
     | Empty, Empty                             -> true
-    | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2==0) && (vequal value1 value2)
-    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2==0)&&(match_prefix c1 c2 b1)
+    | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2=0) && (vequal value1 value2)
+    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2=0)&&(match_prefix c1 c2 b1)
     | _                                        -> false
 
   let hash rec_hash khash vhash t1 = match t1.reveal with
@@ -92,7 +92,7 @@ module Poly(I:Intern) = struct
         let equal =
           match treeHCons with
           | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
-          | Some(_,_,vequal) -> equal (fun t t' -> t==t') kcompare vequal
+          | Some(_,_,vequal) -> equal (==) kcompare vequal
 
         let hash = match treeHCons with
           | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
@@ -130,7 +130,7 @@ module Poly(I:Intern) = struct
         else fun _ _ -> failwith "No function compare when patricia trees are not HConsed"
 
       let equal =
-        if is_hcons then fun t t' -> t==t'
+        if is_hcons then (==)
         else fun t t' -> failwith "No function equal when patricia trees are not HConsed"
 
       let hash =
@@ -141,12 +141,12 @@ module Poly(I:Intern) = struct
 
       let rec mem k t = match reveal t with
         | Empty               -> false
-        | Leaf (j,_)          -> kcompare k j == 0
+        | Leaf (j,_)          -> kcompare k j = 0
         | Branch (_, m, l, r) -> mem k (if check (tag k) m then l else r)
 
       let rec find k t = match reveal t with
         | Empty               -> raise Not_found
-        | Leaf (j,x)          -> if kcompare k j == 0 then x else raise Not_found
+        | Leaf (j,x)          -> if kcompare k j = 0 then x else raise Not_found
         | Branch (_, m, l, r) -> find k (if check (tag k) m then l else r)
 
 
@@ -175,7 +175,7 @@ module Poly(I:Intern) = struct
       let remove_aux f k t =
         let rec rmv t = match reveal t with
 	  | Empty      -> failwith "Remove: Was not there -empty"
-	  | Leaf (j,x) -> if  kcompare k j == 0 then f k x else failwith "Remove: Was not there -leaf"
+	  | Leaf (j,x) -> if  kcompare k j = 0 then f k x else failwith "Remove: Was not there -leaf"
 	  | Branch (p,m,t0,t1) ->
 	     if match_prefix (tag k) p m then
 	       if check (tag k) m then branch (p, m, rmv t0, t1)
@@ -238,7 +238,7 @@ module Poly(I:Intern) = struct
       let rec ins t = match reveal t with
         | Empty      -> leaf(k,f None)
         | Leaf (j,y) ->
-	  if  kcompare k j ==0 then leaf (k,f (Some y))
+	  if  kcompare k j =0 then leaf (k,f (Some y))
 	  else join(tag k, leaf(k,f None), tag j, t)
         | Branch (c,b,t0,t1) ->
 	  if match_prefix (tag k) c b then
@@ -299,7 +299,7 @@ module Poly(I:Intern) = struct
       | _, Empty -> action.fullempty s1
 
       | Leaf(k1,x1), Leaf(k2,x2) ->
-	 if  kcompare k1 k2 ==0
+	 if  kcompare k1 k2 =0
          then action.sameleaf k1 x1 x2
 	 else disjoint action s1 s2
 
@@ -324,7 +324,7 @@ module Poly(I:Intern) = struct
 	   disjoint action s1 s2
 
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-	 if (bcompare m1 m2==0) && match_prefix p1 p2 m1 then 
+	 if (bcompare m1 m2=0) && match_prefix p1 p2 m1 then 
 	   action.combine (reccall l1 l2) (reccall r1 r2)
 	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	   if check p2 m1
@@ -502,8 +502,8 @@ module Poly(I:Intern) = struct
       let ocompare = opt_st cfompare in
       let select (d1,b1)(d2,b2)= if ocompare(d1,d2)<0 then (d1,b1) else (d2,b2) in
       let rec aux s1 s2 =
-        let (m1,m2)=(min s1,min s2) in
-        if ocompare (m1,m2) ==0 then match reveal s1,reveal s2 with
+        let m1,m2 = min s1,min s2 in
+        if ocompare (m1,m2) =0 then match reveal s1,reveal s2 with
         | Empty,Empty -> (None,true)
         | Leaf(k,x), _  when mem k s2 -> (let y = find k s2 in match f k x y with
           | (None,_) -> (min(remove k s2),false)
@@ -511,7 +511,7 @@ module Poly(I:Intern) = struct
         | _,Leaf _     -> let (b,c) = aux s2 s1 in (b,not c)
         | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
           let (rec1,rec2,i)=
-            if (bcompare m1 m2==0) &&  match_prefix p1 p2 m1 then
+            if (bcompare m1 m2=0) &&  match_prefix p1 p2 m1 then
               (aux l1 l2,aux r1 r2,1)
             else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
               let (friend,foe) = if check p2 m1 then (l1,r1) else (r1,l1) in

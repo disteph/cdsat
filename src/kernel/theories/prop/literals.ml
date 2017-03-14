@@ -42,8 +42,8 @@ end
 module TermB = Terms.Make(BoundVar)(Terms.EmptyData(BoundVar))
 
 type termB = (BoundVar.t,unit) Terms.term
-let equal_termB = Terms.equal
-let hash_fold_termB = Hash.hash2fold Terms.hash
+let equal_termB = TermB.equal
+let hash_fold_termB = Hash.hash2fold TermB.hash
 
 module LitB = struct
 

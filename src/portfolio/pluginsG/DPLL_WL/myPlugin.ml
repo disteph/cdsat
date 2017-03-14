@@ -97,7 +97,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	    let l' = H.find watched newlit in
 	    if not(CSet.mem clause l') then failwith "fad2";
 	    let x=CSet.find clause l' in
-	    if not(LitF.compare x lit==0) then failwith "fad3")
+	    if not(LitF.equal x lit) then failwith "fad3")
 	  set
       ) watched
 
@@ -254,7 +254,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                 count.(1)<-count.(1)+1;
                 let now = count.(0) in
                 let myaccept a = 
-                  if isProvable a && count.(0)==now
+                  if isProvable a && count.(0)=now
                   then address:=No
                   else failwith "Expected Success2"
                 in
@@ -353,7 +353,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
        else
 	 (
-	   (* if !Flags.debug>0 && (count.(0) mod Flags.every.(7) ==0) then report(); *)
+	   (* if !Flags.debug>0 && (count.(0) mod Flags.every.(7) =0) then report(); *)
 	   count.(0)<-count.(0)+1;
 
            let a = ad [] in

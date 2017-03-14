@@ -145,7 +145,7 @@ end
 
 let pick_another_make ~is_empty ~mem ~next ~remove left = 
   let rec aux newlist left i = function
-    | _ when i==0 -> Some newlist
+    | _ when i=0 -> Some newlist
     | [] when is_empty left -> None
     | [] ->
        let var, left = next left in

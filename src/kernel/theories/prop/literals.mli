@@ -6,7 +6,7 @@ open Basic
 open Specs
 
 module LitF : sig
-  type t
+  include Hash.HashedType
   val id : t -> int
   val print_in_fmt : ?print_atom:(formatter -> int -> unit)
                      -> formatter -> t -> unit

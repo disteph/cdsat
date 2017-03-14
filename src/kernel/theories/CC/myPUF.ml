@@ -4,7 +4,7 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
 
   module FCA = MyFCA.Make(struct
       type t = Ord.t
-      let equal a b = (Ord.compare a b ==0)
+      let equal a b = (Ord.compare a b =0)
   end)
 
   module M = Map.Make(Ord)
@@ -40,7 +40,7 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
      suppose that it appears only once *)
   let rec remove i = function
     | [] -> []
-    | a::ta when Ord.compare a i ==0 -> ta
+    | a::ta when Ord.compare a i =0 -> ta
     | a::ta -> a::(remove i ta)
 
   (* In m, revert an arc i->j with label d
@@ -70,9 +70,9 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
 
   let addLink m i j d =
     (* print_string ("addLink "^(string_of_int i)^"->"^(string_of_int j)^"\n");*)
-    if Ord.compare i j ==0 then m else
+    if Ord.compare i j =0 then m else
       let m = add m j in
-      if Ord.compare (find m i) (find m j) ==0 then m 
+      if Ord.compare (find m i) (find m j) =0 then m 
       else
         let m'  = reroot i m in
 	let m'' = reroot j m' in
@@ -87,7 +87,7 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
   (* (\* print_string "union\n";*\) *)
   (*   let ci, ri = find_aux m i in *)
   (*   let cj, rj = find_aux m j in *)
-  (*   if Ord.compare ci cj ==0 then m *)
+  (*   if Ord.compare ci cj =0 then m *)
   (*   else if ri < rj then  *)
   (*     {father = M.add ci (Some cj,rj,None) m.father; *)
   (*      sons = M.add cj (ci::(M.find cj m.sons)) m.sons; *)
@@ -104,7 +104,7 @@ module Make(Ord: Map.OrderedType): (Interfaces.PersistentUnionFind with type e =
   let rec pathTo m i j = 
    (* print_string "pathTo\n"; *)
     match j, M.find i m.father with
-    | Some j',_ when Ord.compare i j' ==0 -> []
+    | Some j',_ when Ord.compare i j' =0 -> []
     | None, (None,  _) -> []
     | _, (Some(k,d),_) -> d::(pathTo m k j)
     | Some _, (None,_) -> failwith ("the third argument isn't an ancestor of the second one ")

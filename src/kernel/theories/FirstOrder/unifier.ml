@@ -16,10 +16,6 @@ exception AlreadyConstrained
 (* IntSort (an int together with a sort) are used to represent
    abstract keys. *)
 
-module IntSortHashed = HashedTypeFromHCons(IntSort)
-module EigenHashed   = HashedTypeFromHCons(Eigen)
-module MetaHashed    = HashedTypeFromHCons(Meta)
-
 module Leaf = struct
 
   type leafExposed = Key of IntSort.t | Eigen of Eigen.t
@@ -27,12 +23,12 @@ module Leaf = struct
   module Arg = struct
     type _ t = leafExposed
     let equal _ a b = match a,b with
-      | Key c, Key d when IntSortHashed.equal c d -> true
-      | Eigen c, Eigen d when EigenHashed.equal c d -> true
+      | Key c, Key d when IntSort.equal c d -> true
+      | Eigen c, Eigen d when Eigen.equal c d -> true
       | _,_ -> false 
     let hash _ = function
-      | Key c   -> 2*(IntSortHashed.hash c)
-      | Eigen c -> 3*(EigenHashed.hash c)
+      | Key c   -> 2*(IntSort.hash c)
+      | Eigen c -> 3*(Eigen.hash c)
   end
 
   include HCons.Make(Arg)
@@ -62,7 +58,7 @@ module TermDest = struct
   type values = KTerm.t
   type infos = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons = Some(IntSort.id,Terms.id,(fun x y -> Terms.id x = Terms.id y))
+  let treeHCons = Some(IntSort.id,KTerm.hash,KTerm.equal)
 end
 
 module TMap = PATMap.Make(TermDest)(TypesFromHConsed(IntSort))
@@ -103,7 +99,7 @@ let empty = {next_key = 0; map = TMap.empty}
 
 let add key t u =
   match reveal t with
-  | Key k when kcompare key k == 0 -> u
+  | Key k when kcompare key k = 0 -> u
   | _ ->  
     { next_key = u.next_key;
       map = TMap.add key (function None -> t | Some _ -> raise AlreadyConstrained) u.map }
@@ -151,7 +147,7 @@ module KM = struct
   type values    = Meta.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(IntSortHashed.hash,MetaHashed.hash,MetaHashed.equal)
+  let treeHCons  = Some(IntSort.hash,Meta.hash,Meta.equal)
 end
 module KMap  = PATMap.Make(KM)(TypesFromHConsed(IntSort))
 
@@ -161,7 +157,7 @@ module MK = struct
   type values    = IntSort.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(MetaHashed.hash,IntSortHashed.hash,IntSortHashed.equal)
+  let treeHCons  = Some(Meta.hash,IntSort.hash,IntSort.equal)
 end
 module MMap  = PATMap.Make(MK)(TypesFromHConsed(Meta))
 
@@ -171,6 +167,6 @@ module KK = struct
   type values    = IntSort.t
   type infos     = keys m_infos
   let info_build = m_info_build kcompare
-  let treeHCons  = Some(IntSortHashed.hash,IntSortHashed.hash,IntSortHashed.equal)
+  let treeHCons  = Some(IntSort.hash,IntSort.hash,IntSort.equal)
 end
 module KKMap = PATMap.Make(KK)(TypesFromHConsed(IntSort))

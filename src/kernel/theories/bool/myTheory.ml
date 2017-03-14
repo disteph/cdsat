@@ -100,7 +100,7 @@ terms seen so far
                   asTrueFalse = asTrueFalse;
                   clauses     = clauses;
                   seen        = TSet.add litterm fixed.seen } in
-    if Terms.equal litterm term then fixed
+    if Term.equal litterm term then fixed
     else
       (* There is a real unit propagation that we learn,
            we create the uc_clause, we update asTrueFalse,

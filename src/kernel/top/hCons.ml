@@ -62,9 +62,13 @@ module MakePoly
         type t = (Par.t,Data.t) generic
         type revealed = (Par.t,Data.t) g_revealed
 
+        let hash = id
+        let hash_fold_t a = Hash.hash2fold hash a
+        let equal = (==)
+
         module Arg = struct
           type nonrec t = t
-          let equal a b = M.equal (fun x y -> x == y) Par.equal a.reveal b.reveal
+          let equal a b = M.equal (==) Par.equal a.reveal b.reveal
           let hash a    = M.hash id Par.hash a.reveal
         end
 

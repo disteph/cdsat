@@ -16,13 +16,13 @@ module TypesFromHConsed(S:FromHConsed) = struct
 
   type branching = int
   let bcompare   = Pervasives.compare
-  let check k m  = (k land m) == 0
+  let check k m  = (k land m) = 0
 
   let lowest_bit x        = x land (-x)
   let branching_bit p0 p1 = lowest_bit (p0 lxor p1)
   let mask p m            = p land (m-1)
 
-  let match_prefix q p m  = mask q m == mask p m
+  let match_prefix q p m  = mask q m = mask p m
 
   let disagree p0 p1      = let m = branching_bit p0 p1 in (mask p0 m,m,check p0 m)
 
@@ -59,7 +59,7 @@ module TypesFromCollect(S: FromCollect) = struct
   let bcompare   = S.compareE
   let check p m  = S.mem m p
 
-  let match_prefix q p m = (S.compare q p==0) ||
+  let match_prefix q p m = (S.compare q p=0) ||
     match S.first_diff q p with
       | (Some x,_)  when S.compareE x m<0 -> false
       | _ -> true
@@ -68,7 +68,7 @@ module TypesFromCollect(S: FromCollect) = struct
     | (Some b,c) -> (S.inter p0 p1,b,c)
     | (None,_)   -> failwith "disagree called with two arguments that are equal"
 
-  let pequals p1 p2 = (S.compare p1 p2==0)
+  let pequals p1 p2 = (S.compare p1 p2=0)
 end
 
 

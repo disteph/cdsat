@@ -10,17 +10,6 @@ open General
 open Patricia
 open SetConstructions
 
-module HashedTypeFromHCons(M: sig
-  type t
-  val id: t -> int
-end) = struct
-  type t = M.t
-  let hash = M.id
-  let hash_fold_t = Hash.hash2fold hash
-  let equal = id2equal M.id
-end
-
-
 module IntSort = struct
 
   module M = struct
@@ -30,12 +19,8 @@ module IntSort = struct
 
   module H = HCons.Make(M)
   module HMade = H.Init(HCons.NoBackIndex)
-
-  include HashedTypeFromHCons(struct
-              type t = HMade.t
-              let id = H.id
-            end)
-
+  include (HMade:Hash.HashedType with type t = unit H.generic)
+            
   let compare = H.compare
   let id = H.id
   let reveal t = let i,_,s = H.reveal t in i,s 
@@ -53,8 +38,8 @@ module IntSort = struct
        if fv>=0 then Format.fprintf fmt "%s%i" (* "%s{%i}^{%a}" *) (if b then "" else "_") fv (* Sorts.print_in_fmt so *)
        else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
 
-  let isDefined fv = let (_,b,_) = H.reveal fv in not b
-  let isNeg fv = let (i,_,_) = H.reveal fv in i<0
+  let isDefined fv = let _,b,_ = H.reveal fv in not b
+  let isNeg fv = let i,_,_ = H.reveal fv in i<0
 
 end
 

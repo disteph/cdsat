@@ -101,7 +101,7 @@ apply the substituions met since the beginning *)
   let noDbl l = 
     let rec aux li = function
     | [] -> li
-    | a::ta when List.mem (equal_input Terms.equal) a ta -> aux li ta
+    | a::ta when List.mem (equal_input Term.equal) a ta -> aux li ta
     | a::ta -> aux (a::li) ta
     in aux [] l
 
@@ -123,7 +123,7 @@ apply the substituions met since the beginning *)
   and explPath u l =
     let rec aux r = function
       | []    -> r
-      | (Eq(_,_,_,_) as h)::tl when List.mem (equal_input Terms.equal) h r -> aux r tl
+      | (Eq(_,_,_,_) as h)::tl when List.mem (equal_input Term.equal) h r -> aux r tl
       | (Eq(_,_,_,_) as h)::tl                   -> aux (h::r) tl
       | Congr(a,b)::tl -> aux (union r (explCongr u a b)) tl
       | NEq(_,_,_,_)::_ -> assert false

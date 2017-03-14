@@ -52,7 +52,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	   count.(1)<-count.(1)+1;
 	     (* let now = count.(4) in *)
 	     (* let myaccept = function  *)
-	     (*   | Jackpot(Success _) when count.(4)==now ->address:=No;Accept *)
+	     (*   | Jackpot(Success _) when count.(4)=now ->address:=No;Accept *)
 	     (*   | _-> failwith "Expected Success" *)
 	     (* in *)
 	   Focus(a,(olda,olda),accept,fNone)
@@ -132,7 +132,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       *)
 
     | InsertCoin(Notify(_,_,_,machine,olda))  when not !Flags.memo
-        ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
+        ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) =0)
           then print_endline(print_state olda);
           count.(4)<-count.(4)+1;
           solve (machine (true,(fun _ ->0),accept,fNone))
@@ -155,8 +155,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	(* 	| Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
 	(* 	| Yes(exp) -> failwith("Yes not expected") *)
 	(* 	| _ -> address:=No); *)
-	(* if !Flags.debug>0&& count.(0) ==100000 then failwith("stop") else*)
-      if !Flags.debug>0&& (count.(0) mod Flags.every.(7) ==0)
+	(* if !Flags.debug>0&& count.(0) =100000 then failwith("stop") else*)
+      if !Flags.debug>0&& (count.(0) mod Flags.every.(7) =0)
       then print_endline(print_state olda);
 	count.(4)<-count.(4)+1;
 	solve(machine(true,
