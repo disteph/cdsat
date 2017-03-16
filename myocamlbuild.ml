@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 03728bd250858556e8c4429429291e7f) *)
+(* DO NOT EDIT (digest: e3101bf50a3de8a4277e67db1b20b141) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -884,43 +884,52 @@ end
 # 884 "myocamlbuild.ml"
 open Ocamlbuild_plugin;;
 let package_default =
-  {MyOCamlbuildBase.lib_ocaml = []; lib_c = []; flags = []; includes = []}
+  {
+     MyOCamlbuildBase.lib_ocaml =
+       [
+          ("psyche_kernel_lib", ["src/lib"], []);
+          ("psyche_kernel", ["src/kernel"], [])
+       ];
+     lib_c = [];
+     flags = [];
+     includes = [("src/kernel", ["src/lib"])]
+  }
   ;;
 
 let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 895 "myocamlbuild.ml"
+# 904 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let mydispatch r = match r with
   | After_rules ->
-    Pathname.define_context "src/kernel" ["src/kernel";
-                                          "src/kernel/theories"];
-    Pathname.define_context "src/kernel/parsers" ["src/kernel";
-                                                  "src/kernel/parsers"];
-    Pathname.define_context "src/kernel/theories/prop" ["src/kernel/";
-                                                        "src/kernel/theories/prop"];
-    Pathname.define_context "src/kernel/theories/empty" ["src/kernel/"; 
-                                                         "src/kernel/theories/empty"];
-    Pathname.define_context "src/kernel/theories/IfThenElse" ["src/kernel/"; 
-                                                              "src/kernel/theories/";
-                                                              "src/kernel/theories/IfThenElse"];
-    Pathname.define_context "src/kernel/theories/bool" ["src/kernel/"; 
-                                                        "src/kernel/theories/";
-                                                        "src/kernel/theories/bool"];
-    Pathname.define_context "src/kernel/theories/arrays" ["src/kernel/"; 
-                                                          "src/kernel/theories/arrays"];
-    Pathname.define_context "src/kernel/theories/dejan" ["src/kernel/"; 
-                                                         "src/kernel/theories/";
-                                                         "src/kernel/theories/dejan"];
-    Pathname.define_context "src/kernel/theories/CC" ["src/kernel/";
-                                                      "src/kernel/theories/";
-                                                      "src/kernel/theories/CC"];
-    Pathname.define_context "src/kernel/theories/FirstOrder" ["src/kernel/";
-                                                              "src/kernel/theories/";
-                                                              "src/kernel/theories/FirstOrder"];
+    Pathname.define_context "src/kernel/src" ["src/kernel/src";
+                                          "src/kernel/src/theories"];
+    Pathname.define_context "src/kernel/src/parsers" ["src/kernel/src";
+                                                  "src/kernel/src/parsers"];
+    Pathname.define_context "src/kernel/src/theories/prop" ["src/kernel/src/";
+                                                        "src/kernel/src/theories/prop"];
+    Pathname.define_context "src/kernel/src/theories/empty" ["src/kernel/src/"; 
+                                                         "src/kernel/src/theories/empty"];
+    Pathname.define_context "src/kernel/src/theories/IfThenElse" ["src/kernel/src/"; 
+                                                              "src/kernel/src/theories/";
+                                                              "src/kernel/src/theories/IfThenElse"];
+    Pathname.define_context "src/kernel/src/theories/bool" ["src/kernel/src/"; 
+                                                        "src/kernel/src/theories/";
+                                                        "src/kernel/src/theories/bool"];
+    Pathname.define_context "src/kernel/src/theories/arrays" ["src/kernel/src/"; 
+                                                          "src/kernel/src/theories/arrays"];
+    Pathname.define_context "src/kernel/src/theories/dejan" ["src/kernel/src/"; 
+                                                         "src/kernel/src/theories/";
+                                                         "src/kernel/src/theories/dejan"];
+    Pathname.define_context "src/kernel/src/theories/CC" ["src/kernel/src/";
+                                                      "src/kernel/src/theories/";
+                                                      "src/kernel/src/theories/CC"];
+    Pathname.define_context "src/kernel/src/theories/FirstOrder" ["src/kernel/src/";
+                                                              "src/kernel/src/theories/";
+                                                              "src/kernel/src/theories/FirstOrder"];
     dispatch_default r
   | _ -> dispatch_default r;;
 

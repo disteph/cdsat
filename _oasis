@@ -18,16 +18,12 @@ LicenseFile: LICENCE.txt
 FilesAB: src/version.ml.ab
 BuildTools: ocamlbuild
 
-Executable psyche
-  Path:       src
-  MainIs:     main.ml
-  CompiledObject: best
-  BuildDepends: async, threads, ppx_deriving.std, ppx_hash
+Library "psyche_kernel_lib"
+  Path: src/lib
+  Modules: General
+  BuildDepends: ppx_deriving.std, ppx_hash
 
-Document "Psyche"
-  Type: ocamlbuild
-  BuildTools: ocamlbuild,ocamldoc
-  Title:      Psyche's API
-  InstallDir: API
-  XOCamlBuildPath: src
-  XOCamlbuildModules: Main,Kernel
+Library "psyche_kernel"
+  Path: src/kernel
+  Modules: Kernel
+  BuildDepends: psyche_kernel_lib, ppx_deriving.std, ppx_hash
