@@ -921,129 +921,76 @@ let print_info f =
     Tags.print (tags_of_pathname f)
     
 let parent_dir dir = Pathname.normalize(Pathname.concat dir (Pathname.parent ""))
-
-let rec guess maindir path accu =
-  (* print_endline("Guessing "^path); *)
-  if Pathname.equal maindir path
-  then ((* print_endline("Guessing module name is: "^accu); *)
-        accu)
-  else
-    let base = Pathname.basename path in
-    let parent = parent_dir path in
-    (* print_endline("Base is "^base); *)
-    (* print_endline("Parent is "^parent); *)
-    let accu =
-      if Pathname.exists(Pathname.add_extension "mldir" (Pathname.concat parent base))
-      then ((* print_endline("adding "^module_name_of_pathname path); *)
-            (module_name_of_pathname path)^"."^accu)
-      else accu
-    in
-    guess maindir parent accu  
-                                       
-let mk_for_pack modle = "for-pack("^modle^")"
-
-(* forpack is the list of modules for the for-pack(...) tags
-   dir is the directory where the dir to pack sits.
- *)
-                                            
-let treat build forpack maindir dir =
-
-  let rec treat_dir subdir (accu, ctx) =
-    let fullpath = Pathname.concat maindir(Pathname.concat dir subdir) in
-    (* print_endline("Collecting modules from files in "^subdir); *)
-    let ctx = subdir::ctx in
-    let contents = Pathname.readdir fullpath in
-    let treatfile x = treat_file (Pathname.concat subdir x) in
-    Array.fold_right treatfile contents (accu,ctx)
-
-  and treat_file file (accu,ctx) =
-    let relat_path = Pathname.concat dir file in
-    let orig_path = Pathname.concat maindir relat_path in
-    (* print_endline("Treating file "^fullpath); *)
-    let check = Pathname.check_extension file in
-    if List.exists check ["ml";"mlpack";"mldir"]
-    then
-      (let cmx = Pathname.add_extension "cmx"
-                   (Pathname.remove_extension relat_path) in
-       print_endline("Tagging "^cmx^" with");
-       List.iter (fun x->print_endline(mk_for_pack x)) forpack;
-       tag_file cmx (List.map mk_for_pack forpack);
-       if Pathname.exists cmx
-       then print_endline(cmx^" exists!!!!");
-       (* List.iter Outcome.ignore_good(build [[cmx]]); *)
-       let modle = module_name_of_pathname file in
-       let diff_dir = Pathname.dirname file in
-       (Pathname.concat diff_dir modle^"\n")::accu,ctx)
-    else if Pathname.is_directory orig_path
-    then if Pathname.exists (Pathname.add_extension "mldir" orig_path)
-         then accu,ctx
-         else treat_dir file (accu,ctx)
-    else accu,ctx
-  in
-  treat_dir
-
-let mk_visible dirlist dir =
-  Pathname.define_context dir (dirlist@Pathname.include_dirs_of dir)
-
-let mk_all_visible inherited dirlist =
-  List.iter (mk_visible (inherited@dirlist)) dirlist
     
-let mlpack_rule env build =
+let ml_rule env build =
   try
-    let mlpack = env "%.mlpack" and mldir = env "%.mldir" in
-    (* print_endline("mlpack is "^mlpack); *)
-    (* print_endline("mldir is "^mldir); *)
-    (* print_endline("build_dir is "^(!Options.build_dir)); *)
+    let mlpack = env "%.ml" and mldir = env "%.mldir" in
     let main_dir   = parent_dir !Options.build_dir in
     let orig_mldir = Pathname.concat main_dir mldir in
-    (* print_endline("Original mldir is "^orig_mldir); *)
-    let dir,packs =
+    let dir =
       if Pathname.is_directory orig_mldir
-      then mldir,
-           [guess main_dir orig_mldir (module_name_of_pathname orig_mldir)]
-      else
-        let packs =
-          Str.split (Str.regexp " ") (Pathname.read orig_mldir)
-        in
-        Pathname.remove_extension mldir, packs
+      then mldir
+      else Pathname.remove_extension mldir
     in
-    (* print_endline("Directory to turn into module is "^dir); *)
-    let base = Pathname.basename dir in
-    let currentdir = Pathname.dirname dir in
-    (* print_endline("Base is "^base); *)
-    (* print_endline("Currentdir is "^currentdir); *)
-    let mods,ctx =
-      treat build packs main_dir currentdir base ([],[])
+    let this     = Pathname.remove_extension mldir in
+    let this_cmo = Pathname.add_extension "cmo" this in
+    let this_cmx = Pathname.add_extension "cmx" this in
+
+    let rec treat_dir subdir (accu, ctx) =
+      let fullpath = Pathname.concat main_dir subdir in
+      (* print_endline("Collecting modules from files in "^subdir); *)
+      let ctx = subdir::ctx in
+      let contents = Pathname.readdir fullpath in
+      let treatfile x = treat_file (Pathname.concat subdir x) in
+      Array.fold_right treatfile contents (accu,ctx)
+
+    and treat_file file (accu,ctx) =
+      let orig_path = Pathname.concat main_dir file in
+      (* print_endline("Treating file "^fullpath); *)
+      let check = Pathname.check_extension file in
+      if List.exists check ["ml";"mlpack";"mldir"]
+      then
+        (let base = Pathname.remove_extension file in
+         let cmx = Pathname.add_extension "cmx" base in
+         let cmo = Pathname.add_extension "cmo" base in
+         (* print_endline("Building "^file); *)
+         List.iter Outcome.ignore_good(build [[file]]);
+         dep ["ocaml"; "compile"; "file:"^this_cmx] [cmx];
+         dep ["ocaml"; "compile"; "file:"^this_cmo] [cmo];
+         let modle = module_name_of_pathname file in
+         ("module "^modle^" = struct include "^modle^" end\n")::accu,ctx)
+      else if (Pathname.is_directory orig_path)
+              && not(Pathname.exists (Pathname.add_extension "mldir" orig_path))
+      then treat_dir file (accu,ctx)
+      else accu,ctx
     in
-    mk_all_visible (Pathname.include_dirs_of currentdir) ctx;
-    (* List.iter print_endline ctx; *)
-    (* print_info "src/lib/general.mldir/pqueue.cmx"; *)
-    Echo(mods,mlpack)
+                
+    let mlstring,ctx  = treat_dir dir ([],[]) in
+    let aux dir sofar = A"-I"::A dir::sofar in
+    let command = S(List.fold_right aux ctx []) in
+    flag ["ocaml"; "compile"; "file:"^this_cmx] & command;
+    flag ["ocaml"; "compile"; "file:"^this_cmo] & command;
+    Echo(mlstring,mlpack)
   with
     e ->
-    (* print_endline ("Catching "^(Printexc.to_string e)); *)
-    (* Ocamlbuild_pack.Log.eprintf "Error: %s" (Printexc.to_string e); *)
-    (* raise (Ocamlbuild_pack.My_std.Exit_OK) *)
     List.iter Outcome.ignore_good(build [["This target has no rule"]]);
     Nop
                
 let mydispatch r =
   match r with
   | After_rules ->
-     rule "Generate mlpack from mldir"
-       ~prod:"%.mlpack"
-       mlpack_rule;
+     rule "Generate mlpack from mldir" ~prod:"%.ml" ml_rule;
      (* Pathname.define_context "when_compiling_things_in_here" *)
      (*   ["include_this_dir";"and_that_dir"]; *)
      dispatch_default r
   | _ ->
      dispatch_default r;;
 
+let () = Ocamlbuild_plugin.dispatch mydispatch
+  
 (* Original oasis/ocamlbuild line *)
 (* Ocamlbuild_plugin.dispatch mydispatch;; *)
 
-let () = Ocamlbuild_plugin.dispatch mydispatch
-  
 (* Dispatch line for namespace *)
 (* let () = dispatch *)
 (*            (MyOCamlbuildBase.dispatch_combine *)
