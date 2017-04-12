@@ -9,9 +9,9 @@ account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
 let parseNrun =
-  Kernel.parseNrun
-    (module PluginsG_register.get !Flags.mypluginG)
-    (Plugins_register.get !Flags.myplugin)
+  Kernel.Top_level.parseNrun
+    (PluginsG.Register.get !Flags.mypluginG)
+    (Plugins.Register.get !Flags.myplugin)
     
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:
 - init is the initial data before any run is made

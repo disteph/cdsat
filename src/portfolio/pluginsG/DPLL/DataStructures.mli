@@ -7,7 +7,7 @@ open Literals
 open Formulae
 open Sums
 open Patricia_interfaces
-open PluginsG_tools.SetInterface
+open Tools.PluginsG.SetInterface
 
 module UASet : sig
   include CollectImplemExt with type e=LitF.t

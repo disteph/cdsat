@@ -7,9 +7,9 @@ open Interfaces_theory
 open Literals
 open Formulae
 open Interfaces_plugin
-open PluginsG_tools.Addressing
+open Tools.PluginsG.Addressing
        
-module DS = PluginsG_tools.ListDS.Generate
+module DS = Tools.PluginsG.ListDS.Generate
 
 module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				and  type FSet.ps     = DS.UFSet.t
@@ -17,7 +17,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   open DS
   open FE
-  include PluginsG_tools.Utils.FEext(FE)
+  include Tools.PluginsG.Utils.FEext(FE)
     (* The strategy provides the following function solve:
        In case the temporary answers happens to be a final
        answer, then the strategy returns that final answer.

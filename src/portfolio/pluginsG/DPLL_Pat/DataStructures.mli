@@ -6,7 +6,7 @@ open Interfaces_theory
 open Literals
 open Formulae
 open Sums
-open PluginsG_tools.SetInterface
+open Tools.PluginsG.SetInterface
 
 
 module UASet : sig

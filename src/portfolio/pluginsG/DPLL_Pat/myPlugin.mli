@@ -1,1 +1,1 @@
-include PluginG.Type
+include Kernel.PluginG.Type

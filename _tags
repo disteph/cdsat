@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 671d5a099741f8ab2ce918da4286624b)
+# DO NOT EDIT (digest: a20c23508b80138514b474eb1572d72e)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,62 +14,47 @@ true: annot, bin_annot
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
-# Library psyche_kernel_lib
-"src/lib/psyche_kernel_lib.cmxs": use_psyche_kernel_lib
-<src/lib/*.ml{,i,y}>: pkg_ppx_deriving.std
-<src/lib/*.ml{,i,y}>: pkg_ppx_hash
-# Library psyche_kernel
-"src/kernel/psyche_kernel.cmxs": use_psyche_kernel
-<src/kernel/*.ml{,i,y}>: pkg_ppx_deriving.std
-<src/kernel/*.ml{,i,y}>: pkg_ppx_hash
-<src/kernel/*.ml{,i,y}>: use_psyche_kernel_lib
+# Library kernel_lib
+"src/lib/kernel_lib.cmxs": use_kernel_lib
+# Library kernel
+"src/kernel/kernel.cmxs": use_kernel
+# Library portfolio
+"src/portfolio/portfolio.cmxs": use_portfolio
+# Executable main
 # OASIS_STOP
 
 true: debug
+<problems>:  -traverse, not_hygienic
+<problems2>: -traverse, not_hygienic
+<srcjs>:     -traverse, not_hygienic
+<tools>:     -traverse, not_hygienic
+<latex>:     -traverse, not_hygienic
+<attempt>:   -traverse, not_hygienic
+true: opaque
 
 <src> or <src/include> : include
-<src/*/**/*.ml{,i,y}>: open(Open)
-<src/**/*.ml{,i,y}>: pkg_ppx_deriving.std, pkg_ppx_hash
+<src/lib>: include
+<src/*/**/*.ml{,i,y}>  : open(Open)
+<src/**/*.ml{,i,y}>    : pkg_ppx_deriving.std, pkg_ppx_hash
 
-<src/lib/general/*.cmx>   : for-pack(General)
-
-<src/kernel/**/*.ml{,i,y}>: use_psyche_kernel_lib
-
-<src/kernel/src/top/*.cmx>           : for-pack(Kernel.Top)
-
-<src/kernel/src/theories/prop/*>     : for-pack(Kernel.Prop)
-<src/kernel/src/theories/empty/*>    : for-pack(Kernel.Empty)
-<src/kernel/src/theories/arrays/*>    : for-pack(Kernel.Arrays)
-<src/kernel/src/theories/dejan/*>    : for-pack(Kernel.Dejan)
-<src/kernel/src/theories/CC/*>       : for-pack(Kernel.CC)
-<src/kernel/src/theories/FirstOrder/*>    : for-pack(Kernel.FirstOrder)
-<src/kernel/src/theories/IfThenElse/*>    : for-pack(Kernel.IfThenElse)
-<src/kernel/src/theories/bool/*>     : for-pack(Kernel.Bool)
-
-<src/kernel/src/*.cmx>               : for-pack(Kernel)
-<src/kernel/src/theories/*.cmx>      : for-pack(Kernel)
-
-<src/kernel/src/parsers/*.cmx>       : for-pack(Kernel.Parsers)
-<src/kernel/src/parsers/SMTLib2_tools/*>: for-pack(Kernel.Parsers.SMTLib2_tools)
+# <src/kernel>                  : include_all
+# <src/kernel>                  : namespace_lib(src/kernel/kernel)
+# <src/kernel/kernel>           : namespace
+# <src/kernel/kernel/top>       : namespace
+# <src/kernel/kernel/parsers/**>: namespace
+# <src/kernel/kernel/theories/*>: namespace
+# <src/kernel/**/*.ml{,i,y}>    : pkg_psyche_kernel_lib
+# <src/include>                 : namespace_lib(src/kernel/kernel)
 
 
-# <src> or <src/lib> or <src/portfolio> or <src/specs> or <src/top-level>: include
 
-# <src/lib/pluginsG_tools/*.cmx>:       for-pack(PluginsG_tools)
-# <src/lib/pluginsTh_tools/*.cmx>:      for-pack(PluginsTh_tools)
+# <src/portfolio>               : include_all
+# <src/portfolio>               : namespace_lib(src/portfolio/portfolio)
+# <src/portfolio/tools/**>      : namespace
+# <src/portfolio/plugins/**>    : namespace
+# <src/portfolio/pluginsG/**>   : namespace
+# <src/portfolio/pluginsTh>     : namespace
+# <src/portfolio/**/*.ml{,i,y}> : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel
 
-# <src/portfolio/plugins/*.cmx>:        for-pack(Plugins)
-
-# <src/portfolio/pluginsG/*.cmx>:       for-pack(PluginsG)
-# <src/portfolio/pluginsG/DPLL_Pat/*.cmx>:        for-pack(PluginsG.DPLL_Pat)
-# <src/portfolio/pluginsG/DPLL_WL/*.cmx>:         for-pack(PluginsG.DPLL_WL)
-# <src/portfolio/pluginsG/DPLL/*.cmx>:            for-pack(PluginsG.DPLL)
-# <src/portfolio/pluginsG/Naive/*.cmx>:           for-pack(PluginsG.Naive)
-# <src/portfolio/pluginsG/RestartsFunctor/*.cmx>: for-pack(PluginsG.RestartsFunctor)
-# <src/portfolio/pluginsG/Hint/*.cmx>:            for-pack(PluginsG.Hint)
-
-# <src/portfolio/pluginsTh/*.cmx>:      for-pack(PluginsTh)
-
-# <src/*.{byte,native}>:                 use_str
-# <src/portfolio/plugins/**/*.ml{,i,y}>: thread, pkg_async
-
+# <src/top-level/*.ml{,i,y}>: pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
+# <src/top-level/main.{native,byte}>: pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio

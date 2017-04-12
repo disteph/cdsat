@@ -11,7 +11,7 @@ open Patricia_interfaces
 open SetConstructions
 open Sums
 
-open PluginsG_tools.Addressing
+open Tools.PluginsG.Addressing
 
 (* TODO: integrate watched lit for learnt clauses *)
 
@@ -30,8 +30,8 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
-  include PluginsG_tools.Utils.FEext(FE)
-  module Me = PluginsG_tools.Memoisation.Make(FE)(UFSet)(UASet)
+  include Tools.PluginsG.Utils.FEext(FE)
+  module Me = Tools.PluginsG.Memoisation.Make(FE)(UFSet)(UASet)
 
   (******************************************)
   (* Setting up Unit Propagation mechanisms *)
@@ -56,7 +56,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     let pick_another _ fclause i varlist =
       match fclause with
       | _,Some(left,_) ->
-         PluginsTh_tools.TwoWatchedLits.pick_another_make
+         Tools.PluginsTh.TwoWatchedLits.pick_another_make
            ~is_empty:UASet.is_empty
            ~mem:UASet.mem
            ~next:UASet.next
@@ -65,7 +65,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
       | _ -> None
   end
 
-  module UP = PluginsTh_tools.TwoWatchedLits.Make(UPConfig)
+  module UP = Tools.PluginsTh.TwoWatchedLits.Make(UPConfig)
 
 
   (*************)
@@ -120,7 +120,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
   (******************)
   (* Restarts stuff *)
 
-  module Restarts = PluginsG_tools.RestartStrategies.RestartStrategies(UASet)
+  module Restarts = Tools.PluginsG.RestartStrategies.RestartStrategies(UASet)
   let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2    
   let last_model = ref UASet.empty
 

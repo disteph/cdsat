@@ -10,7 +10,7 @@ open Patricia_interfaces
 open Patricia
 open Sums
 
-open PluginsG_tools.Addressing
+open Tools.PluginsG.Addressing
 
 module DS = DataStructures
 
@@ -27,15 +27,15 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 				and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
-  include PluginsG_tools.Utils.FEext(FE)
-  module Me = PluginsG_tools.Memoisation.Make(FE)(UFSet)(UASet)
+  include Tools.PluginsG.Utils.FEext(FE)
+  module Me = Tools.PluginsG.Memoisation.Make(FE)(UFSet)(UASet)
 
   type my_data = {i: int; remlits : UASet.t; restore_parity : bool}
   type data       = my_data addressing
   let initial_data _ = ad_init {i = 0; remlits = UASet.empty; restore_parity = false}
   let address     = ref No
 
-  module Restarts = PluginsG_tools.RestartStrategies.RestartStrategies(UASet)
+  module Restarts = Tools.PluginsG.RestartStrategies.RestartStrategies(UASet)
   let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
                                             
   (* We record a stack of clauses that will definitely do a Unit Propagate *)
@@ -82,7 +82,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   (* We now create the hashtable of watched literals *)
 
-  module H = Hashtbl.Make(PluginsG_tools.Utils.PHCons_ext(LitF))
+  module H = Hashtbl.Make(Tools.PluginsG.Utils.PHCons_ext(LitF))
   let watched = H.create 5003
 
   (* Here we can check that the table is well-formed. This function
