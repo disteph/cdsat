@@ -33,9 +33,13 @@ true: debug
 true: opaque
 
 <src> or <src/include> : include
-<src/lib>: include
 <src/*/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>    : pkg_ppx_deriving.std, pkg_ppx_hash
+
+
+<src/kernel/kernel.mldir/specs/> : visible(src/kernel/kernel.mldir)
+
+<src/kernel/**/*.ml{,i,y}>    : pkg_psyche_kernel_lib
 
 # <src/kernel>                  : include_all
 # <src/kernel>                  : namespace_lib(src/kernel/kernel)
@@ -43,7 +47,6 @@ true: opaque
 # <src/kernel/kernel/top>       : namespace
 # <src/kernel/kernel/parsers/**>: namespace
 # <src/kernel/kernel/theories/*>: namespace
-# <src/kernel/**/*.ml{,i,y}>    : pkg_psyche_kernel_lib
 # <src/include>                 : namespace_lib(src/kernel/kernel)
 
 

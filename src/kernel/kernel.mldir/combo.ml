@@ -9,7 +9,7 @@ open Variables
 open Messages
 open Theories_register
 open Specs
-
+       
 (* This is the module type that we are going to produce at the end of this file *)
 
 module type WhiteBoard = sig

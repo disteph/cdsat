@@ -924,9 +924,11 @@ let parent_dir dir = Pathname.normalize(Pathname.concat dir (Pathname.parent "")
     
 let ml_rule env build =
   try
-    let mlpack = env "%.ml" and mldir = env "%.mldir" in
+    let ml = env "%.ml" and mldir = env "%.mldir" in
     let main_dir   = parent_dir !Options.build_dir in
     let orig_mldir = Pathname.concat main_dir mldir in
+    if not(Pathname.exists orig_mldir)
+    then failwith(orig_mldir^" does not exist, existing rule mldir -> ml");
     let dir =
       if Pathname.is_directory orig_mldir
       then mldir
@@ -935,6 +937,7 @@ let ml_rule env build =
     let this     = Pathname.remove_extension mldir in
     let this_cmo = Pathname.add_extension "cmo" this in
     let this_cmx = Pathname.add_extension "cmx" this in
+    let this_cmi = Pathname.add_extension "cmi" this in
 
     let rec treat_dir subdir (accu, ctx) =
       let fullpath = Pathname.concat main_dir subdir in
@@ -953,8 +956,12 @@ let ml_rule env build =
         (let base = Pathname.remove_extension file in
          let cmx = Pathname.add_extension "cmx" base in
          let cmo = Pathname.add_extension "cmo" base in
+         let src =
+           if check "mldir" then Pathname.add_extension "ml" base
+           else file
+         in
          (* print_endline("Building "^file); *)
-         List.iter Outcome.ignore_good(build [[file]]);
+         List.iter Outcome.ignore_good(build [[src]]);
          dep ["ocaml"; "compile"; "file:"^this_cmx] [cmx];
          dep ["ocaml"; "compile"; "file:"^this_cmo] [cmo];
          let modle = module_name_of_pathname file in
@@ -970,18 +977,58 @@ let ml_rule env build =
     let command = S(List.fold_right aux ctx []) in
     flag ["ocaml"; "compile"; "file:"^this_cmx] & command;
     flag ["ocaml"; "compile"; "file:"^this_cmo] & command;
-    Echo(mlstring,mlpack)
+    flag ["ocaml"; "compile"; "file:"^this_cmi] & command;
+    Echo(mlstring,ml)
   with
     e ->
     List.iter Outcome.ignore_good(build [["This target has no rule"]]);
     Nop
-               
+
+let visible_rule env build =
+  let target = env "%(id)" in
+  let dir = Pathname.dirname target in
+  (* print_endline("Target is: "^target); *)
+  (* print_endline("Dir is: "^dir); *)
+  Pathname.define_context
+    dir
+    ("src/kernel/kernel.mldir"::(Pathname.include_dirs_of dir));
+  (* pflag ["file:"^target] "visible" *)
+  (*   (fun visible -> *)
+  (*     print_endline(dir^" sees "^visible); *)
+  (*     Pathname.define_context *)
+  (*       dir *)
+  (*       (visible::(Pathname.include_dirs_of dir)); *)
+  (*     N *)
+  (*   ); *)
+  List.iter Outcome.ignore_good(build [["visible"]]);
+  Nop
+  
+
 let mydispatch r =
   match r with
   | After_rules ->
-     rule "Generate mlpack from mldir" ~prod:"%.ml" ml_rule;
+     rule "Generate ml from mldir" ~prod:"%.ml" ml_rule;
      (* Pathname.define_context "when_compiling_things_in_here" *)
      (*   ["include_this_dir";"and_that_dir"]; *)
+     rule "Visible rule" ~prod:"%(id:not <visible>)" ~insert:(`top) visible_rule;
+     (* pflag ["ocamldep"] "visible" (fun dir -> S[A"-I";A dir]); *)
+     (* pflag ["ocaml";"compile"] "visible" (fun dir -> S[A"-I";A dir]); *)
+     (* (\* pflag ["ocaml";"link"] "visible" (fun dir -> S[A"-I";A dir]); *\) *)
+     (* pflag [] "visible" (fun dir -> *)
+     (*     List.iter print_endline !Options.tag_lines; *)
+     (*     print_endline("I see "^dir); *)
+     (*     List.iter *)
+     (*       (fun target -> *)
+     (*         print_endline("Dealing with target "^target); *)
+     (*         let currentdir = Pathname.dirname target in *)
+     (*         Pathname.define_context *)
+     (*           currentdir *)
+     (*           (dir::(Pathname.include_dirs_of currentdir)) *)
+     (*       ) *)
+     (*       !Options.targets; *)
+     (*     N *)
+     (*     (\* S[A"-I";A dir] *\) *)
+     (*   ); *)
      dispatch_default r
   | _ ->
      dispatch_default r;;
