@@ -60,7 +60,7 @@ Library portfolio
   Modules:     Plugins, PluginsG, PluginsTh
   InternalModules : Tools
   XMETADescription: Psyche's portfolio of plugins
-  XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel"
+  XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std str"
 
 Flag psyche
   Description: Target is Psyche's executable
@@ -72,4 +72,12 @@ Executable main
   Install$:   flag(psyche)
   MainIs:     main.ml
   CompiledObject: best
-#  BuildDepends: async, threads, ppx_deriving.std
+  BuildDepends: async, threads, ppx_deriving.std, str
+
+# Document "Psyche"
+#   Type: ocamlbuild
+#   BuildTools: ocamlbuild,ocamldoc
+#   Title:      Psyche's API
+#   InstallDir: API
+#   XOCamlBuildPath: src
+#   XOCamlbuildModules: Main,Kernel

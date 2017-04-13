@@ -1,0 +1,11 @@
+# OASIS_START
+# DO NOT EDIT (digest: 1d92b426e9b479e2ce9a79eeaca283f4)
+version = "2.1"
+description = "Library used by Psyche's kernel"
+archive(byte) = "kernel_lib.cma"
+archive(byte, plugin) = "kernel_lib.cma"
+archive(native) = "kernel_lib.cmxa"
+archive(native, plugin) = "kernel_lib.cmxs"
+exists_if = "kernel_lib.cma"
+# OASIS_STOP
+

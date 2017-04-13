@@ -40,9 +40,9 @@ configure: rm_setup_data
 ifdef LIB
 install reinstall:: TO_INSTALL =                         \
 	$(ROOTDIR)/META \
-	$(shell find _build/$(ROOTDIR) -name *.cmi)  \
-	$(shell find _build/$(ROOTDIR) -name *.cmt)  \
-	$(shell find _build/$(ROOTDIR) -name *.cmti)
+	$(shell find _build/src -name open.cmx)  \
+	$(shell find _build/src -name flags.cmx)  \
+	$(shell find _build/src -name dump.cmx)
 install reinstall::
 	ocamlfind install -add $(LIB) $(TO_INSTALL)
 endif

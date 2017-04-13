@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: a20c23508b80138514b474eb1572d72e)
+# DO NOT EDIT (digest: eee33935ccf396196f1a3c3b48376ca4)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,6 +21,14 @@ true: annot, bin_annot
 # Library portfolio
 "src/portfolio/portfolio.cmxs": use_portfolio
 # Executable main
+<src/top-level/main.{native,byte}>: package(async)
+<src/top-level/main.{native,byte}>: package(ppx_deriving.std)
+<src/top-level/main.{native,byte}>: package(str)
+<src/top-level/main.{native,byte}>: package(threads)
+<src/top-level/*.ml{,i,y}>: package(async)
+<src/top-level/*.ml{,i,y}>: package(ppx_deriving.std)
+<src/top-level/*.ml{,i,y}>: package(str)
+<src/top-level/*.ml{,i,y}>: package(threads)
 # OASIS_STOP
 
 true: debug
@@ -30,34 +38,19 @@ true: debug
 <tools>:     -traverse, not_hygienic
 <latex>:     -traverse, not_hygienic
 <attempt>:   -traverse, not_hygienic
-true: opaque
 
 <src> or <src/include> : include
 <src/*/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>    : pkg_ppx_deriving.std, pkg_ppx_hash
 
-
-<src/kernel/kernel.mldir/specs/> : visible(src/kernel/kernel.mldir)
-
 <src/kernel/**/*.ml{,i,y}>    : pkg_psyche_kernel_lib
+<src/kernel/kernel.mldir/theories/*.mldir> : visible(src/kernel/kernel.mldir)
 
-# <src/kernel>                  : include_all
-# <src/kernel>                  : namespace_lib(src/kernel/kernel)
-# <src/kernel/kernel>           : namespace
-# <src/kernel/kernel/top>       : namespace
-# <src/kernel/kernel/parsers/**>: namespace
-# <src/kernel/kernel/theories/*>: namespace
-# <src/include>                 : namespace_lib(src/kernel/kernel)
+<src/portfolio/**/*.ml{,i,y}> : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_str
+<src/portfolio/**/*.ml{,i,y}> : package(str)
+<src/portfolio/plugins.mldir/**/*.mldir>   : visible(src/portfolio)
+<src/portfolio/pluginsG.mldir/**/*.mldir>  : visible(src/portfolio)
+<src/portfolio/pluginsTh.mldir/**/*.mldir> : visible(src/portfolio)
 
-
-
-# <src/portfolio>               : include_all
-# <src/portfolio>               : namespace_lib(src/portfolio/portfolio)
-# <src/portfolio/tools/**>      : namespace
-# <src/portfolio/plugins/**>    : namespace
-# <src/portfolio/pluginsG/**>   : namespace
-# <src/portfolio/pluginsTh>     : namespace
-# <src/portfolio/**/*.ml{,i,y}> : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel
-
-# <src/top-level/*.ml{,i,y}>: pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
-# <src/top-level/main.{native,byte}>: pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
+<src/top-level/*.ml{,i,y}>:  pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio, pkg_str, package(str)
+<src/top-level/main.{native,byte}>: thread, pkg_str, package(str), pkg_async, pkg_ppx_hash, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio

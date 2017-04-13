@@ -921,85 +921,134 @@ let print_info f =
     Tags.print (tags_of_pathname f)
     
 let parent_dir dir = Pathname.normalize(Pathname.concat dir (Pathname.parent ""))
-    
+
+let rec guess maindir path accu =
+  (* print_endline("Guessing "^path); *)
+  if Pathname.is_prefix path maindir
+  then ((* print_endline("Guessing module name is: "^accu); *)
+    accu)
+  else
+    let base = Pathname.add_extension "mldir" (Pathname.remove_extension path) in
+    let parent = parent_dir path in
+    (* print_endline("Base is "^base); *)
+    (* print_endline("Parent is "^parent); *)
+    let accu =
+      if Pathname.exists base
+      then ((* print_endline("adding "^module_name_of_pathname path); *)
+        (module_name_of_pathname path)^"."^accu)
+      else accu
+    in
+    guess maindir parent accu  
+                                       
+let mk_visible dirlist dir =
+  let dirlist = List.sort_uniq String.compare (dirlist@Pathname.include_dirs_of dir) in
+  Pathname.define_context dir dirlist
+
+let mk_all_visible inherited dirlist =
+  List.iter (mk_visible (inherited@dirlist)) dirlist
+
 let ml_rule env build =
   try
-    let ml = env "%.ml" and mldir = env "%.mldir" in
+    let ml = env "%.mlpack" and mldir = env "%.mldir" in
     let main_dir   = parent_dir !Options.build_dir in
     let orig_mldir = Pathname.concat main_dir mldir in
     if not(Pathname.exists orig_mldir)
-    then failwith(orig_mldir^" does not exist, existing rule mldir -> ml");
-    let dir =
-      if Pathname.is_directory orig_mldir
-      then mldir
-      else Pathname.remove_extension mldir
-    in
-    let this     = Pathname.remove_extension mldir in
-    let this_cmo = Pathname.add_extension "cmo" this in
-    let this_cmx = Pathname.add_extension "cmx" this in
-    let this_cmi = Pathname.add_extension "cmi" this in
+    then failwith(orig_mldir^" does not exist, existing rule mldir -> mlpack");
 
-    let rec treat_dir subdir (accu, ctx) =
-      let fullpath = Pathname.concat main_dir subdir in
+    let dir,packs =
+      if Pathname.is_directory orig_mldir
+      then mldir,
+           [guess main_dir (parent_dir orig_mldir) (module_name_of_pathname orig_mldir)]
+      else Pathname.remove_extension mldir,
+           string_list_of_file orig_mldir
+    in
+    let here = Pathname.dirname mldir in
+    
+    let rec treat_dir subdir (accu,deps,ctx) =
+      let relpath  = Pathname.concat here subdir in
+      let fullpath = Pathname.concat main_dir relpath in
       (* print_endline("Collecting modules from files in "^subdir); *)
-      let ctx = subdir::ctx in
+      let ctx = relpath::ctx in
       let contents = Pathname.readdir fullpath in
       let treatfile x = treat_file (Pathname.concat subdir x) in
-      Array.fold_right treatfile contents (accu,ctx)
+      Array.fold_right treatfile contents (accu,deps,ctx)
 
-    and treat_file file (accu,ctx) =
-      let orig_path = Pathname.concat main_dir file in
+    and treat_file file (accu,deps,ctx) =
+      let relpath  = Pathname.concat here file in
+      let orig_path = Pathname.concat main_dir relpath in
       (* print_endline("Treating file "^fullpath); *)
       let check = Pathname.check_extension file in
-      if List.exists check ["ml";"mlpack";"mldir"]
+      if List.exists check ["ml";"mlpack";"mldir";"mly";"mll"]
       then
-        (let base = Pathname.remove_extension file in
+        (let base = Pathname.remove_extension relpath in
          let cmx = Pathname.add_extension "cmx" base in
          let cmo = Pathname.add_extension "cmo" base in
          let src =
-           if check "mldir" then Pathname.add_extension "ml" base
-           else file
+           if check "mldir" then Pathname.add_extension "mlpack" base
+           else relpath
          in
-         (* print_endline("Building "^file); *)
          List.iter Outcome.ignore_good(build [[src]]);
-         dep ["ocaml"; "compile"; "file:"^this_cmx] [cmx];
-         dep ["ocaml"; "compile"; "file:"^this_cmo] [cmo];
+         let pack_aux pack sofar = A"-for-pack"::A pack::sofar in
+         let pack_command = S(List.fold_right pack_aux packs []) in
+         flag ["ocaml"; "compile"; "file:"^cmx] & pack_command;
+         flag ["ocaml"; "compile"; "file:"^cmo] & pack_command;
+         flag ["ocaml"; "pack"; "file:"^cmx] & pack_command;
+         flag ["ocaml"; "pack"; "file:"^cmo] & pack_command;
          let modle = module_name_of_pathname file in
-         ("module "^modle^" = struct include "^modle^" end\n")::accu,ctx)
+         ((Pathname.concat (Pathname.dirname file) modle)^"\n")::accu,
+         base::deps,
+         ctx)
       else if (Pathname.is_directory orig_path)
               && not(Pathname.exists (Pathname.add_extension "mldir" orig_path))
-      then treat_dir file (accu,ctx)
-      else accu,ctx
+      then treat_dir file (accu,deps,ctx)
+      else accu,deps,ctx
     in
                 
-    let mlstring,ctx  = treat_dir dir ([],[]) in
-    let aux dir sofar = A"-I"::A dir::sofar in
-    let command = S(List.fold_right aux ctx []) in
-    flag ["ocaml"; "compile"; "file:"^this_cmx] & command;
-    flag ["ocaml"; "compile"; "file:"^this_cmo] & command;
-    flag ["ocaml"; "compile"; "file:"^this_cmi] & command;
+    let mlstring,deps,ctx  = treat_dir (Pathname.basename dir) ([],[],[]) in
+    mk_all_visible (Pathname.include_dirs_of here) ctx;
     Echo(mlstring,ml)
   with
     e ->
+    (* print_endline(Printexc.to_string e); *)
     List.iter Outcome.ignore_good(build [["This target has no rule"]]);
     Nop
 
+
+let visible_regexp =
+  Str.regexp (Printf.sprintf "%s\\((\\([^)]*\\))\\)?$" "visible")
+
+let rec scan_for_visible_tag = function
+  | [] -> None
+  | tag::more_tags ->
+     if not @@ Str.string_match visible_regexp tag 0 then
+       scan_for_visible_tag more_tags
+     else
+       try Some (Str.matched_group 2 tag)
+       with Not_found ->
+         Printf.sprintf
+           "The %s tag requires an argument (dir name)"
+           "visible"
+         |> failwith
+
+      
 let visible_rule env build =
   let target = env "%(id)" in
   let dir = Pathname.dirname target in
   (* print_endline("Target is: "^target); *)
   (* print_endline("Dir is: "^dir); *)
-  Pathname.define_context
+  let lookup =
     dir
-    ("src/kernel/kernel.mldir"::(Pathname.include_dirs_of dir));
-  (* pflag ["file:"^target] "visible" *)
-  (*   (fun visible -> *)
-  (*     print_endline(dir^" sees "^visible); *)
-  (*     Pathname.define_context *)
-  (*       dir *)
-  (*       (visible::(Pathname.include_dirs_of dir)); *)
-  (*     N *)
-  (*   ); *)
+    |> tags_of_pathname
+    |> Tags.elements
+    |> scan_for_visible_tag
+  in
+  (match lookup with
+   | Some visible when not(List.mem visible (Pathname.include_dirs_of dir)) ->
+      Pathname.define_context dir (visible::(Pathname.include_dirs_of dir))
+      (* print_endline("Making "^visible^" visible to "^dir); *)
+      (* mk_visible [visible] dir *)
+   | _ -> ()
+  );
   List.iter Outcome.ignore_good(build [["visible"]]);
   Nop
   
@@ -1007,28 +1056,11 @@ let visible_rule env build =
 let mydispatch r =
   match r with
   | After_rules ->
-     rule "Generate ml from mldir" ~prod:"%.ml" ml_rule;
+     rule "mldir -> mlpack" ~prod:"%.mlpack" ml_rule;
+     rule "Visible rule" ~prod:"%(id:not <visible>)" ~insert:(`top) visible_rule;
      (* Pathname.define_context "when_compiling_things_in_here" *)
      (*   ["include_this_dir";"and_that_dir"]; *)
-     rule "Visible rule" ~prod:"%(id:not <visible>)" ~insert:(`top) visible_rule;
-     (* pflag ["ocamldep"] "visible" (fun dir -> S[A"-I";A dir]); *)
-     (* pflag ["ocaml";"compile"] "visible" (fun dir -> S[A"-I";A dir]); *)
-     (* (\* pflag ["ocaml";"link"] "visible" (fun dir -> S[A"-I";A dir]); *\) *)
-     (* pflag [] "visible" (fun dir -> *)
-     (*     List.iter print_endline !Options.tag_lines; *)
-     (*     print_endline("I see "^dir); *)
-     (*     List.iter *)
-     (*       (fun target -> *)
-     (*         print_endline("Dealing with target "^target); *)
-     (*         let currentdir = Pathname.dirname target in *)
-     (*         Pathname.define_context *)
-     (*           currentdir *)
-     (*           (dir::(Pathname.include_dirs_of currentdir)) *)
-     (*       ) *)
-     (*       !Options.targets; *)
-     (*     N *)
-     (*     (\* S[A"-I";A dir] *\) *)
-     (*   ); *)
+     (* mark_tag_used "visible"; *)
      dispatch_default r
   | _ ->
      dispatch_default r;;
