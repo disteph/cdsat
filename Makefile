@@ -10,7 +10,10 @@ test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
 
 all:
-	$(SETUP) -all $(ALLFLAGS)
+	make kernel_lib build install clean
+	make kernel build install clean
+	make portfolio build install clean
+	make psyche build
 
 install:: setup.data
 	$(SETUP) -install $(INSTALLFLAGS)
@@ -37,15 +40,15 @@ configure: rm_setup_data
 
 -include Makefile.data
 
-ifdef LIB
-install reinstall:: TO_INSTALL =                         \
-	$(ROOTDIR)/META \
-	$(shell find _build/src -name open.cmx)  \
-	$(shell find _build/src -name flags.cmx)  \
-	$(shell find _build/src -name dump.cmx)
-install reinstall::
-	ocamlfind install -add $(LIB) $(TO_INSTALL)
-endif
+# ifdef LIB
+# install reinstall:: TO_INSTALL =                         \
+# 	$(ROOTDIR)/META \
+# 	$(shell find _build/src -name open.cmx)  \
+# 	$(shell find _build/src -name flags.cmx)  \
+# 	$(shell find _build/src -name dump.cmx)
+# install reinstall::
+# 	ocamlfind install -add $(LIB) $(TO_INSTALL)
+# endif
 
 rm_makefile_data:
 	rm Makefile.data || true

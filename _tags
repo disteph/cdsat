@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: eee33935ccf396196f1a3c3b48376ca4)
+# DO NOT EDIT (digest: a20c23508b80138514b474eb1572d72e)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,15 +21,10 @@ true: annot, bin_annot
 # Library portfolio
 "src/portfolio/portfolio.cmxs": use_portfolio
 # Executable main
-<src/top-level/main.{native,byte}>: package(async)
-<src/top-level/main.{native,byte}>: package(ppx_deriving.std)
-<src/top-level/main.{native,byte}>: package(str)
-<src/top-level/main.{native,byte}>: package(threads)
-<src/top-level/*.ml{,i,y}>: package(async)
-<src/top-level/*.ml{,i,y}>: package(ppx_deriving.std)
-<src/top-level/*.ml{,i,y}>: package(str)
-<src/top-level/*.ml{,i,y}>: package(threads)
 # OASIS_STOP
+
+# This is to silence warnings "Tag ... is not used"
+<silent> : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
 true: debug
 <problems>:  -traverse, not_hygienic
@@ -39,18 +34,17 @@ true: debug
 <latex>:     -traverse, not_hygienic
 <attempt>:   -traverse, not_hygienic
 
-<src> or <src/include> : include
-<src/*/**/*.ml{,i,y}>  : open(Open)
-<src/**/*.ml{,i,y}>    : pkg_ppx_deriving.std, pkg_ppx_hash
 
-<src/kernel/**/*.ml{,i,y}>    : pkg_psyche_kernel_lib
-<src/kernel/kernel.mldir/theories/*.mldir> : visible(src/kernel/kernel.mldir)
+<src/lib/*/*.ml{,i,y}>         : open(Open)
+<src/kernel/**/*.ml{,i,y}>     : open(Open)
+<src/portfolio/**/*.ml{,i,y}>  : open(Open)
+<src/**/*.ml{,i,y}>            : pkg_ppx_deriving.std, pkg_ppx_hash
 
-<src/portfolio/**/*.ml{,i,y}> : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_str
-<src/portfolio/**/*.ml{,i,y}> : package(str)
-<src/portfolio/plugins.mldir/**/*.mldir>   : visible(src/portfolio)
-<src/portfolio/pluginsG.mldir/**/*.mldir>  : visible(src/portfolio)
-<src/portfolio/pluginsTh.mldir/**/*.mldir> : visible(src/portfolio)
+<src/kernel/**/*.ml{,i,y}>     : pkg_psyche_kernel_lib
 
-<src/top-level/*.ml{,i,y}>:  pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio, pkg_str, package(str)
-<src/top-level/main.{native,byte}>: thread, pkg_str, package(str), pkg_async, pkg_ppx_hash, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
+<src/portfolio/**/*.ml{,i,y}>  : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_str
+<src/portfolio/tools.mld>      : blind
+
+<src/top-level>           : visible(src)
+<src/top-level/*.ml{,i,y}>: thread, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
+<src/top-level/main.{native,byte}>: thread, pkg_async, pkg_ppx_hash, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio

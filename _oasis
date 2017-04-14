@@ -21,7 +21,7 @@ Plugins:     META (0.4)
 
 OCamlVersion:           >= 4.03
 AlphaFeatures:          ocamlbuild_more_args
-XOCamlbuildPluginTags:  package(str)
+XOCamlbuildPluginTags:  package(mld)
 
 Flag kernel_lib
   Description: Target is Psyche's kernel's lib
@@ -32,7 +32,7 @@ Library kernel_lib
   Path:         src/lib
   Build$:       flag(kernel_lib)
   Install$:     flag(kernel_lib)
-  Modules:      General
+  Modules:      General, Open
   XMETADescription: Library used by Psyche's kernel
 
 Flag kernel
@@ -44,7 +44,7 @@ Library kernel
   Path:        src/kernel
   Build$:      flag(kernel)
   Install$:    flag(kernel)
-  Modules:     Kernel
+  Modules:     Kernel, Dump, Flags
   XMETADescription: Psyche's kernel
   XMETAExtraLines: requires = "psyche_kernel_lib"
 
@@ -72,7 +72,6 @@ Executable main
   Install$:   flag(psyche)
   MainIs:     main.ml
   CompiledObject: best
-  BuildDepends: async, threads, ppx_deriving.std, str
 
 # Document "Psyche"
 #   Type: ocamlbuild
