@@ -42,7 +42,7 @@ true: debug
 
 <src/kernel/**/*.ml{,i,y}>     : pkg_psyche_kernel_lib
 
-<src/portfolio/**/*.ml{,i,y}>  : thread, pkg_async, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_str
+<src/portfolio/**/*.ml{,i,y}>  : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel
 <src/portfolio/tools.mld>      : blind
 
 <src/top-level>           : visible(src)
