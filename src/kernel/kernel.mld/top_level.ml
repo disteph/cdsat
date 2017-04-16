@@ -11,12 +11,12 @@ as possibly indicated by the parser when glancing at the input *)
        
 let init (module MyPluginG : PluginG.Type) get_plugin th =
 
-  let module PS = Prop.Search.ProofSearch(MyPluginG.DS) in
+  let module PS = Theories.Prop.Search.ProofSearch(MyPluginG.DS) in
 
-  let (module Mode) : (module Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
+  let (module Mode) : (module Theories.Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
     = if !Flags.mode
       then
-        let open Theories_register in
+        let open Theories.Register in
         let theories =
           match !Flags.addtheories, !Flags.notheories, th with
           | Some l,Some l', Some parsed ->
@@ -39,7 +39,7 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
         in
         (module Res)
       else
-        let module FO = FirstOrder.MyTheory.Make(PS.Semantic) in
+        let module FO = Theories.FirstOrder.MyTheory.Make(PS.Semantic) in
         (module FO)
   in
 
@@ -54,9 +54,9 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
       | Some parsed, expected ->
 	try 
           let formula =
-            Prop.ForParsing.toForm 
+            Theories.Prop.ForParsing.toForm 
               (if !Flags.mode
-               then Prop.ForParsing.bC Top.Symbols.IsTrue [parsed]
+               then Theories.Prop.ForParsing.bC Top.Symbols.IsTrue [parsed]
                else parsed)
           in
 	  let answer =
@@ -64,7 +64,7 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
               (fun p->
                 p "I am now starting: %t"
                   (if !Flags.printrhs
-                   then fun fmt -> Prop.Formulae.FormulaB.print_in_fmt fmt formula
+                   then fun fmt -> Theories.Prop.Formulae.FormulaB.print_in_fmt fmt formula
                    else fun fmt -> ()));
 	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
@@ -98,7 +98,7 @@ let parseNrun myPluginG get_plugin input =
       begin
 	try 
           let aft = MyParser.glance input in
-          let prop4parsing = (module Prop.ForParsing : Top.Specs.ForParsing with type t = Prop.ForParsing.t) in
+          let prop4parsing = (module Theories.Prop.ForParsing : Top.Specs.ForParsing with type t = Theories.Prop.ForParsing.t) in
           let pair = match MyParser.parse aft (Typing.forParser prop4parsing) with
             | Some parsable, b -> Some(parsable Top.Sorts.Prop),b
             | None, b -> None, b
@@ -112,7 +112,7 @@ let parseNrun myPluginG get_plugin input =
     | [] -> print_endline "No parser seems to work for this input."; function _ -> None
   in
   let parselist = match !Flags.parser with
-    | None   -> Parsers_register.all_parsers
-    | Some l -> List.fold (fun s l -> (Parsers_register.get s)::l) l []
+    | None   -> Parsers.Register.all_parsers
+    | Some l -> List.fold (fun s l -> (Parsers.Register.get s)::l) l []
   in
   trying parselist

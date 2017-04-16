@@ -7,8 +7,8 @@ open Format
 open General.Sums
 
 open Top.Messages
-open Prop.Interfaces_theory
-open Theories_register
+open Theories.Prop.Interfaces_theory
+open Theories.Register
 
 (* Basic module for constraints, for ground theories *)
 

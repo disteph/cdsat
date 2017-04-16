@@ -1,5 +1,5 @@
 open Format
-
+open General
 open Interfaces_basic
 
 (* A term is either a variable or a function symbol applied to
@@ -58,7 +58,7 @@ struct
   type datatype = Data.t
   type leaf = Leaf.t
 
-  let HCons.SomeGADT term_of_id = backindex
+  let Opt.Some term_of_id = backindex
 
   let id = id
   let compare = compare

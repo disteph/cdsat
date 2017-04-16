@@ -7,7 +7,7 @@ open Basic
 open Interfaces_basic
 open Variables
 open Messages
-open Theories_register
+open Theories.Register
 open Specs
        
 (* This is the module type that we are going to produce at the end of this file *)
@@ -148,7 +148,7 @@ let make (type a)
     let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
       else failwith "Using a theory that is not allowed"
 
-    let stamp (type b) (hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
+    let stamp (type b) (Sig.Sig hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
       | Propa(tset,o) ->
          check hdl;
          WB(HandlersMap.singleton (Handlers.Handler hdl) (),

@@ -1,4 +1,4 @@
-open Prop
+open Theories.Prop
 open Interfaces_theory
 open Formulae
 open Interfaces_plugin

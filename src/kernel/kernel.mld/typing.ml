@@ -2,7 +2,7 @@ open Top
 open Basic
 open Parser
 open Multiary
-open Prop.Formulae
+open Theories.Prop.Formulae
 
 exception TypingError of string
 
