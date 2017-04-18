@@ -1,5 +1,5 @@
-include Num
-open Equation
+open Num
+open Termstructures.Rationals
 
 
 (* eliminates a variable from a set of inequations.

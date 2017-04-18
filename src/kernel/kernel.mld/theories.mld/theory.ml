@@ -1,22 +1,42 @@
 open Top
 open Specs
+open Interfaces_basic
 
-module type DSproj = sig
-  include GTheoryDSType
-  type ts
-  val proj: Term.datatype -> ts
+type _ values_opt =
+  | HasValues : (module PH with type t = 'a) -> 'a has_values values_opt
+  | HasNoValues : has_no_values values_opt
+
+module HasValues(V:PH) = struct
+  type values = V.t has_values
+  let values = HasValues(module V)
+end
+
+module HasNoValues = struct
+  type values = has_no_values
+  let values = HasNoValues
 end
 
 module type Type = sig
 
-  type ('term,'tset) t
-
   type ts
-  val ts : ts Termstructures.Register.TSHandler.t
+  val ts : ts Termstructures.Register.t
 
-  module Make(DS: DSproj with type ts := ts) : sig
-    open DS
-    val theorymodule : (Term.t,TSet.t) t
-  end
+  type values
+  val values : values values_opt
 
+  type ('termdata,'value,'assign) api
+
+  val make : (ts,values,'termdata,'value,'assign) dsProj
+             -> ('termdata,'value,'assign) api
+                    
+end
+
+module Make(T : sig
+             type sign
+             include Type
+           end) = struct
+  include T
+  type ('termdata,'value,'assign) signature
+    = ('termdata*'value*'assign)
+      *(T.sign*T.ts*T.values*('termdata,'value,'assign) T.api)
 end

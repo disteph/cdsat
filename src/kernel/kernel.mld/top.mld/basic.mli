@@ -11,8 +11,6 @@ module IntSort : sig
   val reveal : t -> int*Sorts.t
   val build  : int*Sorts.t -> t
   val isDefined  : t -> bool
-  val equal : t -> t -> bool
-  val hash : t -> int
 end
 
 module IntMap : Map.S with type key = int
@@ -21,9 +19,8 @@ module IdMon : MonadType with type 'a t = 'a
 
 module MakeCollection
          (OT: sig
-              include Set.OrderedType
-              val print_in_fmt: Format.formatter -> t -> unit
-            end)
+              type t [@@deriving ord,show]
+            end) 
        : Collection with type e = OT.t
 
 module MakePATCollection(M: PHCons) : sig

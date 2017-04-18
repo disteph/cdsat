@@ -27,7 +27,7 @@ module type S = sig
   type leaf
   type datatype
   include PHCons with type t = (leaf,datatype) term
-  val printtl_in_fmt: Format.formatter -> t list -> unit
+  val pp_tl: Format.formatter -> t list -> unit
   val print_of_id: Format.formatter -> int -> unit
   val term_of_id: int -> t
   val bV : leaf -> t
@@ -65,22 +65,24 @@ struct
   let bV i   = build(V i)
   let bC f l = build(C(f,l))
     
-  let rec print_in_fmt fmt t =
+  let rec pp fmt t =
     match reveal t with
-    | V a -> fprintf fmt "%a" Leaf.print_in_fmt a
-    | C(f, newtl) -> fprintf fmt "%a%a" Symbols.print_in_fmt f printtl_in_fmt newtl
-  and printtl_in_fmt fmt tl = match tl with
+    | V a -> fprintf fmt "%a" Leaf.pp a
+    | C(f, newtl) -> fprintf fmt "%a%a" Symbols.pp f pp_tl newtl
+  and pp_tl fmt tl = match tl with
     | []   -> ()
-    | _::_ -> fprintf fmt "(%a)" printrtl_in_fmt tl
-  and printrtl_in_fmt fmt tl =
+    | _::_ -> fprintf fmt "(%a)" pp_rtl tl
+  and pp_rtl fmt tl =
     match tl with
     | [] -> ()
-    | [t] -> print_in_fmt fmt t
-    | t :: l -> fprintf fmt "%a,%a" print_in_fmt t printrtl_in_fmt l
+    | [t] -> pp fmt t
+    | t :: l -> fprintf fmt "%a,%a" pp t pp_rtl l
+
+  let show = Dump.stringOf pp
 
   let print_of_id fmt index =
     let atom = term_of_id index in
-    print_in_fmt fmt atom
+    pp fmt atom
                  
   module Homo(Mon: MonadType) = struct
     let rec lift update t

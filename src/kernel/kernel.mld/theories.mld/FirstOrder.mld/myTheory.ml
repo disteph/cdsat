@@ -39,7 +39,7 @@ module Make(PropDS:DataType) = struct
 
     open DT
 
-    module Term = Terms.Make(FreeVar)(Pairing(PropDS)(DT))
+    module Term = Terms.Make(FreeVar)(Tools.Pairing(PropDS)(DT))
 
     type formulae = PropDS.t
     let asF = fst
@@ -51,7 +51,11 @@ module Make(PropDS:DataType) = struct
                    (* print_endline (Dump.toString (fun p -> p "Term: %a" Term.print_in_fmt atom)); *)
                    b,atom,ms
 
-    module TSet = MakeCollection(Term)
+    module Assign = MakeCollection(Term)
+
+    module Value = struct
+      type t = unit [@@deriving eq,ord,hash,show]
+    end
 
     let makes_sense term = MakesSense.check (snd(snd(Terms.data term)))
 
@@ -61,24 +65,24 @@ module Make(PropDS:DataType) = struct
 
   open DS
 
-  exception FoundIt of TSet.t*Constraint.t*(TSet.t,Constraint.t) stream
+  exception FoundIt of Assign.t*Constraint.t*(Assign.t,Constraint.t) stream
 
 (* We range over atomN,
    alias is the set of atoms that haven't been tried (starts with atomN);
    as soon as we find a solution, we raise an exception *)
 
   let aux aset compare cont t atomN sigma = 
-    TSet.fold
+    Assign.fold
       (fun a alias -> 
-        Dump.print ["FirstOrder",1] (fun p -> p "Unifying literals %a and %a" Term.print_in_fmt a Term.print_in_fmt t);
-        let newalias = TSet.remove a alias in
+        Dump.print ["FirstOrder",1] (fun p -> p "Unifying literals %a and %a" Term.pp a Term.pp t);
+        let newalias = Assign.remove a alias in
         (match asL a, asL t with
         | (b1,l1,_), (b2,l2,_) when compare b1 b2 ->
-          (Dump.print ["FirstOrder",1] (fun p -> p "constraint = %a" Constraint.print_in_fmt sigma);
-           Dump.print ["FirstOrder",1] (fun p -> p "Actually unifying atoms %a and %a" Term.print_in_fmt l1 Term.print_in_fmt l2);
+          (Dump.print ["FirstOrder",1] (fun p -> p "constraint = %a" Constraint.pp sigma);
+           Dump.print ["FirstOrder",1] (fun p -> p "Actually unifying atoms %a and %a" Term.pp l1 Term.pp l2);
            match Constraint.unif sigma l1 l2 with
            | Some newsigma -> 
-             raise (FoundIt(TSet.add a aset,newsigma, cont newalias))
+             raise (FoundIt(Assign.add a aset,newsigma, cont newalias))
            | None -> ())
         | _ -> ());
         newalias)
@@ -86,13 +90,13 @@ module Make(PropDS:DataType) = struct
       atomN 
       
   let rec goal_consistency t atomN sigma = 
-  (* (print_endline (Dump.toString(fun p->p "goal consistency on %a |- %a" TSet.print_in_fmt atomN))); *)
+  (* (print_endline (Dump.toString(fun p->p "goal consistency on %a |- %a" Assign.pp atomN))); *)
   (* We range over atomN,
      we catch an exception (means success);
      otherwise we finish with NoMore *)
     try 
       let _ = 
-        aux TSet.empty [%eq:bool] (goal_consistency t) t atomN sigma
+        aux Assign.empty [%eq:bool] (goal_consistency t) t atomN sigma
       in NoMore
     with
       FoundIt(a,newsigma,f) -> Guard(a,newsigma,f)
@@ -100,10 +104,10 @@ module Make(PropDS:DataType) = struct
   let rec consistency atomN sigma =
     try 
       let _ =
-        TSet.fold
+        Assign.fold
           (fun t after -> 
-            let newafter = TSet.remove t after in
-            let aset = TSet.add t TSet.empty in
+            let newafter = Assign.remove t after in
+            let aset = Assign.add t Assign.empty in
             let rec g_consistency remaining sigma =
               try 
                 let _ = aux aset (!=) g_consistency t remaining sigma in

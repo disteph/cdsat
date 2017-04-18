@@ -8,7 +8,7 @@ module type API = sig
   val clear: unit -> unit
 end
 
-include Theory.Type with type ts = Termstructures.Literals.TS.t
-                     and type values = has_no_values
+include Theory.Type with type ts = Termstructures.Rationals.TS.t
+                     and type values = General.Pnum.t has_values
                      and type ('t,'v,'a) api
                               = (module API with type assign = 'a)

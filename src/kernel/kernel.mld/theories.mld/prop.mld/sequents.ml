@@ -32,9 +32,10 @@ module DblSet(TrustedSet: Collection)(PluginSet: CollectExtra with type e = Trus
     let mem e (t,_)            = TrustedSet.mem e t
     let equal (t1,_) (t2,_)    = TrustedSet.equal t1 t2
     let subset (t1,_) (t2,_)   = TrustedSet.subset t1 t2
-    let print_in_fmt fmt (t,_) = TrustedSet.print_in_fmt fmt t
     let fold f (tt,_)          = TrustedSet.fold f tt
-
+    let pp fmt (t,_)           = TrustedSet.pp fmt t
+    let show = Dump.stringOf pp
+                             
     let next (tt,pt) = let (e,tt') = TrustedSet.next tt in (e,(tt',PluginSet.remove e pt))
     let forTrusted (tt,_) = tt
     let forPlugin  (_,pt) = pt
@@ -57,24 +58,24 @@ module Make(PlDS: PlugDSType) = struct
     (* Visible outside Kernel *)
     type dsubsts     = DSubst.t
     type constraints = Constraint.t
-    let print_in_fmtC = Constraint.print_in_fmt
-    let print_in_fmtL = LitF.print_in_fmt ~print_atom:Term.print_of_id
+    let ppC = Constraint.pp
+    let ppL = LitF.print_in_fmt ~print_atom:Term.print_of_id
                         
     module LitF_print = struct
       include LitF
-      let print_in_fmt fmt lit =
+      let pp fmt lit =
         print_in_fmt ~print_atom:Term.print_of_id fmt lit
+      let show = Dump.stringOf pp
     end
                     
     module IForm = struct
       include Semantic
       let print_in_fmt ?(print_atom=Term.print_of_id) fmt lit =
         print_in_fmt ~print_atom fmt lit
+      let pp fmt = print_in_fmt fmt
+      let show = Dump.stringOf pp
     end
-    module FSet = DblSet(MakeCollection(struct
-                             include IForm
-                             let print_in_fmt fmt = print_in_fmt fmt
-                           end))(PlDS.UFSet)
+    module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
     module ASet = DblSet(MakeCollection(LitF_print))(PlDS.UASet)
 
     let iatom_build d l =
@@ -118,11 +119,11 @@ module Make(PlDS: PlugDSType) = struct
         -> let dw = DSubst.get_arity d in
            World.prefix dw w
 
-    let asTSet (aset: ASet.t) : TSet.t = 
-      ASet.fold (fun e -> TSet.add (litF_as_term e)) aset TSet.empty
+    let asAssign (aset: ASet.t) : Assign.t = 
+      ASet.fold (fun e -> Assign.add (litF_as_term e)) aset Assign.empty
 
-    let asASet (tset: TSet.t) : ASet.t =
-      TSet.fold
+    let asASet (tset: Assign.t) : ASet.t =
+      Assign.fold
         (fun e aset ->
           match FormulaF.reveal(asF(Terms.data e)) with
           | LitF l -> ASet.add l aset
@@ -200,29 +201,29 @@ module Make(PlDS: PlugDSType) = struct
 	  
       (* Displays sequent *)
 
-      let print_in_fmt_aux fmt (type a) : a seq -> unit = function
+      let pp_aux fmt (type a) : a seq -> unit = function
           t ->
           match t.rhs with
 	  | F focused
             -> fprintf fmt " \\DerOSPos {%a} {%a} {%a \\cdot %a}"
-                 TSet.print_in_fmt (asTSet t.lits)
-                 (fun fmt -> IForm.print_in_fmt fmt) focused
-                 FSet.print_in_fmt t.formP
-                 FSet.print_in_fmt t.formPSaved
+                 Assign.pp (asAssign t.lits)
+                 (fun fmt -> IForm.pp fmt) focused
+                 FSet.pp t.formP
+                 FSet.pp t.formPSaved
 	  | U unfocused
             -> fprintf fmt " \\DerOSNeg {%a} {%a} {%a \\cdot %a}"
-                 TSet.print_in_fmt (asTSet t.lits)
-                 FSet.print_in_fmt unfocused
-                 FSet.print_in_fmt t.formP
-                 FSet.print_in_fmt t.formPSaved
+                 Assign.pp (asAssign t.lits)
+                 FSet.pp unfocused
+                 FSet.pp t.formP
+                 FSet.pp t.formPSaved
 
       let print_seq_in_fmt fmt (type a) : a seq -> unit = function
           seq -> 
-          if !Flags.printrhs then print_in_fmt_aux fmt seq
-          else fprintf fmt "%a\nin %a" ASet.print_in_fmt seq.lits World.print_in_fmt seq.world
+          if !Flags.printrhs then pp_aux fmt seq
+          else fprintf fmt "%a\nin %a" ASet.pp seq.lits World.pp seq.world
 
-      let print_in_fmt fmt (Seq t) = print_seq_in_fmt fmt t
-
+      let pp fmt (Seq t) = print_seq_in_fmt fmt t
+      let show = Dump.stringOf pp
     end
 
     (* Module of Proofs *)
@@ -246,10 +247,12 @@ module Make(PlDS: PlugDSType) = struct
       let two seq pt1 pt2 = build(TwoPre(seq,pt1,pt2))
 
       (* Displays prooftree *)
-      let rec print_in_fmt fmt pt = match reveal pt with
-	| Axiom (a) -> fprintf fmt "\\infer{%a}{}" Seq.print_in_fmt a
-	| OnePre (a,b) -> fprintf fmt "\\infer{%a}{%a}" Seq.print_in_fmt a print_in_fmt b
-	| TwoPre (a,b,c) -> fprintf fmt "\\infer{%a}{%a \\quad %a}" Seq.print_in_fmt a print_in_fmt b print_in_fmt c
+      let rec pp fmt pt = match reveal pt with
+	| Axiom (a) -> fprintf fmt "\\infer{%a}{}" Seq.pp a
+	| OnePre (a,b) -> fprintf fmt "\\infer{%a}{%a}" Seq.pp a pp b
+	| TwoPre (a,b,c) -> fprintf fmt "\\infer{%a}{%a \\quad %a}" Seq.pp a pp b pp c
+
+      let show = Dump.stringOf pp
     end
 
     module NoProof:(ProofType with type seq = Seq.t) = struct
@@ -258,7 +261,8 @@ module Make(PlDS: PlugDSType) = struct
       let zero seq = ()
       let one seq pt = ()
       let two seq pt1 pt2 = ()
-      let print_in_fmt fmt pt = ()
+      let pp fmt pt = ()
+      let show = Dump.stringOf pp
     end
 
     (* Type of final answers, private in interface FrontEndType. *)
@@ -270,8 +274,8 @@ module Make(PlDS: PlugDSType) = struct
       | NotProvable s -> s
 
     (* Displays answer *)
-    let print_in_fmt fmt = function
-      | Provable(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.print_in_fmt p;
+    let pp fmt = function
+      | Provable(_,p,_) -> fprintf fmt "\\[%a\\]" Proof.pp p;
       | NotProvable s   -> fprintf fmt "\\textsf {The following sequent is not provable} \\[%a\\]" Seq.print_seq_in_fmt s
 
     (* Generator of local answer types, either genuine answer or a fake answer *)

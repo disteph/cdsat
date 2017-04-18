@@ -1,6 +1,6 @@
 (* This is the register of all parsers in Psyche *)
 
-let bank:(module Top.Parser.ParserType)array= 
+let bank:(module Parser.Type)array= 
   [|
     (module SMTLib2);
     (module DIMACS);

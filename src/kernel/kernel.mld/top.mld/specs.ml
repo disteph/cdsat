@@ -13,14 +13,11 @@ exception ModelError of string
 (* Useful abbreviations for module types *)
 
 module type TermF = Terms.S with type leaf := FreeVar.t
+module type DataType = Terms.DataType with type leaf := FreeVar.t
 
 (* Useful abbreviation for term type *)
 
 type 'a termF = (FreeVar.t,'a) Terms.term
-
-let get_sort t = match Terms.reveal t with
-  | Terms.V fv      -> FreeVar.get_sort fv
-  | Terms.C(symb,_) -> let so,_ = Symbols.arity symb in so
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -50,32 +47,62 @@ module type ForParsing = sig
   val bV: IntSort.t -> t
 end
 
-module type DataType = Terms.DataType with type leaf := FreeVar.t
-
-module Pairing(B1: DataType)(B2: DataType)
-  : (DataType with type t = B1.t*B2.t) =
-struct
-  type t = B1.t*B2.t
-  let bC tag symb args = 
-    (B1.bC tag symb (List.map fst args),
-     B2.bC tag symb (List.map snd args))
-  let bV tag v = (B1.bV tag v, B2.bV tag v)
-end
+(* This module type is for implementations of the global datastructures
+   for the combination of theory modules *)
 
 module type GTheoryDSType = sig
   module Term : TermF
-  module TSet : Collection with type e = Term.t
+  module Value : PH
+  module Assign : Collection with type e = Term.t
 end
 
+(* Extension thereof,
+   that adds interfacing functions with theory-specific types for terms and values.
+     proj can project the global term datatype into the theory-specific one ts
+     proj_opt, if the theory module has values, offers an injection (resp. a projection)
+   from (resp. to) theory-specific values to (resp. from) global values (the projection
+   ends in an option type since a global value may not contain a value for this theory).
+*)
+
+type _ has_values  = private HV
+type has_no_values = private HNV
+type ('a,'b) conv = {
+    inj : 'a -> 'b;
+    proj: 'b -> 'a option
+  }
+                               
+type (_,_) proj_opt =
+  | HasVproj :  ('v,'gv) conv -> ('gv,'v has_values) proj_opt
+  | HasNoVproj : (_,has_no_values) proj_opt
+
+module type DSproj = sig
+  include GTheoryDSType
+  type ts
+  val proj: Term.datatype -> ts
+  type values
+  val proj_opt: (Value.t,values) proj_opt
+end
+
+(* type version of the above *)
+type ('ts,'v,'gts,'gv,'assign) dsProj
+  = (module DSproj with type ts = 'ts
+                    and type values = 'v
+                    and type Term.datatype = 'gts
+                    and type Value.t = 'gv
+                    and type Assign.t  = 'assign)
+                       
+(* Module type for proofs in Prop module*)
+                       
 module type ProofType = sig
-  type t
+  type t [@@deriving show]
   type seq
   val zero : seq->t
   val one  : seq->t->t
   val two  : seq->t->t->t
-  val print_in_fmt: formatter -> t -> unit
 end
 
+(* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
+                          
 module type SlotMachine = sig
   type newoutput
   type tset
@@ -86,19 +113,12 @@ module type SlotMachine = sig
 end
 
 type ('sign,'tset) slot_machine
-    = (module SlotMachine with type newoutput = ('sign,'tset) output and type tset = 'tset)
-
-and (_,_) output = Output:
-  ('sign,'tset,_) Messages.message option
-  * ('sign,'tset) slot_machine
-  -> ('sign,'tset) output
-
-let fail_state (type sign) (type ts) : (sign,ts) slot_machine = (module struct 
-  type newoutput = (sign,ts) output
-  type tset = ts
-  let treated _ = failwith "Are you dumb? I already told you it was provable"
-  let add     _ = failwith "Are you dumb? I already told you it was provable"
-  let normalise _ = failwith "Are you dumb? I already told you it was provable"
-  let clone   _ = failwith "Are you dumb? I already told you it was provable"
-  let suicide _ = failwith "Are you dumb? I already told you it was provable"
-end)
+  = (module SlotMachine with type newoutput = ('sign,'tset) output
+                         and type tset = 'tset)
+      
+ and (_,_) output =
+   Output:
+     ('sign,'tset,_) Messages.message option
+   * ('sign,'tset) slot_machine
+   -> ('sign,'tset) output
+        

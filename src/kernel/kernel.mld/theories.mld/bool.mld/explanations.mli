@@ -11,10 +11,7 @@ open Termstructures
 open Literals
 open Clauses
        
-module Make(DS: sig 
-                include GTheoryDSType
-                val proj: Term.datatype -> Clauses.TS.t
-              end) : sig
+module Make(DS: DSproj with type ts = Clauses.TS.t) : sig
 
   open DS
 
@@ -40,23 +37,23 @@ module Make(DS: sig
     val simpl: t -> (LSet.t*(Model.t list), Term.t option) Sums.sum
     val verysimpl: t -> (LSet.t, Term.t option) Sums.sum
     val simplify : Model.t->t->t
-    val print_in_fmt : Format.formatter -> t -> unit
+    val pp : Format.formatter -> t -> unit
   end
 
   val clear : unit -> unit
 
   type uc_clause = {
       term : Term.t;
-      info : (LitF.t option * Model.t list, TSet.t) Sums.sum
+      info : (LitF.t option * Model.t list, Assign.t) Sums.sum
     }
 
   module T2Clause : Map.S with type key = Term.t
 
   type straight =
-    (unit, TSet.t, Messages.straight) Top.Messages.message
+    (unit, Assign.t, Messages.straight) Top.Messages.message
 
   val explain :
-    Term.t -> LitF.t option -> Model.t list -> DS.TSet.t
+    Term.t -> LitF.t option -> Model.t list -> DS.Assign.t
 
   val formThStraight :
     Term.t
@@ -64,7 +61,7 @@ module Make(DS: sig
     -> (Term.t * straight * uc_clause T2Clause.t) option
 
   val explain_relevant :
-    TSet.t
+    Assign.t
     -> uc_clause T2Clause.t
     -> straight list * uc_clause T2Clause.t
 

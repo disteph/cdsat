@@ -52,7 +52,7 @@ module type SolvableTheory = sig
   module VSet : SetImplem with type e = v
 
   (* Maps from semantic values to term sets *)
-  module VtoTSet : MapImplem with type e = v
+  module VtoAssign : MapImplem with type e = v
 
   (* maps from semantic values to semantic values *)
   module VtoV : MapImplem with type e = v and type v = v

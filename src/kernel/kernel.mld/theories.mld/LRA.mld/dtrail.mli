@@ -4,6 +4,7 @@
 (* Contains variable affectation and inequalities   *)
 (****************************************************)
 
+open Termstructures.Rationals
 type trail
 
 type c

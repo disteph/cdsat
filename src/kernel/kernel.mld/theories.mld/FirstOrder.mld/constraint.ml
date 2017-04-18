@@ -18,12 +18,13 @@ let topconstraint = { ar  = World.init;
                       mk  = MKcorr.empty;
                       unifier = IU.empty }
 
-let print_in_fmt fmt sigma = 
+let pp fmt sigma = 
   Format.fprintf fmt "  dependencies = %a\n  meta->key    = %a\n  unifier      = %a"
-    World.print_in_fmtEM sigma.ar
-    MKcorr.print_in_fmt  sigma.mk
-    IU.print_in_fmt      sigma.unifier
-    
+    World.ppEM sigma.ar
+    MKcorr.pp  sigma.mk
+    IU.pp      sigma.unifier
+let show = Dump.stringOf pp
+                         
 let proj sigma =
   let oldfv,newar = World.proj sigma.ar in
   match FreeVar.reveal oldfv with

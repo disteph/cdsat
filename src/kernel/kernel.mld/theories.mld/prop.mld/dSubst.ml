@@ -22,7 +22,7 @@ module H = HCons.Make(M)
 include H
 include Init(HCons.NoBackIndex)
             
-let print_in_fmt fmt t =
+let pp fmt t =
   match reveal t with
   | EmptySubst -> ()
   | ConsSubst(fv,ar,s') ->
@@ -30,10 +30,11 @@ let print_in_fmt fmt t =
       | EmptySubst -> failwith "Should not happen"
       | ConsSubst(fv,ar,s') ->
         begin match reveal s' with
-        | EmptySubst -> fprintf fmt "%a" FreeVar.print_in_fmt fv
-        | _ -> fprintf fmt "%a;%a" FreeVar.print_in_fmt fv aux s'
+        | EmptySubst -> fprintf fmt "%a" FreeVar.pp fv
+        | _ -> fprintf fmt "%a;%a" FreeVar.pp fv aux s'
         end
     in fprintf fmt "[%a]" aux t
+let show = Dump.stringOf pp
 
 let binit() = build EmptySubst
 
@@ -47,7 +48,7 @@ let get_arity d = match reveal d with
 let rec get j d = match reveal d with
   | EmptySubst -> raise (DSubst 
                            (Dump.toString
-                              (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j print_in_fmt d)))
+                              (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j pp d)))
   | ConsSubst(fv,ar,d')
     -> if j=0 then (fv,ar) else get (j-1) d'
 

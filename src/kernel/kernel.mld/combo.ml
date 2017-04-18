@@ -7,34 +7,10 @@ open Basic
 open Interfaces_basic
 open Variables
 open Messages
-open Theories.Register
+open Theories
+open Register
 open Specs
        
-(* This is the module type that we are going to produce at the end of this file *)
-
-module type WhiteBoard = sig
-  module DS : sig
-    module Term : TermF
-    module TSet : sig
-      include Collection with type e = Term.t
-                          and type t = (Term.t, unit, int, int, unit)
-                                         General.Patricia.poly
-      val id : t -> int
-    end
-  end
-  module Msg : sig
-    type ('sign,'a) t = ('sign,DS.TSet.t,'a) Messages.message
-    val print_in_fmt : Format.formatter -> (_,_)t -> unit
-  end
-  type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
-  val print_in_fmt : Format.formatter -> 'a t -> unit
-  val stamp    : 'a Sig.t -> ('a, 'b) Msg.t -> 'b t
-  val sat_init : DS.TSet.t -> sat t
-  val sat      : sat t -> sat t -> sat t
-  val resolve  : straight t -> 'b propa t -> 'b propa t
-  val both2straight: ?side:bool -> both t -> unsat t -> straight t
-  val curryfy: DS.TSet.t -> unsat t -> straight t
-end
 
 (*********************************************************************)
 (* First, we build DS by aggregating a given list of plugins'
@@ -50,7 +26,166 @@ end
    where all symbols and all terms can be represented *)
 (*********************************************************************)
 
+module type Value = sig
+  include PH
+  val noValue : t
+end 
 
+type ('a,'b) convV = {
+    injV : 'a -> 'b;
+    projV: 'b -> 'a
+  }
+
+module type Vplus = sig
+  module Value : Value
+  type old_value
+  type vopt
+  val trans : (Value.t,'v) convV
+              -> (old_value,'v) convV * ('v,vopt) proj_opt
+end
+                      
+type _ typedList =
+  | El  : unit typedList
+  | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList
+
+module type State = sig
+
+  module DT      : DataType
+
+  module Value   : Value
+
+  val tsHandlers : DT.t typedList
+                                       
+  val modules : ('termdata -> DT.t)
+                -> (Value.t,'value) convV
+                -> (module GTheoryDSType with type Term.datatype = 'termdata
+                                          and type Value.t  = 'value
+                                          and type Assign.t = 'assign)
+                -> ('termdata*'value*'assign) Theories.Register.Modules.t list
+end
+
+
+module Trans1(V : PH)(Vold : Value) =
+  (struct
+
+    module Value = struct
+      
+      type t = (V.t option)*Vold.t [@@deriving eq,ord,show,hash]
+      let noValue = None, Vold.noValue
+                            
+    end
+
+    type old_value = Vold.t
+    type vopt = V.t has_values
+
+    let trans (type v) (conv : (Value.t,v) convV) =
+      (
+        { injV  = (fun x -> conv.injV(None,x));
+          projV = (fun x -> let _,y = conv.projV x in y)  }
+        : (old_value,v) convV  ),
+      HasVproj(
+          { inj  = (fun x -> conv.injV(Some x,Vold.noValue));
+            proj = (fun x -> let y,_ = conv.projV x in y) }
+        )
+              
+  end : Vplus with type old_value = Vold.t
+               and type vopt = V.t has_values)
+
+module Trans2(Vold : Value) =
+  (struct
+
+    module Value = Vold
+
+    type old_value = Vold.t
+    type vopt = has_no_values
+
+    let trans (type v) (conv : (Value.t,v) convV) =
+      conv,
+      HasNoVproj
+              
+  end : Vplus with type old_value = Vold.t
+               and type vopt = has_no_values)
+
+let update (type ts)(type values)
+      (hdl: (_*(_*ts*values*_)) Tags.t)
+      (module S : State) =
+  
+  let ts, values = Modules.get hdl in
+  
+  let (module Vplus) =
+    match values with
+    | Theory.HasValues(module V) ->
+       (module Trans1(V)(S.Value) : Vplus with type old_value = S.Value.t
+                                           and type vopt = values)
+    | Theory.HasNoValues ->
+       (module Trans2(S.Value) : Vplus with type old_value = S.Value.t
+                                           and type vopt = values)
+  in
+
+  let add_new_TS (type dt)
+        (proj1 : dt -> ts)
+        (proj2 : dt -> S.DT.t)
+        tshandlers
+        (module DT: DataType with type t = dt)
+      : (module State) =
+    (module struct
+
+       module DT = DT
+       module Value = Vplus.Value
+                     
+       let tsHandlers  = tshandlers
+       let modules (type gts) (type v) (type a)
+             proj
+             conv
+             ((module DS) : (module GTheoryDSType with type Term.datatype = gts
+                                                   and type Value.t  = v
+                                                   and type Assign.t = a))
+         =
+         let conv_old,conv_new = Vplus.trans conv in
+         let module NewDS = (struct
+                              include DS
+                              type nonrec ts = ts
+                              let proj x = proj1(proj x)
+                              type nonrec values = values
+                              let proj_opt = conv_new
+                            end :  DSproj with type Term.datatype = gts
+                                           and type Value.t  = v
+                                           and type Assign.t = a
+                                           and type ts = ts
+                                           and type values = values)
+         in
+         let tm = Modules.make hdl (module NewDS) in
+         tm::(S.modules (fun x -> proj2(proj x)) conv_old (module DS))
+     end)
+  in
+
+  let rec traverse : type a. (S.DT.t -> a) -> a typedList -> (module State) =
+  begin
+    fun proj_sofar ->
+    function
+    | El ->
+       begin
+         let open Termstructures.Register in
+         match get ts with
+         | NoRepModule ->
+            add_new_TS (fun _ -> ()) (fun x->x) S.tsHandlers (module S.DT)
+                       
+         | RepModule(module DT) ->
+            let dt = (module Tools.Pairing(DT)(S.DT)
+                             : DataType with type t = DT.t*S.DT.t) in
+            add_new_TS fst snd (Cons(ts,S.tsHandlers)) dt
+       end
+    | Cons(hts,l) ->
+       match Termstructures.Register.equal hts ts with
+       | None    -> traverse (fun x -> snd(proj_sofar x)) l
+       | Some id ->
+          let proj x = id(fst(proj_sofar x)) in
+          add_new_TS proj (fun x->x) S.tsHandlers (module S.DT)
+  end
+                          in
+                          traverse (fun x -> x) S.tsHandlers
+                       
+                                                                           
 (* Now we shall organise a traversal of a given list of
    Top.Specs.DataType modules, aggregated all of the datatypes into
    one *)
@@ -64,13 +199,6 @@ let noTheory: (module DataType with type t = unit) =
     let bV _ _   = ()
   end)
 
-(* Incremental case in the traversal *)
-
-let addTheory (type a)(type b)
-    (module Th: DataType with type t = a)
-    (module I: DataType with type t = b)
-    :(module DataType with type t = a*b) =
-  (module Pairing(Th)(I))
 
 (* Now, this is what we mean by "a list of Top.Specs.DataType
    modules": it's a list, except it's indexed by the aggregated type
@@ -86,105 +214,31 @@ type _ dataList =
    datatype. That list of projections (of the same length of the input
    list) is again an indexed list, of the type below: *)
 
-type (_,_) projList =
-  | NoProj  : (_,unit) projList
-  | ConsProj: ('t -> 'a) * ('t,'b) projList -> ('t,'a*'b) projList
 
 (* Now we finally organise the traversal: *)
 
-let rec make_datastruct:
-type a b. a dataList -> (module DataType with type t = a) * ((b -> a) -> (b,a) projList) 
-  = function
-  | NoData          -> noTheory, fun _ -> NoProj
-  | ConsData(th,l') -> let i, make_pl = make_datastruct l' in
-                       addTheory th i, fun f -> ConsProj((fun x -> fst(f x)),make_pl (fun x -> snd(f x)))
+(* let rec make_datastruct: *)
+(* type a b. a dataList -> (module DataType with type t = a) * ((b -> a) -> (b,a) projList)  *)
+(*   = function *)
+(*   | NoData          -> noTheory, fun _ -> NoProj *)
+(*   | ConsData(th,l') -> let i, make_pl = make_datastruct l' in *)
+(*                        addTheory th i, fun f -> *)
+(*                                        ConsProj((fun x -> fst(f x)),make_pl (fun x -> snd(f x))) *)
 
-(* Now comes the initialisation of the theory combinator, taking as
-   input a set of theory handlers and a list of plugins' datatypes. It
-   calls the above traversal function, and then produces a
-   "whiteboard" (first module type in this file) together with the
-   aforementioned projections *)
+(* (\* Now comes the initialisation of the theory combinator, taking as *)
+(*    input a set of theory handlers and a list of plugins' datatypes. It *)
+(*    calls the above traversal function, and then produces a *)
+(*    "whiteboard" (first module type in this file) together with the *)
+(*    aforementioned projections *\) *)
     
-let make (type a)
-    (theories: unit HandlersMap.t)
-    (l: a dataList)
-    : (module WhiteBoard with type DS.Term.datatype = a)
-    * (a,a) projList
-    =
+(* let make (type a) *)
+(*     (theories: unit HandlersMap.t) *)
+(*     (l: a dataList) *)
+(*     : (a,a) projList *)
+(*     = *)
 
-  (* First we do the traversal *)
+(*   (\* First we do the traversal *\) *)
 
-  let (module DT),pl = make_datastruct l in
-
-  (module struct
-
-    module DS = struct
-      module Term = Terms.Make(FreeVar)(DT)
-      module TSet = MakePATCollection(Term)
-    end
-      
-    open DS
-
-    module Msg = struct
-      type ('sign,'b) t = ('sign,TSet.t,'b) message
-      let print_in_fmt fmt = print_msg_in_fmt TSet.print_in_fmt fmt
-    end
-
-    type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
-
-    let print_in_fmt fmt (type a) (WB(hdls,msg) : a t) =
-      match msg with
-      | Propa _ -> Format.fprintf fmt "%a propagate(s) %a" HandlersMap.print_in_fmt hdls Msg.print_in_fmt msg
-      | Sat   _ -> Format.fprintf fmt "%a is/are fine with %a" HandlersMap.print_in_fmt (HandlersMap.diff theories hdls) Msg.print_in_fmt msg
-        
-
-    let sat_init tset = WB(theories, Messages.sat () tset)
-                          
-    let sat (WB(rest1, Sat tset1)) (WB(rest2, Sat tset2)) =
-      if TSet.equal tset1 tset2
-      then WB(HandlersMap.inter rest1 rest2, sat () tset1)
-      else failwith "Theories disagree on model"
-
-    let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
-      else failwith "Using a theory that is not allowed"
-
-    let stamp (type b) (Sig.Sig hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
-      | Propa(tset,o) ->
-         check hdl;
-         WB(HandlersMap.singleton (Handlers.Handler hdl) (),
-            Messages.propa () tset o)
-      | Sat tset ->
-         WB(HandlersMap.remove (Handlers.Handler hdl) theories,
-            Messages.sat () tset)
-
-    let resolve
-          (WB(hdls1,Propa(oldset,Straight newset)))
-          (WB(hdls2,Propa(thset,o)))
-      =
-      WB(HandlersMap.union hdls1 hdls2,
-         propa () (TSet.union (TSet.diff thset newset) oldset) o)
-              
-    (* val both2straight: both t -> unsat t -> straight t *)
-
-    let both2straight
-          ?(side=true)
-          (WB(hdls1,Propa(oldset,Both(tset1,tset2))))
-          (WB(hdls2,Propa(thset,Unsat)))
-      = 
-      let tset,newset =
-        if side then tset1,tset2
-        else tset2, tset1
-      in
-      WB(HandlersMap.union hdls1 hdls2,
-         straight () (TSet.union (TSet.diff thset tset) oldset) newset)
-
-    let curryfy tset (WB(hdls,Propa(thset,Unsat))) =
-      let tset = TSet.inter tset thset in
-      let thset= TSet.diff thset tset in
-      let aux term sofar = Term.bC Symbols.Imp [term;sofar] in
-      let rhs = TSet.fold aux tset (Term.bC Symbols.False []) in
-      WB(hdls,Propa(thset, Straight(TSet.singleton rhs)))
-
-   end),
-  pl (fun x -> x)
+(*   let (module DT),pl = make_datastruct l in *)
+(*   pl (fun x -> x) *)
 

@@ -12,22 +12,23 @@ open Clauses
 module type Type = sig
 
   type term
-  type tset
+  type value
+  type assign         
   type sign
-         
+
   module Constraint: sig
     include FromHConsed
     val make : term -> t
     val verysimpl: t -> (LSet.t, term option) Sums.sum
-    val print_in_fmt : Format.formatter -> t -> unit
+    val pp : Format.formatter -> t -> unit
   end
 
   type fixed
 
   val simplify: fixed -> Constraint.t -> Constraint.t
 
-  type straight = (sign,tset,Messages.straight) message
-  type stop = straight list * ((sign,tset,unsat) message)
+  type straight = (sign,assign,Messages.straight) message
+  type stop = straight list * ((sign,assign,unsat) message)
 
   val init_fixed : fixed
 
@@ -40,11 +41,11 @@ module type Type = sig
   val fix : term -> fixed -> result
     
   type msg =
-    | Msg : (sign,tset,_) message -> msg
+    | Msg : (sign,assign,_) message -> msg
     | SplitBut : (term,unit) LSet.param -> msg
 
   val extract_msg: fixed -> (msg * fixed) option
 
-  val split : LitF.t -> (sign,tset,both) message
+  val split : LitF.t -> (sign,assign,both) message
   val clear : unit->unit
 end

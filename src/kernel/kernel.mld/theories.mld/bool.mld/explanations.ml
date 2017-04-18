@@ -9,10 +9,7 @@ open Termstructures
 open Literals
 open Clauses
          
-module Make(DS: sig 
-                include GTheoryDSType
-                val proj: Term.datatype -> Clauses.TS.t
-              end) = struct
+module Make(DS: DSproj with type ts = Clauses.TS.t) = struct
 
   open DS
          
@@ -25,7 +22,7 @@ simplification.  *)
 
   type uc_clause = {
       term : Term.t;
-      info : (LitF.t option * Model.t list, TSet.t) Sums.sum
+      info : (LitF.t option * Model.t list, Assign.t) Sums.sum
     }
                      
   (* Module for maps from literals (represented as terms) to clauses -
@@ -37,7 +34,7 @@ simplification.  *)
   (* This is a type abbreviation for those propoagation messages that
   we will send to the outside world. *)
 
-  type straight = (unit,TSet.t,Messages.straight) message
+  type straight = (unit,Assign.t,Messages.straight) message
 
                                                   
   (***********************************************************)
@@ -48,8 +45,8 @@ simplification.  *)
                       
   (* Input : a uc_clause 
      Output: extract from its stack of models the relevant part that
-has turned clause unit or false, expressing it as a TSet and
-including the term representing the clause (that TSet can directly be
+has turned clause unit or false, expressing it as a Assign and
+including the term representing the clause (that Assign can directly be
 used in a ThStraight or ThProvable message. *)
 
   let explain term slit modelstack =
@@ -65,7 +62,7 @@ used in a ThStraight or ThProvable message. *)
          match LSet.reveal set, stack with
 
          | Empty, _ | Leaf _, _  when inc (LSet.reveal set, slit) ->
-            LMap.fold (fun _ -> TSet.add) res (TSet.singleton term)
+            LMap.fold (fun _ -> Assign.add) res (Assign.singleton term)
 
          | _, model::tail ->
             let _,asfalse = Model.reveal model in
@@ -95,9 +92,9 @@ used in a ThStraight or ThProvable message. *)
         | Sums.Case1(slit,modelstack) ->
            (* Extracting the set of terms that were used to make this clause unit or false *)
            let tset = explain uc_clause.term slit modelstack in
-           straight () tset (TSet.singleton litterm)
+           straight () tset (Assign.singleton litterm)
         | Sums.Case2 conjuncts ->
-           straight () (TSet.singleton uc_clause.term) conjuncts
+           straight () (Assign.singleton uc_clause.term) conjuncts
       in
 
       (* We return the unit clause, the tset allowing the propagation, 
@@ -112,7 +109,7 @@ used in a ThStraight or ThProvable message. *)
           
   let explain_relevant relevant justif =
     Dump.print ["bool",3] (fun p->
-        p "Extracting relevant propagations to get %a" TSet.print_in_fmt relevant);
+        p "Extracting relevant propagations to get %a" Assign.pp relevant);
 
     (* Function treat just explains 1 term: litterm,
        before calling itself recursively.
@@ -128,16 +125,16 @@ used in a ThStraight or ThProvable message. *)
             we have litterm in the trail, which means that the outside
             world already has litterm in its trail. Nothing to do. *)
          Dump.print ["bool",3] (fun p->
-             p "%a should be already in the trail" Term.print_in_fmt litterm);
+             p "%a should be already in the trail" Term.pp litterm);
          sofar
 
       | Some(_,msg,justif) ->
          (* OK, so we can explain litterm with msg, which says (tset|-litterm),
             but now we must explain tset. This is what we do recursively. *)
          let Propa(tset,Straight _) = msg in
-         let msgs,justif = TSet.fold treat tset (msgs,justif) in
+         let msgs,justif = Assign.fold treat tset (msgs,justif) in
          Dump.print ["bool",3] (fun p->
-             p "Generating %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
+             p "Generating %a" (print_msg_in_fmt Assign.pp) msg);
          (* Finally, we add msg to the list *)
          msg::msgs, justif
 
@@ -145,7 +142,7 @@ used in a ThStraight or ThProvable message. *)
     (* For each term in relevant, we call treat: the argument ([],justif)
        contains [], the initial list where we will accumulate ThStraight messages,
        and justif, that we will consume with every ThStraight message that we form. *)
-    TSet.fold treat relevant ([],justif)
+    Assign.fold treat relevant ([],justif)
 
 
 end

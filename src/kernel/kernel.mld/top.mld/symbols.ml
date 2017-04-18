@@ -3,13 +3,7 @@
 (***********************************************)
 
 open Format
-open Parser
-open Multiary
-
-type num = Num.num
-let equal_num = Num.(=/)
-let hash_fold_num = Hash.fold
-  
+       
 type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash]
 
 type t =
@@ -25,7 +19,7 @@ type t =
   | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
 
   (* LRA *)
-  | CstRat of num
+  | CstRat of General.Pnum.t
   | Ge | Le | Gt | Lt
   | Plus | Minus | Times | Divide | Op
 
@@ -48,28 +42,23 @@ let arity = function
   | Select(indices,values)            -> values, [Sorts.Array(indices,values);indices]
   | Store(indices,values)             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
 
-(* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
-let multiary = function
-  | And | Or | Plus | Times -> Some r_assoc
-(*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
-  | _ -> None
 
 let print_in_fmt_latex fmt = function
   | User(f,ar)  -> fprintf fmt "\\mbox{\\small %s}" f
   | True        -> fprintf fmt "\\top"
   | False       -> fprintf fmt "\\bot"
   | Neg         -> fprintf fmt "\\neg"
-  | Forall s    -> fprintf fmt "\\forall^{%a}" Sorts.print_in_fmt s
-  | Exists s    -> fprintf fmt "\\exists^{%a}" Sorts.print_in_fmt s
+  | Forall s    -> fprintf fmt "\\forall^{%a}" Sorts.pp s
+  | Exists s    -> fprintf fmt "\\exists^{%a}" Sorts.pp s
   | And         -> fprintf fmt "\\wedge"
   | Or          -> fprintf fmt "\\vee"
   | Imp         -> fprintf fmt "\\Rightarrow"
   | Xor         -> fprintf fmt "\\oplus"
   | IsTrue      -> fprintf fmt "\\mbox{\\small isT}"                           
   | ITE so      -> fprintf fmt "\\mbox{if}"
-  | Eq so       -> fprintf fmt "=_{%a}" Sorts.print_in_fmt so
-  | NEq so      -> fprintf fmt "\\neq_{%a}" Sorts.print_in_fmt so
-  | CstRat i    -> fprintf fmt "%s" (Num.string_of_num i)
+  | Eq so       -> fprintf fmt "=_{%a}" Sorts.pp so
+  | NEq so      -> fprintf fmt "\\neq_{%a}" Sorts.pp so
+  | CstRat i    -> fprintf fmt "%a" General.Pnum.pp i
   | Plus        -> fprintf fmt "+"
   | Minus       -> fprintf fmt "-"
   | Times       -> fprintf fmt "\\times"
@@ -97,7 +86,7 @@ let print_in_fmt_utf8 fmt = function
   | ITE so      -> fprintf fmt "if"
   | Eq so       -> fprintf fmt "="
   | NEq so      -> fprintf fmt "≠"
-  | CstRat i    -> fprintf fmt "%s" (Num.string_of_num i)
+  | CstRat i    -> fprintf fmt "%a" General.Pnum.pp i
   | Plus        -> fprintf fmt "+"
   | Minus       -> fprintf fmt "-"
   | Times       -> fprintf fmt "×"
@@ -110,33 +99,8 @@ let print_in_fmt_utf8 fmt = function
   | Select(_,_) -> fprintf fmt "select"
   | Store(_,_)  -> fprintf fmt "store"
 
-let print_in_fmt fmt = match !Dump.display with
+let pp fmt = match !Dump.display with
   | Dump.Latex -> print_in_fmt_latex fmt
   | _ -> print_in_fmt_utf8 fmt
 
-let parse decsorts = 
-  let allsorts = Sorts.allsorts decsorts in function
-    | "true"  -> [True]
-    | "false" -> [False]
-    | "not"   -> [Neg]
-    | "and"   -> [And]
-    | "or"    -> [Or]
-    | "imp" | "=>" -> [Imp]
-    | "xor"   -> [Xor]
-    | "<=>"   -> [Eq Sorts.Prop]
-    | "=" | "==" | "eq"                -> List.map (fun so -> Eq so) allsorts
-    | "!=" | "<>" | "neq" | "distinct" -> List.map (fun so -> NEq so) allsorts
-    | "ite"                            -> List.map (fun so -> ITE so) allsorts
-    | "+" -> [Plus]
-    | "-" -> [Minus;Op]
-    | "*" -> [Times]
-    | "/" -> [Divide]
-    | ">" -> [Gt]
-    | "<" -> [Lt]
-    | ">=" ->[Ge]
-    | "<=" ->[Le]
-    | "select" -> let aux ind = List.map (fun so -> Select(ind,so)) allsorts
-                  in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
-    | "store"  -> let aux ind = List.map (fun so -> Store(ind,so)) allsorts
-                  in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
-    | s    -> try [CstRat(Num.num_of_string s)] with _ -> []
+let show = Dump.stringOf pp

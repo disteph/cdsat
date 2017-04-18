@@ -42,24 +42,24 @@ end
 module TermB = Terms.Make(BoundVar)(Terms.EmptyData(BoundVar))
 
 type termB = (BoundVar.t,unit) Terms.term
-let equal_termB = TermB.equal
-let hash_fold_termB = Hash.hash2fold TermB.hash
 
 module LitB = struct
 
   module LF = struct
-    type 'a t = bool*termB [@@deriving eq,hash]
+    type 'a t = bool*TermB.t [@@deriving eq,hash,show]
     let hash f = Hash.wrap1 hash_fold_t f
   end
 
   include HCons.Make(LF)
   include Init(HCons.NoBackIndex)
 
-  let print_in_fmt fmt l =
+  let pp fmt l =
     let b,a = reveal l in
     match !Dump.display with
-    | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") TermB.print_in_fmt a
-    | _ -> fprintf fmt "%s%a" (if b then "" else "¬") TermB.print_in_fmt a
+    | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") TermB.pp a
+    | _ -> fprintf fmt "%s%a" (if b then "" else "¬") TermB.pp a
+
+  let show = Dump.stringOf pp
 
   let negation l = 
     let b,a = reveal l in build(not b,a)

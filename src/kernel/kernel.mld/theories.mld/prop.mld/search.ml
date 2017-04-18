@@ -337,7 +337,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                                               fun b -> if b then pythie f' else pythie f)
             ))
 	  in
-          pythie (MyTheory.goal_consistency (litF_as_term t) (asTSet seq.lits)) sigma cont
+          pythie (MyTheory.goal_consistency (litF_as_term t) (asAssign seq.lits)) sigma cont
         (* pythie (fun _ -> mygoal_consistency t atomN) sigma cont *)
 
 	| _ -> failwith "All cases should have been covered!"
@@ -515,7 +515,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     let u2 = lk_solvef { state with nextaction = l;
                                                     conschecked = true;
                                                     dataf = newdata } in
-                    ou (pythie (MyTheory.consistency (asTSet seq.lits))) u2 (fun a->a) (fun a->a) seq sigma cont
+                    ou (pythie (MyTheory.consistency (asAssign seq.lits))) u2 (fun a->a) (fun a->a) seq sigma cont
                  (* ou (pythie (fun _ -> myconsistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont *)
 
 	         | Polarise(l,newdata, inter_fun) when is_Und(Pol.iatom seq.polar l) ->

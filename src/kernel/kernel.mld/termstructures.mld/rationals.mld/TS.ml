@@ -1,7 +1,6 @@
 open Num
 
 open Top
-open Algo
 
 (* Apply the operation op to two hashtable, to value with equal key *)
 let applyOp2 op t1 t2 =

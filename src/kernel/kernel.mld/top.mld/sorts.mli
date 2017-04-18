@@ -7,8 +7,6 @@ type t = | Prop
          | Array of t*t
          | Fun  of t*(t list)
          | User of string
-                     [@@deriving eq, hash]
+                     [@@deriving eq, hash, show]
 
-val print_in_fmt : Format.formatter -> t -> unit
-val parse        : string list -> Parser.sortType -> t
-val allsorts     : string list -> t list
+val allsorts : string list -> t list

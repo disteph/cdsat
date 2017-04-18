@@ -5,6 +5,7 @@
 (****************************************************)
 
 open Num
+open Termstructures.Rationals
 open Equation
 open Interval
 open Hashtbl

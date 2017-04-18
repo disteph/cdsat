@@ -35,10 +35,11 @@ module Leaf = struct
   include HCons.Make(Arg)
   include Init(HCons.NoBackIndex)
 
-  let print_in_fmt fmt t = match reveal t with
-    | Key k -> fprintf fmt "k%a" IntSort.print_in_fmt k
-    | Eigen ei -> fprintf fmt "%a" Eigen.print_in_fmt ei
+  let pp fmt t = match reveal t with
+    | Key k -> fprintf fmt "k%a" IntSort.pp k
+    | Eigen ei -> fprintf fmt "%a" Eigen.pp ei
 
+  let show = Dump.stringOf pp
 end
 
 module KTerm = Terms.Make(Leaf)(Terms.EmptyData(Leaf))
@@ -129,13 +130,13 @@ let get key u =
 
 (* Printing out stuff *)
 
-let print_in_fmtK = IntSort.print_in_fmt
-let print_in_fmtV = KTerm.print_in_fmt
+let ppK = IntSort.pp
+let ppV = KTerm.pp
 
-let print_in_fmt fmt u =
+let pp fmt u =
   let aux =
     TMap.print_in_fmt
-      (fun fmt (key,term) -> fprintf fmt "(k%a -> %a)" print_in_fmtK key print_in_fmtV term)
+      (fun fmt (key,term) -> fprintf fmt "(k%a -> %a)" ppK key ppV term)
   in
   fprintf fmt "next key=%i; map = %a" u.next_key aux u.map
 

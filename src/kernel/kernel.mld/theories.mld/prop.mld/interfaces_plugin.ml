@@ -60,8 +60,8 @@ module type FrontEndType = sig
   (* The kernel knows of constraints on metavariables. *)
 
   type constraints
-  val print_in_fmtC: Format.formatter -> constraints -> unit
-  val print_in_fmtL: Format.formatter -> LitF.t -> unit
+  val ppC: Format.formatter -> constraints -> unit
+  val ppL: Format.formatter -> LitF.t -> unit
 
   (* The kernel defines the datastructure for formulae, instantiated
   formulae, sets of instantiated formulae, and sets of instantiated
@@ -119,9 +119,8 @@ module type FrontEndType = sig
       world : World.t }
 
   module Seq : sig
-    type t = Seq : _ seq -> t [@@unboxed]
+    type t = Seq : _ seq -> t [@@unboxed] [@@deriving show]
     val forPlugin : 'a seq -> ASet.ps*FSet.ps
-    val print_in_fmt: Format.formatter -> t -> unit
     val print_seq_in_fmt: Format.formatter -> 'a seq -> unit
   end
 
@@ -146,7 +145,7 @@ module type FrontEndType = sig
 
   type 'a answer = Provable of 'a seq*Proof.t*constraints | NotProvable of 'a seq
   val sequent  : 'a answer-> 'a seq
-  val print_in_fmt: Format.formatter -> 'a answer -> unit
+  val pp: Format.formatter -> 'a answer -> unit
 
   (* Now comes the heart of the API: 
      the actions that a plugin can order to kernel to trigger

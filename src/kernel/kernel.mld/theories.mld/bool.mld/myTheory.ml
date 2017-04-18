@@ -10,20 +10,24 @@ open Literals
 open Clauses
 
 type sign = unit
-type ('term,'tset) t = (module Api.Type with type term = 'term
-                                         and type tset = 'tset
-                                         and type sign = sign)
-                           
+type ('term,'assign,'value) t = (module API.Type with type term = 'term
+                                                  and type value = 'value
+                                                  and type assign = 'assign
+                                                  and type sign = sign)
+                                  
 type ts = Clauses.TS.t
-let ts  = Termstructures.Register.TSHandler.Clauses
+let ts  = Termstructures.Register.Clauses
 
-module MakeAux(DS: Theory.DSproj with type ts := Clauses.TS.t) = struct
+include Theory.HasNoValues
+
+module Make(DS: DSproj with type ts = Clauses.TS.t) = struct
 
   open DS
 
-  type term = Term.t
-  type tset = TSet.t
-  type sign = unit
+  type term   = Term.t
+  type value  = Value.t
+  type assign = Assign.t
+  type sign   = unit
          
   include Explanations.Make(DS)
 
@@ -47,8 +51,8 @@ terms seen so far
       asTrueFalse  : Model.t;
       justification: uc_clause T2Clause.t;
       outgoing     : (Term.t,Term.t*straight) Sums.sum Pqueue.t;
-      clauses      : TSet.t;
-      seen         : TSet.t
+      clauses      : Assign.t;
+      seen         : Assign.t
     }
 
   (* init_fixed is the initial structure recording which variables are
@@ -57,8 +61,8 @@ terms seen so far
       asTrueFalse   = Model.empty;
       justification = T2Clause.empty;
       outgoing      = Pqueue.empty();
-      clauses       = TSet.empty;
-      seen          = TSet.empty
+      clauses       = Assign.empty;
+      seen          = Assign.empty
     }
 
   (* Simplifying a clause according to the current fixed *)
@@ -76,7 +80,7 @@ terms seen so far
      - the unsat message which is the contradiction
      - the term representing the unsat clause
    *)
-  type stop = straight list * ((sign,TSet.t,unsat) message)
+  type stop = straight list * ((sign,Assign.t,unsat) message)
     
   (* type used in the following function *)
   type result =
@@ -90,7 +94,7 @@ terms seen so far
 
   let unit_base term justif l fixed =
     Dump.print ["bool",2] (fun p->
-        p "unit called on %a" Term.print_in_fmt term);
+        p "unit called on %a" Term.pp term);
 
     (* We set l to true and its negation nl to false, generating the
        term litterm to propagate. That term is pushed in the
@@ -100,13 +104,13 @@ terms seen so far
     litterm,
     let clauses  = match (proj(Terms.data litterm)).asclause with
       | Some lset when LSet.info lset > 1
-        -> TSet.add litterm fixed.clauses
+        -> Assign.add litterm fixed.clauses
       | _ -> fixed.clauses
     in
     let fixed = { fixed with
                   asTrueFalse = asTrueFalse;
                   clauses     = clauses;
-                  seen        = TSet.add litterm fixed.seen } in
+                  seen        = Assign.add litterm fixed.seen } in
     if Term.equal litterm term then fixed
     else
       (* There is a real unit propagation that we learn,
@@ -138,21 +142,21 @@ terms seen so far
          LSet.fold
            (fun l (tset,todo) ->
              let newterm = litAsTerm(LitF.negation l) in
-             TSet.add newterm tset, newterm::todo )
+             Assign.add newterm tset, newterm::todo )
            set
-           (TSet.empty,todo)
+           (Assign.empty,todo)
        in
        let reason = { term = term; info = Sums.Case2 tset } in
        let justification =
-         TSet.fold (fun conjunct justification
+         Assign.fold (fun conjunct justification
                     -> T2Clause.add conjunct reason justification)
            tset
            fixed.justification
        in
        Dump.print ["bool",2] (fun p->
-           p "Unfold: %a\nfrom %a" TSet.print_in_fmt tset Term.print_in_fmt term);
+           p "Unfold: %a\nfrom %a" Assign.pp tset Term.pp term);
        (* Forming the message that term entails the conjuncts *)
-       let msg = straight () (TSet.singleton term) tset in
+       let msg = straight () (Assign.singleton term) tset in
        (* We return the fixed with the non-obviously true conjuncts added,
                and the thStraight message queued *)
        run mytodo tofix { fixed with
@@ -173,9 +177,9 @@ terms seen so far
 
   and treat term todo tofix fixed =
     Dump.print ["bool",2] (fun p->
-        p "adding term %a" Term.print_in_fmt term);
+        p "adding term %a" Term.pp term);
 
-    let fixed = { fixed with seen = TSet.add term fixed.seen } in
+    let fixed = { fixed with seen = Assign.add term fixed.seen } in
     let l     = (proj(Terms.data term)).aslit in
     let asTrue, asFalse = Model.reveal fixed.asTrueFalse in
 
@@ -184,8 +188,8 @@ terms seen so far
       let otherterm = LMap.find l asFalse in
       (Dump.print ["bool",2] (fun p->
            p "term as lit already set to false because of %a"
-             Term.print_in_fmt otherterm);
-       let tset = TSet.add term (TSet.singleton otherterm) in
+             Term.pp otherterm);
+       let tset = Assign.add term (Assign.singleton otherterm) in
        let msgs,_ = explain_relevant tset fixed.justification in
        UNSAT(List.rev_append msgs [], unsat () tset))
 
@@ -193,7 +197,7 @@ terms seen so far
       (* Literal already true, nothing to see here. *)
       (Dump.print ["bool",2] (fun p->
            p "term as lit already set to true because of %a"
-             Term.print_in_fmt (LMap.find l asTrue));
+             Term.pp (LMap.find l asTrue));
        run todo tofix fixed)
 
     else
@@ -209,10 +213,10 @@ terms seen so far
      We remove term from clauses. *)
 
   let solve_term fixed term (* terms *) =
-    (* if not(TSet.subset terms fixed.seen) *)
+    (* if not(Assign.subset terms fixed.seen) *)
     (* then failwith "bool: you are cheating"; *)
-    if TSet.mem term fixed.clauses
-    then { fixed with clauses = TSet.remove term fixed.clauses }
+    if Assign.mem term fixed.clauses
+    then { fixed with clauses = Assign.remove term fixed.clauses }
     else fixed
 
   (* constreat c fixed
@@ -225,14 +229,14 @@ terms seen so far
   let constreat c fixed =
     let term = Constraint.term c in
     Dump.print ["bool",0] (fun p->
-        p "Adding constraint: %a" Term.print_in_fmt term );
+        p "Adding constraint: %a" Term.pp term );
     match Constraint.simpl c with
 
     | Sums.Case2 _ ->
        (* The clause is satisfied. We call solve_clause. *)
        
        Dump.print ["bool",2] (fun p->p "Clause is satisfied");
-       Propagate(solve_term fixed term (* TSet.empty *), [])
+       Propagate(solve_term fixed term (* Assign.empty *), [])
 
     | Sums.Case1(set,justif) -> begin
         match LSet.reveal set with
@@ -264,7 +268,7 @@ terms seen so far
        (because already determined). *)
                                   
   type msg =
-    | Msg : (sign,TSet.t,_) message -> msg
+    | Msg : (sign,Assign.t,_) message -> msg
     | SplitBut : (Term.t,unit) LSet.param -> msg
 
   (* extract_msg constraints
@@ -292,7 +296,7 @@ terms seen so far
              end
            | Sums.Case2(term,msg) ->
               let Propa(_,Straight conjuncts) = msg in
-              let justif = TSet.fold
+              let justif = Assign.fold
                              (fun conjunct justif ->
                                if T2Clause.mem conjunct justif
                                then T2Clause.remove conjunct justif
@@ -304,7 +308,7 @@ terms seen so far
          in
          let fixed = { fixed with justification = justif; outgoing = outgoing } in
          Dump.print ["bool",1] (fun p->
-             p "Found a message: %a" (print_msg_in_fmt TSet.print_in_fmt) msg);
+             p "Found a message: %a" (print_msg_in_fmt Assign.pp) msg);
          (* We return the message, together with the new fixed where
                the propagation has been popped and its justification removed,
                and the clause has been solved *)
@@ -313,7 +317,7 @@ terms seen so far
 
     | None ->
        (* Nothing to declare. Have all the clauses been solved? *)
-       if TSet.is_empty fixed.clauses
+       if Assign.is_empty fixed.clauses
        then (* if so, the Boolean theory has completed its model *)
          let msg = sat () fixed.seen in
          Some(Msg msg, fixed)
@@ -321,7 +325,7 @@ terms seen so far
        else( (* if not, there must be literals that we should decide *)
 
          Dump.print ["bool",1] (fun p->
-             p "unsolved clauses: %a" TSet.print_in_fmt fixed.clauses);
+             p "unsolved clauses: %a" Assign.pp fixed.clauses);
          
          (* We give our go-ahead for a split,
             but we need to compute the literals on which we forbid splitting
@@ -345,13 +349,18 @@ terms seen so far
   let split lit =
     let t = litAsTerm lit in
     let nt = litAsTerm (LitF.negation lit) in
-    both () TSet.empty (TSet.singleton t) (TSet.singleton nt)
+    both () Assign.empty (Assign.singleton t) (Assign.singleton nt)
 
   let clear() = LSet.clear();LMap.clear()
 
 end
 
+type ('t,'v,'a) api = (module API.Type with type term = 't termF
+                                        and type value  = 'v
+                                        and type assign = 'a
+                                        and type sign = sign)
 
-module Make(DS: Theory.DSproj with type ts := Clauses.TS.t) = struct
-  let theorymodule : (DS.Term.t,DS.TSet.t) t = (module MakeAux(DS))
-end
+let make (type t)(type v)(type a)
+      ((module DS): (ts,values,t,v,a) dsProj)
+    : (t,v,a) api =
+  (module Make(DS))

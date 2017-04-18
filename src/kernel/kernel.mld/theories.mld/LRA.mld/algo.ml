@@ -2,6 +2,7 @@
 (* Internal implementation of dejean's algorithm *)
 (******************************)
 
+open Termstructures.Rationals
 open Dtrail
 open FourierMotzkin
 

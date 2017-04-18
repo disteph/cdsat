@@ -18,7 +18,7 @@ module type S = sig
   type leaf
   type datatype
   include PHCons with type t = (leaf,datatype) term
-  val printtl_in_fmt: Format.formatter -> t list -> unit
+  val pp_tl: Format.formatter -> t list -> unit
   val print_of_id: Format.formatter -> int -> unit
   val term_of_id: int -> t
   val bV : leaf -> t

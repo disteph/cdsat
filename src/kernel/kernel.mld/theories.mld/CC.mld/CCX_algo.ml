@@ -7,7 +7,7 @@ open Interfaces
 
 module Algo 
   (DS: GTheoryDSType)
-  (X:SolvableTheory with type VtoTSet.v = DS.TSet.t
+  (X:SolvableTheory with type VtoAssign.v = DS.Assign.t
                     and  type t = DS.Term.t)
   (U:PersistentUnionFind with type e = X.v) = 
 struct
@@ -25,8 +25,8 @@ struct
   open X
   open DS
 
-  type state = {theta : TSet.t;
-                gamma : VtoTSet.t;
+  type state = {theta : Assign.t;
+                gamma : VtoAssign.t;
                 delta : VtoV.t; 
                 n     : (Sorts.t*Term.t*Term.t*(int option)) list;
                 sub   : ((X.v * X.v) * Term.t input) list;
@@ -59,7 +59,7 @@ struct
     try aux theta (directSubterms t) with Finished -> t
   and aux theta = function
     | [] -> raise Finished
-    | a::ta when TSet.mem a theta -> aux theta ta
+    | a::ta when Assign.mem a theta -> aux theta ta
     | a::ta -> findSterm a theta
       
 (* add a value to the equivalence classes (map) and 
@@ -131,12 +131,12 @@ apply the substituions met since the beginning *)
 
   let normalise s t = VtoV.find (make t) s.delta
 
-  let get r g = try VtoTSet.find r g with Not_found -> TSet.empty
+  let get r g = try VtoAssign.find r g with Not_found -> Assign.empty
 
   (* compute a step of the algorithm *)
   let step s phi i =
     match i with
-    | Eq(_,a,b,_) | Congr(a,b) when (TSet.mem a s.theta) && (TSet.mem b s.theta) -> begin
+    | Eq(_,a,b,_) | Congr(a,b) when (Assign.mem a s.theta) && (Assign.mem b s.theta) -> begin
       let ra = VtoV.find (make a) s.delta in
       let rb = VtoV.find (make b) s.delta in
       if X.vequal ra rb
@@ -207,42 +207,42 @@ apply the substituions met since the beginning *)
 	    | None ->
 	      (* we compute the new gamma *)
 	      let gamma' = VSet.fold
-                (fun l g -> VtoTSet.add l (TSet.union (get l s.gamma) (get p s.gamma)) g) 
+                (fun l g -> VtoAssign.add l (Assign.union (get l s.gamma) (get p s.gamma)) g) 
 		(leaves q)
-                VtoTSet.empty
+                VtoAssign.empty
               in
 	      (* su is the domain on which we will search the new congruences *)
-	      let su = TSet.fold 
+	      let su = Assign.fold 
                 (fun t su -> 
 		  if VSet.mem p (leaves (VtoV.find (make t) s.delta)) 
                   then
 		    let ssu = VSet.fold
-                      (fun l ssu -> TSet.inter ssu (get l s.gamma))
+                      (fun l ssu -> Assign.inter ssu (get l s.gamma))
 		      (leaves (VtoV.find (make t) delta'))
                       (s.theta)
                     in 
-		    TSet.union su ssu 
+		    Assign.union su ssu 
 		else su)
                 s.theta
-                TSet.empty
+                Assign.empty
               in
 	      (* those are the new congruences *)
-	      let phi' = TSet.fold
+	      let phi' = Assign.fold
                 (fun t l -> 
-		  TSet.fold 
+		  Assign.fold 
                     (fun u li -> 
 		      if ([%eq: Symbols.t option] (root t) (root u))&&
 		        (equal (directSubterms t) (directSubterms u) delta') 
 		      then (Congr(t,u))::li 
 		      else li)
-                    (TSet.union (get p s.gamma) su)
+                    (Assign.union (get p s.gamma) su)
                     l) 
 		(get p s.gamma)
                 []
               in
 	      (* this is the new state *)
 	      {theta = s.theta; 
-               gamma = VtoTSet.union s.gamma gamma'; 
+               gamma = VtoAssign.union s.gamma gamma'; 
 	       delta = delta';
                n   = s.n ; 
                sub = ((p,q),i)::s.sub;
@@ -250,7 +250,7 @@ apply the substituions met since the beginning *)
               List.append phi' phi
 	  end
     end
-    | NEq(so,a,b,tag) when (TSet.mem a s.theta)&&(TSet.mem b s.theta) ->
+    | NEq(so,a,b,tag) when (Assign.mem a s.theta)&&(Assign.mem b s.theta) ->
       if X.vequal (VtoV.find (make a) s.delta) (VtoV.find (make b) s.delta)
       then
 	(* rule INCOHDIFF *)
@@ -261,7 +261,7 @@ apply the substituions met since the beginning *)
     (* rule ADD *)
     | Eq(_,a,b,_) | NEq(_,a,b,_) | Congr(a,b) ->
       (* we find a good subterm to add *)
-      let fs = findSterm (if not (TSet.mem a s.theta) then a else b) s.theta in
+      let fs = findSterm (if not (Assign.mem a s.theta) then a else b) s.theta in
       (* this is the L_{delta} of the algorithm *)
       let ld = List.fold
         (fun v e -> 
@@ -271,17 +271,17 @@ apply the substituions met since the beginning *)
       in
       let gamma' = VSet.fold
         (fun l g -> 
-	  VtoTSet.add l (TSet.union (get l s.gamma) (TSet.add fs TSet.empty)) g)
+	  VtoAssign.add l (Assign.union (get l s.gamma) (Assign.add fs Assign.empty)) g)
         ld
-        VtoTSet.empty in
+        VtoAssign.empty in
       (* these are the new congruences *)
-      let phi' = TSet.fold 
+      let phi' = Assign.fold 
         (fun t l -> 
 	  if ([%eq: Symbols.t option] (root fs) (root t)) &&
 	    (equal (directSubterms fs) (directSubterms t) s.delta)
           then (Congr(fs,t))::l 
 	  else l)
-	(VSet.fold (fun l e -> TSet.inter e (get l s.gamma)) ld (s.theta))
+	(VSet.fold (fun l e -> Assign.inter e (get l s.gamma)) ld (s.theta))
         [] 
       in
       (* we add a new equivalence class if necessary *)
@@ -292,8 +292,8 @@ apply the substituions met since the beginning *)
 	with Not_found -> let u' = addUF (make fs) s.u s.sub in
 			  add (make fs) s.delta s.sub, u'
       in
-      {theta = TSet.add fs s.theta; 
-       gamma = VtoTSet.union gamma' s.gamma;
+      {theta = Assign.add fs s.theta; 
+       gamma = VtoAssign.union gamma' s.gamma;
        delta = delta';
        n     = s.n; 
        sub   = s.sub;
@@ -306,8 +306,8 @@ apply the substituions met since the beginning *)
     | a::phi -> let s,newphi = step arg phi a in algo s newphi
       
   let init =
-    {theta = TSet.empty ;
-     gamma = VtoTSet.empty ; 
+    {theta = Assign.empty ;
+     gamma = VtoAssign.empty ; 
      delta = VtoV.empty ;
      n   = [] ;
      sub = [];

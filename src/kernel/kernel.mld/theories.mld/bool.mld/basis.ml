@@ -61,7 +61,7 @@ module Make(DS: sig
     let empty    = LMap.empty,LMap.empty
     let add l (t,tn) =
       Dump.print ["bool",2]
-        (fun p->p "Setting this term to true: %a" Term.print_in_fmt (litAsTerm l));
+        (fun p->p "Setting this term to true: %a" Term.pp (litAsTerm l));
       let ln = LitF.negation l in
       let dejavu = function
         | Some _ -> failwith "Literal already determined!"
@@ -100,7 +100,7 @@ module Make(DS: sig
       val simpl: t -> (LSet.t*(Model.t list), Term.t option) Sums.sum
       val verysimpl: t -> (LSet.t, Term.t option) Sums.sum
       val simplify : Model.t->t->t
-      val print_in_fmt : Format.formatter -> t -> unit
+      val pp : Format.formatter -> t -> unit
   end = struct
 
     type t = {
@@ -149,8 +149,10 @@ module Make(DS: sig
            let _,term = LMap.choose inter in
            {c with simpl = Sums.Case2(Some term)}
 
-    let print_in_fmt fmt t =
-      Format.fprintf fmt "%a" Term.print_in_fmt t.term
+    let pp fmt t =
+      Format.fprintf fmt "%a" Term.pp t.term
+
+    let show = Dump.stringOf pp
   end
        
 

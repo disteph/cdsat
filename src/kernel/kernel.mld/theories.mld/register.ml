@@ -1,34 +1,27 @@
 open Format
 
-type (_,_,_) th = private Th
-
+module Empty  = Theory.Make(Empty.MyTheory)
+module CC     = Theory.Make(CC.MyTheory)
+module Arrays = Theory.Make(Arrays.MyTheory)
+module LRA    = Theory.Make(LRA.MyTheory)
+module IfThenElse = Theory.Make(IfThenElse.MyTheory)
+module Bool   = Theory.Make(Bool.MyTheory)
+       
 module Tags = struct
 
   type _ t = 
-    | Empty : (Empty.MyTheory.sign,
-               unit,
-               unit) th t
-    | CC    : (CC.MyTheory.sign,
-               unit,
-               unit) th t
-    | Arrays: (Arrays.MyTheory.sign,
-               unit,
-               unit) th t
-    | Dejan : (Dejan.MyTheory.sign,
-               unit,
-               unit) th t
-    | IfThenElse: (IfThenElse.MyTheory.sign,
-                   unit,
-                   unit) th t
-    | Bool  : (Bool.MyTheory.sign,
-               Bool.MyTheory.ts,
-               unit) th t
+    | Empty : (_,_,_) Empty.signature t
+    | CC    : (_,_,_) CC.signature t
+    | Arrays: (_,_,_) Arrays.signature t
+    | LRA   : (_,_,_) LRA.signature t
+    | IfThenElse: (_,_,_) IfThenElse.signature t
+    | Bool  : (_,_,_) Bool.signature t
 
   let id (type a) : a t -> int = function
     | Empty -> 0
     | CC    -> 1
     | Arrays -> 2
-    | Dejan -> 3
+    | LRA -> 3
     | IfThenElse -> 4
     | Bool -> 5
                 
@@ -36,42 +29,51 @@ module Tags = struct
     | Empty      -> fprintf fmt "Empty"
     | CC         -> fprintf fmt "CC"
     | Arrays     -> fprintf fmt "Arrays"
-    | Dejan      -> fprintf fmt "Arithmetic"
+    | LRA        -> fprintf fmt "LRA"
     | IfThenElse -> fprintf fmt "IfThenElse"
     | Bool       -> fprintf fmt "Bool"
 end
-                
+
+module Modules = struct
+
+  let get (type tva)(type ts)(type v)(type api)
+        (tag : (tva*(_*ts*v*api)) Tags.t)
+       : ts Termstructures.Register.t * v Theory.values_opt
+    = let open Tags in
+      match tag with
+    | Empty      -> Empty.ts, Empty.values
+    | CC         -> CC.ts, CC.values
+    | Arrays     -> Arrays.ts, Arrays.values
+    | LRA        -> LRA.ts, LRA.values
+    | IfThenElse -> IfThenElse.ts, IfThenElse.values
+    | Bool       -> Bool.ts, Bool.values
+                             
+  type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
+
+  let make(type t)(type v)(type a)(type ts)(type v)
+        (tag : ((t*v*a)*(_*ts*v*_)) Tags.t)
+        (ds  : (ts,v,_,_,_) Top.Specs.dsProj)
+    =
+    let open Tags in
+    match tag with 
+    | Empty      -> Module(Empty,Empty.make ds)
+    | CC         -> Module(CC,CC.make ds)
+    | Arrays     -> Module(Arrays,Arrays.make ds)
+    | LRA        -> Module(LRA,LRA.make ds)
+    | IfThenElse -> Module(IfThenElse,IfThenElse.make ds)
+    | Bool       -> Module(Bool,Bool.make ds)
+                             
+end
+
 module Sig = struct
 
-  type _ t = Sig : ('a,_,_) th Tags.t -> 'a t [@@unboxed]
+  type _ t = Sig : ('a*_*_) Tags.t -> 'a t [@@unboxed]
 
   let id (Sig t) = Tags.id t
   let print_in_fmt fmt (Sig t) = Tags.print_in_fmt fmt t
 
 end
 
-module Modules = struct
-  open Top
-
-  type ('term,'tset) t =
-    (* | Empty : Empty.MyTheory.sign t *)
-    (* | CC    : CC.MyTheory.sign t *)
-    (* | Arrays: Arrays.MyTheory.sign t *)
-    (* | Dejan : Dejan.MyTheory.sign t *)
-    (* | IfThenElse: IfThenElse.MyTheory.sign t *)
-    | Bool of ('term,'tset) Bool.MyTheory.t
-
-  let get :
-        (_,'ts,_) th Tags.t
-        -> (module Theory.DSproj with type ts = 'ts
-                                  and type Term.datatype = 'term
-                                  and type TSet.t = 'tset)
-        -> ((Variables.FreeVar.t,'term)Terms.term,'tset) t
-    = fun x -> failwith "TODO"
-                
-end
-
-               
 module Handlers = struct
   type t = Handler: 'a Tags.t -> t [@@unboxed]
   let id (Handler hdl) = Tags.id hdl
@@ -83,7 +85,7 @@ let all_theories_list =
   [ Handlers.Handler Tags.Empty;
     Handlers.Handler Tags.CC;
     Handlers.Handler Tags.Arrays;
-    Handlers.Handler Tags.Dejan;
+    Handlers.Handler Tags.LRA;
     Handlers.Handler Tags.IfThenElse;
     Handlers.Handler Tags.Bool;
   ]
@@ -126,8 +128,8 @@ exception NotFound of string
 let parse = function
   | "empty" | "prop" -> Handlers.Handler Tags.Empty
   | "CC"         -> Handlers.Handler Tags.CC
-  | "LRA"        -> Handlers.Handler Tags.Dejan
-  | "LIA"        -> Handlers.Handler Tags.Dejan
+  | "LRA"        -> Handlers.Handler Tags.LRA
+  | "LIA"        -> Handlers.Handler Tags.LRA
   | "Arrays"     -> Handlers.Handler Tags.Arrays
   | "IfThenElse" -> Handlers.Handler Tags.IfThenElse
   | "bool"       -> Handlers.Handler Tags.Bool

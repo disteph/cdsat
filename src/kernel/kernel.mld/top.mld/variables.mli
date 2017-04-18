@@ -38,8 +38,8 @@ end
 module World : sig
 
   include PHCons
-  val print_in_fmtEM : Format.formatter -> t -> unit
-  val print_in_fmtME : Format.formatter -> t -> unit
+  val ppEM : Format.formatter -> t -> unit
+  val ppME : Format.formatter -> t -> unit
 
   val init  : t
   val liftE : Sorts.t -> t -> FreeVar.t*t

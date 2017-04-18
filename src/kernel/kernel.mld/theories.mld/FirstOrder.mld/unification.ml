@@ -33,14 +33,14 @@ module MKcorr = (struct
                      get_meta = IU.KMap.remove key f.get_meta}
 
   let fold f mk = IU.MMap.fold f mk.get_key
-  let print_in_fmt fmt mk = 
+  let pp fmt mk = 
     IU.MMap.print_in_fmt
-      (fun fmt (mv,key) -> Format.fprintf fmt "(?%a -> k%a)" Meta.print_in_fmt mv IU.print_in_fmtK key)
+      (fun fmt (mv,key) -> Format.fprintf fmt "(?%a -> k%a)" Meta.pp mv IU.ppK key)
       fmt
       mk.get_key
-
+  let show = Dump.stringOf pp
 end: sig
-  type t
+  type t [@@deriving show]
   val empty: t
   val get_key : t -> Meta.t -> IU.keys
   val get_meta: t -> IU.keys -> Meta.t
@@ -48,7 +48,6 @@ end: sig
   val add   : t -> Meta.t -> IU.keys -> t
   val remove: t -> Meta.t -> t
   val fold: (Meta.t -> IU.keys -> 'b -> 'b) -> t -> 'b -> 'b
-  val print_in_fmt: Format.formatter -> t -> unit
 end)
 
 
@@ -154,7 +153,7 @@ module Unification = (struct
   *)
 
   let translate b fold key0 u2 t2 cont =
-    Dump.print ["unification",1] (fun p->p "translate k%a -> %a in %a" IU.print_in_fmtK key0 IU.print_in_fmtV t2 IU.print_in_fmt u2);
+    Dump.print ["unification",1] (fun p->p "translate k%a -> %a in %a" IU.ppK key0 IU.ppV t2 IU.pp u2);
 
     (* In the recursive auxiliary function aux,
        - lax says whether we accept key0 to be mapped to itself.
@@ -179,7 +178,7 @@ module Unification = (struct
              check to verify that this assignment respects
              dependencie *)
           let u1' = 
-            Dump.print ["unification",1] (fun p->p "occurs_check_ei on k%a -> %a" IU.print_in_fmtK key0 Eigen.print_in_fmt ei);
+            Dump.print ["unification",1] (fun p->p "occurs_check_ei on k%a -> %a" IU.ppK key0 Eigen.pp ei);
             occurs_check_ei fold key0 u1 ei
           in
           cont (IU.eigen2val ei) u1' u2'
@@ -216,7 +215,7 @@ module Unification = (struct
                 | Some((t,_) as c) -> (t,occurs_check_v lax fold key0 c)
               in cont t0 u1' u2' kk_corr
             | Some key1 -> 
-              Dump.print ["unification",1] (fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.print_in_fmtK key0 IU.print_in_fmtK i2 IU.print_in_fmtK key1);
+              Dump.print ["unification",1] (fun p->p "occurs_check1 with b=%b key0=%a i2=%a key1=%a" b IU.ppK key0 IU.ppK i2 IU.ppK key1);
               raise NonUnifiable
           end
 
@@ -283,7 +282,7 @@ module Unification = (struct
       (* We find a unification constraint between 2 terms *)
 
       | (t1,t2)::l -> 
-        Dump.print ["unification",1] (fun p->p "unifying %a in %a to %a in %a" IU.print_in_fmtV t1 IU.print_in_fmt u1 IU.print_in_fmtV t2 IU.print_in_fmt u2);
+        Dump.print ["unification",1] (fun p->p "unifying %a in %a to %a in %a" IU.ppV t1 IU.pp u1 IU.ppV t2 IU.pp u2);
 
         (* We expose the head shape of the 2 terms, and match them *)
 

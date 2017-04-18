@@ -50,9 +50,9 @@ val get          : keys -> t -> (values * t) option
 
 (* Printing out stuff *)
 
-val print_in_fmtK: Format.formatter -> keys   -> unit
-val print_in_fmtV: Format.formatter -> values -> unit
-val print_in_fmt : Format.formatter -> t      -> unit
+val ppK: Format.formatter -> keys   -> unit
+val ppV: Format.formatter -> values -> unit
+val pp : Format.formatter -> t      -> unit
 
 (* Maps between keys and metas *)
 

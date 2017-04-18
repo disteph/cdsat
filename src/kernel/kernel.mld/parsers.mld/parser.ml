@@ -1,8 +1,6 @@
-exception ParsingError of string
+open Top.Sorts
 
-let latexescaped = function
-  | '%' | '{' | '}' as c -> "\\"^Char.escaped c
-  | c -> Char.escaped c
+exception ParsingError of string
 
 (* Type of functions used to type-check and interpret an untyped AST.
 - For symbols declared in the signature (sigsymb), we have to understand
@@ -12,8 +10,6 @@ should specify the full arity, with the sorts of arguments.
 - For quantifiers, the string list is for binding several variables at the same time,
 the strings being their sorts. *)
 
-type sortType = Sort of string*(sortType list)
-
 module type InterpretType = sig
   type t
   val sigsymb : string                             -> t list -> t
@@ -22,7 +18,7 @@ module type InterpretType = sig
   val quantif : bool -> sortType list              -> t      -> t
 end
 
-module type ParserType = sig
+module type Type = sig
   type afterglance
   val name          : string
   val glance        : string -> afterglance

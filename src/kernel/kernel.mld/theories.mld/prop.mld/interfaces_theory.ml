@@ -14,13 +14,11 @@ open Variables
 *)
 
 module type ConstraintType = sig
-  type t
+  type t [@@deriving ord,show]
   val topconstraint:t
   val proj : t -> t
   val lift : World.t -> t -> t
   val meet : t -> t -> t option
-  val compare : t -> t -> int
-  val print_in_fmt : Format.formatter -> t -> unit
 end
 
 (* DataStructures that Theory must provide for Kernel *)
@@ -100,6 +98,6 @@ and ('a,'b) stream = 'b->('a,'b) gstream
 module type DecProc = sig
   module DS : TheoryDSType 
   open DS
-  val consistency     :           TSet.t -> (TSet.t,Constraint.t) stream
-  val goal_consistency: Term.t -> TSet.t -> (TSet.t,Constraint.t) stream
+  val consistency     :           Assign.t -> (Assign.t,Constraint.t) stream
+  val goal_consistency: Term.t -> Assign.t -> (Assign.t,Constraint.t) stream
 end

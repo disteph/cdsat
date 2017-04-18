@@ -22,12 +22,12 @@ module Make(DS: GTheoryDSType)= struct
   type v = Term.t
   let vequal = Term.equal
                  
-  module VSet = TSet
+  module VSet = Assign
 
-  module DVtoTSet = struct
+  module DVtoAssign = struct
     type keys = v
     let kcompare = Term.compare
-    type values = TSet.t
+    type values = Assign.t
     type infos = unit
     let info_build = empty_info_build
     let treeHCons = None
@@ -35,19 +35,19 @@ module Make(DS: GTheoryDSType)= struct
 
   module I = TypesFromHConsed (Term)
 
-  module MVtoTSet = PATMap.Make (DVtoTSet) (I)
+  module MVtoAssign = PATMap.Make (DVtoAssign) (I)
 
-  module VtoTSet = struct
+  module VtoAssign = struct
     type e = Term.t
-    type v = TSet.t
-    type t = MVtoTSet.t
-    let find = MVtoTSet.find
-    let empty = MVtoTSet.empty
-    let add i s t  = MVtoTSet.add i (function _ -> s) t
-    let union t t' = MVtoTSet.union (fun s s' -> TSet.union s s') t t'
-    let remove i t = MVtoTSet.remove i t
-    let map f t = MVtoTSet.map (fun x y -> f y) t
-    let fold f t a = MVtoTSet.fold (fun x y a' -> f x a') t a
+    type v = Assign.t
+    type t = MVtoAssign.t
+    let find = MVtoAssign.find
+    let empty = MVtoAssign.empty
+    let add i s t  = MVtoAssign.add i (function _ -> s) t
+    let union t t' = MVtoAssign.union (fun s s' -> Assign.union s s') t t'
+    let remove i t = MVtoAssign.remove i t
+    let map f t = MVtoAssign.map (fun x y -> f y) t
+    let fold f t a = MVtoAssign.fold (fun x y a' -> f x a') t a
   end
 
   module DVtoV = struct
@@ -76,7 +76,7 @@ module Make(DS: GTheoryDSType)= struct
 
   let make t = t
 
-  let leaves r = TSet.add r TSet.empty
+  let leaves r = Assign.add r Assign.empty
 
   let rec subst p q r =
     if Term.equal p r then q else r

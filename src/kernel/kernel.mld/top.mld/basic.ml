@@ -28,7 +28,7 @@ module IntSort = struct
   let buildH (i,s) = HMade.build(i,false,s)
   let clear = HMade.clear
 
-  let print_in_fmt fmt t =
+  let pp fmt t =
     let (fv,b,so) = H.reveal t in
     match !Dump.display with
     | Dump.Latex ->
@@ -37,6 +37,8 @@ module IntSort = struct
     | _ ->
        if fv>=0 then Format.fprintf fmt "%s%i" (* "%s{%i}^{%a}" *) (if b then "" else "_") fv (* Sorts.print_in_fmt so *)
        else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
+
+  let show = Dump.stringOf pp
 
   let isDefined fv = let _,b,_ = H.reveal fv in not b
   let isNeg fv = let i,_,_ = H.reveal fv in i<0
@@ -56,15 +58,20 @@ end
 
 module MakeCollection
          (OT: sig
-              include Set.OrderedType
-              val print_in_fmt: Format.formatter -> t -> unit
+              type t [@@deriving ord,show]
             end) = struct
   include Set.Make(OT)
   type e    = elt
   let next t = let e = choose t in (e,remove e t)
-  let print_in_fmt fmt s =
-    let _ = fold (fun a b -> fprintf fmt "%s%a" (if b then ", " else "") OT.print_in_fmt a; true) s false in
+  let pp fmt s =
+    let _ = fold
+              (fun a b -> fprintf fmt "%s%a"
+                            (if b then ", " else "")
+                            OT.pp a;
+                          true)
+              s false in
     ()
+  let show = Dump.stringOf pp
 end
 
 module MakePATCollection(M: PHCons) = struct
@@ -81,5 +88,6 @@ module MakePATCollection(M: PHCons) = struct
 
   include PATSet.Make(DSet)(I)
   let next t = let e = choose t in (e,remove e t)
-  let print_in_fmt fmt s = print_in_fmt M.print_in_fmt fmt s
+  let pp fmt s = print_in_fmt M.pp fmt s
+  let show = Dump.stringOf pp
 end

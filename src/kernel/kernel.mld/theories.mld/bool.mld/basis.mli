@@ -74,7 +74,7 @@ module Make(DS: sig
       val simpl: t -> (LSet.t*(Model.t list), Term.t option) Sums.sum
       val verysimpl: t -> (LSet.t, Term.t option) Sums.sum
       val simplify : Model.t->t->t
-      val print_in_fmt : Format.formatter -> t -> unit
+      val pp : Format.formatter -> t -> unit
   end  
 
   (* This is a type abbreviation for those propoagation messages that

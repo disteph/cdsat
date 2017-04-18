@@ -83,12 +83,12 @@ let print_in_fmt_latex (type a)(type b) ?print_atom (pSub:(b,formatter->unit)fun
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
-    fprintf fmt "%s %a %a" op (* Sorts.print_in_fmt so *) pSub1 f DSubst.print_in_fmt d
+    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f DSubst.pp d
   and print_quantif_in_fmtB fmt op so f =
-    fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
+    fprintf fmt "%s %a" op (* Sorts.pp so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
   | LitF l       -> fprintf fmt "%a" (LitF.print_in_fmt ?print_atom) l
-  | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
+  | LitB l       -> fprintf fmt "%a" LitB.pp l
   | TrueP        -> fprintf fmt "%s" "\\trueP"
   | TrueN        -> fprintf fmt "%s" "\\trueN"
   | FalseP       -> fprintf fmt "%s" "\\falseP"
@@ -112,12 +112,12 @@ let print_in_fmt_utf8 (type a)(type b) ?print_atom (pSub:(b,formatter->unit)func
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
-    fprintf fmt "%s %a %a" op (* Sorts.print_in_fmt so *) pSub1 f DSubst.print_in_fmt d
+    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f DSubst.pp d
   and print_quantif_in_fmtB fmt op so f =
-    fprintf fmt "%s %a" op (* Sorts.print_in_fmt so *) pRec f
+    fprintf fmt "%s %a" op (* Sorts.pp so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
   | LitF l       -> fprintf fmt "%a" (LitF.print_in_fmt ?print_atom) l
-  | LitB l       -> fprintf fmt "%a" LitB.print_in_fmt l
+  | LitB l       -> fprintf fmt "%a" LitB.pp l
   | TrueP        -> fprintf fmt "%s" "⊤+"
   | TrueN        -> fprintf fmt "%s" "⊤-"
   | FalseP       -> fprintf fmt "%s" "⊥+"
@@ -191,10 +191,11 @@ module FormulaB = struct
   include HCons.Make(B)
   include Init(HCons.NoBackIndex)
 
-  let print_in_fmt =
+  let pp =
     let rec aux fmt t = print_in_fmt BoundFunc aux reveal fmt t
     in aux
-
+  let show = Dump.stringOf pp
+         
   let negation =
     let rec aux t = negation BoundFunc aux reveal build t
     in aux
@@ -223,7 +224,7 @@ module FormulaF = struct
   include HCons.Make(F)
 
   let print_in_fmt ?print_atom fmt t =
-    let rec aux fmt t = print_in_fmt ?print_atom (FreeFunc(fun t fmt->FormulaB.print_in_fmt fmt t)) aux reveal fmt t
+    let rec aux fmt t = print_in_fmt ?print_atom (FreeFunc(fun t fmt->FormulaB.pp fmt t)) aux reveal fmt t
     in aux fmt t
 
   module type Extra = sig

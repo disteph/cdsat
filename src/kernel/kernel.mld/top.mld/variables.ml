@@ -30,10 +30,11 @@ module FreeVar = struct
     | Meta mv  -> Meta.get_sort mv
     | Eigen ei -> Eigen.get_sort ei
 
-  let print_in_fmt fmt t = match reveal t with
-    | Meta mv  -> fprintf fmt "?%a" Meta.print_in_fmt mv
-    | Eigen ei -> fprintf fmt "%a" Eigen.print_in_fmt ei
+  let pp fmt t = match reveal t with
+    | Meta mv  -> fprintf fmt "?%a" Meta.pp mv
+    | Eigen ei -> fprintf fmt "%a" Eigen.pp ei
 
+  let show = Dump.stringOf pp
 end
 
 module World = struct
@@ -135,21 +136,30 @@ module World = struct
         | Init -> false
         | NewWorld(_,_,w) -> prefix w1 w)
 
-  let print_in_fmtEM fmt w =
+  let ppEM fmt w =
     let ar = data w in 
     let aux fmt =
-      IntMap.fold (fun i j () -> Format.fprintf fmt "(%a fresh for #%i); " Eigen.print_in_fmt (IntMap.find i ar.ithE) j) ar.depEM ()
+      IntMap.fold
+        (fun i j () ->
+          Format.fprintf fmt "(%a fresh for #%i); "
+            Eigen.pp (IntMap.find i ar.ithE) j)
+        ar.depEM ()
     in
     Format.fprintf fmt "next meta: ?%i; %t" ar.next_meta aux 
 
-  let print_in_fmtME fmt w = 
+  let ppME fmt w = 
     let ar = data w in 
     let aux fmt =
-      IntMap.fold (fun i j () -> Format.fprintf fmt "(?%a fresh for #%i); " Meta.print_in_fmt (IntMap.find i ar.ithM) j) ar.depME ()
+      IntMap.fold
+        (fun i j () ->
+          Format.fprintf fmt "(?%a fresh for #%i); "
+            Meta.pp (IntMap.find i ar.ithM) j)
+        ar.depME ()
     in
     Format.fprintf fmt "%i; %t" ar.next_eigen aux 
 
-  let print_in_fmt = print_in_fmtEM
+  let pp = ppEM
+  let show = Dump.stringOf pp
 
   let fold w ei f =
     let ar = data w in

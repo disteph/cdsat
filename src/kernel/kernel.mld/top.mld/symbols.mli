@@ -17,15 +17,12 @@ type t =
 | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
 
 (* LRA *)
-| CstRat of Num.num
+| CstRat of General.Pnum.t
 | Ge | Le | Gt | Lt
 | Plus | Minus | Times | Divide | Op
 
 (* Arrays *)
 | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
-                                                 [@@deriving eq, hash]
+                                                 [@@deriving eq, show, hash]
                                                  
-val arity        : t -> arity
-val multiary     : t -> ((('a list->'a list) -> 'a list -> 'a) option)
-val print_in_fmt : Format.formatter -> t -> unit
-val parse        : string list -> string -> t list
+val arity : t -> arity

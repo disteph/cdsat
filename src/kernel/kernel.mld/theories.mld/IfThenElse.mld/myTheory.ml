@@ -6,41 +6,42 @@ open Termstructures.Literals
 
 type sign = unit
 
+type ts = LitF.t
+let ts  = Termstructures.Register.LitF
+
+include Theory.HasNoValues
+
 module LMap = Map.Make(LitF)
 
-module Make
-  (DS: sig 
-    include GTheoryDSType
-    val proj: Term.datatype -> LitF.t
-  end) =
-struct
+module Make(DS: DSproj with type ts = LitF.t) = struct
 
+  type assign = DS.Assign.t
   open DS
 
   type state = {
-    treated: TSet.t;
+    treated: Assign.t;
     known: Term.t LMap.t;
     todo: Term.t list;
-    solved: TSet.t;
+    solved: Assign.t;
   }
 
   let rec print_in_fmtL fmt h = 
     LMap.fold
       (fun blit b () ->
-        Format.fprintf fmt "(%a,%a)," (LitF.print_in_fmt ~print_atom:Term.print_of_id) blit Term.print_in_fmt b
+        Format.fprintf fmt "(%a,%a)," (LitF.print_in_fmt ~print_atom:Term.print_of_id) blit Term.pp b
       )
       h 
       ()
 
-  let rec print_in_fmt fmt = function
+  let rec pp fmt = function
     | [] -> Format.fprintf fmt "[]"
-    | t::l -> Format.fprintf fmt "%a::%a" Term.print_in_fmt t print_in_fmt l
+    | t::l -> Format.fprintf fmt "%a::%a" Term.pp t pp l
 
   let rec machine state =
     (module struct
        
-       type newoutput = (sign,TSet.t) output
-       type tset = TSet.t
+       type newoutput = (sign,Assign.t) output
+       type tset = Assign.t
 
        let add newlits =
          let state = 
@@ -48,9 +49,9 @@ struct
            | None    -> state
            | Some nl ->
               { 
-                treated = TSet.union state.treated nl;
-                known   = TSet.fold (fun t -> LMap.add (proj(Terms.data t)) t) nl state.known;
-                todo    = TSet.fold (fun t l -> t::l) nl state.todo;
+                treated = Assign.union state.treated nl;
+                known   = Assign.fold (fun t -> LMap.add (proj(Terms.data t)) t) nl state.known;
+                todo    = Assign.fold (fun t l -> t::l) nl state.todo;
                 solved  = state.solved
               }
          in
@@ -59,8 +60,8 @@ struct
               (Output(
                    Some(sat () state.treated),
                    machine { state with todo = [] }
-                 ):(sign,TSet.t) output)
-           | t::l when TSet.mem t state.solved -> aux l
+                 ):(sign,Assign.t) output)
+           | t::l when Assign.mem t state.solved -> aux l
            | t::l ->
               begin match Terms.reveal t with
               | Terms.C(Symbols.ITE so,[b;b1;b2]) 
@@ -68,28 +69,28 @@ struct
                  let blit = proj(Terms.data b) in
                  if LMap.mem blit state.known
                  then
-                   (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) seen" LitF.print_in_fmt blit Term.print_in_fmt b); *)
+                   (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) seen" LitF.pp blit Term.pp b); *)
                    let b0 = LMap.find blit state.known in
                    let eq = Term.bC (Symbols.Eq so) [t;b1] in
                    Output(
-                       Some(straight () (TSet.singleton b0) (TSet.singleton eq)),
-                       machine { state with todo = l; solved = TSet.add t state.solved })
+                       Some(straight () (Assign.singleton b0) (Assign.singleton eq)),
+                       machine { state with todo = l; solved = Assign.add t state.solved })
                          (* ) *)
                  else 
                    if LMap.mem (LitF.negation blit) state.known
                    then
-                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition -(%a,%a) seen" LitF.print_in_fmt blit  Term.print_in_fmt b); *)
+                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition -(%a,%a) seen" LitF.pp blit  Term.pp b); *)
                      let b0 = LMap.find (LitF.negation blit) state.known in
                      let eq = Term.bC (Symbols.Eq so) [t;b2] in
                      Output(
-                         Some(straight () (TSet.singleton b0) (TSet.singleton eq)),
-                         machine { state with todo = l; solved = TSet.add t state.solved })
+                         Some(straight () (Assign.singleton b0) (Assign.singleton eq)),
+                         machine { state with todo = l; solved = Assign.add t state.solved })
                            (* ) *)
                    else
-                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.print_in_fmt blit  Term.print_in_fmt b); *)
+                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.pp blit  Term.pp b); *)
                      Output(
                          Some(
-                             both () TSet.empty (TSet.singleton b) (TSet.singleton (Term.bC Symbols.Neg [b]))
+                             both () Assign.empty (Assign.singleton b) (Assign.singleton (Term.bC Symbols.Neg [b]))
                            ),
                          machine { state with todo = t::l })
               (* ) *)
@@ -102,9 +103,9 @@ struct
 
               end
          in
-         (* Dump.print ["IfThenElse",1] (fun p -> p "treated=%a" TSet.print_in_fmt state.treated); *)
-         (* Dump.print ["IfThenElse",1] (fun p -> p "known=%a" print_in_fmtL state.known); *)
-         (* Dump.print ["IfThenElse",1] (fun p -> p "todo=%a" print_in_fmt state.todo); *)
+         (* Dump.print ["IfThenElse",1] (fun p -> p "treated=%a" Assign.pp state.treated); *)
+         (* Dump.print ["IfThenElse",1] (fun p -> p "known=%a" ppL state.known); *)
+         (* Dump.print ["IfThenElse",1] (fun p -> p "todo=%a" pp state.todo); *)
          aux state.todo
 
        let normalise = (fun _ -> failwith "Not a theory with normaliser")
@@ -113,9 +114,22 @@ struct
 
        let suicide _ = ()
 
-     end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
+     end : SlotMachine with type newoutput = (sign,Assign.t) output and type tset = Assign.t)
 
-  let init = machine { treated = TSet.empty; known = LMap.empty; todo = []; solved = TSet.empty }
+  let init = machine { treated = Assign.empty; known = LMap.empty; todo = []; solved = Assign.empty }
   let clear () = ()
                    
 end
+
+module type API = sig
+  type assign
+  val init: (sign,assign) slot_machine
+  val clear: unit -> unit
+end
+
+type ('t,'v,'a) api = (module API with type assign = 'a)
+
+let make (type t)(type v)(type a)
+      ((module DS): (ts,values,t,v,a) dsProj)
+    : (t,v,a) api =
+  (module Make(DS))

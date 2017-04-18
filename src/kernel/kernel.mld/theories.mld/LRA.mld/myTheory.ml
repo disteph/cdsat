@@ -2,16 +2,20 @@ open Top
 open Messages
 open Specs
 
+open Termstructures.Rationals
 open Algo
 open Dtrail
 
 type sign = unit
 
-module Make(DS: sig
-    include GTheoryDSType
-    val proj: Term.datatype -> ThDS.t
-  end) = struct
+type ts = TS.t
+let ts  = Termstructures.Register.Rationals
 
+include Theory.HasValues(General.Pnum)
+
+module Make(DS: DSproj with type ts = TS.t) = struct
+
+  type assign = DS.Assign.t
   open DS
 
   (* Converts a term to something understandable by the algorithm: eqs
@@ -20,8 +24,8 @@ module Make(DS: sig
 
   let rec aToEq lit (splits, eqs) = 
     match proj(Terms.data lit) with
-    | ThDS.Ineq eq    -> splits, (eq::eqs)
-    | ThDS.EqNeq(flip,i) ->
+    | TS.Ineq eq    -> splits, (eq::eqs)
+    | TS.EqNeq(flip,i) ->
        begin
          match flip, Terms.reveal(Term.term_of_id i) with
 
@@ -40,9 +44,9 @@ module Make(DS: sig
              ->
             let a1 = Term.bC Symbols.Lt [a;b] in
             let a2 = Term.bC Symbols.Gt [a;b] in
-            let s1 = TSet.singleton a1 in
-            let s2 = TSet.singleton a2 in
-            let s0 = TSet.singleton lit in
+            let s1 = Assign.singleton a1 in
+            let s2 = Assign.singleton a2 in
+            let s0 = Assign.singleton lit in
             (* In case of a disequality, we describe the case analysis
             to make, and store it in splits *)
             (both () s0 s1 s2)::splits,
@@ -55,27 +59,27 @@ module Make(DS: sig
    Should be improved by creating new terms *)
   let rec eqToA eq = match Equation.getTag eq with
         | [] -> failwith "Can not convert an equation without tag"
-        | l  -> List.fold (fun v -> TSet.add (Term.term_of_id v)) l TSet.empty
+        | l  -> List.fold (fun v -> Assign.add (Term.term_of_id v)) l Assign.empty
 
-  let toTSet eqs = List.fold (fun e -> TSet.union (eqToA e)) eqs TSet.empty
+  let toAssign eqs = List.fold (fun e -> Assign.union (eqToA e)) eqs Assign.empty
 
 
-  type state = {treated : TSet.t;
-                splits : (sign,TSet.t,both) message list;
+  type state = {treated : Assign.t;
+                splits : (sign,Assign.t,both) message list;
                 stack : trail list}
 
   let rec machine state  =
     (module struct
 
-      type newoutput = (sign,TSet.t) output
-      type tset = TSet.t
+      type newoutput = (sign,Assign.t) output
+      type tset = Assign.t
 
       (* Should send a minimal set af equations *)
       let add = function
         | None -> Output(None, machine state)
         | Some tset ->
           (* We collect from tset the equations and the split points *)
-          let splits, neweqs = TSet.fold aToEq tset (state.splits,[]) in
+          let splits, neweqs = Assign.fold aToEq tset (state.splits,[]) in
            (* Dump.print ["dejan",1] (fun p -> p "Entering Dejan's add"); *)
           try     
             (* We resume the algorithm with the new equations *)
@@ -87,7 +91,7 @@ module Make(DS: sig
               | [] -> 
                  (* No more case analyses to make, we return the SAT message *)
                  let newState = {
-                   treated = TSet.union state.treated tset; 
+                   treated = Assign.union state.treated tset; 
                    splits = [];
                    stack = s;
                  }
@@ -97,7 +101,7 @@ module Make(DS: sig
               | msg::splits' ->
                  (* We ask Psyche to make a case analysis with msg *)
                  let newState = {
-                   treated = TSet.union state.treated tset; 
+                   treated = Assign.union state.treated tset; 
                    splits = splits';
                    stack = s;
                  }
@@ -108,7 +112,7 @@ module Make(DS: sig
 
           with Unsat_failure (l,s) ->
             (* Dump.print ["dejan",1] (fun p -> p "Exiting Dejan's add"); *)
-            Output(Some(unsat () (toTSet l)), fail_state)
+            Output(Some(unsat () (toAssign l)), Tools.fail_state)
 
       let normalise _ = failwith "Not a theory with normaliser"
 
@@ -116,9 +120,22 @@ module Make(DS: sig
 
       let suicide _ = ()
 
-    end : SlotMachine with type newoutput = (sign,TSet.t) output and type tset = TSet.t)
+    end : SlotMachine with type newoutput = (sign,Assign.t) output and type tset = Assign.t)
 
-  let init = machine {treated=TSet.empty; splits=[]; stack=[]}
+  let init = machine {treated=Assign.empty; splits=[]; stack=[]}
   let clear () = ()
 
 end
+
+module type API = sig
+  type assign
+  val init: (sign,assign) slot_machine
+  val clear: unit -> unit
+end
+
+type ('t,'v,'a) api = (module API with type assign = 'a)
+
+let make (type t)(type v)(type a)
+      ((module DS): (ts,values,t,v,a) dsProj)
+    : (t,v,a) api =
+  (module Make(DS))
