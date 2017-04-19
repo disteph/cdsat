@@ -25,7 +25,7 @@ module Tags = struct
     | IfThenElse -> 4
     | Bool -> 5
                 
-  let print_in_fmt fmt (type a) : a t -> unit = function
+  let pp fmt (type a) : a t -> unit = function
     | Empty      -> fprintf fmt "Empty"
     | CC         -> fprintf fmt "CC"
     | Arrays     -> fprintf fmt "Arrays"
@@ -36,8 +36,8 @@ end
 
 module Modules = struct
 
-  let get (type tva)(type ts)(type v)(type api)
-        (tag : (tva*(_*ts*v*api)) Tags.t)
+  let get (type tva)(type sign)(type ts)(type v)(type api)
+        (tag : (tva*(sign*ts*v*api)) Tags.t)
        : ts Termstructures.Register.t * v Theory.values_opt
     = let open Tags in
       match tag with
@@ -50,8 +50,8 @@ module Modules = struct
                              
   type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
 
-  let make(type t)(type v)(type a)(type ts)(type v)
-        (tag : ((t*v*a)*(_*ts*v*_)) Tags.t)
+  let make(type t)(type v)(type a)(type sign)(type ts)(type v)
+        (tag : ((t*v*a)*(sign*ts*v*_)) Tags.t)
         (ds  : (ts,v,_,_,_) Top.Specs.dsProj)
     =
     let open Tags in
@@ -67,18 +67,18 @@ end
 
 module Sig = struct
 
-  type _ t = Sig : ('a*_*_) Tags.t -> 'a t [@@unboxed]
+  type _ t = Sig : (_*('a*_*_*_)) Tags.t -> 'a t [@@unboxed]
 
   let id (Sig t) = Tags.id t
-  let print_in_fmt fmt (Sig t) = Tags.print_in_fmt fmt t
+  let print_in_fmt fmt (Sig t) = Tags.pp fmt t
 
 end
 
 module Handlers = struct
-  type t = Handler: 'a Tags.t -> t [@@unboxed]
+  type t = Handler: (_*(_*_*_*_)) Tags.t -> t [@@unboxed]
   let id (Handler hdl) = Tags.id hdl
   let compare = id2compare id
-  let print_in_fmt fmt (Handler hdl) = Tags.print_in_fmt fmt hdl
+  let print_in_fmt fmt (Handler hdl) = Tags.pp fmt hdl
 end
 
 let all_theories_list = 
@@ -93,7 +93,7 @@ let all_theories_list =
 module HandlersMap = struct
   include Map.Make(Handlers)
 
-  let print_in_fmt fmt hdls =
+  let pp fmt hdls =
     let _ =
       fold
         (fun a _ b ->

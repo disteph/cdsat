@@ -9,16 +9,15 @@ open General.Sums
 open Top.Messages
 open Theories.Prop.Interfaces_theory
 open Theories.Register
+open Whiteboard
 
 (* Basic module for constraints, for ground theories *)
 
 module EmptyConstraint : ConstraintType = struct
-  type t = unit
+  type t = unit [@@deriving ord,show]
   let topconstraint = ()
-  let print_in_fmt fmt () = ()
   let proj a = a
   let lift _ a = a
-  let compare a b = 0
   let meet a b = Some ()
 end
 
@@ -27,13 +26,13 @@ end
 Cannot treat sequents with meta-variables, obviously *)
 
 module GTh2Th
-         (WB: Combo.WhiteBoard)
+         (WB: WhiteBoard)
          (PProj: sig 
               type formulae
               val asF: WB.DS.Term.datatype -> formulae
             end)
          (MDP: sig
-              val solve : WB.DS.TSet.t -> (unsat WB.t, sat WB.t) sum
+              val solve : WB.DS.Assign.t -> (unsat WB.t, sat WB.t) sum
               val clear : unit -> unit
             end) 
        : (DecProc with type DS.formulae = PProj.formulae) = struct
@@ -51,17 +50,17 @@ module GTh2Th
   let consistency a sigma =
     Dump.print ["ForGround",1] (fun p ->
         p "Calling theories on key set\n%a"
-          TSet.print_in_fmt a);
+          Assign.pp a);
     let res = MDP.solve a in
     MDP.clear();
     match res with
     | Case1(WB(_,Propa(b,Unsat)))
-      -> if TSet.subset b a
+      -> if Assign.subset b a
          then Guard(b,sigma,fun _ -> NoMore)
          else
            ( Dump.print ["ForGround",1] (fun p ->
                  p "Theories came back with extra assumptions\n%a"
-                   TSet.print_in_fmt (TSet.diff b a));
+                   Assign.pp (Assign.diff b a));
              failwith "ForGround1" )
     | Case2(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
       -> NoMore
@@ -71,18 +70,18 @@ module GTh2Th
     let nont = DS.Term.bC Top.Symbols.Neg [t] in
     Dump.print ["ForGround",1] (fun p ->
         p "Calling theories on key set\n%a and goal: %a"
-          TSet.print_in_fmt a Term.print_in_fmt t);
-    let a' = TSet.add nont a in
+          Assign.pp a Term.pp t);
+    let a' = Assign.add nont a in
     let res = MDP.solve a' in
     MDP.clear();
     match res with
     | Case1(WB(_,Propa(b,Unsat)))
-      -> if TSet.subset b a'
-         then Guard((if TSet.mem nont b then TSet.remove nont b else b),sigma,fun _ -> NoMore)
+      -> if Assign.subset b a'
+         then Guard((if Assign.mem nont b then Assign.remove nont b else b),sigma,fun _ -> NoMore)
          else
            ( Dump.print ["ForGround",1] (fun p ->
                  p "Theories came back with extra assumptions\n%a"
-                   TSet.print_in_fmt (TSet.diff b a'));
+                   Assign.pp (Assign.diff b a'));
              failwith "ForGround2" )
     | Case2(WB(hdls,Sat _)) when HandlersMap.is_empty hdls
       -> NoMore

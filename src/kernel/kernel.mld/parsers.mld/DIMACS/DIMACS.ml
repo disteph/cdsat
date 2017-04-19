@@ -1,5 +1,5 @@
 open String
-open Top.Parser
+open Parser
 
 let name = "DIMACS"
 
@@ -19,7 +19,7 @@ let rec list_from_string s list_so_far n =
 		 | ' '  -> list_from_string s (word_so_far::list_so_far) n
 		 | '\n' -> list_from_string s (word_so_far::list_so_far) n
 		 | '\t' -> list_from_string s (word_so_far::list_so_far) n
-		 | c    -> word_from_string s (word_so_far^(latexescaped c)) (n+1)
+		 | c    -> word_from_string s (word_so_far^(Parse.latexescaped c)) (n+1)
 	     end
 	 in
 	   word_from_string s "" n

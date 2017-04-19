@@ -31,8 +31,8 @@ let forParser (type a)
       (module I: Specs.ForParsing with type t = a)
       decsorts
   =
-  let parseSort = Sorts.parse decsorts in
-  let parseSymb = Symbols.parse decsorts in
+  let parseSort = Parse.sort decsorts in
+  let parseSymb = Parse.symbol decsorts in
   (module struct
      
      type t = Sorts.t -> I.t
@@ -43,7 +43,7 @@ let forParser (type a)
             fun l expsort ->
             (try symb 
                    (Symbols.arity sym)
-                   (Symbols.multiary sym)
+                   (Parse.multiary sym)
                    (I.bC sym)
                    l expsort
 	     with MultiaryError msg
@@ -63,8 +63,8 @@ let forParser (type a)
      let boundsymb db decsort expsort =
        let pdecsort = parseSort decsort in
        if Sorts.equal expsort pdecsort then I.bV (IntSort.build(db,expsort))
-       else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.print_in_fmt pdecsort
-                                ^" but expecting sort"^Dump.stringOf Sorts.print_in_fmt expsort))
+       else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.pp pdecsort
+                                ^" but expecting sort"^Dump.stringOf Sorts.pp expsort))
 
      let quantif b l sf =
        let sfc = sf Sorts.Prop in
@@ -77,6 +77,6 @@ let forParser (type a)
        function expsort ->
                 if Sorts.equal expsort Sorts.Prop then aux l
                 else raise (TypingError ("TypingError: quantifier produces inhabitant of sort `Prop but expecting sort "
-                                         ^Dump.stringOf Sorts.print_in_fmt expsort))
+                                         ^Dump.stringOf Sorts.pp expsort))
                            
    end : InterpretType with type t = Sorts.t -> a)

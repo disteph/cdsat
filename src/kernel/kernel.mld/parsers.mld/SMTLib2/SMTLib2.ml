@@ -2,8 +2,9 @@
 
 open SMTLib2_tools
 open Smtlib2_ast
-open Top.Parser
-
+open Parser
+open Parse
+       
 let name = "SMTLib2"
 
 type 'a environment =

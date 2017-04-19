@@ -9,11 +9,14 @@ account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
        
-let init (module MyPluginG : PluginG.Type) get_plugin th =
+let init (module PlDS : Theories.Prop.Interfaces_plugin.PlugDSType)
+      datalist th =
 
-  let module PS = Theories.Prop.Search.ProofSearch(MyPluginG.DS) in
-
-  let (module Mode) : (module Theories.Prop.Interfaces_theory.DecProc with type DS.formulae = PS.Semantic.t)
+  let module Init = Combo.Init(PlDS) in
+  
+  let (module Mode)
+      : (module Theories.Prop.Interfaces_theory.DecProc
+                with type DS.formulae = Init.State.DT.t)
     = if !Flags.mode
       then
         let open Theories.Register in
@@ -28,10 +31,8 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
             | None,None,Some l -> get l
         in
         print_endline(Dump.toString (fun p->
-                          p "Using theories: %a" HandlersMap.print_in_fmt theories));
-        let (module MyPlugin : Plugin.Type) = get_plugin theories in
-        let propds = (module PS.Semantic: Top.Specs.DataType with type t = PS.Semantic.t) in
-        let datalistWprop = Combo.ConsData(propds,MyPlugin.dataList) in
+                          p "Using theories: %a" HandlersMap.pp theories));
+        (* let (module MyPlugin : Plugin.Type) = get_plugin theories in *)
         let (module WB), Combo.ConsProj(asForm,projlist) = Combo.make theories datalistWprop in
         let module Res = ForGround.GTh2Th(WB)
                            (struct type formulae = PS.Semantic.t let asF = asForm end)
@@ -44,7 +45,6 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
   in
 
   let module Src   = PS.Make(Mode) in
-  let module Strat = MyPluginG.Strategy(Src.FE) in
   fun expected stringOrunit ->
     let result = match expected with 
       | None,_                                   -> print_endline("No formula to treat");None 
@@ -64,7 +64,7 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
               (fun p->
                 p "I am now starting: %t"
                   (if !Flags.printrhs
-                   then fun fmt -> Theories.Prop.Formulae.FormulaB.print_in_fmt fmt formula
+                   then fun fmt -> Theories.Prop.Formulae.FormulaB.pp fmt formula
                    else fun fmt -> ()));
 	    Strat.solve(Src.machine formula Strat.initial_data)
 	  in 
@@ -84,9 +84,9 @@ let init (module MyPluginG : PluginG.Type) get_plugin th =
        if !Flags.latex then
          let display = !Dump.display in
          Dump.display := Dump.Latex;
-         let ans = Some(Case1(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+         let ans = Some(Case1(Dump.toString (fun p->p "%a" Src.FE.pp r)))
          in Dump.display := display; ans
-       else Some(Case1(Dump.toString (fun p->p "%a" Src.FE.print_in_fmt r)))
+       else Some(Case1(Dump.toString (fun p->p "%a" Src.FE.pp r)))
     | Some _ -> Some(Case2())
 
 

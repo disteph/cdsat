@@ -1,11 +1,8 @@
 open Parser
-
+       
 let latexescaped = function
   | '%' | '{' | '}' as c -> "\\"^Char.escaped c
   | c -> Char.escaped c
-
-
-type sortType = Sort of string*(sortType list)
 
 let rec sort declared (Sort(s,l)) =
   let open Top.Sorts in
@@ -20,22 +17,26 @@ let rec sort declared (Sort(s,l)) =
     | _  -> raise (ParsingError("Sort "^s^" is applied to "^string_of_int(List.length l)^" arguments")))
   | "Array"
     -> (match l with
-    | s1::s2::[] -> let so1,so2 = parse declared s1, parse declared s2
+    | s1::s2::[] -> let so1,so2 = sort declared s1, sort declared s2
                     in Array(so1,so2)
     | _  -> raise (ParsingError("Sort "^s^" is applied to "^string_of_int(List.length l)^" arguments")))
   | s when List.mem [%eq:string] s declared -> User s
   | s -> raise (ParsingError("Cannot understand "^s^" as a sort: not declared"))
 
-open Top.Symbols
+
 open Multiary
 
 (* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
-let multiary = function
+let multiary =
+  let open Top.Symbols in
+  function
   | And | Or | Plus | Times -> Some r_assoc
   (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
   | _ -> None
 
 let symbol decsorts = 
+  let open Top in
+  let open Symbols in
   let allsorts = Sorts.allsorts decsorts in function
     | "true"  -> [True]
     | "false" -> [False]
@@ -44,7 +45,7 @@ let symbol decsorts =
     | "or"    -> [Or]
     | "imp" | "=>" -> [Imp]
     | "xor"   -> [Xor]
-    | "<=>"   -> [Eq Sorts.Prop]
+    | "<=>"   -> [Eq Top.Sorts.Prop]
     | "=" | "==" | "eq"                -> List.map (fun so -> Eq so) allsorts
     | "!=" | "<>" | "neq" | "distinct" -> List.map (fun so -> NEq so) allsorts
     | "ite"                            -> List.map (fun so -> ITE so) allsorts

@@ -1,6 +1,8 @@
 open Top.Sorts
-
+       
 exception ParsingError of string
+
+type sortType = Sort of string*(sortType list)
 
 (* Type of functions used to type-check and interpret an untyped AST.
 - For symbols declared in the signature (sigsymb), we have to understand

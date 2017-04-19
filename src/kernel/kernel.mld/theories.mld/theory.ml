@@ -31,6 +31,14 @@ module type Type = sig
                     
 end
 
+module type Signature = sig
+  type sign
+  include Type
+  type ('termdata,'value,'assign) signature
+    = ('termdata*'value*'assign)
+      *(sign*ts*values*('termdata,'value,'assign) api)
+end
+                     
 module Make(T : sig
              type sign
              include Type

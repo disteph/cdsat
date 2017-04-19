@@ -61,17 +61,19 @@ module type Type = sig
                     
 end
 
+module type Signature = sig
+  type sign
+  include Type
+  type ('termdata,'value,'assign) signature
+    = ('termdata*'value*'assign)
+      *(sign*ts*values*('termdata,'value,'assign) api)
+end
 
 module Make(T : sig
              (* sign is the secret type used by the theory module to label its messages *)
              type sign
              include Type
-           end) : sig
-  type sign
-  include Type with type ts = T.ts
-                and type values = T.values
-                and type ('t,'v,'a) api = ('t,'v,'a) T.api
-  type ('termdata,'value,'assign) signature
-    = ('termdata*'value*'assign)
-      *(T.sign*T.ts*T.values*('termdata,'value,'assign) T.api)
-end
+           end) : Signature with type sign = T.sign
+                             and type ts = T.ts
+                             and type values = T.values
+                             and type ('t,'v,'a) api = ('t,'v,'a) T.api

@@ -3,10 +3,9 @@
 (*********************)
 
 open Top
-open Basic
 open Interfaces_basic
+open Basic
 open Variables
-open Messages
 open Theories
 open Register
 open Specs
@@ -48,6 +47,7 @@ type _ typedList =
   | El  : unit typedList
   | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList
 
+                                                                 
 module type State = sig
 
   module DT      : DataType
@@ -65,7 +65,8 @@ module type State = sig
 end
 
 
-module Trans1(V : PH)(Vold : Value) =
+                      
+module Value_add(V : PH)(Vold : Value) =
   (struct
 
     module Value = struct
@@ -91,7 +92,7 @@ module Trans1(V : PH)(Vold : Value) =
   end : Vplus with type old_value = Vold.t
                and type vopt = V.t has_values)
 
-module Trans2(Vold : Value) =
+module Value_keep(Vold : Value) =
   (struct
 
     module Value = Vold
@@ -106,8 +107,9 @@ module Trans2(Vold : Value) =
   end : Vplus with type old_value = Vold.t
                and type vopt = has_no_values)
 
-let update (type ts)(type values)
-      (hdl: (_*(_*ts*values*_)) Tags.t)
+    
+let theory_add (type sign) (type ts)(type values)
+      (hdl: (_*(sign*ts*values*_)) Tags.t)
       (module S : State) =
   
   let ts, values = Modules.get hdl in
@@ -115,17 +117,17 @@ let update (type ts)(type values)
   let (module Vplus) =
     match values with
     | Theory.HasValues(module V) ->
-       (module Trans1(V)(S.Value) : Vplus with type old_value = S.Value.t
-                                           and type vopt = values)
+       (module Value_add(V)(S.Value) : Vplus with type old_value = S.Value.t
+                                              and type vopt = values)
     | Theory.HasNoValues ->
-       (module Trans2(S.Value) : Vplus with type old_value = S.Value.t
-                                           and type vopt = values)
+       (module Value_keep(S.Value) : Vplus with type old_value = S.Value.t
+                                            and type vopt = values)
   in
 
-  let add_new_TS (type dt)
+  let termstructure_add (type dt)
         (proj1 : dt -> ts)
         (proj2 : dt -> S.DT.t)
-        tshandlers
+        tsHandlers
         (module DT: DataType with type t = dt)
       : (module State) =
     (module struct
@@ -133,7 +135,7 @@ let update (type ts)(type values)
        module DT = DT
        module Value = Vplus.Value
                      
-       let tsHandlers  = tshandlers
+       let tsHandlers  = tsHandlers
        let modules (type gts) (type v) (type a)
              proj
              conv
@@ -160,85 +162,43 @@ let update (type ts)(type values)
   in
 
   let rec traverse : type a. (S.DT.t -> a) -> a typedList -> (module State) =
-  begin
-    fun proj_sofar ->
-    function
-    | El ->
-       begin
-         let open Termstructures.Register in
-         match get ts with
-         | NoRepModule ->
-            add_new_TS (fun _ -> ()) (fun x->x) S.tsHandlers (module S.DT)
-                       
-         | RepModule(module DT) ->
-            let dt = (module Tools.Pairing(DT)(S.DT)
-                             : DataType with type t = DT.t*S.DT.t) in
-            add_new_TS fst snd (Cons(ts,S.tsHandlers)) dt
-       end
-    | Cons(hts,l) ->
-       match Termstructures.Register.equal hts ts with
-       | None    -> traverse (fun x -> snd(proj_sofar x)) l
-       | Some id ->
-          let proj x = id(fst(proj_sofar x)) in
-          add_new_TS proj (fun x->x) S.tsHandlers (module S.DT)
-  end
+  fun proj_sofar ->
+  function
+  | El ->
+     begin
+       let open Termstructures.Register in
+       match get ts with
+       | NoRepModule ->
+          termstructure_add (fun _ -> ()) (fun x->x) S.tsHandlers (module S.DT)
+                            
+       | RepModule(module DT) ->
+          let dt = (module Tools.Pairing(DT)(S.DT)
+                           : DataType with type t = DT.t*S.DT.t) in
+          termstructure_add fst snd (Cons(ts,S.tsHandlers)) dt
+     end
+  | Cons(hts,l) ->
+     match Termstructures.Register.equal hts ts with
+     | None    -> traverse (fun x -> snd(proj_sofar x)) l
+     | Some id ->
+        let proj x = id(fst(proj_sofar x)) in
+        termstructure_add proj (fun x->x) S.tsHandlers (module S.DT)
+
                           in
                           traverse (fun x -> x) S.tsHandlers
-                       
-                                                                           
-(* Now we shall organise a traversal of a given list of
-   Top.Specs.DataType modules, aggregated all of the datatypes into
-   one *)
-
-(* Base case in the traversal *)
-
-let noTheory: (module DataType with type t = unit) =
-  (module struct
-    type t = unit
-    let bC _ _ _ = ()
-    let bV _ _   = ()
-  end)
 
 
-(* Now, this is what we mean by "a list of Top.Specs.DataType
-   modules": it's a list, except it's indexed by the aggregated type
-   itself, as a product: *)
 
-type _ dataList =
-  | NoData : unit dataList
-  | ConsData: (module DataType with type t = 'a) * 'b dataList -> ('a*'b) dataList
+module Init(MyPluginGDS : Prop.Interfaces_plugin.PlugDSType) =
+  struct
+    module PS = Prop.Search.ProofSearch(MyPluginGDS)
 
-(* Now, we shall be given a list of the above form, which we shall
-   aggregate into datatype, but we shall also have to provide a list
-   of projections from the aggregated datatype into each plugin's
-   datatype. That list of projections (of the same length of the input
-   list) is again an indexed list, of the type below: *)
-
-
-(* Now we finally organise the traversal: *)
-
-(* let rec make_datastruct: *)
-(* type a b. a dataList -> (module DataType with type t = a) * ((b -> a) -> (b,a) projList)  *)
-(*   = function *)
-(*   | NoData          -> noTheory, fun _ -> NoProj *)
-(*   | ConsData(th,l') -> let i, make_pl = make_datastruct l' in *)
-(*                        addTheory th i, fun f -> *)
-(*                                        ConsProj((fun x -> fst(f x)),make_pl (fun x -> snd(f x))) *)
-
-(* (\* Now comes the initialisation of the theory combinator, taking as *)
-(*    input a set of theory handlers and a list of plugins' datatypes. It *)
-(*    calls the above traversal function, and then produces a *)
-(*    "whiteboard" (first module type in this file) together with the *)
-(*    aforementioned projections *\) *)
-    
-(* let make (type a) *)
-(*     (theories: unit HandlersMap.t) *)
-(*     (l: a dataList) *)
-(*     : (a,a) projList *)
-(*     = *)
-
-(*   (\* First we do the traversal *\) *)
-
-(*   let (module DT),pl = make_datastruct l in *)
-(*   pl (fun x -> x) *)
-
+    module State = struct
+      module DT = PS.Semantic
+      module Value = struct
+        type t = unit [@@deriving eq,ord,hash,show]
+      end
+      let tsHandlers = El                            
+      let modules _ _ _ = []
+    end
+           
+  end
