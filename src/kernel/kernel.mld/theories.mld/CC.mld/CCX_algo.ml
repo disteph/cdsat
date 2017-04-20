@@ -6,7 +6,7 @@ open Specs
 open Interfaces
 
 module Algo 
-  (DS: GTheoryDSType)
+  (DS: GlobalDS)
   (X:SolvableTheory with type VtoAssign.v = DS.Assign.t
                     and  type t = DS.Term.t)
   (U:PersistentUnionFind with type e = X.v) = 

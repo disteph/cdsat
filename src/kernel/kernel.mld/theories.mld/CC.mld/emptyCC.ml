@@ -11,7 +11,7 @@ open General
 open SetConstructions
 open Patricia
 
-module Make(DS: GTheoryDSType)= struct
+module Make(DS: GlobalDS)= struct
 
   open DS
 

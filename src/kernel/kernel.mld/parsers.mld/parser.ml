@@ -2,7 +2,13 @@ open Top.Sorts
        
 exception ParsingError of string
 
-type sortType = Sort of string*(sortType list)
+(* This is a grammar for sorts, just before they are understood as actual sorts:
+For instance: 
+  Sort("Prop",[])
+  Sort("Array",["Prop","Prop"])
+*)
+                            
+type sort = Sort of string*(sort list)
 
 (* Type of functions used to type-check and interpret an untyped AST.
 - For symbols declared in the signature (sigsymb), we have to understand
@@ -14,10 +20,10 @@ the strings being their sorts. *)
 
 module type InterpretType = sig
   type t
-  val sigsymb : string                             -> t list -> t
-  val decsymb : string->(sortType*(sortType list)) -> t list -> t
-  val boundsymb : int -> sortType                            -> t
-  val quantif : bool -> sortType list              -> t      -> t
+  val sigsymb : string                     -> t list -> t
+  val decsymb : string->(sort*(sort list)) -> t list -> t
+  val boundsymb : int -> sort                        -> t
+  val quantif : bool -> sort list          -> t      -> t
 end
 
 module type Type = sig
@@ -26,5 +32,7 @@ module type Type = sig
   val glance        : string -> afterglance
   val guessThDecProc: afterglance -> string list option
   val parse         :
-    afterglance -> (string list -> (module InterpretType with type t = 't)) -> ('t option*bool option)
+    afterglance
+    -> (decsorts:string list -> (module InterpretType with type t = 't))
+    -> ('t option*bool option)
 end

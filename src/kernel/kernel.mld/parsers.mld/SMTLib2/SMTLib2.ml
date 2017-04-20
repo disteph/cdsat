@@ -12,9 +12,10 @@ type 'a environment =
   | ConsEnv of 'a*('a environment)*('a environment)
 
 let rec search symb = function
-  | EmptyEnv                       -> None
-  | ConsEnv((s,t),e,l) when [%eq:string] s symb -> Some(t,e)
-  | ConsEnv(_,_,l)                 -> search symb l
+  | EmptyEnv                    -> None
+  | ConsEnv((s,t),e,l)
+       when [%eq:string] s symb -> Some(t,e)
+  | ConsEnv(_,_,l)              -> search symb l
 
 let getconst = function
   | SpecConstsDec   (_,s)
@@ -39,7 +40,7 @@ let getsortedvar (SortedVarSymSort(_,symb,sort)) =
 
 type 'a getsymbType =
 | AppliedSymbol of string*(term list)*('a environment)
-| Quantif of bool*((string*sortType) list)*term
+| Quantif of bool*((string*sort) list)*term
 
 let rec getsymb env = function
   | TermLetTerm(_,(_,l),t) -> 
@@ -98,7 +99,7 @@ type afterglance = {
   satprov: bool;                    (* Whether we prove (true) or refute (false) *)
   status: bool option;              (* The status of the problem (Some true) if provable/unsat, (Some false) if counter-model/sat *)
   decso: unit SM.t;                 (* Declared sorts: set of strings *)
-  decsym: (sortType * (sortType list)) SM.t;  (* Declared symbols: strings mapped to their arity:
+  decsym: (sort * (sort list)) SM.t;  (* Declared symbols: strings mapped to their arity:
                                     a pair whose first component is the output sort, second component is the list of arguments' sorts *)
   form_list : Smtlib2_ast.term list (* The problem instance *)
 }
@@ -175,10 +176,10 @@ let rec list_index a accu = function
   | (b,so)::l when [%eq:string] a b -> Some (accu,so)
   | _::l -> list_index a (accu+1) l
 
-let parse (type t) aft i =
+let parse (type t) aft interpreter =
 
   let (module I: InterpretType with type t=t) =
-    i (SM.fold (fun s () l -> s::l) aft.decso [])
+    interpreter ~decsorts:(SM.fold (fun s () l -> s::l) aft.decso [])
   in
   
   let rec transformTermBase env boundvarlist s l =

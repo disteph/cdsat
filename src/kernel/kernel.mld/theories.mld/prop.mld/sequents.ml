@@ -7,10 +7,9 @@ open Basic
 open Specs
 open Variables
 
-open Interfaces_theory
 open Termstructures.Literals
 open Formulae
-open Interfaces_plugin
+open APIplugin
 
 module DblSet(TrustedSet: Collection)(PluginSet: CollectExtra with type e = TrustedSet.e)
   = (struct
@@ -50,15 +49,18 @@ module Make(PlDS: PlugDSType) = struct
 
   module Semantic = FormulaF.Make(PlDS.UF)
     
-  module FrontEnd(DS: TheoryDSType with type formulae = PlDS.UF.t FormulaF.generic) = struct
+  module FrontEnd(DS: DSproj with type ts = PlDS.UF.t FormulaF.generic) = struct
 
     (* Abbreviations for Kernel *)
     open DS
 
     (* Visible outside Kernel *)
     type dsubsts     = DSubst.t
-    type constraints = Constraint.t
-    let ppC = Constraint.pp
+    type constraints = FirstOrder.Constraint.t
+    type term        = Term.t
+    type value       = Value.t
+    type assign      = Assign.t
+    let ppC = FirstOrder.Constraint.pp
     let ppL = LitF.print_in_fmt ~print_atom:Term.print_of_id
                         
     module LitF_print = struct
@@ -91,7 +93,7 @@ module Make(PlDS: PlugDSType) = struct
  
     let rec propagate d f =
       match FormulaB.reveal f with
-      | LitB l  -> asF(Terms.data(iatom_build d l))
+      | LitB l  -> proj(Terms.data(iatom_build d l))
       | TrueP   -> IForm.trueP
       | TrueN   -> IForm.trueN
       | FalseP  -> IForm.falseP
@@ -125,7 +127,7 @@ module Make(PlDS: PlugDSType) = struct
     let asASet (tset: Assign.t) : ASet.t =
       Assign.fold
         (fun e aset ->
-          match FormulaF.reveal(asF(Terms.data e)) with
+          match FormulaF.reveal(proj(Terms.data e)) with
           | LitF l -> ASet.add l aset
           | _ -> aset)
         tset
@@ -267,7 +269,7 @@ module Make(PlDS: PlugDSType) = struct
 
     (* Type of final answers, private in interface FrontEndType. *)
 
-    type 'a answer = Provable of 'a seq*Proof.t*Constraint.t | NotProvable of 'a seq
+    type 'a answer = Provable of 'a seq*Proof.t*constraints | NotProvable of 'a seq
 
     let sequent = function
       | Provable(s,_,_) -> s
@@ -299,9 +301,9 @@ module Make(PlDS: PlugDSType) = struct
     *)
 
     type 'a intern =
-    | Success of (Seq.t*Proof.t , bool) local * Constraint.t * 'a computations
+    | Success of (Seq.t*Proof.t , bool) local * constraints * 'a computations
     | Fail    of (Seq.t,bool) local * 'a computations
-    and 'a computations = bool -> Constraint.t -> ('a intern -> 'a) -> 'a
+    and 'a computations = bool -> constraints -> ('a intern -> 'a) -> 'a
 
 
     (* Type of actions that user can perform to put more coins in the machine
@@ -327,13 +329,18 @@ module Make(PlDS: PlugDSType) = struct
     | Restore  of ('a address)*receive*('a alt_action)
     and 'a alt_action = unit -> ('a focusCoin option)
 
+    type ('a,'b) gstream = NoMore | Guard of 'a*'b*('a,'b) stream
+     and ('a,'b) stream = 'b->('a,'b) gstream
+
     type 'a notified = bool*('a address)*receive*('a alt_action)
 
     type 'a output = Jackpot of seqU answer | InsertCoin of 'a insertcoin
     and  'a insertcoin = 
-    | Notify   of seqU seq*Constraint.t*bool*('a notified -> 'a output)*('a address)
-    | AskFocus of seqU seq*Constraint.t*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
-    | AskSide  of seqF seq*Constraint.t*('a sideCoin -> 'a output)*('a address)
+    | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
+    | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
+    | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
+    | CloseNow of Term.t * Assign.t * ((Assign.t,constraints) stream -> 'a output)
+    | Check    of Assign.t * ((Assign.t,constraints) stream -> 'a output)
     | Stop     of bool*bool*(unit -> 'a output)
 
   end

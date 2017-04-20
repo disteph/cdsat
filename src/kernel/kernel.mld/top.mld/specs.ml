@@ -47,15 +47,48 @@ module type ForParsing = sig
   val bV: IntSort.t -> t
 end
 
+type ('a,'b) embed = {
+    injection : 'a -> 'b;
+    projection: 'b -> 'a option
+  }
+
+type ('a,'b) conv = {
+    conv1 : 'a -> 'b;
+    conv2: 'b -> 'a
+  }
+                               
+
+(* Module of constraints that meta-variables may be subject
+   to. Constraints are produced when closing a branch, and are
+   propagated through the other open branches of the proof.
+ *)
+
+module type Constraint = sig
+  type t [@@deriving ord,show]
+  val topconstraint:t
+  val proj : t -> t
+  val lift : World.t -> t -> t
+  val meet : t -> t -> t option
+end
+
 (* This module type is for implementations of the global datastructures
    for the combination of theory modules *)
 
-module type GTheoryDSType = sig
+module type GlobalDS = sig
   module Term : TermF
   module Value : PH
   module Assign : Collection with type e = Term.t
+  val makes_sense : Term.t -> World.t -> bool
 end
 
+(* type version of the above *)
+
+type ('gts,'gv,'assign) globalDS
+  = (module GlobalDS with type Term.datatype = 'gts
+                      and type Value.t = 'gv
+                      and type Assign.t  = 'assign)
+
+                         
 (* Extension thereof,
    that adds interfacing functions with theory-specific types for terms and values.
      proj can project the global term datatype into the theory-specific one ts
@@ -66,17 +99,13 @@ end
 
 type _ has_values  = private HV
 type has_no_values = private HNV
-type ('a,'b) conv = {
-    inj : 'a -> 'b;
-    proj: 'b -> 'a option
-  }
-                               
+
 type (_,_) proj_opt =
-  | HasVproj :  ('v,'gv) conv -> ('gv,'v has_values) proj_opt
+  | HasVproj :  ('v,'gv) embed -> ('gv,'v has_values) proj_opt
   | HasNoVproj : (_,has_no_values) proj_opt
 
 module type DSproj = sig
-  include GTheoryDSType
+  include GlobalDS
   type ts
   val proj: Term.datatype -> ts
   type values

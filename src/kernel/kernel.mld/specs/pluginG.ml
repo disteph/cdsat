@@ -1,7 +1,6 @@
 open Theories.Prop
-open Interfaces_theory
 open Formulae
-open Interfaces_plugin
+open APIplugin
 
 exception PluginAbort of string
 
@@ -19,15 +18,15 @@ module type Type = sig
      temporary answer (output) into a final answer (t).  See the
      default implementation in module MyNaive *)
 
-  module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				  and  type FSet.ps     = DS.UFSet.t
-				  and  type ASet.ps     = DS.UASet.t)
-         : sig
-    open FE
-    (* A user can embark his own data on the proof-search.
-	 Set it to unit if not used *)
-    type data
-    val initial_data : seqU seq -> bool list -> data
-    val solve        : data output -> seqU answer
-  end
+  (* module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t *)
+  (*       			  and  type FSet.ps     = DS.UFSet.t *)
+  (*       			  and  type ASet.ps     = DS.UASet.t) *)
+  (*        : sig *)
+  (*   open FE *)
+  (*   (\* A user can embark his own data on the proof-search. *)
+  (*        Set it to unit if not used *\) *)
+  (*   type data *)
+  (*   val initial_data : seqU seq -> bool list -> data *)
+  (*   val solve        : data output -> seqU answer *)
+  (* end *)
 end

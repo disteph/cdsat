@@ -11,7 +11,6 @@ open Basic
 open Variables
 
 open Termstructures.Literals
-open Interfaces_theory
 
 type 'a free = private Free
 type bound = private Bound

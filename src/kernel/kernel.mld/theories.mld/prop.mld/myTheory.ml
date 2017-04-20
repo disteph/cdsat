@@ -1,23 +1,20 @@
 open Top
 open Interfaces_basic
-open Interfaces_theory
 open Variables
 open Termstructures.Literals
 open Formulae
-open Interfaces_plugin
-
-(* type sign = unit *)
-
+open APIplugin
+    
 module ProofSearch(PlDS: PlugDSType) = struct
 
   include Sequents.Make(PlDS)
 
-  module Make(MyTheory: DecProc with type DS.formulae = PlDS.UF.t FormulaF.generic) = struct
+  module Make(MyTheory: Specs.DSproj with type ts = PlDS.UF.t FormulaF.generic) = struct
 
-    open MyTheory.DS
-
+    open MyTheory
     (* Loads the FrontEnd *)
-    module FE = FrontEnd(MyTheory.DS)
+    module FE = FrontEnd(MyTheory)
+    module Constraint = FirstOrder.Constraint
     open FE
 
     (* type final =  *)
@@ -337,7 +334,8 @@ module ProofSearch(PlDS: PlugDSType) = struct
                                               fun b -> if b then pythie f' else pythie f)
             ))
 	  in
-          pythie (MyTheory.goal_consistency (litF_as_term t) (asAssign seq.lits)) sigma cont
+          InsertCoin(CloseNow(litF_as_term t,asAssign seq.lits, fun f -> pythie f sigma cont))
+          (* pythie (MyTheory.goal_consistency () ()) sigma cont *)
         (* pythie (fun _ -> mygoal_consistency t atomN) sigma cont *)
 
 	| _ -> failwith "All cases should have been covered!"
@@ -515,7 +513,10 @@ module ProofSearch(PlDS: PlugDSType) = struct
                     let u2 = lk_solvef { state with nextaction = l;
                                                     conschecked = true;
                                                     dataf = newdata } in
-                    ou (pythie (MyTheory.consistency (asAssign seq.lits))) u2 (fun a->a) (fun a->a) seq sigma cont
+                    let next help =
+                      ou (pythie help) u2 (fun a->a) (fun a->a) seq sigma cont
+                    in
+                    InsertCoin(Check(asAssign seq.lits, next))
                  (* ou (pythie (fun _ -> myconsistency atomN)) u2 (fun a->a) (fun a->a) seq sigma cont *)
 
 	         | Polarise(l,newdata, inter_fun) when is_Und(Pol.iatom seq.polar l) ->
@@ -658,4 +659,3 @@ module ProofSearch(PlDS: PlugDSType) = struct
   end
 
 end
-                                                                                         

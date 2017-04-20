@@ -7,5 +7,5 @@ exception TypingError of string
 
 val forParser :
   (module Specs.ForParsing with type t = 'a)
-  -> string list
+  -> decsorts:string list
   -> (module Parser.InterpretType with type t = Sorts.t -> 'a)

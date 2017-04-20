@@ -29,10 +29,10 @@ let symb (output,input) multiary sym_i =
 
 let forParser (type a)
       (module I: Specs.ForParsing with type t = a)
-      decsorts
+      ~decsorts
   =
-  let parseSort = Parse.sort decsorts in
-  let parseSymb = Parse.symbol decsorts in
+  let parseSort = Parse.sort ~decsorts in
+  let parseSymb = Parse.symbol ~decsorts in
   (module struct
      
      type t = Sorts.t -> I.t
@@ -56,7 +56,7 @@ let forParser (type a)
          | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
        in aux (parseSymb s)
 
-     let decsymb s ((decsort:sortType),(decarg:sortType list)) =
+     let decsymb s ((decsort:sort),(decarg:sort list)) =
        let arit = (parseSort decsort, List.map parseSort decarg) in
        symb arit None (I.bC(Symbols.User(s,arit)))
 

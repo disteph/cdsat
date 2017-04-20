@@ -57,9 +57,10 @@ let glance contents =
 
 let guessThDecProc _ = Some ["bool"]
 
-let parse (type t) l i = 
+let parse (type t) l interpreter = 
 
-  let (module I: InterpretType with type t=t) = i [] in
+  let (module I: InterpretType with type t=t) =
+    interpreter ~decsorts:[] in
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 

@@ -55,8 +55,11 @@ let is_Und = function Und -> true | _ -> false
 (* This is the module type that specifies the FrontEnd to which a plugin
    has access *)
 
-module type FrontEndType = sig
+module type FrontEnd = sig
 
+  type term
+  type value
+  type assign
   (* The kernel knows of constraints on metavariables. *)
 
   type constraints
@@ -249,6 +252,11 @@ module type FrontEndType = sig
 
   type 'a notified = bool*('a address)*receive*('a alt_action)
 
+  (* types for streams *)
+
+  type ('a,'b) gstream = NoMore | Guard of 'a*'b*('a,'b) stream
+   and ('a,'b) stream = 'b->('a,'b) gstream
+                                                 
   (* Output of a call to the kernel:
 
      it can be either a final answer (Jackpot of type t)
@@ -311,7 +319,13 @@ module type FrontEndType = sig
     | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
     | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
     | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
+    | CloseNow of term * assign * ((assign,constraints) stream -> 'a output)
+    | Check    of assign * ((assign,constraints) stream -> 'a output)
     | Stop     of bool*bool*(unit -> 'a output)
 
 end
 
+module type API = sig
+  module FE : FrontEnd
+  val machine : FormulaB.t -> (FE.seqU FE.seq -> 'a FE.address) -> 'a FE.output
+end

@@ -17,7 +17,7 @@ module type API = sig
   val clear: unit -> unit
 end
 
-module Make(DS: GTheoryDSType) = struct
+module Make(DS: GlobalDS) = struct
 
   type assign = DS.Assign.t
   open DS
@@ -49,7 +49,7 @@ module Make(DS: GTheoryDSType) = struct
                    
 end
 
-type ('t,'v,'a) api = (module API with type assign = 'a)
+type (_,_,'a) api = (module API with type assign = 'a)
 
 let make (type t)(type v)(type a)
       ((module DS): (ts,values,t,v,a) dsProj)

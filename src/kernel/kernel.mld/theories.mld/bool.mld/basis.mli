@@ -9,10 +9,7 @@ open Termstructures
 open Literals
 open Clauses
        
-module Make(DS: sig 
-                include GTheoryDSType
-                val proj: Term.datatype -> Clauses.TS.t
-              end) : sig
+module Make(DS: DSproj with type ts = Clauses.TS.t) : sig
 
   open DS
          

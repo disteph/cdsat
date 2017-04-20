@@ -24,7 +24,7 @@ module type Type = sig
   type values
   val values : values values_opt
 
-  type ('termdata,'value,'assign) api
+  type ('term,'value,'assign) api
 
   val make : (ts,values,'termdata,'value,'assign) dsProj
              -> ('termdata,'value,'assign) api

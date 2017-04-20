@@ -3,5 +3,5 @@ open Top
 open Variables
 open Specs
 
-include Prop.Interfaces_theory.ConstraintType
+include Constraint
 val unif  : t -> 'a termF -> 'a termF -> t option

@@ -1,37 +1,41 @@
 open Format
 
 module Empty  = Theory.Make(Empty.MyTheory)
+module Bool   = Theory.Make(Bool.MyTheory)
 module CC     = Theory.Make(CC.MyTheory)
 module Arrays = Theory.Make(Arrays.MyTheory)
 module LRA    = Theory.Make(LRA.MyTheory)
 module IfThenElse = Theory.Make(IfThenElse.MyTheory)
-module Bool   = Theory.Make(Bool.MyTheory)
+module FirstOrder = Theory.Make(FirstOrder.MyTheory)
        
 module Tags = struct
 
   type _ t = 
     | Empty : (_,_,_) Empty.signature t
+    | Bool  : (_,_,_) Bool.signature t
     | CC    : (_,_,_) CC.signature t
     | Arrays: (_,_,_) Arrays.signature t
     | LRA   : (_,_,_) LRA.signature t
     | IfThenElse: (_,_,_) IfThenElse.signature t
-    | Bool  : (_,_,_) Bool.signature t
+    | FirstOrder: (_,_,_) FirstOrder.signature t
 
   let id (type a) : a t -> int = function
-    | Empty -> 0
-    | CC    -> 1
-    | Arrays -> 2
-    | LRA -> 3
-    | IfThenElse -> 4
-    | Bool -> 5
+    | Empty -> 1
+    | Bool -> 2
+    | CC    -> 3
+    | Arrays -> 4
+    | LRA -> 5
+    | IfThenElse -> 6
+    | FirstOrder -> 7
                 
   let pp fmt (type a) : a t -> unit = function
     | Empty      -> fprintf fmt "Empty"
+    | Bool       -> fprintf fmt "Bool"
     | CC         -> fprintf fmt "CC"
     | Arrays     -> fprintf fmt "Arrays"
     | LRA        -> fprintf fmt "LRA"
     | IfThenElse -> fprintf fmt "IfThenElse"
-    | Bool       -> fprintf fmt "Bool"
+    | FirstOrder -> fprintf fmt "FirstOrder"
 end
 
 module Modules = struct
@@ -42,26 +46,28 @@ module Modules = struct
     = let open Tags in
       match tag with
     | Empty      -> Empty.ts, Empty.values
+    | Bool       -> Bool.ts, Bool.values
     | CC         -> CC.ts, CC.values
     | Arrays     -> Arrays.ts, Arrays.values
     | LRA        -> LRA.ts, LRA.values
     | IfThenElse -> IfThenElse.ts, IfThenElse.values
-    | Bool       -> Bool.ts, Bool.values
+    | FirstOrder -> FirstOrder.ts, FirstOrder.values
                              
   type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
 
-  let make(type t)(type v)(type a)(type sign)(type ts)(type v)
-        (tag : ((t*v*a)*(sign*ts*v*_)) Tags.t)
+  let make(type tva)(type sign)(type ts)(type v)(type api)
+        (tag : (tva*(sign*ts*v*api)) Tags.t)
         (ds  : (ts,v,_,_,_) Top.Specs.dsProj)
     =
     let open Tags in
     match tag with 
     | Empty      -> Module(Empty,Empty.make ds)
+    | Bool       -> Module(Bool,Bool.make ds)
     | CC         -> Module(CC,CC.make ds)
     | Arrays     -> Module(Arrays,Arrays.make ds)
     | LRA        -> Module(LRA,LRA.make ds)
     | IfThenElse -> Module(IfThenElse,IfThenElse.make ds)
-    | Bool       -> Module(Bool,Bool.make ds)
+    | FirstOrder -> Module(FirstOrder,FirstOrder.make ds)
                              
 end
 
@@ -82,12 +88,13 @@ module Handlers = struct
 end
 
 let all_theories_list = 
-  [ Handlers.Handler Tags.Empty;
+  [
+    Handlers.Handler Tags.Empty;
+    Handlers.Handler Tags.Bool;
     Handlers.Handler Tags.CC;
     Handlers.Handler Tags.Arrays;
     Handlers.Handler Tags.LRA;
     Handlers.Handler Tags.IfThenElse;
-    Handlers.Handler Tags.Bool;
   ]
 
 module HandlersMap = struct

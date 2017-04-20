@@ -6,10 +6,12 @@ open Top
 open Interfaces_basic
 open Basic
 open Variables
+open Specs
+open Messages
+       
 open Theories
 open Register
-open Specs
-       
+open Plugin
 
 (*********************************************************************)
 (* First, we build DS by aggregating a given list of plugins'
@@ -30,17 +32,12 @@ module type Value = sig
   val noValue : t
 end 
 
-type ('a,'b) convV = {
-    injV : 'a -> 'b;
-    projV: 'b -> 'a
-  }
-
 module type Vplus = sig
   module Value : Value
   type old_value
   type vopt
-  val trans : (Value.t,'v) convV
-              -> (old_value,'v) convV * ('v,vopt) proj_opt
+  val trans : (Value.t,'v) conv
+              -> (old_value,'v) conv * ('v,vopt) proj_opt
 end
                       
 type _ typedList =
@@ -57,11 +54,10 @@ module type State = sig
   val tsHandlers : DT.t typedList
                                        
   val modules : ('termdata -> DT.t)
-                -> (Value.t,'value) convV
-                -> (module GTheoryDSType with type Term.datatype = 'termdata
-                                          and type Value.t  = 'value
-                                          and type Assign.t = 'assign)
-                -> ('termdata*'value*'assign) Theories.Register.Modules.t list
+                -> (Value.t,'value) conv
+                -> ('termdata,'value,'assign) globalDS
+                -> ('termdata*'value*'assign) Register.Modules.t list
+
 end
 
 
@@ -79,14 +75,14 @@ module Value_add(V : PH)(Vold : Value) =
     type old_value = Vold.t
     type vopt = V.t has_values
 
-    let trans (type v) (conv : (Value.t,v) convV) =
+    let trans (type v) (conv : (Value.t,v) conv) =
       (
-        { injV  = (fun x -> conv.injV(None,x));
-          projV = (fun x -> let _,y = conv.projV x in y)  }
-        : (old_value,v) convV  ),
+        { conv1  = (fun x -> conv.conv1(None,x));
+          conv2 = (fun x -> let _,y = conv.conv2 x in y)  }
+        : (old_value,v) conv  ),
       HasVproj(
-          { inj  = (fun x -> conv.injV(Some x,Vold.noValue));
-            proj = (fun x -> let y,_ = conv.projV x in y) }
+          { injection  = (fun x -> conv.conv1(Some x,Vold.noValue));
+            projection = (fun x -> let y,_ = conv.conv2 x in y) }
         )
               
   end : Vplus with type old_value = Vold.t
@@ -100,7 +96,7 @@ module Value_keep(Vold : Value) =
     type old_value = Vold.t
     type vopt = has_no_values
 
-    let trans (type v) (conv : (Value.t,v) convV) =
+    let trans (type v) (conv : (Value.t,v) conv) =
       conv,
       HasNoVproj
               
@@ -108,8 +104,8 @@ module Value_keep(Vold : Value) =
                and type vopt = has_no_values)
 
     
-let theory_add (type sign) (type ts)(type values)
-      (hdl: (_*(sign*ts*values*_)) Tags.t)
+let theory_add (type tva)(type sign) (type ts)(type values)(type api)
+      (hdl: (tva*(sign*ts*values*api)) Tags.t)
       (module S : State) =
   
   let ts, values = Modules.get hdl in
@@ -139,9 +135,9 @@ let theory_add (type sign) (type ts)(type values)
        let modules (type gts) (type v) (type a)
              proj
              conv
-             ((module DS) : (module GTheoryDSType with type Term.datatype = gts
-                                                   and type Value.t  = v
-                                                   and type Assign.t = a))
+             ((module DS) : (module GlobalDS with type Term.datatype = gts
+                                              and type Value.t  = v
+                                              and type Assign.t = a))
          =
          let conv_old,conv_new = Vplus.trans conv in
          let module NewDS = (struct
@@ -158,6 +154,7 @@ let theory_add (type sign) (type ts)(type values)
          in
          let tm = Modules.make hdl (module NewDS) in
          tm::(S.modules (fun x -> proj2(proj x)) conv_old (module DS))
+
      end)
   in
 
@@ -188,17 +185,142 @@ let theory_add (type sign) (type ts)(type values)
 
 
 
-module Init(MyPluginGDS : Prop.Interfaces_plugin.PlugDSType) =
-  struct
-    module PS = Prop.Search.ProofSearch(MyPluginGDS)
-
-    module State = struct
-      module DT = PS.Semantic
-      module Value = struct
-        type t = unit [@@deriving eq,ord,hash,show]
-      end
-      let tsHandlers = El                            
-      let modules _ _ _ = []
-    end
-           
+module InitState : State = struct
+  module DT = struct
+    type t = unit
+    let bV _ _ = ()
+    let bC _ _ _ = ()
   end
+  module Value = struct
+    type t = unit [@@deriving eq,ord,hash,show]
+    let noValue = ()
+  end
+  let tsHandlers = El
+  let modules _ _ _ = []
+end
+
+
+let make
+      (type uaset)(type uf)(type ufset)
+      theories
+      (module PlugDS : Prop.APIplugin.PlugDSType
+              with type UASet.t = uaset
+               and type UF.t    = uf
+               and type UFSet.t = ufset)
+      
+    : (module WhiteBoard_ThModules
+              with type u = uaset*uf*ufset) =
+
+  let (module State) = 
+    let aux (Handlers.Handler hdl) () sofar = theory_add hdl sofar
+    in
+    HandlersMap.fold aux theories (module InitState: State)
+  in
+  let module PS = Prop.MyTheory.ProofSearch(PlugDS)
+  in
+  let module DT =
+    Tools.Pairing
+      (Tools.Pairing(PS.Semantic)(Termstructures.Varcheck.TS))
+      (State.DT)
+  in
+  let module DS = struct
+      module Term   = Terms.Make(FreeVar)(DT)
+      module Value  = State.Value
+      module Assign = MakePATCollection(Term)
+      let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
+    end
+  in
+  let module DS4Prop = struct
+      include DS
+      type ts = PS.Semantic.t
+      let proj x = fst(fst x)
+      type values = has_no_values
+      let proj_opt = HasNoVproj
+    end
+  in
+  let conv = {
+      conv1 = (fun x->x);
+      conv2 = (fun x->x)
+    }
+  in
+  
+  (module struct
+
+     type u = uaset*uf*ufset
+       
+     let th_modules = State.modules snd conv (module DS)
+
+     module PropModule = PS.Make(DS4Prop)
+
+     module WB = struct
+
+       module DS = DS
+                     
+       open DS
+
+       module Msg = struct
+         type ('sign,'b) t = ('sign,Assign.t,'b) message
+         let pp fmt = print_msg_in_fmt Assign.pp fmt
+       end
+
+       type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
+
+       let pp fmt (type a) (WB(hdls,msg) : a t) =
+         match msg with
+         | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
+                        HandlersMap.pp hdls
+                        Msg.pp msg
+         | Sat   _ -> Format.fprintf fmt "%a is/are fine with %a"
+                        HandlersMap.pp (HandlersMap.diff theories hdls)
+                        Msg.pp msg
+                                     
+
+       let sat_init assign = WB(theories, Messages.sat () assign)
+                               
+       let sat (WB(rest1, Sat assign1)) (WB(rest2, Sat assign2)) =
+         if Assign.equal assign1 assign2
+         then WB(HandlersMap.inter rest1 rest2, sat () assign1)
+         else failwith "Theories disagree on model"
+
+       let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
+                       else failwith "Using a theory that is not allowed"
+
+       let stamp (type b) (Sig.Sig hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
+         | Propa(assign,o) ->
+            check hdl;
+            WB(HandlersMap.singleton (Handlers.Handler hdl) (),
+               Messages.propa () assign o)
+         | Sat assign ->
+            WB(HandlersMap.remove (Handlers.Handler hdl) theories,
+               Messages.sat () assign)
+
+       let resolve
+             (WB(hdls1,Propa(oldset,Straight newset)))
+             (WB(hdls2,Propa(thset,o)))
+         =
+         WB(HandlersMap.union hdls1 hdls2,
+            propa () (Assign.union (Assign.diff thset newset) oldset) o)
+           
+       (* val both2straight: both t -> unsat t -> straight t *)
+
+       let both2straight
+             ?(side=true)
+             (WB(hdls1,Propa(oldset,Both(assign1,assign2))))
+             (WB(hdls2,Propa(thset,Unsat)))
+         =
+         let assign,newset =
+           if side then assign1,assign2
+           else assign2, assign1
+         in
+         WB(HandlersMap.union hdls1 hdls2,
+            straight () (Assign.union (Assign.diff thset assign) oldset) newset)
+
+       let curryfy assign (WB(hdls,Propa(thset,Unsat))) =
+         let assign = Assign.inter assign thset in
+         let thset= Assign.diff thset assign in
+         let aux term sofar = Term.bC Symbols.Imp [term;sofar] in
+         let rhs = Assign.fold aux assign (Term.bC Symbols.False []) in
+         WB(hdls,Propa(thset, Straight(Assign.singleton rhs)))
+
+     end
+   end)

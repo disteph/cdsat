@@ -3,6 +3,7 @@ type _ t =
   | LitF    : Literals.TS.t t
   | Clauses : Clauses.TS.t t
   | Rationals : Rationals.TS.t t
+  | VarCheck : Varcheck.TS.t t
 
 val equal : 'a t -> 'b t -> ('a -> 'b) option
 

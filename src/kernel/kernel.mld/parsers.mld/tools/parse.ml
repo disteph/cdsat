@@ -4,7 +4,7 @@ let latexescaped = function
   | '%' | '{' | '}' as c -> "\\"^Char.escaped c
   | c -> Char.escaped c
 
-let rec sort declared (Sort(s,l)) =
+let rec sort ~decsorts (Sort(s,l)) =
   let open Top.Sorts in
   match s with
   | "Bool" | "bool" | "Prop" | "prop"
@@ -17,10 +17,10 @@ let rec sort declared (Sort(s,l)) =
     | _  -> raise (ParsingError("Sort "^s^" is applied to "^string_of_int(List.length l)^" arguments")))
   | "Array"
     -> (match l with
-    | s1::s2::[] -> let so1,so2 = sort declared s1, sort declared s2
+    | s1::s2::[] -> let so1,so2 = sort decsorts s1, sort decsorts s2
                     in Array(so1,so2)
     | _  -> raise (ParsingError("Sort "^s^" is applied to "^string_of_int(List.length l)^" arguments")))
-  | s when List.mem [%eq:string] s declared -> User s
+  | s when List.mem [%eq:string] s decsorts -> User s
   | s -> raise (ParsingError("Cannot understand "^s^" as a sort: not declared"))
 
 
@@ -34,7 +34,7 @@ let multiary =
   (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
   | _ -> None
 
-let symbol decsorts = 
+let symbol ~decsorts = 
   let open Top in
   let open Symbols in
   let allsorts = Sorts.allsorts decsorts in function
