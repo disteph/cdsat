@@ -33,23 +33,6 @@ type (_,_) form =
 | ExistsB: Sorts.t * 'a -> ('a,bound) form
 
 
-(* module FormulaB : sig *)
-(*   include PHCons *)
-(*   val reveal: t -> (t,bound) form *)
-(*   val negation : t -> t *)
-(*   val lit    : bool * Terms.TermB.t -> t *)
-(*   val trueN  : t *)
-(*   val trueP  : t *)
-(*   val falseN : t *)
-(*   val falseP : t *)
-(*   val andN   : t * t -> t *)
-(*   val andP   : t * t -> t *)
-(*   val orN    : t * t -> t *)
-(*   val orP    : t * t -> t *)
-(*   val forall : Sorts.t * t -> t *)
-(*   val exists : Sorts.t * t -> t *)
-(* end *)
-
 module FormulaF : sig
 
   include HCons.S with type 'a initial = ('a,Terms.TermB.t free) form

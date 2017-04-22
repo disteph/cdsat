@@ -179,41 +179,6 @@ module Abbrev
 end
 
 
-
-
-(* module B = struct *)
-(*   type 'a t = ('a,bound) form *)
-(*   let equal eqRec = equal BoundFunc eqRec  *)
-(*   let hash hRec = hash BoundFunc hRec  *)
-(* end *)
-
-(* module FormulaB = struct *)
-
-(*   include HCons.Make(B) *)
-(*   include Init(HCons.NoBackIndex) *)
-
-(*   let pp = *)
-(*     let rec aux fmt t = print_in_fmt BoundFunc aux reveal fmt t *)
-(*     in aux *)
-(*   let show = Dump.stringOf pp *)
-         
-(*   let negation = *)
-(*     let rec aux t = negation BoundFunc aux reveal build t *)
-(*     in aux *)
-
-(*   include Abbrev(struct *)
-(*     type a = t *)
-(*     type b = bound *)
-(*     let build = build *)
-(*   end) *)
-
-(*   let lit (b,term) = build(LitB(LitB.build(b,term))) *)
-(*   let forall(so,a) = build(ForAllB(so,a)) *)
-(*   let exists(so,a) = build(ExistsB(so,a)) *)
-
-(* end *)
-
-
 module F = struct
   type 'a t = ('a, Terms.TermB.t free) form
   let equal eqRec = equal (FreeFunc(fun x->FreeFunc(Terms.TermB.equal x))) eqRec 
