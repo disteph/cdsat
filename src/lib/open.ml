@@ -37,7 +37,7 @@ module List = struct
 
   include List
             
-  type 'a t = 'a list [@@deriving eq, hash]
+  type 'a t = 'a list [@@deriving eq, hash, show]
 
   let rec mem eq x = function
     | [] -> false

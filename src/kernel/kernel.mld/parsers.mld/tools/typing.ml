@@ -27,6 +27,23 @@ let symb (output,input) multiary sym_i =
     with
       MultiaryError _ | TypingError _ -> mul interpret l
 
+
+module ForParsing = struct
+  open Terms
+  type t = TermB.t
+
+  let bV = TermB.bV
+  let bC symb l = match symb,l with
+    | Symbols.Forall so,[a] -> TermB.bC (Symbols.Forall so) [TermB.bB so a]
+    | Symbols.Exists so,[a] -> TermB.bC (Symbols.Exists so) [TermB.bB so a]
+    | _,_ -> TermB.bC symb l
+
+end
+
+
+
+
+                                             
 let forParser (type a)
       (module I: Specs.ForParsing with type t = a)
       ~decsorts
@@ -62,7 +79,7 @@ let forParser (type a)
 
      let boundsymb db decsort expsort =
        let pdecsort = parseSort decsort in
-       if Sorts.equal expsort pdecsort then I.bV (IntSort.build(db,expsort))
+       if Sorts.equal expsort pdecsort then I.bV (Variables.BoundVar.build(db,expsort))
        else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.pp pdecsort
                                 ^" but expecting sort"^Dump.stringOf Sorts.pp expsort))
 

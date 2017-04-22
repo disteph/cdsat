@@ -11,8 +11,9 @@ open Messages
        
 open Theories
 open Register
-open Plugin
 
+open Export
+       
 (*********************************************************************)
 (* First, we build DS by aggregating a given list of plugins'
    datatypes for representing terms, into one big datatype.
@@ -190,6 +191,7 @@ module InitState : State = struct
     type t = unit
     let bV _ _ = ()
     let bC _ _ _ = ()
+    let bB _ _ = ()
   end
   module Value = struct
     type t = unit [@@deriving eq,ord,hash,show]
@@ -202,13 +204,15 @@ end
 
 let make
       (type uaset)(type uf)(type ufset)
+      termB
+      expected
       theories
       (module PlugDS : Prop.APIplugin.PlugDSType
               with type UASet.t = uaset
                and type UF.t    = uf
                and type UFSet.t = ufset)
       
-    : (module WhiteBoard_ThModules
+    : (module API
               with type u = uaset*uf*ufset) =
 
   let (module State) = 
@@ -224,7 +228,7 @@ let make
       (State.DT)
   in
   let module DS = struct
-      module Term   = Terms.Make(FreeVar)(DT)
+      module Term   = Terms.Make(FreeVar)(struct type leaf = FreeVar.t include DT end)
       module Value  = State.Value
       module Assign = MakePATCollection(Term)
       let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
@@ -249,7 +253,9 @@ let make
      type u = uaset*uf*ufset
        
      let th_modules = State.modules snd conv (module DS)
-
+     let formula = DS.Term.lift [] termB
+     let expected = expected
+                      
      module PropModule = PS.Make(DS4Prop)
 
      module WB = struct

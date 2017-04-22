@@ -4,8 +4,14 @@
 
 open Specs
 
-val get_sort : 'a Specs.termF -> Sorts.t
+module FVSubst : sig
+  open Variables
+  type t = (FreeVar.t*World.t) list [@@deriving eq, hash, show]
+  val get_arity : t -> World.t
+  val get: int -> t -> FreeVar.t*World.t
+end
 
+       
 val fail_state : ('sign,'ts) Specs.slot_machine
 
 module Pairing(B1: DataType)(B2: DataType)

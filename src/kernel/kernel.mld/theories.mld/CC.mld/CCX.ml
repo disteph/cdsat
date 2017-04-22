@@ -34,7 +34,7 @@ module Make
     | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2,Some(Term.id a))
     | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2,Some(Term.id a))
     | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2,Some(Term.id a))
-    | _ -> match Tools.get_sort a with
+    | _ -> match Term.get_sort a with
            | Sorts.Prop -> Eq(Sorts.Prop,
                               a',
                               Term.bC (if b then Symbols.True else Symbols.False) [],
@@ -88,7 +88,7 @@ module Make
 
       let normalise t = 
         let t' = Alg.normalise s t in
-        let so = Tools.get_sort t in
+        let so = Term.get_sort t in
         let l = Term.bC (Symbols.Eq so) [t;t'] in
         let justif = Alg.explain s.Alg.u t t' in
         straight () 

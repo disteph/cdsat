@@ -41,9 +41,9 @@ val new_key      : Sorts.t -> t -> keys*t
 (* Exposing values into readable stuff, with on-the-fly normalisation of unifier *)
 
 type exposed = 
-| Eigen of Eigen.t
-| Key of keys
-| C of Symbols.t*(values list)
+  | Eigen of Eigen.t
+  | Key of keys
+  | C of Symbols.t*(values list)
 
 val expose       : values*t  -> exposed * t
 val get          : keys -> t -> (values * t) option

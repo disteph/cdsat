@@ -316,9 +316,9 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
 	| ExistsF(so,a,tl) ->
           let (_,newworld) as c = World.liftM so seq.world in
-          let d = DSubst.bind2FV c tl in
+          let d = c::tl in
 	  let u = lk_solve { state with data = state.data;
-                                        seq = { seq with rhs = F(propagate d a);
+                                        seq = { seq with rhs = F(proj(Terms.data(Term.lift d a)));
                                                          world = newworld }} in
 	  straight (std1 seq) ~inject:(Constraint.lift newworld) ~project:Constraint.proj seq u sigma cont
             
@@ -413,8 +413,8 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
 	 | ForAllF(so,a,tl) ->
             let (_,newworld) as c = World.liftE so seq.world in
-            let d = DSubst.bind2FV c tl in
-	    let u = lk_solve { state with seq = { seq with rhs = U(FSet.add (propagate d a) newdelta);
+            let d = c::tl in
+	    let u = lk_solve { state with seq = { seq with rhs = U(FSet.add (proj(Terms.data(Term.lift d a))) newdelta);
                                                            world = newworld }} in
 	    straight (std1 ~form:toDecompose seq)
               ~inject:(Constraint.lift newworld)
@@ -649,7 +649,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
     let machine formula init_data = 
       let seq =
         { lits = ASet.empty;
-          rhs = U(FSet.singleton (propagate DSubst.init formula));
+          rhs = U(FSet.singleton formula);
           formP = FSet.empty;
           formPSaved = FSet.empty;
           polar = Pol.empty;

@@ -122,12 +122,12 @@ module Unification = (struct
   let rec occurs_check_v lax fold key0 c =
     let (t,u) = IU.expose c in
     match t with
-    | IU.Eigen ei    -> occurs_check_ei fold key0 u ei
-    | IU.Key  key    -> occurs_check_k  lax fold key0 u key
-    | IU.C(_,l)      -> 
-      List.fold 
-        (fun t u' -> occurs_check_v false fold key0 (t,u'))
-        l u
+    | IU.Eigen ei -> occurs_check_ei fold key0 u ei
+    | IU.Key  key -> occurs_check_k  lax fold key0 u key
+    | IU.C(_,l)   ->
+       List.fold 
+         (fun t u' -> occurs_check_v false fold key0 (t,u'))
+         l u
 
   and occurs_check_k lax fold key0 u key =
     if (not lax)&&(IU.kcompare key key0 =0) then raise NonUnifiable
@@ -153,7 +153,8 @@ module Unification = (struct
   *)
 
   let translate b fold key0 u2 t2 cont =
-    Dump.print ["unification",1] (fun p->p "translate k%a -> %a in %a" IU.ppK key0 IU.ppV t2 IU.pp u2);
+    Dump.print ["unification",1] (fun p->
+        p "translate k%a -> %a in %a" IU.ppK key0 IU.ppV t2 IU.pp u2);
 
     (* In the recursive auxiliary function aux,
        - lax says whether we accept key0 to be mapped to itself.
@@ -169,7 +170,7 @@ module Unification = (struct
     *)
 
     let rec aux lax cont t2 u2 =
-      let (t2',u2') = IU.expose(t2,u2) in
+      let t2',u2' = IU.expose(t2,u2) in
       match t2' with
 
       | IU.Eigen ei when b -> 
@@ -178,7 +179,8 @@ module Unification = (struct
              check to verify that this assignment respects
              dependencie *)
           let u1' = 
-            Dump.print ["unification",1] (fun p->p "occurs_check_ei on k%a -> %a" IU.ppK key0 Eigen.pp ei);
+            Dump.print ["unification",1] (fun p->
+                p "occurs_check_ei on k%a -> %a" IU.ppK key0 Eigen.pp ei);
             occurs_check_ei fold key0 u1 ei
           in
           cont (IU.eigen2val ei) u1' u2'
@@ -282,7 +284,8 @@ module Unification = (struct
       (* We find a unification constraint between 2 terms *)
 
       | (t1,t2)::l -> 
-        Dump.print ["unification",1] (fun p->p "unifying %a in %a to %a in %a" IU.ppV t1 IU.pp u1 IU.ppV t2 IU.pp u2);
+         Dump.print ["unification",1] (fun p->
+             p "unifying %a in %a to %a in %a" IU.ppV t1 IU.pp u1 IU.ppV t2 IU.pp u2);
 
         (* We expose the head shape of the 2 terms, and match them *)
 
@@ -292,25 +295,27 @@ module Unification = (struct
 
         (* Same eigenvariable on both side -> we dismiss the
            constraint and continue *)
-
-        | IU.Eigen i1, IU.Eigen i2 when Eigen.equal i1 i2  -> aux l u1' u2' kkcorr
+              
+            | IU.Eigen i1, IU.Eigen i2 when Eigen.equal i1 i2  ->
+               aux l u1' u2' kkcorr
 
         (* Same function symbol on both side -> we add the
            unification constraints on the arguments (pairwise) and
            continue *)
 
-        | IU.C(a1,l1), IU.C(a2,l2) when Symbols.equal a1 a2 -> aux (combine l (l1,l2)) u1' u2' kkcorr
+            | IU.C(a1,l1), IU.C(a2,l2) when Symbols.equal a1 a2 ->
+               aux (combine l (l1,l2)) u1' u2' kkcorr
 
         (* Two keys: we look at whether they correspond to each
            other according to kkcorr. If they do, we dismiss the
            constraint and continue, otherwise see the next
            pattern-matching cases *)
 
-        | IU.Key key1, IU.Key key2 when 
-            (match KKcorr.get21 kkcorr key2 with
-            | Some i -> IU.kcompare i key1 =0
-            | None   -> false)
-            -> aux l u1' u2' kkcorr
+            | IU.Key key1, IU.Key key2 when 
+                   (match KKcorr.get21 kkcorr key2 with
+                    | Some i -> IU.kcompare i key1 =0
+                    | None   -> false)
+              -> aux l u1' u2' kkcorr
 
         (* Key on the left (key1): we try to see if we can map it to
            the term on the right (t2). For this we need to

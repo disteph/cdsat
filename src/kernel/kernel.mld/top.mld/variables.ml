@@ -190,3 +190,9 @@ module MakesSense = struct
     (ei_max < ar.World.next_eigen) && (mv_max < ar.World.next_meta)
 
 end
+
+module BoundVar = struct
+  include IntSort
+  let get_sort db = let (_,so) = reveal db in so
+  let get_from_context db context = let (i,_) = reveal db in context i
+end

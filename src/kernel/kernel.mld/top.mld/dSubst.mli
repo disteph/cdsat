@@ -14,13 +14,11 @@
    functions bind2eigen and bind2meta.
 *)
 
-open Top
-open Interfaces_basic
 open Variables
 
-include PHCons
-          
-val init      : t
-val bind2FV: (FreeVar.t*World.t) -> t -> t
-val get_arity : t -> World.t
-val get: int -> t -> FreeVar.t*World.t
+exception DSubst of string
+
+type 'l t = ('l*World.t) list [@@deriving eq, hash, show]
+
+val get_arity : _ t -> World.t
+val get: (Format.formatter -> 'l -> unit) -> int -> 'l t -> 'l*World.t

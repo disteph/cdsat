@@ -127,6 +127,7 @@ module TS = struct
 
   let bV tag _ = build_lit (LitF.build(true,tag))
     
+  let bB tag _ = build_lit (LitF.build(true,tag))
 
   let bC tag symb l = match symb,l with
     | Symbols.True, []  -> ttrue tag
@@ -138,4 +139,5 @@ module TS = struct
     | Symbols.Neg,[a]   -> negation a
     | Symbols.IsTrue,[a] -> build_lit a.aslit
     | _,_ ->  bV tag l
+
 end

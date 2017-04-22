@@ -5,10 +5,11 @@ open Top
 open Symbols
 open Interfaces_basic
 open Basic
-
+open Tools
 open Variables
-open Termstructures.Literals
 open Specs
+
+open Termstructures.Literals
 
 type 'a free = private Free
 type bound   = private Bound
@@ -24,8 +25,8 @@ type (_,_) form =
 | OrP   : 'a * 'a -> ('a,_) form
 | AndN  : 'a * 'a -> ('a,_) form
 | OrN   : 'a * 'a -> ('a,_) form
-| ForAllF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
-| ExistsF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ForAllF: Sorts.t * 'a * FVSubst.t -> (_,'a free) form
+| ExistsF: Sorts.t * 'a * FVSubst.t -> (_,'a free) form
 | ForAllB: Sorts.t * 'a -> ('a,bound) form
 | ExistsB: Sorts.t * 'a -> ('a,bound) form
 
@@ -47,11 +48,11 @@ let equal (type a)(type b) (eqSub:(b,(b,bool)func)func) eqRec (t1:(a,b)form) (t2
   | ForAllF(so,x,d), ForAllF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubst.equal d d' && Sorts.equal so so'
+       eqSub2 y && FVSubst.equal d d' && Sorts.equal so so'
   | ExistsF(so,x,d), ExistsF(so',y,d')
     -> let FreeFunc eqSub1 = eqSub in
        let FreeFunc eqSub2 = eqSub1 x in
-       eqSub2 y && DSubst.equal d d' && Sorts.equal so so'
+       eqSub2 y && FVSubst.equal d d' && Sorts.equal so so'
   | ForAllB(so,x), ForAllB(so',y)-> eqRec x y && Sorts.equal so so'
   | ExistsB(so,x), ExistsB(so',y)-> eqRec x y && Sorts.equal so so'
   | TrueP, TrueP | TrueN, TrueN
@@ -71,9 +72,9 @@ let hash (type a)(type b) (hSub:(b,int)func) hRec : (a,b)form -> int  = function
   | AndN (x1,x2) -> 11*(hRec x1)+23*(hRec x2)
   | OrN (x1,x2)  -> 13*(hRec x1)+29*(hRec x2)
   | ForAllF(so,x,d) -> let FreeFunc hSub1 = hSub in
-                       31*(hSub1 x)*(DSubst.hash d)
+                       31*(hSub1 x)*(FVSubst.hash d)
   | ExistsF(so,x,d) -> let FreeFunc hSub1 = hSub in
-                       37*(hSub1 x)*(DSubst.hash d)
+                       37*(hSub1 x)*(FVSubst.hash d)
   | ForAllB(so,x) -> 31*(hRec x)
   | ExistsB(so,x) -> 37*(hRec x)
 
@@ -83,7 +84,7 @@ let print_in_fmt_latex (type a)(type b) ?print_atom (pSub:(b,formatter->unit)fun
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
-    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f DSubst.pp d
+    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f FVSubst.pp d
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.pp so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
@@ -112,7 +113,7 @@ let print_in_fmt_utf8 (type a)(type b) ?print_atom (pSub:(b,formatter->unit)func
   let print_bin_op_in_fmt fmt f1 op f2 =
     fprintf fmt "(%a %s %a)" pRec f1 op pRec f2
   and print_quantif_in_fmt fmt op so pSub1 f d =
-    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f DSubst.pp d
+    fprintf fmt "%s %a %a" op (* Sorts.pp so *) pSub1 f FVSubst.pp d
   and print_quantif_in_fmtB fmt op so f =
     fprintf fmt "%s %a" op (* Sorts.pp so *) pRec f
   in let aux fmt: (a,b)form -> unit = function
@@ -180,43 +181,43 @@ end
 
 
 
-module B = struct
-  type 'a t = ('a,bound) form
-  let equal eqRec = equal BoundFunc eqRec 
-  let hash hRec = hash BoundFunc hRec 
-end
+(* module B = struct *)
+(*   type 'a t = ('a,bound) form *)
+(*   let equal eqRec = equal BoundFunc eqRec  *)
+(*   let hash hRec = hash BoundFunc hRec  *)
+(* end *)
 
-module FormulaB = struct
+(* module FormulaB = struct *)
 
-  include HCons.Make(B)
-  include Init(HCons.NoBackIndex)
+(*   include HCons.Make(B) *)
+(*   include Init(HCons.NoBackIndex) *)
 
-  let pp =
-    let rec aux fmt t = print_in_fmt BoundFunc aux reveal fmt t
-    in aux
-  let show = Dump.stringOf pp
+(*   let pp = *)
+(*     let rec aux fmt t = print_in_fmt BoundFunc aux reveal fmt t *)
+(*     in aux *)
+(*   let show = Dump.stringOf pp *)
          
-  let negation =
-    let rec aux t = negation BoundFunc aux reveal build t
-    in aux
+(*   let negation = *)
+(*     let rec aux t = negation BoundFunc aux reveal build t *)
+(*     in aux *)
 
-  include Abbrev(struct
-    type a = t
-    type b = bound
-    let build = build
-  end)
+(*   include Abbrev(struct *)
+(*     type a = t *)
+(*     type b = bound *)
+(*     let build = build *)
+(*   end) *)
 
-  let lit (b,term) = build(LitB(LitB.build(b,term)))
-  let forall(so,a) = build(ForAllB(so,a))
-  let exists(so,a) = build(ExistsB(so,a))
+(*   let lit (b,term) = build(LitB(LitB.build(b,term))) *)
+(*   let forall(so,a) = build(ForAllB(so,a)) *)
+(*   let exists(so,a) = build(ExistsB(so,a)) *)
 
-end
+(* end *)
 
 
 module F = struct
-  type 'a t = ('a, FormulaB.t free) form
-  let equal eqRec = equal (FreeFunc(fun x->FreeFunc(FormulaB.equal x))) eqRec 
-  let hash hRec = hash (FreeFunc FormulaB.hash) hRec
+  type 'a t = ('a, Terms.TermB.t free) form
+  let equal eqRec = equal (FreeFunc(fun x->FreeFunc(Terms.TermB.equal x))) eqRec 
+  let hash hRec = hash (FreeFunc Terms.TermB.hash) hRec
 end
 
 module FormulaF = struct
@@ -224,7 +225,7 @@ module FormulaF = struct
   include HCons.Make(F)
 
   let print_in_fmt ?print_atom fmt t =
-    let rec aux fmt t = print_in_fmt ?print_atom (FreeFunc(fun t fmt->FormulaB.pp fmt t)) aux reveal fmt t
+    let rec aux fmt t = print_in_fmt ?print_atom (FreeFunc(fun t fmt->Terms.TermB.pp fmt t)) aux reveal fmt t
     in aux fmt t
 
   module type Extra = sig
@@ -235,10 +236,9 @@ module FormulaF = struct
   module type S = sig
     type datatype
 
-    type t = datatype generic [@@deriving eq,hash]
+    type t = datatype generic [@@deriving eq,hash,ord]
     val id : t -> int
     val clear : unit -> unit
-    val compare : t -> t -> int
     val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 
     type revealed  = datatype g_revealed
@@ -254,11 +254,12 @@ module FormulaF = struct
     val andP   : t * t -> t
     val orN    : t * t -> t
     val orP    : t * t -> t
-    val forall : Sorts.t * FormulaB.t * DSubst.t -> t
-    val exists : Sorts.t * FormulaB.t * DSubst.t -> t
-
+    val forall : Sorts.t * Terms.TermB.t * FVSubst.t -> t
+    val exists : Sorts.t * Terms.TermB.t * FVSubst.t -> t
+      
     val bV : int -> FreeVar.t -> t
     val bC : int -> Symbols.t  -> t list -> t
+    val bB : int -> (Sorts.t*Terms.TermB.t*FVSubst.t) -> t
   end
 
   module Make(Fdata: Extra): (S with type datatype = Fdata.t) = struct
@@ -275,12 +276,16 @@ module FormulaF = struct
     let print_in_fmt = print_in_fmt
 
     let negation =
-      let rec aux t = negation (FreeFunc FormulaB.negation) aux reveal build t
+      let negB tB = match Terms.TermB.reveal tB with
+        | Terms.C(Symbols.Neg,[tB']) -> tB'
+        | _ -> Terms.TermB.bC Symbols.Neg [tB]
+      in
+      let rec aux t = negation (FreeFunc negB) aux reveal build t
       in aux
 
     include Abbrev(struct
                 type a = t
-                type b = FormulaB.t free
+                type b = Terms.TermB.t free
                 let build = build
               end)
     let lit l        = build(LitF l)
@@ -311,6 +316,8 @@ module FormulaF = struct
       | NEq Sorts.Prop -> bi (fun(a,b) -> orN(andP(a,negation b),andP(b,negation a)))
       | _          -> bV tag
 
+    let bB = bV
+           
   end
 
 end

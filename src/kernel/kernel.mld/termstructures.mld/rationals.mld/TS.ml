@@ -145,3 +145,5 @@ let bC tag symb l = match symb, l with
     | Sorts.Rat, _ -> let coeff = Hashtbl.create 10 in Hashtbl.add coeff tag (num_of_int 1); ArithTerm(coeff,num_of_int 0)
     | _,_ -> Other
   end
+
+let bB _ _ = Other

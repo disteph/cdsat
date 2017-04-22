@@ -33,20 +33,10 @@ module LitF = struct
 end
 
 
-module BoundVar = struct
-  include IntSort
-  let get_sort db = let (_,so) = reveal db in so
-  let get_from_context db context = let (i,_) = reveal db in context i
-end
-
-module TermB = Terms.Make(BoundVar)(Terms.EmptyData(BoundVar))
-
-type termB = (BoundVar.t,unit) Terms.term
-
 module LitB = struct
 
   module LF = struct
-    type 'a t = bool*TermB.t [@@deriving eq,hash,show]
+    type 'a t = bool*Terms.TermB.t [@@deriving eq,hash,show]
     let hash f = Hash.wrap1 hash_fold_t f
   end
 
@@ -56,8 +46,8 @@ module LitB = struct
   let pp fmt l =
     let b,a = reveal l in
     match !Dump.display with
-    | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") TermB.pp a
-    | _ -> fprintf fmt "%s%a" (if b then "" else "¬") TermB.pp a
+    | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") Terms.TermB.pp a
+    | _ -> fprintf fmt "%s%a" (if b then "" else "¬") Terms.TermB.pp a
 
   let show = Dump.stringOf pp
 
@@ -69,6 +59,7 @@ end
 module TS = struct
   type t = LitF.t 
   let bV tag _ = LitF.build(true,tag)
+  let bB tag _ = LitF.build(true,tag)
   let bC tag symb l = match symb,l with
     | Symbols.Neg,[a] -> LitF.negation a
     | _,_ ->  bV tag l

@@ -63,3 +63,11 @@ module MakesSense : sig
   val combine : t -> t -> t
   val check : t -> World.t -> bool
 end
+
+module BoundVar : sig
+  include PHCons
+  val build: int*Sorts.t -> t
+  val get_sort: t -> Sorts.t
+  val get_from_context: t -> (int -> 'a) -> 'a
+end
+

@@ -19,20 +19,9 @@ module LitF : sig
   val negation : t -> t
 end
 
-module BoundVar : sig
-  include Interfaces_basic.PHCons
-  val build: int*Sorts.t -> t
-  val get_sort: t -> Sorts.t
-  val get_from_context: t -> (int -> 'a) -> 'a
-end
-
-module TermB: Terms.S with type leaf = IntSort.t
-
-type termB = (BoundVar.t,unit) Terms.term
-
 module LitB : sig
   include PHCons
-  type revealed = bool*TermB.t
+  type revealed = bool*Terms.TermB.t
   val reveal : t -> revealed
   val build : revealed -> t
   val clear : unit -> unit

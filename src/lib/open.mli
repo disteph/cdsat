@@ -27,12 +27,13 @@ end
 
                       
 module List : sig
-  type 'a t = 'a list [@@deriving eq, hash]
+  type 'a t = 'a list [@@deriving eq, hash, show]
   val hash : ('a -> int) -> 'a list -> int
   val mem : ('a -> 'a -> bool) -> 'a -> 'a list -> bool
   val map : ('a -> 'b) -> 'a list -> 'b list
   val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+  val for_all : ('a -> bool) -> 'a list -> bool
   val rev : 'a list -> 'a list
   val length : 'a list -> int
   val hd : 'a list -> 'a

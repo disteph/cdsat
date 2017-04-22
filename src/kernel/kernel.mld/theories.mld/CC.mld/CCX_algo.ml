@@ -14,13 +14,15 @@ struct
 
   let directSubterms t = 
     match Terms.reveal t with
-    | Terms.V x    -> []
     | Terms.C(f,l) -> l
+    | Terms.V _
+      | Terms.FB(_,_,_) -> []
 
   let root t = 
     match Terms.reveal t with
-    | Terms.V x    -> None
     | Terms.C(f,l) -> Some f
+    | Terms.V _
+      | Terms.FB(_,_,_) -> None
   
   open X
   open DS

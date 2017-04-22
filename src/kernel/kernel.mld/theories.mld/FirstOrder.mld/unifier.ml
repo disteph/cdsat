@@ -13,23 +13,20 @@ open General.Patricia
 open General.SetConstructions
 
 exception AlreadyConstrained
+exception NoUnifWBinders
 
 (* IntSort (an int together with a sort) are used to represent
    abstract keys. *)
 
+let get_sort is = let _,s = IntSort.reveal is in s
+            
 module Leaf = struct
 
-  type leafExposed = Key of IntSort.t | Eigen of Eigen.t
+  type leafExposed = Key of IntSort.t | Eigen of Eigen.t [@@deriving eq,hash]
 
   module Arg = struct
-    type _ t = leafExposed
-    let equal _ a b = match a,b with
-      | Key c, Key d when IntSort.equal c d -> true
-      | Eigen c, Eigen d when Eigen.equal c d -> true
-      | _,_ -> false 
-    let hash _ = function
-      | Key c   -> 2*(IntSort.hash c)
-      | Eigen c -> 3*(Eigen.hash c)
+    type 'a t = leafExposed [@@deriving eq,hash]
+    let hash x = Hash.wrap1 hash_fold_t x
   end
 
   include HCons.Make(Arg)
@@ -40,6 +37,11 @@ module Leaf = struct
     | Eigen ei -> fprintf fmt "%a" Eigen.pp ei
 
   let show = Dump.stringOf pp
+
+  let get_sort leaf = match reveal leaf with
+      | Key c   -> get_sort c
+      | Eigen c -> Eigen.get_sort c
+      
 end
 
 module KTerm = Terms.Make(Leaf)(Terms.EmptyData(Leaf))
@@ -66,7 +68,6 @@ end
 module TMap = PATMap.Make(TermDest)(TypesFromHConsed(IntSort))
 
 include TermDest
-let get_sort k = let (_,so) = IntSort.reveal k in so
 
 (* Constructing values *)
 
@@ -83,7 +84,9 @@ let internalise update =
 
 (* Reading values *)
 
-type exposed = Eigen of Eigen.t | Key of keys | C of Symbols.t*(KTerm.t list)
+type exposed = Eigen of Eigen.t
+             | Key of keys
+             | C of Symbols.t*(KTerm.t list)
 
 let reveal t =
   match Terms.reveal t with
@@ -92,6 +95,7 @@ let reveal t =
     | Leaf.Key k    -> Key k
     | Leaf.Eigen ei -> Eigen ei)
   | Terms.C(f,l) -> C(f,l)
+  | Terms.FB(so,f,d) -> raise NoUnifWBinders
 
 (* Actual unifiers *)
 
@@ -108,7 +112,7 @@ let add key t u =
 
 let new_key so u =
   IntSort.build(u.next_key,so),
-  {next_key = u.next_key+1; map = u.map}
+  { u with next_key = u.next_key+1 }
 
 (* Computing stuf with on-the-fly normalisation of unifier *)
 
@@ -116,7 +120,7 @@ let rec normalise ((t,u) as c) =
   let aux = function
     | (Key k,u) when TMap.mem k u.map -> 
       let (t,new_u) = normalise (TMap.find k u.map,u) in
-      (t, {next_key = new_u.next_key; map = TMap.add k (fun _ -> t) new_u.map})
+      (t, { new_u with map = TMap.add k (fun _ -> t) new_u.map})
     | _ -> c
   in
   aux (reveal t,u)

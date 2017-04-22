@@ -327,5 +327,5 @@ end
 
 module type API = sig
   module FE : FrontEnd
-  val machine : FormulaB.t -> (FE.seqU FE.seq -> 'a FE.address) -> 'a FE.output
+  val machine : FE.IForm.t -> (FE.seqU FE.seq -> 'a FE.address) -> 'a FE.output
 end

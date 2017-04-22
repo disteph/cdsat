@@ -6,7 +6,8 @@ open Interfaces_basic
 open Basic
 open Specs
 open Variables
-
+open Tools
+       
 open Termstructures.Literals
 open Formulae
 open APIplugin
@@ -55,7 +56,7 @@ module Make(PlDS: PlugDSType) = struct
     open DS
 
     (* Visible outside Kernel *)
-    type dsubsts     = DSubst.t
+    type dsubsts     = FVSubst.t
     type constraints = FirstOrder.Constraint.t
     type term        = Term.t
     type value       = Value.t
@@ -80,30 +81,24 @@ module Make(PlDS: PlugDSType) = struct
     module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
     module ASet = DblSet(MakeCollection(LitF_print))(PlDS.UASet)
 
-    let iatom_build d l =
-      let b,atom = LitB.reveal l in
-      let module M = Term.Homo(IdMon) in
-      let get_in_subst intso = 
-        let k,_  = IntSort.reveal intso in
-        let fv,_ = DSubst.get k d in
-        fv
-      in
-      let newatom = M.lift get_in_subst atom in
-      if b then newatom else Term.bC Symbols.Neg [newatom]
+    (* let iatom_build d l = *)
+    (*   let b,atom = LitB.reveal l in *)
+    (*   let newatom = Term.lift d atom in *)
+    (*   if b then newatom else Term.bC Symbols.Neg [newatom] *)
  
-    let rec propagate d f =
-      match FormulaB.reveal f with
-      | LitB l  -> proj(Terms.data(iatom_build d l))
-      | TrueP   -> IForm.trueP
-      | TrueN   -> IForm.trueN
-      | FalseP  -> IForm.falseP
-      | FalseN  -> IForm.falseN
-      | AndN(f1, f2)   -> IForm.andN(propagate d f1, propagate d f2)
-      | OrN(f1, f2)    -> IForm.orN(propagate d f1, propagate d f2)
-      | AndP(f1, f2)   -> IForm.andP(propagate d f1, propagate d f2)
-      | OrP(f1, f2)    -> IForm.orP(propagate d f1, propagate d f2) 
-      | ForAllB(so,f)  -> IForm.forall(so,f,d)
-      | ExistsB(so,f)  -> IForm.exists(so,f,d)
+    (* let rec propagate d f = *)
+    (*   match FormulaB.reveal f with *)
+    (*   | LitB l  -> proj(Terms.data(iatom_build d l)) *)
+    (*   | TrueP   -> IForm.trueP *)
+    (*   | TrueN   -> IForm.trueN *)
+    (*   | FalseP  -> IForm.falseP *)
+    (*   | FalseN  -> IForm.falseN *)
+    (*   | AndN(f1, f2)   -> IForm.andN(propagate d f1, propagate d f2) *)
+    (*   | OrN(f1, f2)    -> IForm.orN(propagate d f1, propagate d f2) *)
+    (*   | AndP(f1, f2)   -> IForm.andP(propagate d f1, propagate d f2) *)
+    (*   | OrP(f1, f2)    -> IForm.orP(propagate d f1, propagate d f2)  *)
+    (*   | ForAllB(so,f)  -> IForm.forall(so,f,d) *)
+    (*   | ExistsB(so,f)  -> IForm.exists(so,f,d) *)
 
     let litF_as_term e =
       let b,index = LitF.reveal e in
@@ -118,7 +113,7 @@ module Make(PlDS: PlugDSType) = struct
       | AndN(f1, f2) | OrN(f1, f2) | AndP(f1, f2) | OrP(f1, f2)
         -> makes_senseF f1 w && makes_senseF f1 w 
       | ForAllF(_,_,d) | ExistsF(_,_,d)
-        -> let dw = DSubst.get_arity d in
+        -> let dw = FVSubst.get_arity d in
            World.prefix dw w
 
     let asAssign (aset: ASet.t) : Assign.t = 

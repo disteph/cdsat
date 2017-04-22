@@ -9,7 +9,8 @@ open Symbols
 open Interfaces_basic
 open Basic
 open Variables
-
+open Tools
+       
 open Termstructures.Literals
 
 type 'a free = private Free
@@ -26,32 +27,32 @@ type (_,_) form =
 | OrP   : 'a * 'a -> ('a,_) form
 | AndN  : 'a * 'a -> ('a,_) form
 | OrN   : 'a * 'a -> ('a,_) form
-| ForAllF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
-| ExistsF: Sorts.t * 'a * DSubst.t -> (_,'a free) form
+| ForAllF: Sorts.t * 'a * FVSubst.t -> (_,'a free) form
+| ExistsF: Sorts.t * 'a * FVSubst.t -> (_,'a free) form
 | ForAllB: Sorts.t * 'a -> ('a,bound) form
 | ExistsB: Sorts.t * 'a -> ('a,bound) form
 
 
-module FormulaB : sig
-  include PHCons
-  val reveal: t -> (t,bound) form
-  val negation : t -> t
-  val lit    : bool * TermB.t -> t
-  val trueN  : t
-  val trueP  : t
-  val falseN : t
-  val falseP : t
-  val andN   : t * t -> t
-  val andP   : t * t -> t
-  val orN    : t * t -> t
-  val orP    : t * t -> t
-  val forall : Sorts.t * t -> t
-  val exists : Sorts.t * t -> t
-end
+(* module FormulaB : sig *)
+(*   include PHCons *)
+(*   val reveal: t -> (t,bound) form *)
+(*   val negation : t -> t *)
+(*   val lit    : bool * Terms.TermB.t -> t *)
+(*   val trueN  : t *)
+(*   val trueP  : t *)
+(*   val falseN : t *)
+(*   val falseP : t *)
+(*   val andN   : t * t -> t *)
+(*   val andP   : t * t -> t *)
+(*   val orN    : t * t -> t *)
+(*   val orP    : t * t -> t *)
+(*   val forall : Sorts.t * t -> t *)
+(*   val exists : Sorts.t * t -> t *)
+(* end *)
 
 module FormulaF : sig
 
-  include HCons.S with type 'a initial = ('a,FormulaB.t free) form
+  include HCons.S with type 'a initial = ('a,Terms.TermB.t free) form
 
   val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> 'a generic -> unit
 
@@ -63,10 +64,9 @@ module FormulaF : sig
   module type S = sig
     type datatype
 
-    type t = datatype generic [@@deriving eq,hash]
+    type t = datatype generic [@@deriving eq,hash,ord]
     val id : t -> int
     val clear : unit -> unit
-    val compare : t -> t -> int
     val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
 
     type revealed  = datatype g_revealed
@@ -82,11 +82,12 @@ module FormulaF : sig
     val andP   : t * t -> t
     val orN    : t * t -> t
     val orP    : t * t -> t
-    val forall : Sorts.t * FormulaB.t * DSubst.t -> t
-    val exists : Sorts.t * FormulaB.t * DSubst.t -> t
-
+    val forall : Sorts.t * Terms.TermB.t * Tools.FVSubst.t -> t
+    val exists : Sorts.t * Terms.TermB.t * Tools.FVSubst.t -> t
+      
     val bV : int -> FreeVar.t -> t
     val bC : int -> Symbols.t  -> t list -> t
+    val bB : int -> (Sorts.t*Terms.TermB.t*Tools.FVSubst.t) -> t
   end
 
   module Make(Fdata: Extra) : S with type datatype = Fdata.t

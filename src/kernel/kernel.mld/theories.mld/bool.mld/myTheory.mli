@@ -1,4 +1,5 @@
-open Top.Specs
+open Top
+open Specs
 
 type sign
 

@@ -8,16 +8,16 @@ open Interfaces_basic
 open Basic
 open Variables
 
-exception ModelError of string
+(* Abbreviations *)
 
-(* Useful abbreviations for module types *)
+module type Term = Terms.S with type leaf = FreeVar.t
 
-module type TermF = Terms.S with type leaf := FreeVar.t
+type 'd termF = (FreeVar.t,'d) Terms.termF
+
 module type DataType = Terms.DataType with type leaf := FreeVar.t
 
-(* Useful abbreviation for term type *)
+exception ModelError of string
 
-type 'a termF = (FreeVar.t,'a) Terms.term
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -44,7 +44,7 @@ type 'a termF = (FreeVar.t,'a) Terms.term
 module type ForParsing = sig
   type t
   val bC: Symbols.t -> t list -> t
-  val bV: IntSort.t -> t
+  val bV: BoundVar.t -> t
 end
 
 type ('a,'b) embed = {
@@ -75,7 +75,7 @@ end
    for the combination of theory modules *)
 
 module type GlobalDS = sig
-  module Term : TermF
+  module Term : Term
   module Value : PH
   module Assign : Collection with type e = Term.t
   val makes_sense : Term.t -> World.t -> bool

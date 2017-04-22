@@ -9,7 +9,6 @@ open Variables
 open Theories
 open Register
 open Specs
-open Plugin       
 
 (*********************************************************************)
 (* First, we build DS by aggregating a given list of plugins'
@@ -26,10 +25,12 @@ open Plugin
 (*********************************************************************)
 
 val make :
-  unit HandlersMap.t
+  Terms.TermB.t
+  -> bool option
+  -> unit HandlersMap.t
   -> (module Prop.APIplugin.PlugDSType
              with type UASet.t = 'uaset
               and type UF.t    = 'uf
               and type UFSet.t = 'ufset)
-  -> (module WhiteBoard_ThModules
+  -> (module Export.API
              with type u = 'uaset*'uf*'ufset)
