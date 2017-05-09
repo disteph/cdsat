@@ -2,8 +2,6 @@
 (* Main entry point for Psyche runs *)
 (************************************)
 
-open General.Sums
-  
 (* guessThPlug guesses the pair Theory+DecProc + Plugin, taking into
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
@@ -13,20 +11,27 @@ let init (type uaset)(type uf)(type ufset)
       (plDS : (module Theories.Prop.APIplugin.PlugDSType with type UASet.t=uaset
                                                           and type UF.t = uf
                                                           and type UFSet.t=ufset))
-      (module MyParser:Parsers.Parser.Type)
-      input =
+      ~parser
+      ?(withtheories=Some[]) (* List of added theories *)
+      ?(withouttheories=Some[]) (* List of forbidden theories *)
+      ?(disableProp=true)
+      ~input
+  =
 
+  let (module MyParser) = Parsers.Register.get parser in
   let aft = MyParser.glance input in
 
   (* Now we parse *)
-  let i = (module Parsers.Typing.ForParsing : Top.Specs.ForParsing with type t = Top.Terms.TermB.t) in
+  let i = (module Parsers.Typing.ForParsing
+                  : Top.Specs.ForParsing with type t = Top.Terms.TermB.t)
+  in
   let parsed, expected =
     match MyParser.parse aft (Parsers.Typing.forParser i) with
     | Some parsable, b -> parsable Top.Sorts.Prop,b
     | None, b -> Parsers.Typing.ForParsing.bC Top.Symbols.True [], b
   in
   let termB =
-    if !Flags.mode
+    if disableProp
     then Parsers.Typing.ForParsing.bC Top.Symbols.IsTrue [parsed]
     else parsed
   in
@@ -36,7 +41,7 @@ let init (type uaset)(type uf)(type ufset)
   let th  = MyParser.guessThDecProc aft in
   let open Theories.Register in
   let theories =
-    match !Flags.addtheories, !Flags.notheories, th with
+    match withtheories, withouttheories, th with
     | Some l,Some l', Some parsed ->
        HandlersMap.diff (HandlersMap.union (get parsed) (get l)) (get l')
     | None,Some l',_
