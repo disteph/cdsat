@@ -1,3 +1,5 @@
+open General.Sums
+
 open Top
 open Interfaces_basic
 open Messages
@@ -44,6 +46,11 @@ module type API = sig
   open WB.DS
   module PropModule : Prop.APIplugin.API
   val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
-  val formula    : Term.t
+  val problem    : Assign.t
   val expected   : bool option
+  type answer = private
+              | UNSAT of unsat WB.t
+              | SAT of sat WB.t
+              | NotAnsweringProblem
+  val answer : (unsat WB.t, sat WB.t) sum -> answer
 end

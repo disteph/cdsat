@@ -1,10 +1,10 @@
 open Kernel.Top.Interfaces_basic
-open Kernel.Prop.Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 
 module PHCons_ext(A: sig type t val id : t -> int end)
        : Hashtbl.HashedType with type t = A.t
 
-module FEext(FE:FrontEndType): sig
+module FEext(FE:FrontEnd): sig
   open FE
   val accept  : receive
   val fNone   : 'a alt_action

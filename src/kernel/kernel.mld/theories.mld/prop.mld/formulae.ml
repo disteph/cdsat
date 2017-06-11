@@ -201,7 +201,7 @@ module FormulaF = struct
   module type S = sig
     type datatype
 
-    type t = datatype generic [@@deriving eq,hash,ord]
+    type t = datatype generic [@@deriving eq,hash,ord,show]
     val id : t -> int
     val clear : unit -> unit
     val print_in_fmt : ?print_atom:(formatter -> int -> unit) -> formatter -> t -> unit
@@ -239,6 +239,9 @@ module FormulaF = struct
     let compare = compare
     let id = id
     let print_in_fmt = print_in_fmt
+    let pp fmt = print_in_fmt fmt
+    let show = Dump.stringOf pp
+
 
     let negation =
       let negB tB = match Terms.TermB.reveal tB with

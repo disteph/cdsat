@@ -1,9 +1,9 @@
 (* This is the register of all generic plugins in Psyche *)
-open Kernel.Theories_register
+open Kernel.Theories.Register
 
-let bank: ((unit HandlersMap.t)->(module Kernel.Plugin.Type)) array= 
+let bank: (module Plugin.API) array= 
   [|
-    Concur.Main.make;
+    (module Concur.Main);
   |]
 
 exception NotFound of string

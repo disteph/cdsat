@@ -75,8 +75,6 @@ module Make(PlDS: PlugDSType) = struct
       include Semantic
       let print_in_fmt ?(print_atom=Term.print_of_id) fmt lit =
         print_in_fmt ~print_atom fmt lit
-      let pp fmt = print_in_fmt fmt
-      let show = Dump.stringOf pp
     end
     module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
     module ASet = DblSet(MakeCollection(LitF_print))(PlDS.UASet)

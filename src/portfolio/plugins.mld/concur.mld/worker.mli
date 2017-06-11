@@ -1,25 +1,20 @@
 open Async
 
-open Kernel
-open Top.Specs
-open Theories_register
-open Combo
-
-open LoadPluginsTh
+open Kernel.Top.Specs
 
 module Make(WB: WhiteBoardExt.Type) : sig
   open WB.DS
 
   val add :
-    ('a, TSet.t) slot_machine ->
-    TSet.t option -> ('a, TSet.t) output
+    ('a, Assign.t) slot_machine ->
+    Assign.t option -> ('a, Assign.t) output
 
   val clone :
-    ('a, TSet.t) slot_machine ->
-    ('a, TSet.t) output
+    ('a, Assign.t) slot_machine ->
+    ('a, Assign.t) output
 
   val make :
-    TSet.t sslot_machine ->
+    Assign.t Plugin.sslot_machine ->
     WB.msg2th Pipe.Reader.t ->
     WB.msg2pl Pipe.Writer.t ->
     unit Deferred.t

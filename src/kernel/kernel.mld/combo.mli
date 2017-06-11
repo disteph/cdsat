@@ -25,7 +25,7 @@ open Specs
 (*********************************************************************)
 
 val make :
-  Terms.TermB.t
+  Terms.TermB.t list
   -> bool option
   -> unit HandlersMap.t
   -> (module Prop.APIplugin.PlugDSType

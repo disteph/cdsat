@@ -34,5 +34,5 @@ module type Type = sig
   val parse         :
     afterglance
     -> (decsorts:string list -> (module InterpretType with type t = 't))
-    -> ('t option*bool option)
+    -> ('t list * bool option)
 end

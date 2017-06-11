@@ -1,22 +1,47 @@
-open Whiteboard
-open Top.Messages
-open General.Sums
+open Kernel
+
        
-module type DataList = sig
-  type agglo
-  val dataList : agglo dataList
-end
 
 module type Type = sig
 
-  include DataList
+  (* A plugin should provide an implementation of formulae, an
+     implementation of sets of formulae, and an implementation of
+     sets of atoms *)
+  
+  module DS : Theories.Prop.APIplugin.PlugDSType
 
-  module Strategy(WB: sig
-    include WhiteBoard
-    val projList: (DS.Term.datatype,agglo) projList
-  end)
-    : sig
-      val solve : WB.DS.TSet.t -> (unsat WB.t, sat WB.t) sum 
-      val clear : unit -> unit
+  module Make(K: Kernel.Export.API) : sig
+    val solve : unit -> K.answer
+    val clear : unit -> unit
+  end
+end
+
+module type IPluginProp = sig
+
+  module FE: Theories.Prop.APIplugin.FrontEnd
+  open FE
+  type data
+  val initial_data : seqU seq -> bool list -> data
+  val solve        : data output -> seqU answer
+end
+
+type _ sslot_machine =
+  Signed:
+    'sign Theories.Register.Sig.t
+  * ('sign,'ts) Top.Specs.slot_machine
+  -> 'ts sslot_machine
+
+
+module type Input = sig
+  include  Kernel.Export.API
+  module IPluginProp : IPluginProp
+  val pluginsTh : WB.DS.Assign.t sslot_machine Theories.Register.HandlersMap.t
+  val clear : unit -> unit
+end
+       
+module type API = sig
+  module Make(K : Input) : sig
+    val solve : unit -> K.answer
+    val clear : unit -> unit
   end
 end

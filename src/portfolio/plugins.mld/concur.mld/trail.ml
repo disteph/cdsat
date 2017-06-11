@@ -5,7 +5,6 @@
 open Async
        
 open Kernel
-open Combo
 open Top
 open Messages
 
@@ -17,7 +16,7 @@ open Sums
        
 (* This module implements conflict analysis *)
 
-module Make(WB : WhiteBoard) = struct
+module Make(WB : Export.WhiteBoard) = struct
 
   open WB.DS
          
@@ -112,9 +111,9 @@ The reason it was added to it was either:
   side of propa message, from which we removed semsplit. I.e. the
   formulae in semsplit do not end up in the extraction. *)
                      
-  let get_data trail ?(semsplit=TSet.empty) msg =
+  let get_data trail ?(semsplit=Assign.empty) msg =
     let WB.WB(_,Propa(tset,_)) = msg in
-    inter_poly (fun _ v () ->v) trail (TSet.diff tset semsplit)
+    inter_poly (fun _ v () ->v) trail (Assign.diff tset semsplit)
 
                
   let analyse trail conflict learn =
@@ -128,7 +127,7 @@ The reason it was added to it was either:
       =
 
       Dump.print ["trail",1] (fun p ->
-          p "Analysing Conflict: %a" WB.print_in_fmt conflict);
+          p "Analysing Conflict: %a" WB.pp conflict);
 
       (* This is what we do when we finalise an answer:
        msg is the propagation message we use for the branch we backjump to.
@@ -143,10 +142,10 @@ The reason it was added to it was either:
         Dump.print ["trail",1] (fun p ->
             p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n%a"
               data.level
-              Term.print_in_fmt (data.term())
+              Term.pp (data.term())
               (info next).level
-              (pp_print_option Term.print_in_fmt) second
-              WB.print_in_fmt msg
+              (Opt.pp_print_option Term.pp) second
+              WB.pp msg
           );
         (* We learn the conflict, watching first and second formulae *)
 
@@ -164,8 +163,8 @@ The reason it was added to it was either:
           the split.  We want to learn the conflict as a clause, so we
           pick 2 formulae to watch. *)
          
-         let t1,rest = TSet.next semsplit in
-         let t2,_ = TSet.next rest in
+         let t1,rest = Assign.next semsplit in
+         let t2,_ = Assign.next rest in
          learn conflict t1 (Some t2) >>| fun ()->
          (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
@@ -195,11 +194,11 @@ The reason it was added to it was either:
          | Propagated msg ->
 
             let curry =
-              if (TSet.is_empty semsplit) (* If we are not in semsplit *)
+              if (Assign.is_empty semsplit) (* If we are not in semsplit *)
                  && (data.is_uip())       (* and data.term() is a UIP *)
                  && data.level > 0        (* and conflict is not of level 0 *)
               then (* ...we might use that UIP to switch branches *)
-                Some((WB.curryfy (TSet.singleton(data.term())) conflict))
+                Some((WB.curryfy (Assign.singleton(data.term())) conflict))
               else None
             in
             begin match curry with
@@ -211,9 +210,9 @@ The reason it was added to it was either:
                Dump.print ["trail",1] (fun p ->
                    let level,chrono,_ = find (data.term()) trail in
                    p "Explaining %a of level %i and chrono %i, using message\n%a"
-                     Term.print_in_fmt (data.term())
+                     Term.pp (data.term())
                      level chrono
-                     WB.print_in_fmt msg
+                     WB.pp msg
                  );
                (* Proposed new conflict, and its data *)
                let newconflict = WB.resolve msg conflict in
@@ -223,11 +222,11 @@ The reason it was added to it was either:
                  (* The latest contributing decision is a guess,
                  and is among the nodes we are about to add:
                  we refuse to resolve *)
-                 aux conflict ~level:data.level (TSet.add (data.term()) semsplit) newdata
+                 aux conflict ~level:data.level (Assign.add (data.term()) semsplit) newdata
                else
                  aux newconflict ?level semsplit newdata
             end
          end
-    in aux conflict TSet.empty (info(get_data trail conflict))
+    in aux conflict Assign.empty (info(get_data trail conflict))
       
 end

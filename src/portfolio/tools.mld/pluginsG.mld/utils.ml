@@ -5,7 +5,7 @@
 
 
 open Kernel.Top.Interfaces_basic
-open Kernel.Prop.Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 
 
 module PHCons_ext(A: sig type t val id : t -> int end) = struct
@@ -14,7 +14,7 @@ module PHCons_ext(A: sig type t val id : t -> int end) = struct
   let hash = id
 end
   
-module FEext(FE:FrontEndType)
+module FEext(FE:FrontEnd)
   = struct
     open FE
     (* A function to systematically accept answers *)

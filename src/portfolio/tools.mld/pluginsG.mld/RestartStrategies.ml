@@ -1,4 +1,4 @@
-open Kernel.Prop.Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 
 module RestartStrategies (UASet: CollectExtra) = struct
   exception Restart of UASet.t

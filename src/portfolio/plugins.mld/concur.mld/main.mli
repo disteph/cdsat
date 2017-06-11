@@ -9,8 +9,6 @@ with concurrency, as provided by Jane Street's Async library.
    exchanging messages with the master thread, whose code is below.  *)
 (*********************************************************************)
 
-open Kernel.Theories_register
-
 (* We are parameterised by the theories involved in the problem *)
 
-val make : unit HandlersMap.t -> (module Kernel.Plugin.Type)
+include Plugin.API

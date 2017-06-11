@@ -199,9 +199,9 @@ let parse (type t) aft interpreter =
       
   in
 
-  match aft.form_list with
-  | []-> None, aft.status
-  | _ -> 
-    let formula = transformTermBase EmptyEnv [] "and" aft.form_list in
-    let fformula = if aft.satprov then formula else I.sigsymb "not" [formula] in
-    Some fformula, aft.status
+  let aux t =
+    let formula = transformTerm EmptyEnv [] t
+    in
+    if aft.satprov then formula else I.sigsymb "not" [formula]
+  in
+  List.map aux aft.form_list, aft.status

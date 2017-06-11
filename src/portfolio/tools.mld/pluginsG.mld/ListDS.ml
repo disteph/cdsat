@@ -9,9 +9,9 @@ open Format
 open Kernel
 
 open Top.Interfaces_basic
+open Termstructures.Literals
 
-open Prop
-open Literals
+open Theories.Prop
 open Formulae
 
 module type PrintableType = sig 

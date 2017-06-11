@@ -1,12 +1,12 @@
 open Kernel
 
 open Top.Interfaces_basic
-open Prop
+open Termstructures.Literals
+open Theories.Prop
 
-open Interfaces_theory
-open Literals
+(* open Interfaces_theory *)
 open Formulae
-open Interfaces_plugin
+open APIplugin
 
 open General
 open Sums
@@ -16,7 +16,7 @@ open SetConstructions
 open SetInterface
 
 module Make
-  (FE: FrontEndType)
+  (FE: FrontEnd)
   (FS: CollectImplemExt with type e = FE.FSet.e and type t=FE.FSet.ps)
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   = struct
@@ -108,14 +108,14 @@ module Make
               Dump.print ["memo",2](fun p->
                   p "Found approx. in pos form of\n%a\n%a"
                     Seq.print_seq_in_fmt seq
-                    (fun fmt -> IForm.print_in_fmt fmt) toCut);
+                    (fun fmt -> IForm.pp fmt) toCut);
 	      Some(Cut(7,toCut,data,(fun _->()),(fun _->()),(fun _-> None))))
       else let toCut, _ = AS.next a in
 	   Dump.Plugin.incr_count 8;
            Dump.print ["memo",2] (fun p->
                p "Found approx. in atoms of\n%a\n%a"
                  Seq.print_seq_in_fmt seq
-                 print_in_fmtL toCut);
+                 ppL toCut);
            Some(Cut(7,IForm.lit toCut,data,(fun _->()),(fun _->()),(fun _->None)))
 
     let get_usage_stats4provable ans =

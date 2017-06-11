@@ -5,7 +5,6 @@
 open Async
 
 open Kernel
-open Combo
 open Top.Messages
 
 open General
@@ -14,7 +13,7 @@ open Sums
        
 (* This module implements conflict analysis *)
 
-module Make(WB : WhiteBoard) : sig
+module Make(WB : Export.WhiteBoard) : sig
 
   open WB.DS
 

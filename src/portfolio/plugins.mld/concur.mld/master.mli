@@ -13,36 +13,16 @@ open Async
 
 open Kernel
 open Top.Messages
-open Top.Specs
-open Theories_register
-open Combo
+open Theories.Register
 
 open General.Sums
 
 module Make(WB: sig
                 include WhiteBoardExt.Type
-                val theories: unit HandlersMap.t
+                val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
               end) : sig
 
   open WB
-  open DS         
-  (* We load the code of the slave workers, generated from the
-      Whiteboard *)
-
-  module Mm : sig
-    val make :
-      msg2th Pipe.Reader.t
-      -> msg2pl Pipe.Writer.t
-      -> unit Deferred.t
-  end
-
-  module W : sig
-    val make :
-      TSet.t LoadPluginsTh.sslot_machine ->
-      msg2th Pipe.Reader.t ->
-      msg2pl Pipe.Writer.t ->
-      unit Deferred.t
-  end
 
   module WM : sig
 
@@ -55,19 +35,12 @@ module Make(WB: sig
 
   end
 
-  module AS : sig
-    type t
-    val all : t
-  end
-
   type state
-
-  val select_msg : state -> (say answer * state) Deferred.t
 
   val main_worker :
     msg2pl Pipe.Reader.t
     -> msg2pl Pipe.Writer.t
     -> WM.t
-    -> TSet.t
+    -> DS.Assign.t
     -> (unsat WB.t, sat WB.t) sum Deferred.t
 end

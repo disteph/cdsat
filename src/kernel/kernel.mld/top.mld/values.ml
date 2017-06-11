@@ -10,7 +10,7 @@ type _ value =
 
 (* Printing values *)
 
-let print_msg_in_fmt (type a) valueprint fmt: a value -> unit = function
+let pp (type a) valueprint fmt: a value -> unit = function
   | NonBoolean v -> fprintf fmt "%a" valueprint v
   | Boolean b    -> fprintf fmt "%b" b
 

@@ -2,14 +2,11 @@ open Async
 
 open Kernel
 
-open Combo
-open Top
-open HCons
-open Messages
-open Theories_register
+open Top.Messages
+open General.HCons
+open Theories.Register
 
 open General
-open SetConstructions
 
 open Tools.PluginsTh
        
@@ -30,22 +27,22 @@ module Make(WB : WhiteBoardExt.Type) = struct
       then false
       else
         match msg1,msg2 with
-        | Sat tset1, Sat tset2 -> TSet.equal tset1 tset2
-        | Propa(tset1,Unsat), Propa(tset2,Unsat) -> TSet.equal tset1 tset2
+        | Sat tset1, Sat tset2 -> Assign.equal tset1 tset2
+        | Propa(tset1,Unsat), Propa(tset2,Unsat) -> Assign.equal tset1 tset2
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
-          -> TSet.equal tset1 tset2 && TSet.equal tset1' tset2'
+          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2'
         | Propa(tset1,Both(tset1',tset1'')), Propa(tset2, Both(tset2',tset2''))
-          -> TSet.equal tset1 tset2 && TSet.equal tset1' tset2' && TSet.equal tset1'' tset2''
+          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2' && Assign.equal tset1'' tset2''
         | Propa(tset1,Either(tset1',tset1'')), Propa(tset2, Either(tset2',tset2''))
-          -> TSet.equal tset1 tset2 && TSet.equal tset1' tset2' && TSet.equal tset1'' tset2''
+          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2' && Assign.equal tset1'' tset2''
 
     let hash (type a) _ _ (WB(hdls,msg):a WB.t) =
       match msg with
-      | Sat tset -> 2*(TSet.id tset)
-      | Propa(tset,Unsat) -> 1+3*(TSet.id tset)
-      | Propa(tset,Straight tset') -> 1+7*(TSet.id tset)+11*(TSet.id tset')
-      | Propa(tset,Both(tset1,tset2)) -> 1+13*(TSet.id tset)+17*(TSet.id tset1)+19*(TSet.id tset2)
-      | Propa(tset,Either(tset1,tset2)) -> 1+23*(TSet.id tset)+29*(TSet.id tset1)+31*(TSet.id tset2)
+      | Sat tset -> 2*(Assign.id tset)
+      | Propa(tset,Unsat) -> 1+3*(Assign.id tset)
+      | Propa(tset,Straight tset') -> 1+7*(Assign.id tset)+11*(Assign.id tset')
+      | Propa(tset,Both(tset1,tset2)) -> 1+13*(Assign.id tset)+17*(Assign.id tset1)+19*(Assign.id tset2)
+      | Propa(tset,Either(tset1,tset2)) -> 1+23*(Assign.id tset)+29*(Assign.id tset1)+31*(Assign.id tset2)
                                    
   end
   module H = MakePoly(M)
@@ -62,17 +59,17 @@ module Make(WB : WhiteBoardExt.Type) = struct
   module Fixed : sig
     type t
     val init : t
-    val extend : TSet.t -> t -> t
-    val notfixed : t -> TSet.t -> TSet.t
+    val extend : Assign.t -> t -> t
+    val notfixed : t -> Assign.t -> Assign.t
     val is_fixed : Term.t -> t -> bool
-    val are_fixed : TSet.t -> t -> bool
+    val are_fixed : Assign.t -> t -> bool
   end = struct
-    type t = TSet.t
-    let init = TSet.empty
-    let extend = TSet.union
-    let notfixed fixed set = TSet.diff set fixed
-    let is_fixed = TSet.mem
-    let are_fixed = TSet.subset
+    type t = Assign.t
+    let init = Assign.empty
+    let extend = Assign.union
+    let notfixed fixed set = Assign.diff set fixed
+    let is_fixed = Assign.mem
+    let are_fixed = Assign.subset
   end
 
   module Constraint : sig
@@ -80,7 +77,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
     val id : t -> int
     val msg : t -> unsat WB.t
     val make : unsat WB.t -> t
-    val tset : t -> TSet.t
+    val tset : t -> Assign.t
     val simplify : Fixed.t -> t -> t
   end = struct
     type t = H'.t
@@ -116,10 +113,10 @@ module Make(WB : WhiteBoardExt.Type) = struct
       let tset = Fixed.notfixed fixed (Constraint.tset c) in
       let newlist =
         TwoWatchedLits.pick_another_make
-          ~is_empty:TSet.is_empty
-          ~mem:TSet.mem
-          ~next:TSet.next
-          ~remove:TSet.remove
+          ~is_empty:Assign.is_empty
+          ~mem:Assign.mem
+          ~next:Assign.next
+          ~remove:Assign.remove
           tset i previous
       in
       Dump.print ["memo",2] (fun p ->
@@ -128,15 +125,15 @@ module Make(WB : WhiteBoardExt.Type) = struct
              p "%t" (fun fmt ->
                  Format.fprintf fmt "Memo: Have to watch %i terms in %a\nHave chosen %a from %a"
                    i
-                   TSet.print_in_fmt (Constraint.tset c)
-                   (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") Term.print_in_fmt) newlist
-                   TSet.print_in_fmt tset)
+                   Assign.pp (Constraint.tset c)
+                   (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") Term.pp) newlist
+                   Assign.pp tset)
           | None ->
              p "%t" (fun fmt ->
                  Format.fprintf fmt "Memo: Unable to pick %i terms to watch in %a\nMust choose from %a"
                    i
-                   TSet.print_in_fmt (Constraint.tset c)
-                   TSet.print_in_fmt tset
+                   Assign.pp (Constraint.tset c)
+                   Assign.pp tset
         ));
       newlist
         
@@ -146,14 +143,14 @@ module Make(WB : WhiteBoardExt.Type) = struct
                                 
   module WR : sig
     val add : Constraint.t -> Term.t -> Term.t option -> unit
-    val treat : Config.fixed -> TSet.t -> (Config.Constraint.t*Term.t list) option
+    val treat : Config.fixed -> Assign.t -> (Config.Constraint.t*Term.t list) option
   end = struct
     
     let watchref = ref P.init
     let watchcount = ref 0
 
     let prove tset =
-      let watch = TSet.fold P.fix tset !watchref in
+      let watch = Assign.fold P.fix tset !watchref in
       let fixed = Fixed.extend tset Fixed.init in
       match P.next fixed ~howmany:1 watch with
       | None,_ -> false
@@ -172,7 +169,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
         Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 
     let treat fixed tset =
-      let watch = TSet.fold P.fix tset !watchref in
+      let watch = Assign.fold P.fix tset !watchref in
       let msg, watch = P.next ~howmany:2 fixed watch in
       watchref := watch;
       msg
@@ -181,7 +178,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
 
   let suicide msg term1 term2 =
     if !Flags.memo
-    then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.print_in_fmt msg);
+    then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
           WR.add (Constraint.make msg) term1 term2)
 
   let rec flush reader writer msg =
@@ -205,7 +202,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
     let aux = function 
       | MsgStraight(tset,chrono) ->
          let fixed = Fixed.extend tset fixed in
-         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" TSet.print_in_fmt tset);
+         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Assign.pp tset);
          loop_write (WR.treat fixed tset) fixed chrono from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) ->
          Deferred.all_unit
@@ -229,7 +226,7 @@ module Make(WB : WhiteBoardExt.Type) = struct
        let tset = Constraint.tset constr in
        if Fixed.are_fixed tset fixed
        then
-         (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.print_in_fmt msg);
+         (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
           let msg = Msg(None,Say msg,chrono) in
           Deferred.all_unit
             [ Lib.write to_pl msg;
@@ -238,13 +235,13 @@ module Make(WB : WhiteBoardExt.Type) = struct
          let terms = Fixed.notfixed fixed tset in
          (Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
-                WB.print_in_fmt msg TSet.print_in_fmt terms);
+                WB.pp msg Assign.pp terms);
           let msg = WB.curryfy terms msg in
           let WB(_,Propa(_,Straight tset)) = msg in
           if Fixed.are_fixed tset fixed
           then
             (Dump.print ["memo",0] (fun p->
-                 p "Memo: %a already known" TSet.print_in_fmt tset);
+                 p "Memo: %a already known" Assign.pp tset);
              Deferred.all_unit
                [ Lib.write to_pl (Msg(None,Ack,chrono));
                  loop_read fixed from_pl to_pl ])

@@ -25,17 +25,16 @@ let init (type uaset)(type uf)(type ufset)
   let i = (module Parsers.Typing.ForParsing
                   : Top.Specs.ForParsing with type t = Top.Terms.TermB.t)
   in
-  let parsed, expected =
-    match MyParser.parse aft (Parsers.Typing.forParser i) with
-    | Some parsable, b -> parsable Top.Sorts.Prop,b
-    | None, b -> Parsers.Typing.ForParsing.bC Top.Symbols.True [], b
+  let parsable, expected = MyParser.parse aft (Parsers.Typing.forParser i) in
+  let parsed =
+    List.map (fun f -> f Top.Sorts.Prop) parsable
   in
   let termB =
     if disableProp
-    then Parsers.Typing.ForParsing.bC Top.Symbols.IsTrue [parsed]
+    then List.map (fun x->Parsers.Typing.ForParsing.bC Top.Symbols.IsTrue [x]) parsed
     else parsed
   in
-  print_endline("We want to prove: "^Top.Terms.TermB.show termB);
+  print_endline("We want to prove: "^List.show Top.Terms.TermB.pp termB);
 
   (* Now we look at the theories involved *)
   let th  = MyParser.guessThDecProc aft in

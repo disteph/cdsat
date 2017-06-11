@@ -74,10 +74,5 @@ let parse (type t) l interpreter =
     | l  -> I.sigsymb "and" (List.map generate_atom l)
   in
 
-  (* parse a cnf from list of clause descriptions *)
-  let generate_cnf = function
-    | [] -> I.sigsymb "false" []
-    | l  -> I.sigsymb "or" (List.map generate_clause l)
-  in
-
-  (Some(generate_cnf l),None)
+  List.map generate_clause l,
+  None

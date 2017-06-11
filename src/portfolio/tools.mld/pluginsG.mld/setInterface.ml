@@ -1,7 +1,7 @@
 (* Interface for the input of the Memoisation module and output of
 myPatAset *)
 
-open Kernel.Prop.Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 open General.Sums
 
 module type CollectImplemExt = sig

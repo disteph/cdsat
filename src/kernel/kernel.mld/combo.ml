@@ -2,6 +2,8 @@
 (* Theory Combinator *)
 (*********************)
 
+open General.Sums
+
 open Top
 open Interfaces_basic
 open Basic
@@ -204,7 +206,7 @@ end
 
 let make
       (type uaset)(type uf)(type ufset)
-      termB
+      problem
       expected
       theories
       (module PlugDS : Prop.APIplugin.PlugDSType
@@ -253,9 +255,12 @@ let make
      type u = uaset*uf*ufset
        
      let th_modules = State.modules snd conv (module DS)
-     let formula = DS.Term.lift [] termB
+     let problem = List.fold
+                     (fun formula -> DS.Assign.add (DS.Term.lift [] formula))
+                     problem
+                     DS.Assign.empty
      let expected = expected
-                      
+
      module PropModule = PS.Make(DS4Prop)
 
      module WB = struct
@@ -329,4 +334,18 @@ let make
          WB(hdls,Propa(thset, Straight(Assign.singleton rhs)))
 
      end
+
+     type answer =
+       | UNSAT of unsat WB.t
+       | SAT of sat WB.t
+       | NotAnsweringProblem
+
+     let answer = function
+       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg)
+            when DS.Assign.subset assign problem
+         -> UNSAT(msg)
+       | Case2(WB.WB(_,Sat assign) as msg)
+            when DS.Assign.subset problem assign -> SAT(msg)
+       | _ -> NotAnsweringProblem
+
    end)

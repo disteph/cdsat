@@ -1,6 +1,6 @@
 open Async
 
-open Kernel.Theories_register
+open Kernel.Theories.Register
 
 module Make(W: sig
                 type msg2th

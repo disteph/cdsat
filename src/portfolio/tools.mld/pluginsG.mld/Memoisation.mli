@@ -13,11 +13,11 @@
    ASet, i.e. providing small extensions of FSet and ASet *)
 (*******************************************************************)
 
-open Kernel.Prop.Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 open SetInterface
 
 module Make
-  (FE: FrontEndType)
+  (FE: FrontEnd)
   (FS: CollectImplemExt with type e = FE.FSet.e and type t=FE.FSet.ps)
   (AS: CollectImplemExt with type e = FE.ASet.e and type t=FE.ASet.ps)
   : sig

@@ -76,7 +76,7 @@ module Sig = struct
   type _ t = Sig : (_*('a*_*_*_)) Tags.t -> 'a t [@@unboxed]
 
   let id (Sig t) = Tags.id t
-  let print_in_fmt fmt (Sig t) = Tags.pp fmt t
+  let pp fmt (Sig t) = Tags.pp fmt t
 
 end
 
@@ -84,7 +84,7 @@ module Handlers = struct
   type t = Handler: (_*(_*_*_*_)) Tags.t -> t [@@unboxed]
   let id (Handler hdl) = Tags.id hdl
   let compare = id2compare id
-  let print_in_fmt fmt (Handler hdl) = Tags.pp fmt hdl
+  let pp fmt (Handler hdl) = Tags.pp fmt hdl
 end
 
 let all_theories_list = 
@@ -104,7 +104,7 @@ module HandlersMap = struct
     let _ =
       fold
         (fun a _ b ->
-          fprintf fmt "%s%a" (if b then ", " else "") Handlers.print_in_fmt a; true)
+          fprintf fmt "%s%a" (if b then ", " else "") Handlers.pp a; true)
         hdls false in
     ()
 
