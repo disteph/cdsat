@@ -1,10 +1,9 @@
 open General
 open Kernel
-open Prop
+open Termstructures.Literals
+open Theories.Prop
 
-open Literals
-open Interfaces_theory
-open Interfaces_plugin
+open APIplugin
 open Sums
 
 module DS = DataStructures
@@ -17,9 +16,9 @@ let count = [|0;0;0;0;0;0;0;0;0;0|]
   *)
 let decide_cut = true
   
-module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				and  type FSet.ps     = DS.UFSet.t
-				and  type ASet.ps     = DS.UASet.t) = struct
+module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			    and  type FSet.ps     = DS.UFSet.t
+			    and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
   include Tools.PluginsG.Utils.FEext(FE)
@@ -174,5 +173,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 	 light *)
 
     | InsertCoin(Stop(b1,b2, machine))   -> solve (machine ())
+
+    | _ -> failwith "TO IMPLEMENT"
 
 end

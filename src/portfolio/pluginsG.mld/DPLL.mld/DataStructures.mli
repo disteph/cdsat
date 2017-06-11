@@ -1,12 +1,13 @@
-open General
 open Kernel
-open Prop
+open Termstructures.Literals
 
-open Interfaces_theory
-open Literals
+open Theories.Prop
 open Formulae
+
+open General
 open Sums
 open Patricia_interfaces
+
 open Tools.PluginsG.SetInterface
 
 module UASet : sig

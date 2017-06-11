@@ -1,19 +1,19 @@
 open Format
 
 open Kernel
-open Prop
+open Termstructures.Literals
+open Theories.Prop
 
-open Interfaces_theory
-open Literals
 open Formulae
-open Interfaces_plugin
+open APIplugin
+
 open Tools.PluginsG.Addressing
        
 module DS = Tools.PluginsG.ListDS.Generate
 
-module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				and  type FSet.ps     = DS.UFSet.t
-				and  type ASet.ps     = DS.UASet.t) = struct
+module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			    and  type FSet.ps     = DS.UFSet.t
+			    and  type ASet.ps     = DS.UASet.t) = struct
 
   open DS
   open FE
@@ -33,7 +33,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
 
   let display_aset atoms =
     let latoms = UASet.fold (fun x l -> x::l) atoms [] in
-    let show a = Format.printf "\t%a\n%!" print_in_fmtL a in
+    let show a = Format.printf "\t%a\n%!" ppL a in
     List.iter show latoms
 
   let display_farray forms = 
@@ -71,7 +71,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     in
     display_full seq;
     print_endline "Current constraint:";
-    Format.printf "%a\n%!" print_in_fmtC sigma
+    Format.printf "%a\n%!" ppC sigma
 
   let parse_abort = function 
     | "abort" | "Abort" -> raise (PluginG.PluginAbort "I abort")
@@ -205,5 +205,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
        print_hrule '=';
        print_endline ("Status: No more "^(if b1 then "Success" else "Failure")^" branch on the "^(if b2 then "right" else "left"));
        solve (execute ())
-	     
+
+    | _ -> failwith "TO IMPLEMENT"
+
 end

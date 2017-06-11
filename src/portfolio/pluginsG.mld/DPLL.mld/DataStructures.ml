@@ -6,16 +6,19 @@
 
 open Format
 
-open General
 open Kernel
-open Prop
+open Termstructures.Literals
 
-open Interfaces_theory
-open Literals
+open Theories.Prop
 open Formulae
+
+open General
 open Sums
+open Patricia_interfaces
 open SetConstructions
+
 open Tools.PluginsG.SetInterface
+
 
 (* **************************************** *)
 (* Implementation of sets of atoms for DPLL *)

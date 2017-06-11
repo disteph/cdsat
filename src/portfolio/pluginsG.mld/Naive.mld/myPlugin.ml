@@ -1,17 +1,16 @@
 open Format
 
 open Kernel
-open Prop
+open Theories.Prop
 
-open Interfaces_theory
 open Formulae
-open Interfaces_plugin
+open APIplugin
 
 module DS = Tools.PluginsG.ListDS.Generate
 
-module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				and  type FSet.ps     = DS.UFSet.t
-				and  type ASet.ps     = DS.UASet.t) = struct
+module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			    and  type FSet.ps     = DS.UFSet.t
+			    and  type ASet.ps     = DS.UASet.t) = struct
 
   open DS
   open FE
@@ -41,5 +40,6 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
     end
     | InsertCoin(AskSide (_,_,machine,_))          -> solve (machine (true,(noaddress,noaddress)))
     | InsertCoin(Stop(b1,b2, machine))             -> solve (machine ())
+    | _ -> failwith "TO IMPLEMENT"
       
 end

@@ -1,9 +1,7 @@
 open General
 open Kernel
-open Prop
-
-open Interfaces_theory
-open Literals
+open Termstructures.Literals
+open Theories.Prop
 open Formulae
 open Sums
 open Tools.PluginsG.SetInterface

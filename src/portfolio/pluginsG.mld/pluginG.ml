@@ -1,7 +1,4 @@
-open Theories.Prop
-open Interfaces_theory
-open Formulae
-open Interfaces_plugin
+open Kernel.Theories.Prop.APIplugin
 
 exception PluginAbort of string
 
@@ -19,9 +16,9 @@ module type Type = sig
      temporary answer (output) into a final answer (t).  See the
      default implementation in module MyNaive *)
 
-  module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				  and  type FSet.ps     = DS.UFSet.t
-				  and  type ASet.ps     = DS.UASet.t)
+  module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			      and  type FSet.ps     = DS.UFSet.t
+			      and  type ASet.ps     = DS.UASet.t)
          : sig
     open FE
     (* A user can embark his own data on the proof-search.

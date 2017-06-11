@@ -1,11 +1,10 @@
 open General
 open Kernel
-open Prop
+open Termstructures.Literals
+open Theories.Prop
 
-open Interfaces_theory
-open Literals
 open Formulae
-open Interfaces_plugin
+open APIplugin
 open Patricia_interfaces
 open Patricia
 open Sums
@@ -22,9 +21,9 @@ let count = [|0;0;0;0|]
  *)
 let decide_cut = true
                    
-module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				and  type FSet.ps     = DS.UFSet.t
-				and  type ASet.ps     = DS.UASet.t) = struct
+module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			    and  type FSet.ps     = DS.UFSet.t
+			    and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
   include Tools.PluginsG.Utils.FEext(FE)
@@ -479,6 +478,9 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                                         for i=0 to Array.length count-1 do count.(i) <- 0 done;
                                         ans
 
+    | _ -> failwith "TO IMPLEMENT"
+
+                    
   and solve_rec input =
     (* begin *)
     (*   match input with *)

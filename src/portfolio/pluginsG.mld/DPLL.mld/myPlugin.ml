@@ -1,11 +1,11 @@
-open General
 open Kernel
-open Prop
-
-open Interfaces_theory
-open Literals
+open Termstructures.Literals
+open Theories.Prop
 open Formulae
-open Interfaces_plugin
+open APIplugin
+
+
+open General
 open Patricia
 open Patricia_interfaces
 open SetConstructions
@@ -25,9 +25,9 @@ let count = [|0;0;0;0|]
  *)
 let decide_cut = true
                    
-module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
-				and  type FSet.ps     = DS.UFSet.t
-				and  type ASet.ps     = DS.UASet.t) = struct
+module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
+			    and  type FSet.ps     = DS.UFSet.t
+			    and  type ASet.ps     = DS.UASet.t) = struct
   open DS
   open FE
   include Tools.PluginsG.Utils.FEext(FE)
@@ -546,6 +546,7 @@ module Strategy(FE:FrontEndType with type IForm.datatype = DS.UF.t
                                         restart_strategy#reset() ; Me.clear(); UASet.clear(); UFSet.clear();LitF.clear();Dump.Plugin.clear();
                                         for i=0 to Array.length count-1 do count.(i) <- 0 done;
                                         ans
+    | _ -> failwith "TO IMPLEMENT"
 
   (* solve_restart handles restarts, launching solve_rec once, 
        then re-launching it every time a Restart exception is raised. *)

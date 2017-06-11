@@ -7,14 +7,15 @@
 open Format
 
 open General
-open Kernel
-open Prop
-
-open Interfaces_theory
-open Literals
-open Formulae
 open Sums
+open Patricia_interfaces
 open SetConstructions
+
+open Kernel
+open Termstructures.Literals
+open Theories.Prop
+open Formulae
+
 open Tools.PluginsG.SetInterface
 
 

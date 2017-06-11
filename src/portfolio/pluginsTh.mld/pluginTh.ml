@@ -1,6 +1,6 @@
 open Kernel
 open Top.Specs
-open Theories_register
+open Theories.Register
 
 module type Type = sig
 

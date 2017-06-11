@@ -2,4 +2,4 @@
 
 exception NotFound of string
 
-val get : string -> (module Kernel.PluginG.Type)
+val get : string -> (module PluginG.Type)
