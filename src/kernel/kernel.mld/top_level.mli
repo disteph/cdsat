@@ -6,7 +6,7 @@ val init :
       (module Theories.Prop.APIplugin.PlugDSType with type UASet.t='uaset
                                                   and type UF.t = 'uf
                                                   and type UFSet.t='ufset)
-      -> parser:string
+      -> parser:Parsers.Register.t
       -> ?withtheories:string list option
       -> ?withouttheories:string list option
       -> ?disableProp:bool

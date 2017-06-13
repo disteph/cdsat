@@ -1,7 +1,12 @@
 (* This is the register of all parsers in Psyche *)
 
-val all_parsers : (module Parser.Type)list
+type t =
+  | SMTLib2
+  | DIMACS
+[@@deriving show, enumerate]
+
+val get : t -> (module Parser.Type)
 
 exception NotFound of string
 
-val get : string -> (module Parser.Type)
+val parse : string -> t

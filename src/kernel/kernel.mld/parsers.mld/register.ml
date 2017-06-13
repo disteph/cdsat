@@ -1,18 +1,17 @@
 (* This is the register of all parsers in Psyche *)
 
-let bank:(module Parser.Type)array= 
-  [|
-    (module SMTLib2);
-    (module DIMACS);
-  |]
+type t =
+  | SMTLib2
+  | DIMACS
+[@@deriving show, enumerate]
 
-let all_parsers = Array.to_list bank
+let get : t -> (module Parser.Type) = function
+  | SMTLib2 -> (module SMTLib2)
+  | DIMACS ->  (module DIMACS)
 
 exception NotFound of string
 
 let parse = function
-  | "smtlib2"   -> 0
-  | "dimacs"    -> 1
+  | "smtlib2"   -> SMTLib2
+  | "dimacs"    -> DIMACS
   | s -> raise (NotFound ("Parser "^s^" does not exist; see -help"))
-
-let get s = bank.(parse s)

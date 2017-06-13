@@ -8,9 +8,9 @@ as possibly indicated by the parser when glancing at the input *)
 
        
 let init (type uaset)(type uf)(type ufset)
-      (plDS : (module Theories.Prop.APIplugin.PlugDSType with type UASet.t=uaset
-                                                          and type UF.t = uf
-                                                          and type UFSet.t=ufset))
+      (plDS : (module Theories.Prop.APIplugin.PlugDSType with type UASet.t= uaset
+                                                          and type UF.t   = uf
+                                                          and type UFSet.t= ufset))
       ~parser
       ?(withtheories=Some[]) (* List of added theories *)
       ?(withouttheories=Some[]) (* List of forbidden theories *)
