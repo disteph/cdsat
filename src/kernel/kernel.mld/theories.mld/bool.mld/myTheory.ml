@@ -28,7 +28,9 @@ module Make(DS: DSproj with type ts = Clauses.TS.t) = struct
   type value  = Value.t
   type assign = Assign.t
   type sign   = unit
-         
+
+  let proj t = DS.proj(Terms.data t)
+
   include Explanations.Make(DS)
 
   (* Type of the data-structures recording which literals are fixed:
@@ -102,7 +104,7 @@ terms seen so far
        justification map. *)
     let litterm,asTrueFalse = Model.add l fixed.asTrueFalse in
     litterm,
-    let clauses  = match (proj(Terms.data litterm)).asclause with
+    let clauses  = match (proj litterm).asclause with
       | Some lset when LSet.info lset > 1
         -> Assign.add litterm fixed.clauses
       | _ -> fixed.clauses
@@ -132,7 +134,7 @@ terms seen so far
 
     (* Now is this term actually a conjunction?
        It suffices to look at its field nasclause (negation as clause) *)
-    match (proj(Terms.data term)).nasclause with
+    match (proj term).nasclause with
     | Some set when LSet.info set > 1
       ->
        (* It is a conjunction, we need to satisfy the conjuncts.
@@ -180,7 +182,7 @@ terms seen so far
         p "adding term %a" Term.pp term);
 
     let fixed = { fixed with seen = Assign.add term fixed.seen } in
-    let l     = (proj(Terms.data term)).aslit in
+    let l     = (proj term).aslit in
     let asTrue, asFalse = Model.reveal fixed.asTrueFalse in
 
     if LMap.mem l asFalse then

@@ -78,6 +78,6 @@ module Make(WB: WhiteBoardExt.Type) = struct
               loop_read hdl cont from_pl to_pl
          ]
 
-  let make (Signed(Sig.Sig hdl,init)) = loop_read hdl init
+  let make (PluginsTh.PluginTh.Signed(Sig.Sig hdl,init)) = loop_read hdl init
 
 end

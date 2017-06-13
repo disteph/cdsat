@@ -1,25 +1,18 @@
 open Kernel
-open Top
-open Specs
-open Theories_register
-
-open Prop.Literals
-
-open IfThenElse
+open Top.Specs
+open Theories.IfThenElse
 
 type sign = MyTheory.sign
-let hdl = Sig.IfThenElse
 
-module ThDS = struct
-  type t = LitF.t 
-  let bV tag _ = LitF.build(true,tag)
-  let bC tag symb l = match symb,l with
-    | Symbols.Neg,[a] -> LitF.negation a
-    | _,_ ->  bV tag l
+module Make(DS:GlobalDS) = struct
+
+  open DS
+
+  let make (k: (Term.datatype,Value.t,Assign.t) MyTheory.api)
+    = let (module K) = k in
+      {
+        PluginTh.init = K.init;
+        PluginTh.clear = K.clear
+      }
+
 end
-
-module Make(DS: sig 
-  include GTheoryDSType
-  val proj: Term.datatype -> ThDS.t
-end) 
-  = MyTheory.Make(DS)

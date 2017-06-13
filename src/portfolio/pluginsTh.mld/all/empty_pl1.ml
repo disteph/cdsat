@@ -1,20 +1,18 @@
 open Kernel
 open Top.Specs
-open Theories_register
-
-open Empty
+open Theories.Empty
 
 type sign = MyTheory.sign
-let hdl = Sig.Empty
 
-module ThDS = struct
-  type t = unit 
-  let bC _ _ _ = ()
-  let bV _ _   = ()
+module Make(DS:GlobalDS) = struct
+
+  open DS
+
+  let make (k: (Term.datatype,Value.t,Assign.t) MyTheory.api)
+    = let (module K) = k in
+      {
+        PluginTh.init = K.init;
+        PluginTh.clear = K.clear
+      }
+
 end
-
-module Make(DS: sig 
-  include GTheoryDSType
-  val proj: Term.datatype -> ThDS.t
-end) 
-  = MyTheory.Make(DS)

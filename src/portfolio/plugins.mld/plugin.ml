@@ -1,7 +1,6 @@
 open Kernel
-
+open PluginsTh.PluginTh
        
-
 module type Type = sig
 
   (* A plugin should provide an implementation of formulae, an
@@ -24,13 +23,6 @@ module type IPluginProp = sig
   val initial_data : seqU seq -> bool list -> data
   val solve        : data output -> seqU answer
 end
-
-type _ sslot_machine =
-  Signed:
-    'sign Theories.Register.Sig.t
-  * ('sign,'ts) Top.Specs.slot_machine
-  -> 'ts sslot_machine
-
 
 module type Input = sig
   include  Kernel.Export.API

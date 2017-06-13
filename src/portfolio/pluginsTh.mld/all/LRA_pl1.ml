@@ -1,6 +1,6 @@
 open Kernel
 open Top.Specs
-open Theories.Arrays
+open Theories.LRA
 
 type sign = MyTheory.sign
 

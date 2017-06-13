@@ -14,7 +14,7 @@ module Make(WB: WhiteBoardExt.Type) : sig
     ('a, Assign.t) output
 
   val make :
-    Assign.t Plugin.sslot_machine ->
+    Assign.t PluginsTh.PluginTh.sslot_machine ->
     WB.msg2th Pipe.Reader.t ->
     WB.msg2pl Pipe.Writer.t ->
     unit Deferred.t

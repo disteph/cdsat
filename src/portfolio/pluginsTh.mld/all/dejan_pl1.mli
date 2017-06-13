@@ -1,1 +1,0 @@
-include PluginTh.Type

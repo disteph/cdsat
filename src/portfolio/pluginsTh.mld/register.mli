@@ -1,5 +1,12 @@
 (* This is the register of all generic plugins in Psyche *)
 
-open Kernel.Theories_register
+open Kernel
+open Top.Specs
+open Theories.Register
     
-val get_default : 'a Sig.t -> (module PluginTh.Type)
+module Make(DS: GlobalDS) : sig
+  open DS
+         
+  val make : (Term.datatype*Value.t*Assign.t) Modules.t
+             -> DS.Assign.t PluginTh.sslot_machine * (unit -> unit)
+end

@@ -2,20 +2,22 @@ open Kernel
 open Top.Specs
 open Theories.Register
 
+type _ sslot_machine =
+  Signed:
+    'sign Sig.t
+  * ('sign,'ts) slot_machine
+  -> 'ts sslot_machine
+
+type ('sign,'a) pluginTh = {
+    init:('sign,'a) slot_machine;
+    clear: unit -> unit
+  }
+       
 module type Type = sig
-
   type sign
-  val hdl: sign Sig.t
-
-  module ThDS: DataType
-
-  module Make(DS: sig
-    include GTheoryDSType
-    val proj: Term.datatype -> ThDS.t
-  end) : sig
-    val init: (sign,DS.TSet.t) slot_machine
-    val clear: unit -> unit
+  type (_,_,_) api
+  module Make(DS: GlobalDS) : sig
+    open DS
+    val make: (Term.datatype,Value.t,Assign.t) api -> (sign,DS.Assign.t) pluginTh
   end
-    
 end
-

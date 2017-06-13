@@ -16,6 +16,8 @@ module type Type = sig
   type assign         
   type sign
 
+  val proj : term -> Clauses.TS.t
+         
   module Constraint: sig
     include FromHConsed
     val make : term -> t

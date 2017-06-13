@@ -22,6 +22,7 @@ module type WhiteBoard = sig
                                          General.Patricia.poly
       val id : t -> int
     end
+    val makes_sense : Term.t -> Variables.World.t -> bool
   end
 
   module Msg : sig
