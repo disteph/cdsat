@@ -16,7 +16,6 @@ module type Type = sig
 end
 
 module type IPluginProp = sig
-
   module FE: Theories.Prop.APIplugin.FrontEnd
   open FE
   type data
@@ -26,7 +25,7 @@ end
 
 module type Input = sig
   include  Kernel.Export.API
-  module IPluginProp : IPluginProp
+  (* module IPluginProp : IPluginProp *)
   val pluginsTh : WB.DS.Assign.t sslot_machine Theories.Register.HandlersMap.t
   val clear : unit -> unit
 end

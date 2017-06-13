@@ -35,7 +35,8 @@ module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
   let address     = ref No
 
   module Restarts = Tools.PluginsG.RestartStrategies.RestartStrategies(UASet)
-  let restart_strategy = Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
+  let restart_strategy =
+    Restarts.getbyname !Flags.restarts_strategy !Flags.restarts_p1 !Flags.restarts_p2
                                             
   (* We record a stack of clauses that will definitely do a Unit Propagate *)
   let stack   = ref []

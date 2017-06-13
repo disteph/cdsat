@@ -214,8 +214,9 @@ let make
                and type UF.t    = uf
                and type UFSet.t = ufset)
       
-    : (module API
-              with type u = uaset*uf*ufset) =
+    : (module API with type uaset = uaset
+                   and type uf    = uf
+                   and type ufset = ufset) =
 
   let (module State) = 
     let aux (Handlers.Handler hdl) () sofar = theory_add hdl sofar
@@ -252,7 +253,9 @@ let make
   
   (module struct
 
-     type u = uaset*uf*ufset
+     type nonrec uaset = uaset
+     type nonrec uf    = uf
+     type nonrec ufset = ufset
        
      let th_modules = State.modules snd conv (module DS)
      let problem = List.fold

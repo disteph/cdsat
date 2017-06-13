@@ -27,6 +27,7 @@
 open Arg
 
 open Flags
+open PFlags
 open IO
 open Top_level
 

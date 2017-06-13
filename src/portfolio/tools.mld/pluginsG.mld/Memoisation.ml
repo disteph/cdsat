@@ -4,7 +4,6 @@ open Top.Interfaces_basic
 open Termstructures.Literals
 open Theories.Prop
 
-(* open Interfaces_theory *)
 open Formulae
 open APIplugin
 

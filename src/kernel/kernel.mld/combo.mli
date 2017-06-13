@@ -32,5 +32,6 @@ val make :
              with type UASet.t = 'uaset
               and type UF.t    = 'uf
               and type UFSet.t = 'ufset)
-  -> (module Export.API
-             with type u = 'uaset*'uf*'ufset)
+  -> (module Export.API with type uaset = 'uaset
+                         and type uf    = 'uf
+                         and type ufset = 'ufset)

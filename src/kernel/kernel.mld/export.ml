@@ -42,10 +42,14 @@ end
 
 
 module type API = sig
-  type u
+  type uaset
+  type uf
+  type ufset
   module WB : WhiteBoard
   open WB.DS
-  module PropModule : Prop.APIplugin.API
+  module PropModule : Prop.APIplugin.API with type FE.IForm.datatype = uf
+			                  and type FE.FSet.ps = ufset
+			                  and type FE.ASet.ps = uaset
   val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
   val problem    : Assign.t
   val expected   : bool option

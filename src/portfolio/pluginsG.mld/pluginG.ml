@@ -17,8 +17,8 @@ module type Type = sig
      default implementation in module MyNaive *)
 
   module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
-			      and  type FSet.ps     = DS.UFSet.t
-			      and  type ASet.ps     = DS.UASet.t)
+			       and type FSet.ps     = DS.UFSet.t
+			       and type ASet.ps     = DS.UASet.t)
          : sig
     open FE
     (* A user can embark his own data on the proof-search.

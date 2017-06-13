@@ -15,7 +15,7 @@ let init (type uaset)(type uf)(type ufset)
       ?(withtheories=Some[]) (* List of added theories *)
       ?(withouttheories=Some[]) (* List of forbidden theories *)
       ?(disableProp=true)
-      ~input
+      input
   =
 
   let (module MyParser) = Parsers.Register.get parser in

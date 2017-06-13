@@ -8,7 +8,8 @@ open Theories.Register
 
 open General
 
-open Tools.PluginsTh
+open Tools
+open PluginsTh
        
 type sign = unit
               

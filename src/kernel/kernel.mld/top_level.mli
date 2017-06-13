@@ -10,5 +10,7 @@ val init :
       -> ?withtheories:string list option
       -> ?withouttheories:string list option
       -> ?disableProp:bool
-      -> input:string
-      -> (module Export.API with type u = 'uaset*'uf*'ufset)
+      -> string
+      -> (module Export.API with type uaset = 'uaset
+                             and type uf    = 'uf
+                             and type ufset = 'ufset)

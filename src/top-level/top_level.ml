@@ -8,11 +8,32 @@ open General.Sums
 account user input, and argument s, which is a theory name (string),
 as possibly indicated by the parser when glancing at the input *)
 
-let parseNrun =
-  Kernel.Top_level.parseNrun
-    (PluginsG.Register.get !Flags.mypluginG)
-    (Plugins.Register.get !Flags.myplugin)
-    
+let parseNrun input =
+  let parser = match !PFlags.parser with
+    | Some [parser] -> parser
+    | _ -> "smtlib2"
+  in
+  let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
+  let (module PlG) = PluginsG.Register.get !PFlags.mypluginG in
+  let (module K) = Kernel.Top_level.init
+                     (module PlG.DS)
+                     ~parser
+                     input
+  in
+  let module P = Pl.Make(struct
+                     include K
+                     include PlG.Strategy(K.PropModule.FE)
+                     include Plugins.LoadPluginsTh.Make(K)
+                   end)
+  in
+  let answer = P.solve() in
+  P.clear();
+  fun b ->
+  match answer with
+  | K.UNSAT _ -> Some(Case1 "It is Unsat!")
+  | K.SAT _   -> Some(Case1 "It is Sat!")
+  | K.NotAnsweringProblem -> print_endline "You screwed up"; Some(Case2())
+           
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:
 - init is the initial data before any run is made
 - accu is what do do after every run ('b option is the return type of the run) 
@@ -58,7 +79,7 @@ let treatfile pack filename =
 
 let collect_sort s =
   match Sys.os_type with
-    | "Unix" when !Flags.sizesort ->
+    | "Unix" when !PFlags.sizesort ->
 	let open Unix in
 	let size_of s = (stat s).st_size in
 	let l = List.map (fun filename -> (filename,size_of filename)) s in
