@@ -1,8 +1,6 @@
 open String
 open Parser
 
-let name = "DIMACS"
-
 let rec list_from_string s list_so_far n = 
   if (n>=length s) then List.rev list_so_far 
   else
@@ -65,13 +63,13 @@ let parse (type t) l interpreter =
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
     let v = I.decsymb var (Sort("prop",[]),[]) [] in
-      if b then I.sigsymb "not" [v] else v
+      if b then v else I.sigsymb "not" [v]
   in
 
   (* parse a clause from list of literal descriptions *)
   let generate_clause = function
-    | [] -> I.sigsymb "true" []
-    | l  -> I.sigsymb "and" (List.map generate_atom l)
+    | [] -> I.sigsymb "false" []
+    | l  -> I.sigsymb "or" (List.map generate_atom l)
   in
 
   List.map generate_clause l,

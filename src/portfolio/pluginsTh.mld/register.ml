@@ -12,7 +12,7 @@ module Make(DS: GlobalDS) = struct
     let aux make = 
       let open PluginTh in
       let o = make k in
-      Signed(Sig.Sig tag,o.init),
+      Signed(tag,o.init),
       o.clear
     in
     let open Tags in

@@ -4,7 +4,7 @@ open Theories.Register
 
 type _ sslot_machine =
   Signed:
-    'sign Sig.t
+    (_*('sign*_*_*_)) Tags.t
   * ('sign,'ts) slot_machine
   -> 'ts sslot_machine
 

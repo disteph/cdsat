@@ -30,12 +30,13 @@ let run parser input =
          P.clear();
 	 print_endline(
              match K.expected, answer with
-	     |None ,_              -> "Nothing expected"
+	     |None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
+	     |None ,K.SAT _        -> "Nothing expected, got Unprovable (SAT)"
 	     |Some true, K.UNSAT _ -> "Expected Provable (UNSAT), got it"
 	     |Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
 	     |Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
 	     |Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
-	     |Some _,K.NotAnsweringProblem -> "You did not answer the right problem"
+	     |_, K.NotAnsweringProblem -> "You did not answer the right problem"
 	   );
 	 Some answer
        with PluginsG.PluginG.PluginAbort s

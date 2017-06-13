@@ -5,8 +5,6 @@ open Smtlib2_ast
 open Parser
 open Parse
        
-let name = "SMTLib2"
-
 type 'a environment =
   | EmptyEnv
   | ConsEnv of 'a*('a environment)*('a environment)

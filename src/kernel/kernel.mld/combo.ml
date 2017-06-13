@@ -299,7 +299,7 @@ let make
        let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
                        else failwith "Using a theory that is not allowed"
 
-       let stamp (type b) (Sig.Sig hdl: 'a Sig.t) : ('a,b) Msg.t -> b t = function
+       let stamp (type b) (hdl: (_*('a*_*_*_)) Tags.t) : ('a,b) Msg.t -> b t = function
          | Propa(assign,o) ->
             check hdl;
             WB(HandlersMap.singleton (Handlers.Handler hdl) (),

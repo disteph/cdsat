@@ -28,7 +28,6 @@ end
 
 module type Type = sig
   type afterglance
-  val name          : string
   val glance        : string -> afterglance
   val guessThDecProc: afterglance -> string list option
   val parse         :

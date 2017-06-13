@@ -32,7 +32,7 @@ module type WhiteBoard = sig
 
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
   val pp       : Format.formatter -> 'a t -> unit
-  val stamp    : 'a Sig.t -> ('a, 'b) Msg.t -> 'b t
+  val stamp    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
   val sat_init : DS.Assign.t -> sat t
   val sat      : sat t -> sat t -> sat t
   val resolve  : straight t -> 'b propa t -> 'b propa t

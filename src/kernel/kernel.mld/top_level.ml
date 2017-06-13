@@ -30,11 +30,12 @@ let init (type uaset)(type uf)(type ufset)
     List.map (fun f -> f Top.Sorts.Prop) parsable
   in
   let termB =
-    if disableProp
-    then List.map (fun x->Parsers.Typing.ForParsing.bC Top.Symbols.IsTrue [x]) parsed
-    else parsed
+    (* if disableProp *)
+    (* then List.map (fun x->Parsers.Typing.ForParsing.bC Top.Symbols.IsTrue [x]) parsed *)
+    (* else *)
+      parsed
   in
-  print_endline("We want to prove: "^List.show Top.Terms.TermB.pp termB);
+  (* print_endline("We want to prove: "^List.show Top.Terms.TermB.pp termB); *)
 
   (* Now we look at the theories involved *)
   let th  = MyParser.guessThDecProc aft in

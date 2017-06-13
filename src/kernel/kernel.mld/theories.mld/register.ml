@@ -71,15 +71,6 @@ module Modules = struct
                              
 end
 
-module Sig = struct
-
-  type _ t = Sig : (_*('a*_*_*_)) Tags.t -> 'a t [@@unboxed]
-
-  let id (Sig t) = Tags.id t
-  let pp fmt (Sig t) = Tags.pp fmt t
-
-end
-
 module Handlers = struct
   type t = Handler: (_*(_*_*_*_)) Tags.t -> t [@@unboxed]
   let id (Handler hdl) = Tags.id hdl

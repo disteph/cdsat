@@ -66,7 +66,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
          ]
     | Some msg ->
        Dump.print ["worker",1] (fun p-> p "%a: Outputting message %a" Tags.pp hdl Msg.pp msg);
-       let msg2pl = Msg(hhdl,Say(WB.stamp (Sig.Sig hdl) msg),chrono) in
+       let msg2pl = Msg(hhdl,Say(WB.stamp hdl msg),chrono) in
        Deferred.all_unit
          [
            Lib.write to_pl msg2pl ;
@@ -78,6 +78,6 @@ module Make(WB: WhiteBoardExt.Type) = struct
               loop_read hdl cont from_pl to_pl
          ]
 
-  let make (PluginsTh.PluginTh.Signed(Sig.Sig hdl,init)) = loop_read hdl init
+  let make (PluginsTh.PluginTh.Signed(hdl,init)) = loop_read hdl init
 
 end

@@ -51,6 +51,7 @@ let pp (type a)(type l)(type b)
       pRec =
   let aux fmt: (a,l*b)xterm -> unit = function
     | V l        -> fprintf fmt "%a" pLeaf l
+    | C(symb,[]) -> fprintf fmt "%a" Symbols.pp symb
     | C(symb,l)  -> fprintf fmt "%a%a" Symbols.pp symb (List.pp pRec) l
     | FB(so,f,d) -> let FreeFunc pif = pSub in
                     fprintf fmt "%a%a" (fun fmt a -> pif a fmt) f (DSubst.pp pLeaf) d
