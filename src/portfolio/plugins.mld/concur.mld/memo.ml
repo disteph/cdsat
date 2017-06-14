@@ -1,18 +1,14 @@
 open Async
 
-open Kernel
+open General
+open HCons
 
+open Kernel
 open Top.Messages
-open General.HCons
 open Theories.Register
 
-open General
-
-open Tools
-open PluginsTh
+open Tools.PluginsTh
        
-type sign = unit
-              
 module Make(WB : WhiteBoardExt.Type) = struct
 
   open WB

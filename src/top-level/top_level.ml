@@ -5,27 +5,65 @@
 type _ stringOrunit =
   | String : string stringOrunit
   | Unit   : unit stringOrunit
-       
+
+
 let run parser input =
+
+  (* Setting up the Kernel *)
+  
   let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
   let (module PlG) = PluginsG.Register.get !PFlags.mypluginG in
-  let (module K) = Kernel.Top_level.init
-                     (module PlG.DS)
-                     ~parser
-                     input
+  let (module K)   = Kernel.Top_level.init
+                       (module PlG.DS)
+                       ~parser
+                       input
   in
-  let result = match K.expected with 
+
+  (* Getting the result for the run *)
+
+  let result =
+
+    (* Looking at the expectations and skipping the problem if need be *)
+
+    match K.expected with 
     | None        when !PFlags.skipunknown-> print_endline("Skipping problem with no expectation");None
     | Some(true)  when !PFlags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
     | Some(false) when !PFlags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
     | _ ->
        try 
-         let module P = Pl.Make(struct
-                            include K
-                            include PlG.Strategy(K.PropModule.FE)
-                            include Plugins.LoadPluginsTh.Make(K)
-                          end)
-         in
+
+         (* Setting up the Plugins *)
+
+         let module A = struct
+
+             include K
+             include PlG.Strategy(K.PropModule.FE)
+
+             open Kernel.Theories.Register
+                    
+             let add_plugin
+                   (Modules.Module(tag,_) as plugin)
+                   (plugins_sofar, clear_sofar)
+               =
+               let module Pl = PluginsTh.Register.Make(K.WB.DS) in
+               let init,clear = Pl.make plugin in
+               HandlersMap.add (Handlers.Handler tag) init plugins_sofar,
+               (fun () -> clear_sofar (); clear ())
+
+             (* We create a map pluginsTh that maps every (involved) theory
+      handler to (the initial state of) a decision procedure for it. *)
+
+             let pluginsTh, clear =
+               List.fold
+                 add_plugin
+                 K.th_modules
+                 (HandlersMap.empty,(fun () -> ()))
+           end
+         in         
+         let module P = Pl.Make(A) in
+
+         (* RUNNING PSYCHE *)
+         
          let answer = P.solve() in
          P.clear();
 	 print_endline(
@@ -36,15 +74,18 @@ let run parser input =
 	     |Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
 	     |Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
 	     |Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
-	     |_, K.NotAnsweringProblem -> "You did not answer the right problem"
+	     |_, K.NotAnsweringProblem -> "You did not answer the problem"
 	   );
 	 Some answer
+
        with PluginsG.PluginG.PluginAbort s
             -> Dump.Kernel.fromPlugin();
                Dump.Kernel.report s;
                None
   in 
 
+  (* Post-treatment of answer *)
+  
   let aux : type s. s stringOrunit -> s option =
   fun stringOrunit ->
   match result,stringOrunit with

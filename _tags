@@ -38,6 +38,7 @@ true: debug
 <src/lib/*/*.ml{,i,y}>         : open(Open)
 <src/kernel/**/*.ml{,i,y}>     : open(Open)
 <src/portfolio/**/*.ml{,i,y}>  : open(Open)
+<src/top-level/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>            : pkg_ppx_deriving.std, pkg_ppx_hash, pkg_ppx_enumerate
 
 <src/kernel/**/*.ml{,i,y}>     : pkg_psyche_kernel_lib
