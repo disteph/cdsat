@@ -41,6 +41,7 @@ true: debug
 <src/top-level/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>            : pkg_ppx_deriving.std, pkg_ppx_hash, pkg_ppx_enumerate
 
+<src/kernel/kernel.mld/theories.mld/bitvectors.mld/*.ml{,i,y}> : pkg_hardcaml, pkg_mlbdd
 <src/kernel/**/*.ml{,i,y}>     : pkg_psyche_kernel_lib
 
 <src/portfolio/**/*.ml{,i,y}>  : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel

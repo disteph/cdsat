@@ -46,7 +46,7 @@ Library kernel
   Install$:    flag(kernel)
   Modules:     Kernel, Dump, Flags
   XMETADescription: Psyche's kernel
-  XMETAExtraLines: requires = "psyche_kernel_lib"
+  XMETAExtraLines: requires = "psyche_kernel_lib hardcaml mlbdd"
 
 Flag portfolio
   Description: Target is Psyche's portfolio of plugins

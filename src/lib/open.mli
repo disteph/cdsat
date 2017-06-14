@@ -42,6 +42,7 @@ module List : sig
   val rev_append : 'a list -> 'a list -> 'a list
   val filter : ('a -> bool) -> 'a list -> 'a list
   val iter : ('a -> unit) -> 'a list -> unit
+  val iteri: (int -> 'a -> unit) -> 'a list -> unit
   val sort : ('a -> 'a -> int) -> 'a list -> 'a list
 end
 
