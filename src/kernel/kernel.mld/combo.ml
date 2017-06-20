@@ -80,7 +80,7 @@ module Value_add(V : PH)(Vold : Value) =
 
     let trans (type v) (conv : (Value.t,v) conv) =
       (
-        { conv1  = (fun x -> conv.conv1(None,x));
+        { conv1 = (fun x -> conv.conv1(None,x));
           conv2 = (fun x -> let _,y = conv.conv2 x in y)  }
         : (old_value,v) conv  ),
       HasVproj(

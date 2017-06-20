@@ -17,8 +17,7 @@ type sign = unit
 
 module Make
          (DS: DSproj with type ts = LitF.t)
-         (X : SolvableTheory with type VtoAssign.v = DS.Assign.t
-                             and  type t = DS.Term.t
+         (X : SolvableTheory with type t = DS.Term.t
                              and  type v = DS.Term.t)
          (U : PersistentUnionFind with type e = X.v) = struct
 
@@ -26,24 +25,28 @@ module Make
          
   module Alg = Algo(DS)(X)(U)
 
-  let fromTerm a = 
-    let b,t = LitF.reveal(proj(Terms.data a)) in
-    let a' = Term.term_of_id t in
-    match Terms.reveal a' with
-    | Terms.C(Symbols.Eq so,[a1;a2]) when b -> Eq(so,a1,a2,Some(Term.id a))
-    | Terms.C(Symbols.Eq so,[a1;a2])        -> NEq(so,a1,a2,Some(Term.id a))
-    | Terms.C(Symbols.NEq so,[a1;a2]) when b-> NEq(so,a1,a2,Some(Term.id a))
-    | Terms.C(Symbols.NEq so,[a1;a2])       -> Eq(so,a1,a2,Some(Term.id a))
-    | _ -> match Term.get_sort a with
-           | Sorts.Prop -> Eq(Sorts.Prop,
-                              a',
-                              Term.bC (if b then Symbols.True else Symbols.False) [],
-                              Some(Term.id a))
-           | _ -> assert false
-
-  let fromAssign tset = 
+  let fromTerm a v = 
+    match Terms.reveal a, v with
+    | Terms.C(Symbols.Eq so,[a1;a2]),
+      Values.Boolean true   -> Eq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.Eq so,[a1;a2]),
+      Values.Boolean false  -> NEq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.NEq so,[a1;a2]),
+      Values.Boolean true   -> NEq(so,a1,a2,Some(Term.id a))
+    | Terms.C(Symbols.NEq so,[a1;a2]),
+      Values.Boolean false  -> Eq(so,a1,a2,Some(Term.id a))
+    | _ ->
+       match Term.get_sort a, v with
+       | Sorts.Prop,
+         Values.Boolean b -> Eq(Sorts.Prop,
+                                a,
+                                Term.bC (if b then Symbols.True else Symbols.False) [],
+                                Some(Term.id a))
+       | _ -> assert false
+                     
+  let fromTSet tset = 
     let tNeqf = NEq(Sorts.Prop, Term.bC Symbols.True [], Term.bC Symbols.False [],None) in
-    tNeqf::(Assign.fold (fun t l -> (fromTerm t)::l) tset [])
+    tNeqf::(DS.Assign.fold (fun t v l -> (fromTerm t v)::l) tset [])
 
 
   let toTerm = function
@@ -51,19 +54,19 @@ module Make
       -> i
     | Congr(_,_)  -> assert false
 
-  let toAssign a = 
+  let toTSet a = 
     List.fold (fun a e -> 
       match toTerm a with 
-      | Some i -> Assign.add (Term.term_of_id i) e
+      | Some i -> X.TSet.add (Term.term_of_id i) e
       | None   -> e)
       a
-      Assign.empty
+      X.TSet.empty
       
   module type SlotMachineCC = sig
     type t
-    val treated  : Assign.t
-    val add      : Assign.t -> t
-    val normalise: Term.t -> (sign,Assign.t,straight) message
+    val treated  : DS.Assign.t
+    val add      : DS.Assign.t -> t
+    val normalise: Term.t -> (sign,X.TSet.t,straight) message
   end
 
   type outputCC =
@@ -82,9 +85,9 @@ module Make
       let add tset = 
         let newtreated = Assign.union treated tset in
         try 
-          SAT(sat () newtreated, machine newtreated (Alg.algo s (fromAssign tset)))
+          SAT(sat () newtreated, machine newtreated (Alg.algo s (fromTSet tset)))
         with
-          Alg.Inconsistency l -> UNSAT(unsat () (toAssign l))
+          Alg.Inconsistency l -> UNSAT(unsat () (toTSet l))
 
       let normalise t = 
         let t' = Alg.normalise s t in
@@ -92,8 +95,8 @@ module Make
         let l = Term.bC (Symbols.Eq so) [t;t'] in
         let justif = Alg.explain s.Alg.u t t' in
         straight () 
-          (toAssign justif)
-          (Assign.singleton l)
+          (toTSet justif)
+          (TSet.singleton l)
 
       let suicide _ = ()
 

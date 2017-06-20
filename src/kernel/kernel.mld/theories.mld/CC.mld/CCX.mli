@@ -16,8 +16,7 @@ type sign
 
 module Make
          (DS: DSproj with type ts = LitF.t)
-         (X : SolvableTheory with type VtoAssign.v = DS.Assign.t
-                             and  type t = DS.Term.t
+         (X : SolvableTheory with type t = DS.Term.t
                              and  type v = DS.Term.t)
          (U : PersistentUnionFind with type e = X.v) : sig
 

@@ -18,4 +18,3 @@ type (_,_) t =
   | Some: 'a -> ('a,some) t
   | None: ('a,none) t
 
-

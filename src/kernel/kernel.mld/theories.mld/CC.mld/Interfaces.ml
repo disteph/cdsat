@@ -48,11 +48,15 @@ module type SolvableTheory = sig
   (* semantic values must be comparable *)
   val vequal : v -> v -> bool
 
+  (* sets of terms *)
+  module TSet : SetImplem with type e = t
+
   (* sets of semantic values *)
   module VSet : SetImplem with type e = v
 
   (* Maps from semantic values to term sets *)
-  module VtoAssign : MapImplem with type e = v
+  module VtoTSet : MapImplem with type e = v
+                              and type v = TSet.t
 
   (* maps from semantic values to semantic values *)
   module VtoV : MapImplem with type e = v and type v = v

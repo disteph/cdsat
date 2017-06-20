@@ -1,11 +1,17 @@
 (* Standard type constructs *)
 
-type ('a,'b) sum = Case1 of 'a | Case2 of 'b
+type ('a,'b) sum =
+  | Case1 of 'a
+  | Case2 of 'b
+               [@@deriving eq, ord, show, hash]
+               
 
 type ('a,'b) almost =
   | Yes of 'a
   | Almost of 'b
   | No
+[@@deriving eq, ord, show, hash]
+
 
 open Format
 

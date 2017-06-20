@@ -4,6 +4,8 @@
 
 open Format
 
+open General
+       
 open Interfaces_basic
 open Basic
 open Variables
@@ -75,9 +77,15 @@ end
    for the combination of theory modules *)
 
 module type GlobalDS = sig
-  module Term : Term
-  module Value : PH
-  module Assign : Collection with type e = Term.t
+  module Term   : Term
+  module Value  : PH
+  module CValue  : sig
+    type t [@@deriving eq,ord,show,hash]
+    val inj : Value.t -> t
+    val merge : t -> t -> (Value.t*Value.t,t) Sums.sum
+  end
+  module Assign : Assign with type e = Term.t
+                          and type v = Value.t Values.t
   val makes_sense : Term.t -> World.t -> bool
 end
 
@@ -85,7 +93,7 @@ end
 
 type ('gts,'gv,'assign) globalDS
   = (module GlobalDS with type Term.datatype = 'gts
-                      and type Value.t = 'gv
+                      and type Value.t   = 'gv
                       and type Assign.t  = 'assign)
 
                          
@@ -104,12 +112,16 @@ type (_,_) proj_opt =
   | HasVproj :  ('v,'gv) embed -> ('gv,'v has_values) proj_opt
   | HasNoVproj : (_,has_no_values) proj_opt
 
+type (_,_) inj_opt =
+  | HasVinj :  ('v -> 'gv) -> ('v has_values,'gv) inj_opt
+  | HasNoVinj : (has_no_values,_) inj_opt
+
 module type DSproj = sig
   include GlobalDS
   type ts
   val proj: Term.datatype -> ts
   type values
-  val proj_opt: (Value.t,values) proj_opt
+  val vinj: (values,Value.t) inj_opt
 end
 
 (* type version of the above *)
