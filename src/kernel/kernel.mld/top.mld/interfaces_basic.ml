@@ -42,8 +42,8 @@ module type Assign = sig
   type v
   type t [@@deriving eq,show]
   val empty: t
-  val singleton: e -> v -> t
-  val add  : e -> v -> t -> t
+  val singleton: (e*v) -> t
+  val add  : (e*v) -> t -> t
   val remove: e -> t -> t
   val union: t -> t -> t
   val inter: t -> t -> t
@@ -52,7 +52,7 @@ module type Assign = sig
   val mem      : e -> t -> bool
   val subassign: t -> t -> bool
   val next     : t -> e*v*t
-  val fold     : (e -> v -> 'a -> 'a) -> t -> 'a -> 'a
+  val fold     : ((e * v) -> 'a -> 'a) -> t -> 'a -> 'a
 end
 
 (* Type of Monads *)

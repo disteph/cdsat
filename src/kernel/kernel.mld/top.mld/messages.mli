@@ -22,23 +22,25 @@ type either   = either_l propa
                          
 type (_,_) propagated =
   | Unsat    : (_,unsat_l) propagated
-  | Straight : 'tset -> ('tset,straight_l) propagated
-  | Both     : 'tset * 'tset -> ('tset,both_l) propagated
-  | Either   : 'tset * 'tset -> ('tset,either_l) propagated
+  | Straight : 'b -> ('b,straight_l) propagated
+  | Both     : 'b * 'b -> ('b,both_l) propagated
+  | Either   : 'b * 'b -> ('b,either_l) propagated
                                                  
 type (_,_,_) message =
-  | Sat   : 'tset -> (_,'tset,sat) message
-  | Propa : 'tset * ('tset,'a)propagated -> (_,'tset,'a propa) message
+  | Sat   : 'j -> (_,'j*_,sat) message
+  | Propa : 'j * ('b,'l) propagated -> (_,'j*'b,'l propa) message
 
 (* Message construction functions *)
                                                                   
-val sat     : 'sign -> 'tset -> ('sign,'tset,sat) message
-val propa   : 'sign -> 'tset -> ('tset,'a) propagated -> ('sign,'tset,'a propa) message
-val unsat   : 'sign -> 'tset -> ('sign,'tset,unsat) message
-val straight: 'sign -> 'tset -> 'tset      -> ('sign,'tset,straight) message
-val both    : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,both) message
-val either  : 'sign -> 'tset -> 'tset -> 'tset -> ('sign,'tset,either) message
+val sat     : 'sign -> 'j -> ('sign,'j*_,sat) message
+val propa   : 'sign -> 'j -> ('b,'l) propagated -> ('sign,'j*'b,'l propa) message
+val unsat   : 'sign -> 'j             -> ('sign,'j*_,unsat) message
+val straight: 'sign -> 'j -> 'b       -> ('sign,'j*'b,straight) message
+val both    : 'sign -> 'j -> 'b -> 'b -> ('sign,'j*'b,both) message
+val either  : 'sign -> 'j -> 'b -> 'b -> ('sign,'j*'b,either) message
 
 (* Printing messages *)
 
-val print_msg_in_fmt: (Format.formatter -> 'tset -> unit) -> Format.formatter -> (_,'tset,_)message -> unit
+val print_msg_in_fmt: (Format.formatter -> 'j -> unit)
+                      -> (Format.formatter -> 'b -> unit)
+                      -> Format.formatter -> (_,'j*'b,_)message -> unit

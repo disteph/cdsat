@@ -7,4 +7,4 @@ type 'v t =
   | Boolean    of bool
                     [@@deriving eq, ord, show, hash]
 
-let boolassign (t,b) = (t, Boolean b)
+val boolassign : ('term*bool) -> 'term*(_ t)

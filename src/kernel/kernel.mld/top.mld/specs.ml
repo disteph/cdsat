@@ -81,8 +81,9 @@ module type GlobalDS = sig
   module Value  : PH
   module CValue  : sig
     type t [@@deriving eq,ord,show,hash]
-    val inj : Value.t -> t
-    val merge : t -> t -> (Value.t*Value.t,t) Sums.sum
+    val none: Sorts.t -> t
+    val inj : Value.t Values.t -> t
+    val merge : t -> t -> (Value.t Values.t*Value.t Values.t,t) Sums.sum
   end
   module Assign : Assign with type e = Term.t
                           and type v = Value.t Values.t
