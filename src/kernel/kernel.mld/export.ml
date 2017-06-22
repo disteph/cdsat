@@ -18,10 +18,15 @@ module type WhiteBoard = sig
 
     type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
 
+    module SAssign : sig
+      include PHCons
+      val reveal : t -> Term.t*(Value.t Values.t)
+      val build  : Term.t*(Value.t Values.t) -> t
+    end
+                       
     module Assign : sig
-      type vset
-      include Assign with type term = Term.t
-                      and type t = (Term.t, vset, int, int, unit)
+      include Collection with type e = Term.t*(Value.t Values.t)
+                          and type t = (SAssign.t, unit, int, int, unit)
                                      General.Patricia.poly
       val id : t -> int
     end

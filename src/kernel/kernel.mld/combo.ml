@@ -2,7 +2,8 @@
 (* Theory Combinator *)
 (*********************)
 
-open General.Sums
+open General
+open Sums
 
 open Top
 open Interfaces_basic
@@ -248,7 +249,124 @@ module InitState : State = struct
   let modules _ _ _ _ = []
 end
 
+module Make(PlugDS : Prop.APIplugin.PlugDSType)
+         (State:State) = struct
 
+  module PS = Prop.MyTheory.ProofSearch(PlugDS)
+
+  module DT =
+    Tools.Pairing
+      (Tools.Pairing(PS.Semantic)(Termstructures.Varcheck.TS))
+      (State.DT)
+
+  module DS = struct
+
+    module Term   = Terms.Make(FreeVar)(struct type leaf = FreeVar.t include DT end)
+
+    module Value  = State.VV.Value
+
+    module CValue = struct
+
+      module CV = State.VV.CValue
+
+      type t = (bool option,CV.t) sum  [@@deriving eq,ord,show,hash]
+
+      let none = function
+        | Sorts.Prop -> Case1 None
+        | _ -> Case2 CV.none
+
+      let inj = function
+        | Values.Boolean b -> Case1(Some b)
+        | Values.NonBoolean v -> Case2(CV.inj v)
+
+      let merge (v1:t) (v2:t): (Value.t Values.t*Value.t Values.t,t) sum =
+        match v1, v2 with
+        | Case1 None, Case1 b
+          | Case1 b, Case1 None
+          -> Case2(Case1 b)
+        | Case1(Some b1), Case1(Some b2) when not([%eq:bool] b1 b2)
+          -> Case1(Values.Boolean b1, Values.Boolean b2)
+        | Case1(Some _), Case1(Some _)
+          -> Case2 v1
+        | Case2 v1, Case2 v2 ->
+           begin
+             match CV.merge v1 v2 with
+             | Case1(v1,v2)
+               -> Case1(Values.NonBoolean v1,Values.NonBoolean v2)
+             | Case2 v -> Case2(Case2 v)
+           end
+        | Case1 _, Case2 _
+          | Case2 _, Case1 _
+          -> failwith "Comparing Booleans with non-booleans"
+    end
+
+    module VValue = struct
+      type t = Value.t Values.t  [@@deriving eq, hash, ord, show]
+    end
+
+    type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
+
+    module Param = struct
+      type 'a t = Term.t * VValue.t [@@deriving eq, hash, show]
+      let hash t = Hash.wrap1 hash_fold_t t
+    end
+                     
+    module H = HCons.Make(Param)
+    module SAssign = struct
+      include H
+      include Init(HCons.NoBackIndex)
+      let pp fmt t = Param.pp (fun _ _ -> ()) fmt (reveal t)
+      let show  = Dump.stringOf pp
+    end
+
+    module Assign = struct
+      open SetConstructions
+      open Patricia
+      type e = Term.t*VValue.t [@@deriving eq, ord, hash, show]
+      module D = struct
+        type keys      = SAssign.t
+        let kcompare   = SAssign.compare
+        type infos     = unit
+        let info_build = empty_info_build
+        let treeHCons  = Some(SAssign.id)
+      end
+      module I = TypesFromHConsed(SAssign)
+      module M = PATSet.Make(D)(I)
+      type t = M.t
+      let pp    = M.print_in_fmt SAssign.pp
+      let show  = Dump.stringOf pp
+      let empty = M.empty
+      let singleton e = M.singleton(SAssign.build e)
+      let add e = M.add (SAssign.build e)
+      let remove e = M.remove (SAssign.build e)
+      let union = M.union
+      let inter = M.inter
+      let diff  = M.diff
+      let is_empty = M.is_empty
+      let mem e t = M.mem (SAssign.build e) t
+      let equal = M.equal
+      let subset = M.subset
+      let next t = let e = M.choose t in
+                   SAssign.reveal e, M.remove e t
+      let fold aux = M.fold (fun e -> aux(SAssign.reveal e))
+      let id = M.id
+    end
+    let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
+  end
+
+  module DS4Prop = struct
+      include DS
+      type ts = PS.Semantic.t
+      let proj x = fst(fst x)
+      type values = has_no_values
+      let vinj = HasNoVinj
+    end
+
+  module PropModule = PS.Make(DS4Prop)
+
+end
+
+  
 let make
       (type uaset)(type uf)(type ufset)
       problem
@@ -268,144 +386,14 @@ let make
     in
     HandlersMap.fold aux theories (module InitState: State)
   in
-  let module PS = Prop.MyTheory.ProofSearch(PlugDS)
-  in
-  let module DT =
-    Tools.Pairing
-      (Tools.Pairing(PS.Semantic)(Termstructures.Varcheck.TS))
-      (State.DT)
-  in
-  let module DS = struct
-      module Term   = Terms.Make(FreeVar)(struct type leaf = FreeVar.t include DT end)
-      module Value  = State.VV.Value
-      module CValue = struct
-        module CV = State.VV.CValue
-        type t = (bool option,CV.t) sum
-                   [@@deriving eq,ord,show,hash]
 
-        let none = function
-          | Sorts.Prop -> Case1 None
-          | _ -> Case2 CV.none
-
-        let inj = function
-          | Values.Boolean b -> Case1(Some b)
-          | Values.NonBoolean v -> Case2(CV.inj v)
-
-        let merge (v1:t) (v2:t): (Value.t Values.t*Value.t Values.t,t) sum =
-          match v1, v2 with
-          | Case1 None, Case1 b
-            | Case1 b, Case1 None
-            -> Case2(Case1 b)
-          | Case1(Some b1), Case1(Some b2) when not([%eq:bool] b1 b2)
-            -> Case1(Values.Boolean b1, Values.Boolean b2)
-          | Case1(Some _), Case1(Some _)
-            -> Case2 v1
-          | Case2 v1, Case2 v2 ->
-             begin
-               match CV.merge v1 v2 with
-               | Case1(v1,v2)
-                 -> Case1(Values.NonBoolean v1,Values.NonBoolean v2)
-               | Case2 v -> Case2(Case2 v)
-             end
-          | Case1 _, Case2 _
-            | Case2 _, Case1 _
-            -> failwith "Comparing Booleans with non-booleans"
-      end
-
-      type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
-      module VValue = struct type t = Value.t Values.t [@@deriving ord, show] end
-
-                        
-      module VSet = struct
-        include Set.Make(VValue)
-        let pp fmt vset = List.pp VValue.pp fmt (elements vset)
-      end
-
-      module Assign = struct
-        open General.SetConstructions
-        open General.Patricia
-        type term = Term.t
-        type v = VValue.t
-        type e = Term.t*VValue.t
-        type vset = VSet.t
-        type tmp = Term.t*VSet.t [@@deriving show]
-        module D = struct
-          type keys      = Term.t
-          let kcompare   = Term.compare
-          type values    = VSet.t
-          type infos     = unit
-          let info_build = empty_info_build
-          let treeHCons  = None
-        end
-        module I = TypesFromHConsed(Term)
-        module M = PATMap.Make(D)(I) 
-        module Map = struct
-          include M
-          let find t a = VSet.elements(find t a)
-        end
-        include M
-        let singleton (t,v) = singleton t (VSet.singleton v)
-        let add (t,v) a =
-          let aux = function
-            | None -> VSet.singleton v
-            | Some prev -> VSet.add v prev
-          in
-          M.add t aux a
-        let remove (t,v) a =
-          let vset = VSet.remove v (M.find t a) in
-          if VSet.is_empty vset then M.remove t a else M.add t (fun _ -> vset) a
-        let union = M.union VSet.union
-        let inter_rec = {
-            sameleaf = (fun t vset1 vset2 ->
-              let vset = VSet.inter vset1 vset2 in
-              if VSet.is_empty vset then M.empty else M.singleton t vset);
-            emptyfull = (fun _ -> M.empty);
-            fullempty = (fun _ -> M.empty);
-            combine   = (M.union VSet.union)
-          }
-        let inter  = M.merge inter_rec
-        let diff   = M.diff (fun t vset1 vset2 ->
-                        let vset = VSet.diff vset1 vset2 in
-                        if VSet.is_empty vset then M.empty else M.singleton t vset)
-        let mem (e,v) a = M.mem e a && VSet.mem v (M.find e a)
-        let subset = M.subset VSet.subset
-        let next a =
-          let term,vset = M.choose a in
-          let v = VSet.choose vset in
-          let r = term,v in
-          r,remove r a
-        let fold f = M.fold (fun k -> VSet.fold (fun v -> f(k,v)))
-        let pp     = M.print_in_fmt pp_tmp
-        let show   = Dump.stringOf pp
-      end
-      let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
-    end
-  in
-  let module DS4Prop = struct
-      include DS
-      type ts = PS.Semantic.t
-      let proj x = fst(fst x)
-      type values = has_no_values
-      let vinj = HasNoVinj
-    end
-  in
-  
   (module struct
+     include Make(PlugDS)(State)
 
      type nonrec uaset = uaset
      type nonrec uf    = uf
      type nonrec ufset = ufset
        
-     let th_modules = State.modules snd (fun x->x) (fun x->x) (module DS)
-     let problem = List.fold
-                     (fun formula
-                      -> DS.Assign.add (Values.bassign(DS.Term.lift [] formula)))
-                     problem
-                     DS.Assign.empty
-     let expected = expected
-
-     module PropModule = PS.Make(DS4Prop)
-
      module WB = struct
 
        module DS = DS
@@ -485,6 +473,16 @@ let make
          WB(hdls,Propa(thset, Straight(rhs,true)))
 
      end
+
+     let th_modules = State.modules snd (fun x->x) (fun x->x) (module DS)
+
+     let problem = List.fold
+                     (fun formula
+                      -> DS.Assign.add (Values.bassign(DS.Term.lift [] formula)))
+                     problem
+                     DS.Assign.empty
+
+     let expected = expected
 
      type answer =
        | UNSAT of unsat WB.t

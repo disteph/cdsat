@@ -1,12 +1,15 @@
-open Top
-open Specs
+open Top.Specs
 
 type sign
 
-include Theory.Type with type ts = Termstructures.Clauses.TS.t
-                     and type values = has_no_values
-                     and type ('t,'v,'a) api
-                              = (module API.Type with type term = 't termF
-                                                  and type value  = 'v
-                                                  and type assign = 'a
-                                                  and type sign = sign)
+module type API = sig
+  type assign
+  type sassign
+  val init: (sign,assign,sassign) slot_machine
+  val clear: unit -> unit
+end
+
+include Theory.Type
+        with type ('t,'v,'a) api = (module API with type assign = 'a
+                                                and type sassign= ('t,'v)sassign)
+                        
