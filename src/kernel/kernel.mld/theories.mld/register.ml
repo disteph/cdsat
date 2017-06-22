@@ -1,8 +1,8 @@
 open Format
 
 module Empty  = Theory.Make(Empty.MyTheory)
-module Bool   = Theory.Make(Bool.MyTheory)
-module CC     = Theory.Make(CC.MyTheory)
+(* module Bool   = Theory.Make(Bool.MyTheory) *)
+module Eq     = Theory.Make(Eq.MyTheory)
 module Arrays = Theory.Make(Arrays.MyTheory)
 module LRA    = Theory.Make(LRA.MyTheory)
 module IfThenElse = Theory.Make(IfThenElse.MyTheory)
@@ -12,8 +12,8 @@ module Tags = struct
 
   type _ t = 
     | Empty : (_,_,_) Empty.signature t
-    | Bool  : (_,_,_) Bool.signature t
-    | CC    : (_,_,_) CC.signature t
+    (* | Bool  : (_,_,_) Bool.signature t *)
+    | Eq    : (_,_,_) Eq.signature t
     | Arrays: (_,_,_) Arrays.signature t
     | LRA   : (_,_,_) LRA.signature t
     | IfThenElse: (_,_,_) IfThenElse.signature t
@@ -21,8 +21,8 @@ module Tags = struct
 
   let id (type a) : a t -> int = function
     | Empty -> 1
-    | Bool -> 2
-    | CC    -> 3
+    (* | Bool -> 2 *)
+    | Eq -> 3
     | Arrays -> 4
     | LRA -> 5
     | IfThenElse -> 6
@@ -30,8 +30,8 @@ module Tags = struct
                 
   let pp fmt (type a) : a t -> unit = function
     | Empty      -> fprintf fmt "Empty"
-    | Bool       -> fprintf fmt "Bool"
-    | CC         -> fprintf fmt "CC"
+    (* | Bool       -> fprintf fmt "Bool" *)
+    | Eq         -> fprintf fmt "Eq"
     | Arrays     -> fprintf fmt "Arrays"
     | LRA        -> fprintf fmt "LRA"
     | IfThenElse -> fprintf fmt "IfThenElse"
@@ -46,8 +46,8 @@ module Modules = struct
     = let open Tags in
       match tag with
     | Empty      -> Empty.ts, Empty.values
-    | Bool       -> Bool.ts, Bool.values
-    | CC         -> CC.ts, CC.values
+    (* | Bool       -> Bool.ts, Bool.values *)
+    | Eq         -> Eq.ts, Eq.values
     | Arrays     -> Arrays.ts, Arrays.values
     | LRA        -> LRA.ts, LRA.values
     | IfThenElse -> IfThenElse.ts, IfThenElse.values
@@ -62,8 +62,8 @@ module Modules = struct
     let open Tags in
     match tag with 
     | Empty      -> Module(Empty,Empty.make ds)
-    | Bool       -> Module(Bool,Bool.make ds)
-    | CC         -> Module(CC,CC.make ds)
+    (* | Bool       -> Module(Bool,Bool.make ds) *)
+    | Eq         -> Module(Eq,Eq.make ds)
     | Arrays     -> Module(Arrays,Arrays.make ds)
     | LRA        -> Module(LRA,LRA.make ds)
     | IfThenElse -> Module(IfThenElse,IfThenElse.make ds)
@@ -81,8 +81,8 @@ end
 let all_theories_list = 
   [
     Handlers.Handler Tags.Empty;
-    Handlers.Handler Tags.Bool;
-    Handlers.Handler Tags.CC;
+    (* Handlers.Handler Tags.Bool; *)
+    Handlers.Handler Tags.Eq;
     Handlers.Handler Tags.Arrays;
     Handlers.Handler Tags.LRA;
     Handlers.Handler Tags.IfThenElse;
@@ -125,12 +125,12 @@ exception NotFound of string
 
 let parse = function
   | "empty" | "prop" -> Handlers.Handler Tags.Empty
-  | "CC"         -> Handlers.Handler Tags.CC
+  | "Eq"         -> Handlers.Handler Tags.Eq
   | "LRA"        -> Handlers.Handler Tags.LRA
   | "LIA"        -> Handlers.Handler Tags.LRA
   | "Arrays"     -> Handlers.Handler Tags.Arrays
   | "IfThenElse" -> Handlers.Handler Tags.IfThenElse
-  | "bool"       -> Handlers.Handler Tags.Bool
+  (* | "bool"       -> Handlers.Handler Tags.Bool *)
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories

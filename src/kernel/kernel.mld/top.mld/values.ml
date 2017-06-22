@@ -8,3 +8,5 @@ type 'v t =
                     [@@deriving eq, ord, show, hash]
 
 let boolassign (t,b) = (t, Boolean b)
+let bassign ?(b=true) t = boolassign(t,b)
+  

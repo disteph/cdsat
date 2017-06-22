@@ -115,7 +115,7 @@ end
 
                  
 module F = struct
-  type nonrec ('a,'l) t = ('a, 'l * TermB.t free) xterm
+  type ('a,'l) t = ('a, 'l * TermB.t free) xterm
   let equal eqRec eqPar = equal
                             eqPar
                             (FreeFunc(fun x->FreeFunc(TermB.equal x)))

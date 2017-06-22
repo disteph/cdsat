@@ -70,3 +70,4 @@ let print_msg_in_fmt_utf8 j_pp b_pp fmt (type a): (_,_,a)message -> unit = funct
 let print_msg_in_fmt j_pp b_pp fmt = match !Dump.display with
   | Dump.Latex -> print_msg_in_fmt_latex j_pp b_pp fmt
   | _ -> print_msg_in_fmt_utf8 j_pp b_pp fmt
+

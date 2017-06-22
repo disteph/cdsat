@@ -57,9 +57,8 @@ let is_Und = function Und -> true | _ -> false
 
 module type FrontEnd = sig
 
-  type term
-  type value
   type assign
+  type sassign
   (* The kernel knows of constraints on metavariables. *)
 
   type constraints
@@ -319,7 +318,7 @@ module type FrontEnd = sig
     | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
     | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
     | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
-    | CloseNow of term * assign * ((assign,constraints) stream -> 'a output)
+    | CloseNow of sassign * assign * ((assign,constraints) stream -> 'a output)
     | Check    of assign * ((assign,constraints) stream -> 'a output)
     | Stop     of bool*bool*(unit -> 'a output)
 

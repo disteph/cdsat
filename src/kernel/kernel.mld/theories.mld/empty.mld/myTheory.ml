@@ -13,37 +13,44 @@ let ts = Termstructures.Register.NoRep
 
 module type API = sig
   type assign
-  val init: (sign,assign) slot_machine
+  type sassign
+  val init: (sign,assign,sassign) slot_machine
   val clear: unit -> unit
 end
 
 module Make(DS: GlobalDS) = struct
 
-  type assign = DS.Assign.t
   open DS
+  type assign = Assign.t
+  module SAssign = Tools.SAssign(DS)
+  type sassign = SAssign.t
 
   let rec machine atomN
       = (module struct
 
-        type newoutput = (sign,Assign.t) output
-        type tset = Assign.t
+        type newoutput = (sign,Assign.t,SAssign.t) output
+        type nonrec assign = assign
+        type nonrec sassign = sassign
 
         let add = function
           | None -> Output(None, machine atomN)
-          | Some newtset ->
-             Dump.print ["empty",1] (fun p-> p "Empty adds %a" Assign.pp newtset);
-             let atomN = Assign.union newtset atomN in
-             let tmp = Assign.fold
-               (fun l -> function
-               | Some _ as ans -> ans
-               | None ->
-                  let notl = Term.bC Symbols.Neg [l] in
-                  if Assign.mem notl atomN 
-                  then Some(Assign.add l (Assign.add notl Assign.empty))
-                  else None
-               )
-               atomN
-               None in
+          | Some a ->
+             Dump.print ["empty",1] (fun p-> p "Empty adds %a" SAssign.pp a);
+             let atomN = Assign.add a atomN in
+             let tmp =
+               Assign.fold
+                 (fun (l,v) sofar ->
+                   match v,sofar with
+                   | _, (Some _ as ans) -> ans
+                   | Values.NonBoolean _, ans -> ans
+                   | Values.Boolean b, None ->
+                      let notl = l, Values.Boolean(not b) in
+                      if Assign.mem notl atomN 
+                      then Some(Assign.add (l,v) (Assign.add notl Assign.empty))
+                      else None
+                 )
+                 atomN
+                 None in
              match tmp with
              | Some tset -> Output(Some(unsat () tset), Tools.fail_state)
              | None ->
@@ -56,14 +63,17 @@ module Make(DS: GlobalDS) = struct
 
       let suicide _ = ()
 
-      end : SlotMachine with type newoutput = (sign,Assign.t) output and type tset = Assign.t)
+         end : SlotMachine with type newoutput = (sign,assign,sassign) output
+                            and type assign = assign
+                            and type sassign = sassign)
 
   let init = machine Assign.empty
   let clear () = ()
                    
 end
 
-type (_,_,'a) api = (module API with type assign = 'a)
+type ('t,'v,'a) api = (module API with type assign = 'a
+                                   and type sassign = ('t,'v)sassign)
 
 let make (type t)(type v)(type a)
       ((module DS): (ts,values,t,v,a) dsProj)

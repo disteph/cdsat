@@ -7,11 +7,18 @@ module FVSubst = struct
   let get = DSubst.get FreeVar.pp       
 end
                    
+module SAssign(DS:GlobalDS) = struct
+  open DS
+  type t = Term.t * Value.t Values.t [@@deriving eq, show]
+end
 
-let fail_state (type sign) (type ts) : (sign,ts) Specs.slot_machine =
+                   
+let fail_state (type sign) (type assign) (type sassign)
+    : (sign,assign,sassign) Specs.slot_machine =
   (module struct 
-     type newoutput = (sign,ts) Specs.output
-     type tset = ts
+     type newoutput = (sign,assign,sassign) Specs.output
+     type nonrec assign  = assign
+     type nonrec sassign = sassign
      let treated _ = failwith "Are you dumb? I already told you it was provable"
      let add     _ = failwith "Are you dumb? I already told you it was provable"
      let normalise _ = failwith "Are you dumb? I already told you it was provable"

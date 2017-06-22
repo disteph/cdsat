@@ -9,11 +9,10 @@ module ProofSearch(PlDS: PlugDSType) = struct
 
   include Sequents.Make(PlDS)
 
-  module Make(MyTheory: Specs.DSproj with type ts = PlDS.UF.t FormulaF.generic) = struct
+  module Make(DS: Specs.DSproj with type ts = PlDS.UF.t FormulaF.generic) = struct
 
-    open MyTheory
     (* Loads the FrontEnd *)
-    module FE = FrontEnd(MyTheory)
+    module FE = FrontEnd(DS)
     module Constraint = FirstOrder.Constraint
     open FE
 
@@ -318,7 +317,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
           let (_,newworld) as c = World.liftM so seq.world in
           let d = c::tl in
 	  let u = lk_solve { state with data = state.data;
-                                        seq = { seq with rhs = F(proj(Terms.data(Term.lift d a)));
+                                        seq = { seq with rhs = F(DS.proj(Terms.data(DS.Term.lift d a)));
                                                          world = newworld }} in
 	  straight (std1 seq) ~inject:(Constraint.lift newworld) ~project:Constraint.proj seq u sigma cont
             
@@ -334,7 +333,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
                                               fun b -> if b then pythie f' else pythie f)
             ))
 	  in
-          InsertCoin(CloseNow(litF_as_term t,asAssign seq.lits, fun f -> pythie f sigma cont))
+          InsertCoin(CloseNow(litF_as_sassign t,asAssign seq.lits, fun f -> pythie f sigma cont))
           (* pythie (MyTheory.goal_consistency () ()) sigma cont *)
         (* pythie (fun _ -> mygoal_consistency t atomN) sigma cont *)
 
@@ -414,7 +413,7 @@ module ProofSearch(PlDS: PlugDSType) = struct
 	 | ForAllF(so,a,tl) ->
             let (_,newworld) as c = World.liftE so seq.world in
             let d = c::tl in
-	    let u = lk_solve { state with seq = { seq with rhs = U(FSet.add (proj(Terms.data(Term.lift d a))) newdelta);
+	    let u = lk_solve { state with seq = { seq with rhs = U(FSet.add (DS.proj(Terms.data(DS.Term.lift d a))) newdelta);
                                                            world = newworld }} in
 	    straight (std1 ~form:toDecompose seq)
               ~inject:(Constraint.lift newworld)

@@ -58,12 +58,14 @@ module Make(PlDS: PlugDSType) = struct
     (* Visible outside Kernel *)
     type dsubsts     = FVSubst.t
     type constraints = FirstOrder.Constraint.t
-    type term        = Term.t
-    type value       = Value.t
     type assign      = Assign.t
+    module SAssign = Tools.SAssign(DS)
+    type sassign     = SAssign.t
+
     let ppC = FirstOrder.Constraint.pp
     let ppL = LitF.print_in_fmt ~print_atom:Term.print_of_id
-                        
+
+      
     module LitF_print = struct
       include LitF
       let pp fmt lit =
@@ -79,14 +81,16 @@ module Make(PlDS: PlugDSType) = struct
     module FSet = DblSet(MakeCollection(IForm))(PlDS.UFSet)
     module ASet = DblSet(MakeCollection(LitF_print))(PlDS.UASet)
 
-    let litF_as_term e =
+    let litF_as_sassign e =
       let b,index = LitF.reveal e in
       let atom = Term.term_of_id index in
-      if b then atom else Term.bC Symbols.Neg [atom]
+      if b then Values.bassign atom else Values.bassign ~b:false atom
 
     let rec makes_senseF f w =
       match FormulaF.reveal f with
-      | LitF l  -> makes_sense (litF_as_term l) w
+      | LitF l  ->
+         let atom,_ = litF_as_sassign l in
+         makes_sense atom w
       | TrueP | TrueN | FalseP | FalseN
         -> true
       | AndN(f1, f2) | OrN(f1, f2) | AndP(f1, f2) | OrP(f1, f2)
@@ -96,13 +100,14 @@ module Make(PlDS: PlugDSType) = struct
            World.prefix dw w
 
     let asAssign (aset: ASet.t) : Assign.t = 
-      ASet.fold (fun e -> Assign.add (litF_as_term e)) aset Assign.empty
+      ASet.fold (fun e -> Assign.add (litF_as_sassign e)) aset Assign.empty
 
     let asASet (tset: Assign.t) : ASet.t =
       Assign.fold
-        (fun e aset ->
-          match FormulaF.reveal(proj(Terms.data e)) with
-          | LitF l -> ASet.add l aset
+        (fun (e,v) aset ->
+          match FormulaF.reveal(proj(Terms.data e)),v with
+          | LitF l, Values.Boolean b
+            -> ASet.add (if b then l else LitF.negation l) aset
           | _ -> aset)
         tset
         ASet.empty
@@ -313,7 +318,7 @@ module Make(PlDS: PlugDSType) = struct
     | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
     | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
     | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
-    | CloseNow of Term.t * Assign.t * ((Assign.t,constraints) stream -> 'a output)
+    | CloseNow of SAssign.t * Assign.t * ((Assign.t,constraints) stream -> 'a output)
     | Check    of Assign.t * ((Assign.t,constraints) stream -> 'a output)
     | Stop     of bool*bool*(unit -> 'a output)
 

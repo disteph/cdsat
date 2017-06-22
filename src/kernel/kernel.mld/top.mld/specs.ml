@@ -16,6 +16,8 @@ module type Term = Terms.S with type leaf = FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
 
+type ('t,'v) sassign = 't termF * 'v Values.t
+
 module type DataType = Terms.DataType with type leaf := FreeVar.t
 
 exception ModelError of string
@@ -49,16 +51,6 @@ module type ForParsing = sig
   val bV: BoundVar.t -> t
 end
 
-type ('a,'b) embed = {
-    injection : 'a -> 'b;
-    projection: 'b -> 'a option
-  }
-
-type ('a,'b) conv = {
-    conv1 : 'a -> 'b;
-    conv2: 'b -> 'a
-  }
-                               
 
 (* Module of constraints that meta-variables may be subject
    to. Constraints are produced when closing a branch, and are
@@ -76,25 +68,29 @@ end
 (* This module type is for implementations of the global datastructures
    for the combination of theory modules *)
 
+module type CValue = sig
+  type value
+  type t [@@deriving eq,ord,show,hash]
+  val none: Sorts.t -> t
+  val inj : value Values.t -> t
+  val merge : t -> t -> (value Values.t*value Values.t,t) Sums.sum
+end
+                       
 module type GlobalDS = sig
   module Term   : Term
   module Value  : PH
-  module CValue  : sig
-    type t [@@deriving eq,ord,show,hash]
-    val none: Sorts.t -> t
-    val inj : Value.t Values.t -> t
-    val merge : t -> t -> (Value.t Values.t*Value.t Values.t,t) Sums.sum
-  end
-  module Assign : Assign with type e = Term.t
+  module CValue : CValue with type value := Value.t
+  module Assign : Assign with type term = Term.t
                           and type v = Value.t Values.t
   val makes_sense : Term.t -> World.t -> bool
 end
 
 (* type version of the above *)
 
-type ('gts,'gv,'assign) globalDS
+type ('gts,'gv,'cv,'assign) globalDS
   = (module GlobalDS with type Term.datatype = 'gts
                       and type Value.t   = 'gv
+                      and type CValue.t  = (bool option,'cv)Sums.sum
                       and type Assign.t  = 'assign)
 
                          
@@ -108,10 +104,6 @@ type ('gts,'gv,'assign) globalDS
 
 type _ has_values  = private HV
 type has_no_values = private HNV
-
-type (_,_) proj_opt =
-  | HasVproj :  ('v,'gv) embed -> ('gv,'v has_values) proj_opt
-  | HasNoVproj : (_,has_no_values) proj_opt
 
 type (_,_) inj_opt =
   | HasVinj :  ('v -> 'gv) -> ('v has_values,'gv) inj_opt
@@ -127,11 +119,11 @@ end
 
 (* type version of the above *)
 type ('ts,'v,'gts,'gv,'assign) dsProj
-  = (module DSproj with type ts = 'ts
-                    and type values = 'v
+  = (module DSproj with type ts       = 'ts
+                    and type values   = 'v
                     and type Term.datatype = 'gts
-                    and type Value.t = 'gv
-                    and type Assign.t  = 'assign)
+                    and type Value.t  = 'gv
+                    and type Assign.t = 'assign)
                        
 (* Module type for proofs in Prop module*)
                        
@@ -147,20 +139,21 @@ end
                           
 module type SlotMachine = sig
   type newoutput
-  type tset
-  val add      : tset option -> newoutput
+  type assign
+  type sassign
+  val add      : sassign option -> newoutput
   val clone    : unit -> newoutput
-  val normalise: tset -> newoutput
-  val suicide  : ('sign,tset,Messages.unsat) Messages.message -> unit
+  val suicide  : assign -> unit
 end
 
-type ('sign,'tset) slot_machine
-  = (module SlotMachine with type newoutput = ('sign,'tset) output
-                         and type tset = 'tset)
+type ('sign,'assign,'sassign) slot_machine
+  = (module SlotMachine with type newoutput = ('sign,'assign,'sassign) output
+                         and type assign = 'assign
+                         and type sassign = 'sassign)
       
- and (_,_) output =
+ and (_,_,_) output =
    Output:
-     ('sign,'tset,_) Messages.message option
-   * ('sign,'tset) slot_machine
-   -> ('sign,'tset) output
+     ('sign,'ds,_) Messages.message option
+   * ('sign,'assign,'sassign) slot_machine
+   -> ('sign,'assign,'sassign) output
         

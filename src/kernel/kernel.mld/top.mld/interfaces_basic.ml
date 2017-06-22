@@ -38,21 +38,14 @@ module type Collection = sig
 end
 
 module type Assign = sig
-  type e
+  type term
   type v
-  type t [@@deriving eq,show]
-  val empty: t
-  val singleton: (e*v) -> t
-  val add  : (e*v) -> t -> t
-  val remove: e -> t -> t
-  val union: t -> t -> t
-  val inter: t -> t -> t
-  val diff: t -> t -> t
-  val is_empty : t -> bool
-  val mem      : e -> t -> bool
-  val subassign: t -> t -> bool
-  val next     : t -> e*v*t
-  val fold     : ((e * v) -> 'a -> 'a) -> t -> 'a -> 'a
+  include Collection with type e = term*v
+  module Map : sig
+    val mem   : term -> t -> bool
+    val find  : term -> t -> v list
+    val remove: term -> t -> t
+  end
 end
 
 (* Type of Monads *)

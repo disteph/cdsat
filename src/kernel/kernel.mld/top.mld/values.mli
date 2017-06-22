@@ -8,3 +8,4 @@ type 'v t =
                     [@@deriving eq, ord, show, hash]
 
 val boolassign : ('term*bool) -> 'term*(_ t)
+val bassign : ?b:bool -> 'term -> 'term*(_ t)

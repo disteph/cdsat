@@ -6,52 +6,47 @@ open Termstructures.Literals
 
 type sign = unit
 
-type ts = LitF.t
-let ts  = Termstructures.Register.LitF
+type ts = unit
+let ts  = Termstructures.Register.NoRep
 
 include Theory.HasNoValues
 
-module LMap = Map.Make(LitF)
+module Make(DS: DSproj) = struct
 
-module Make(DS: DSproj with type ts = LitF.t) = struct
-
-  type assign = DS.Assign.t
   open DS
+  type assign = Assign.t
+  module SAssign = Tools.SAssign(DS)
+  type sassign = SAssign.t
+
+  module TSet = Set.Make(Term)
+  module TMap = Map.Make(Term)
 
   type state = {
     treated: Assign.t;
-    known: Term.t LMap.t;
+    known: bool TMap.t;
     todo: Term.t list;
-    solved: Assign.t;
+    solved: TSet.t;
   }
-
-  let rec print_in_fmtL fmt h = 
-    LMap.fold
-      (fun blit b () ->
-        Format.fprintf fmt "(%a,%a)," (LitF.print_in_fmt ~print_atom:Term.print_of_id) blit Term.pp b
-      )
-      h 
-      ()
-
-  let rec pp fmt = function
-    | [] -> Format.fprintf fmt "[]"
-    | t::l -> Format.fprintf fmt "%a::%a" Term.pp t pp l
 
   let rec machine state =
     (module struct
        
-       type newoutput = (sign,Assign.t) output
-       type tset = Assign.t
+       type newoutput = (sign,Assign.t,SAssign.t) output
+       type assign  = Assign.t
+       type sassign = SAssign.t
 
-       let add newlits =
+       let add newa =
          let state = 
-           match newlits with
+           match newa with
            | None    -> state
-           | Some nl ->
+           | Some((t,v) as nl) ->
               { 
-                treated = Assign.union state.treated nl;
-                known   = Assign.fold (fun t -> LMap.add (proj(Terms.data t)) t) nl state.known;
-                todo    = Assign.fold (fun t l -> t::l) nl state.todo;
+                treated = Assign.add nl state.treated;
+                known   =
+                  (match v with
+                   | Values.Boolean b -> TMap.add t b state.known
+                   | Values.NonBoolean _ -> state.known);
+                todo    = t::state.todo;
                 solved  = state.solved
               }
          in
@@ -60,39 +55,29 @@ module Make(DS: DSproj with type ts = LitF.t) = struct
               (Output(
                    Some(sat () state.treated),
                    machine { state with todo = [] }
-                 ):(sign,Assign.t) output)
-           | t::l when Assign.mem t state.solved -> aux l
+                 ):(sign,Assign.t,SAssign.t) output)
+           | t::l when TSet.mem t state.solved -> aux l
            | t::l ->
               begin match Terms.reveal t with
-              | Terms.C(Symbols.ITE so,[b;b1;b2]) 
+              | Terms.C(Symbols.ITE so,[c;b1;b2]) 
                 ->
-                 let blit = proj(Terms.data b) in
-                 if LMap.mem blit state.known
+                 if TMap.mem c state.known
                  then
+                   let br = if TMap.find c state.known
+                            then b1
+                            else b2
+                   in
                    (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) seen" LitF.pp blit Term.pp b); *)
-                   let b0 = LMap.find blit state.known in
-                   let eq = Term.bC (Symbols.Eq so) [t;b1] in
+                   let eq = Term.bC (Symbols.Eq so) [t;br] in
                    Output(
-                       Some(straight () (Assign.singleton b0) (Assign.singleton eq)),
-                       machine { state with todo = l; solved = Assign.add t state.solved })
+                       Some(straight () (Assign.singleton(Values.bassign c)) (eq,true)),
+                       machine { state with todo = l; solved = TSet.add t state.solved })
                          (* ) *)
-                 else 
-                   if LMap.mem (LitF.negation blit) state.known
-                   then
-                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition -(%a,%a) seen" LitF.pp blit  Term.pp b); *)
-                     let b0 = LMap.find (LitF.negation blit) state.known in
-                     let eq = Term.bC (Symbols.Eq so) [t;b2] in
-                     Output(
-                         Some(straight () (Assign.singleton b0) (Assign.singleton eq)),
-                         machine { state with todo = l; solved = Assign.add t state.solved })
-                           (* ) *)
-                   else
-                     (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.pp blit  Term.pp b); *)
-                     Output(
-                         Some(
-                             both () Assign.empty (Assign.singleton b) (Assign.singleton (Term.bC Symbols.Neg [b]))
-                           ),
-                         machine { state with todo = t::l })
+                 else
+                   (* (Dump.print ["IfThenElse",1] (fun p -> p "Condition (%a,%a) not seen" LitF.pp blit  Term.pp b); *)
+                   Output(
+                       Some(both () Assign.empty (c,true) (c,false)),
+                       machine { state with todo = t::l })
               (* ) *)
 
               | Terms.C(Symbols.Eq _,[a1;a2])
@@ -114,20 +99,27 @@ module Make(DS: DSproj with type ts = LitF.t) = struct
 
        let suicide _ = ()
 
-     end : SlotMachine with type newoutput = (sign,Assign.t) output and type tset = Assign.t)
+     end : SlotMachine with type newoutput = (sign,Assign.t,SAssign.t) output
+                        and type assign = Assign.t
+                        and type sassign = SAssign.t)
 
-  let init = machine { treated = Assign.empty; known = LMap.empty; todo = []; solved = Assign.empty }
+  let init = machine { treated = Assign.empty;
+                       known = TMap.empty;
+                       todo = [];
+                       solved = TSet.empty }
   let clear () = ()
                    
 end
 
 module type API = sig
   type assign
-  val init: (sign,assign) slot_machine
+  type sassign
+  val init: (sign,assign,sassign) slot_machine
   val clear: unit -> unit
 end
 
-type ('t,'v,'a) api = (module API with type assign = 'a)
+type ('t,'v,'a) api = (module API with type assign = 'a
+                                   and type sassign = ('t,'v)sassign)
 
 let make (type t)(type v)(type a)
       ((module DS): (ts,values,t,v,a) dsProj)

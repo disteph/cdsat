@@ -4,11 +4,13 @@ type sign
 
 module type API = sig
   type assign
-  val init: (sign,assign) slot_machine
+  type sassign
+  val init: (sign,assign,sassign) slot_machine
   val clear: unit -> unit
 end
 
-include Theory.Type with type ts = Termstructures.Literals.TS.t
+include Theory.Type with type ts = unit
                      and type values = has_no_values
                      and type ('t,'v,'a) api
-                              = (module API with type assign = 'a)
+                              = (module API with type assign = 'a
+                                             and type sassign = ('t,'v)sassign)

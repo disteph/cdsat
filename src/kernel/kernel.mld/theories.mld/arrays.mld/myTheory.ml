@@ -13,27 +13,30 @@ let ts = Termstructures.Register.NoRep
 
 module type API = sig
   type assign
-  val init: (sign,assign) slot_machine
+  type sassign
+  val init: (sign,assign,sassign) slot_machine
   val clear: unit -> unit
 end
 
 module Make(DS: GlobalDS) = struct
 
-  type assign = DS.Assign.t
   open DS
-
+  type assign = Assign.t
+  type sassign = Term.t * Value.t Values.t
+                                  
   let rec state atomN =
     (module struct
 
-      type newoutput = (sign,Assign.t) output
-      type tset = Assign.t
+      type assign = Assign.t
+      type sassign = Term.t * Value.t Values.t
+      type newoutput = (sign,assign,sassign) output
 
       let treated () = atomN
 
       let add = function
         | None -> Output(None,state atomN)
-        | Some tset ->
-           let newtreated = Assign.union atomN tset in
+        | Some a ->
+           let newtreated = Assign.add a atomN in
            Output(Some(sat () newtreated),state newtreated)
 
       let normalise _ = failwith "Not a theory with normaliser"
@@ -42,14 +45,17 @@ module Make(DS: GlobalDS) = struct
 
       let suicide _ = ()
 
-    end : SlotMachine with type newoutput = (sign,Assign.t) output and type tset = Assign.t)
+     end : SlotMachine with type newoutput = (sign,Assign.t,Term.t * Value.t Values.t) output
+                        and type assign = Assign.t
+                        and type sassign = Term.t * Value.t Values.t)
 
   let init = state Assign.empty
   let clear () = ()
                    
 end
 
-type (_,_,'a) api = (module API with type assign = 'a)
+type ('t,'v,'a) api = (module API with type assign = 'a
+                                   and type sassign= ('t,'v)sassign)
 
 let make (type t)(type v)(type a)
       ((module DS): (ts,values,t,v,a) dsProj)
