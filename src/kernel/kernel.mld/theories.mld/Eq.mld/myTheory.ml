@@ -18,9 +18,7 @@ let ts = Termstructures.Register.NoRep
                     
 module Make(DS: DSproj) = struct
 
-  module E = Egraph.Make(DS)
-  include E
-
+  include Egraph.Make(DS)
 
   module P = struct
     module Node = TermValue
@@ -31,6 +29,7 @@ module Make(DS: DSproj) = struct
   module EG = Make(RawEgraph.Make(P))
     
   open DS
+  type cval = CValue.t
 
   module TMap = struct
     include Map.Make(Term)
@@ -48,16 +47,24 @@ module Make(DS: DSproj) = struct
 
   module type SlotMachineEq = sig
     type t
+    type self
     val treated : Assign.t
     val add     : sassign -> t
+    val ask     : ?subscribe:bool
+                  -> (Term.t,Value.t Values.t) sum
+                  -> Term.t
+                     * CValue.t
+                     * (unit -> CValue.t list)
+                     * self
   end
 
   type outputEq =
     | UNSAT of stop
-    | SAT of
-        (sign, Assign.t*boolassign, sat) message *
-          (module SlotMachineEq with type t = outputEq)
-
+    | SAT of (sign, Assign.t * boolassign, sat) message
+             * (module SlotMachineEq with type t = outputEq
+                                      and type self = self)
+   and self = Self of (module SlotMachineEq with type t = outputEq
+                                             and type self = self)
                    
   type state = {
       egraph : EG.t;
@@ -68,6 +75,7 @@ module Make(DS: DSproj) = struct
     (module struct
 
        type t = outputEq
+       type nonrec self = self
 
        let treated = state.treated
                   
@@ -92,17 +100,20 @@ module Make(DS: DSproj) = struct
              | _ -> eg, tvmap
            in
            Dump.print ["egraph",1] (fun p-> p "EGraph is fine with %a" Assign.pp treated);
-           (* Output(Some(sat () atomN), machine assign) *)
            SAT(sat () treated, machine { egraph = eg ; treated = treated })
          with
            EG.Conflict(propa,conflict) ->
            UNSAT(propa,conflict)
-       (* Output(Some(unsat () tset), Tools.fail_state) *)
 
-       let clone ()  = failwith "TODO" (* Output(None, machine assign) *)
-       let suicide _ = ()
-
-     end : SlotMachineEq with type t = outputEq)
+       let ask ?subscribe tv =
+         let info,eg = EG.ask ?subscribe tv state.egraph in
+         EG.nf info,
+         EG.cval info,
+         (fun () -> EG.distinct eg info),
+         Self(machine { state with egraph = eg })
+             
+     end : SlotMachineEq with type t = outputEq
+                          and type self = self)
 
   let init = machine { egraph = EG.init; treated = Assign.empty }
 

@@ -39,13 +39,9 @@ module type VValue = sig
     val inj : Value.t -> t
     val merge : t -> t -> (Value.t*Value.t,t) sum
   end
-end 
+end
 
-
-type (_,_) proj_opt =
-  | HasVproj :  ('cv -> 'v option) -> ('cv,'v has_values) proj_opt
-  | HasNoVproj : (_,has_no_values) proj_opt
-
+type 'v cval = (bool option,'v) sum  [@@deriving eq,ord,show,hash]        
                        
 module type Vplus = sig
   include VValue
@@ -56,8 +52,7 @@ module type Vplus = sig
               -> ('cv -> CValue.t)
               -> (old_value -> 'gv)
                  * ('cv -> old_cvalue)
-                 * (vopt,'gv) inj_opt
-                 * ('cv,vopt) proj_opt
+                 * (vopt,'gv,'cv cval) conv
 end
                       
 module Value_add(V : PH)(Vold : VValue) =
@@ -98,8 +93,14 @@ module Value_add(V : PH)(Vold : VValue) =
       =
       (fun ov -> f(Case2 ov)),
       (fun cv -> snd(g cv)),
-      HasVinj(fun nv -> f(Case1 nv)),
-      HasVproj(fun cv -> fst(g cv))
+      HasVconv((fun nv -> f(Case1 nv)),
+               function
+               | Case1 None    -> None
+               | Case1(Some b) -> Some(Values.Boolean b)
+               | Case2 v ->
+                  match fst(g v) with
+                  | None -> None
+                  | Some v' -> Some(Values.NonBoolean v'))
               
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
@@ -114,7 +115,7 @@ module Value_keep(Vold : VValue) =
     type old_cvalue = CValue.t
     type vopt = has_no_values
 
-    let trans f g = f,g,HasNoVinj,HasNoVproj
+    let trans f g = f,g,HasNoVconv
               
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
@@ -125,7 +126,6 @@ type _ typedList =
   | El  : unit typedList
   | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList
 
-                                                                 
 module type State = sig
 
   module DT : DataType
@@ -137,9 +137,8 @@ module type State = sig
   val modules : ('termdata -> DT.t)
                 -> (VV.Value.t -> 'gv)
                 -> ('cv -> VV.CValue.t)
-                -> ('termdata,'gv,'cv,'assign) globalDS
+                -> ('termdata,'gv,'cv cval,'assign) globalDS
                 -> ('termdata*'gv*'assign) Register.Modules.t list
-
 end
 
 
@@ -178,20 +177,21 @@ let theory_add (type tva)(type sign) (type ts)(type values)(type api)
              proj
              f
              g
-             ((module DS) : (gts,gv,cv,a) globalDS)
+             ((module DS) : (gts,gv,cv cval,a) globalDS)
          =
-         let inj_old,proj_old,inj_new,proj_new = Vplus.trans f g in
-         let module NewDS = (struct
-                              include DS
-                              type nonrec ts = ts
-                              let proj x = proj1(proj x)
-                              type nonrec values = values
-                              let vinj = inj_new
-                            end :  DSproj with type Term.datatype = gts
-                                           and type Value.t  = gv
-                                           and type Assign.t = a
-                                           and type ts = ts
-                                           and type values = values)
+         let inj_old,proj_old,conv = Vplus.trans f g in
+         let module NewDS =
+           (struct
+             include DS
+             type nonrec ts = ts
+             let proj x = proj1(proj x)
+             type nonrec values = values
+             let conv = conv
+           end :  DSproj with type Term.datatype = gts
+                          and type Value.t  = gv
+                          and type Assign.t = a
+                          and type ts = ts
+                          and type values = values)
          in
          let tm = Modules.make hdl (module NewDS) in
          tm::(S.modules (fun x -> proj2(proj x)) inj_old proj_old (module DS))
@@ -249,8 +249,7 @@ module InitState : State = struct
   let modules _ _ _ _ = []
 end
 
-module Make(PlugDS : Prop.APIplugin.PlugDSType)
-         (State:State) = struct
+module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
 
   module PS = Prop.MyTheory.ProofSearch(PlugDS)
 
@@ -359,7 +358,7 @@ module Make(PlugDS : Prop.APIplugin.PlugDSType)
       type ts = PS.Semantic.t
       let proj x = fst(fst x)
       type values = has_no_values
-      let vinj = HasNoVinj
+      let conv = HasNoVconv
     end
 
   module PropModule = PS.Make(DS4Prop)

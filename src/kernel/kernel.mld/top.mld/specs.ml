@@ -89,7 +89,7 @@ end
 type ('gts,'gv,'cv,'assign) globalDS
   = (module GlobalDS with type Term.datatype = 'gts
                       and type Value.t   = 'gv
-                      and type CValue.t  = (bool option,'cv)Sums.sum
+                      and type CValue.t  = 'cv
                       and type Assign.t  = 'assign)
 
                          
@@ -103,17 +103,17 @@ type ('gts,'gv,'cv,'assign) globalDS
 
 type _ has_values  = private HV
 type has_no_values = private HNV
-
-type (_,_) inj_opt =
-  | HasVinj :  ('v -> 'gv) -> ('v has_values,'gv) inj_opt
-  | HasNoVinj : (has_no_values,_) inj_opt
+       
+type (_,_,_) conv =
+  | HasVconv   : ('v -> 'gv) * ('cv -> 'v Values.t option) -> ('v has_values,'gv,'cv) conv
+  | HasNoVconv : (has_no_values,_,_) conv
 
 module type DSproj = sig
   include GlobalDS
   type ts
   val proj: Term.datatype -> ts
   type values
-  val vinj: (values,Value.t) inj_opt
+  val conv: (values,Value.t,CValue.t) conv
 end
 
 (* type version of the above *)

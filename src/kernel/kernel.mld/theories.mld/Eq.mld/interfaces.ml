@@ -83,29 +83,40 @@ module type API = sig
   type termdata
   type value
   type assign
+  type cval
 
   type nonrec sassign = (termdata,value) sassign
   type boolassign = termdata termF * bool
   type straight =
-    (unit, assign * boolassign, Top.Messages.straight)
+    (sign, assign * boolassign, Top.Messages.straight)
       Top.Messages.message
   type stop =
     straight list *
-      (unit, assign * boolassign, Top.Messages.unsat)
+      (sign, assign * boolassign, Top.Messages.unsat)
         Top.Messages.message
         
   module type SlotMachineEq = sig
     type t
+    type self
     val treated : assign
     val add     : sassign -> t
+    val ask     : ?subscribe:bool
+                  -> (termdata termF,value Values.t) sum
+                  -> (termdata termF)
+                     * cval
+                     * (unit -> cval list)
+                     * self
   end
 
   type outputEq =
     | UNSAT of stop
-    | SAT of
-        (sign, assign * boolassign, sat) message
-        * (module SlotMachineEq with type t = outputEq)
+    | SAT of (sign, assign * boolassign, sat) message
+             * (module SlotMachineEq with type t = outputEq
+                                      and type self = self)
+   and self = Self of (module SlotMachineEq with type t = outputEq
+                                             and type self = self)
             
-  val init : (module SlotMachineEq with type t = outputEq)
+  val init : (module SlotMachineEq with type t = outputEq
+                                    and type self = self)
 
 end
