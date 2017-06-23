@@ -6,7 +6,7 @@ open Messages
 
 open Interfaces
        
-module Make(DS: DSproj) : sig
+module Make(DS: GlobalDS) : sig
   
   open DS
 

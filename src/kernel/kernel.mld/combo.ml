@@ -17,20 +17,6 @@ open Register
 
 open Export
        
-(*********************************************************************)
-(* First, we build DS by aggregating a given list of plugins'
-   datatypes for representing terms, into one big datatype.
-
-   What we call "a plugin's datatype" is given by the module type
-   Top.Specs.DataType
-   in which some symbols might not have any interpretation for the
-   plugin. 
-
-   We shall quickly convert them in the following module type
-   DataType
-   where all symbols and all terms can be represented *)
-(*********************************************************************)
-
 
 module type VValue = sig
   module Value : PH
@@ -404,6 +390,7 @@ module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
 
   module PropModule = PS.Make(DS4Prop)
 
+  module EGraph = Eq.MyTheory.Make(DS)
 end
 
   

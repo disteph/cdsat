@@ -8,7 +8,7 @@ open Interfaces
        
 type sign = unit
               
-module Make(DS: DSproj) = struct
+module Make(DS: GlobalDS) = struct
   
   open DS
 

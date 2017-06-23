@@ -16,7 +16,7 @@ type ts = unit
 let ts = Termstructures.Register.NoRep
 
                     
-module Make(DS: DSproj) = struct
+module Make(DS: GlobalDS) = struct
 
   include Egraph.Make(DS)
 
@@ -29,7 +29,11 @@ module Make(DS: DSproj) = struct
   module EG = Make(RawEgraph.Make(P))
     
   open DS
-  type cval = CValue.t
+  type nonrec sign = sign
+  type termdata = Term.datatype
+  type value  = Value.t
+  type assign = Assign.t
+  type cval   = CValue.t
 
   module TMap = struct
     include Map.Make(Term)
@@ -118,22 +122,16 @@ module Make(DS: DSproj) = struct
   let init = machine { egraph = EG.init; treated = Assign.empty }
 
   let clear () = ()
-                          
+
 end
 
 
-type ('t,'v,'a) api = (module API with type sign = sign
-                                   and type termdata = 't
-                                   and type value    = 'v
-                                   and type assign   = 'a)
+(* type ('t,'v,'a) api = (module API with type sign = sign *)
+(*                                    and type termdata = 't *)
+(*                                    and type value    = 'v *)
+(*                                    and type assign   = 'a) *)
 
-let make (type t)(type v)(type a)
-      ((module DS): (ts,values,t,v,a) dsProj)
-    : (t,v,a) api =
-  (module struct
-     type nonrec sign = sign
-     type termdata = t
-     type value = v
-     type assign = a
-     include Make(DS)
-   end)
+(* let make (type t)(type v)(type a) *)
+(*       ((module DS): (ts,values,t,v,a) dsProj) *)
+(*     : (t,v,a) api = *)
+(*   (module Make(DS)) *)

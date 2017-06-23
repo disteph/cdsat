@@ -62,9 +62,17 @@ module type API = sig
   type ufset
   module WB : WhiteBoard
   open WB.DS
+
   module PropModule : Prop.APIplugin.API with type FE.IForm.datatype = uf
 			                  and type FE.FSet.ps = ufset
 			                  and type FE.ASet.ps = uaset
+
+  module EGraph : Eq.Interfaces.API with type sign = Eq.MyTheory.sign
+                                     and type termdata = Term.datatype
+                                     and type value  = Value.t
+                                     and type cval   = CValue.t
+                                     and type assign = Assign.t
+
   val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
   val vproj      : (_ * (_ * _ * 'd * _)) Theories.Register.Tags.t
                    -> (CValue.t, 'd) proj
