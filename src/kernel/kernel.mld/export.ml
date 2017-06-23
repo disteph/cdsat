@@ -68,7 +68,12 @@ module type API = sig
   val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
   val vproj      : (_ * (_ * _ * 'd * _)) Theories.Register.Tags.t
                    -> (CValue.t, 'd) proj
-  val problem    : Assign.t
+  val parse : Parsers.Register.t -> string -> Term.t list
+end
+
+module type APIext = sig
+  include API
+  val problem    : WB.DS.Assign.t
   val expected   : bool option
   type answer = private
               | UNSAT of unsat WB.t

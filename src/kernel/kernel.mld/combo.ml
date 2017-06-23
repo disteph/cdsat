@@ -409,8 +409,6 @@ end
   
 let make
       (type uaset)(type uf)(type ufset)
-      problem
-      expected
       theories
       (module PlugDS : Prop.APIplugin.PlugDSType
               with type UASet.t = uaset
@@ -519,26 +517,18 @@ let make
      module VProj = (val o)
 
      let vproj = VProj.proj
-       
-     let problem = List.fold
-                     (fun formula
-                      -> DS.Assign.add (Values.bassign(DS.Term.lift [] formula)))
-                     problem
-                     DS.Assign.empty
 
-     let expected = expected
-
-     type answer =
-       | UNSAT of unsat WB.t
-       | SAT of sat WB.t
-       | NotAnsweringProblem
-
-     let answer = function
-       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg)
-            when DS.Assign.subset assign problem
-         -> UNSAT(msg)
-       | Case2(WB.WB(_,Sat assign) as msg)
-            when DS.Assign.subset problem assign -> SAT(msg)
-       | _ -> NotAnsweringProblem
-
+     let parse parser input =
+       let ths,termB,_ = Parsers.Register.parse parser input in
+       begin match ths with
+       | Some l when not(HandlersMap.equal (fun ()()->true) theories (Register.get l)) ->
+          print_endline(Dump.toString(fun p ->
+                            p
+                              "Warning: using theories %a but just parsed %a"
+                              HandlersMap.pp theories
+                              HandlersMap.pp (Register.get l)))
+       | _ -> ()
+       end;
+       List.map (DS.Term.lift []) termB
+                   
    end)

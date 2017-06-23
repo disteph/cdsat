@@ -11,7 +11,28 @@ let get : t -> (module Parser.Type) = function
 
 exception NotFound of string
 
-let parse = function
+let parse_name = function
   | "smtlib2"   -> SMTLib2
   | "dimacs"    -> DIMACS
   | s -> raise (NotFound ("Parser "^s^" does not exist; see -help"))
+
+let parse parser ?(disableProp=false) input =
+  let (module MyParser) = get parser in
+  let aft = MyParser.glance input in
+  
+  (* Now we parse *)
+  let i = (module Typing.ForParsing
+                  : Top.Specs.ForParsing with type t = Top.Terms.TermB.t)
+  in
+  let parsable, expected = MyParser.parse aft (Typing.forParser i) in
+  let parsed =
+    List.map (fun f -> f Top.Sorts.Prop) parsable
+  in
+  let termB =
+    if disableProp
+    then List.map (fun x->Typing.ForParsing.bC Top.Symbols.IsTrue [x]) parsed
+    else
+      parsed
+  in
+  (* print_endline("We want to prove: "^List.show Top.Terms.TermB.pp termB); *)
+  MyParser.guessThDecProc aft,termB,expected
