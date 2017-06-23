@@ -1,20 +1,17 @@
 open Async
 
 open Kernel.Top.Specs
+open Interfaces
 
-module Make(WB: WhiteBoardExt.Type) : sig
+module Make(WB: WhiteBoardExt) : sig
   open WB.DS
 
-  val add :
-    ('a, Assign.t) slot_machine ->
-    Assign.t option -> ('a, Assign.t) output
+  val add : 'a WB.islot_machine -> Assign.t option -> 'a WB.ioutput
 
-  val clone :
-    ('a, Assign.t) slot_machine ->
-    ('a, Assign.t) output
+  val clone : 'a WB.islot_machine -> 'a WB.islot_machine
 
   val make :
-    Assign.t PluginsTh.PluginTh.sslot_machine ->
+    WB.isslot_machine ->
     WB.msg2th Pipe.Reader.t ->
     WB.msg2pl Pipe.Writer.t ->
     unit Deferred.t

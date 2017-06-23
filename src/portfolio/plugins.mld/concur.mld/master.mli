@@ -15,10 +15,12 @@ open Kernel
 open Top.Messages
 open Theories.Register
 
+open Interfaces
+
 open General.Sums
 
 module Make(WB: sig
-                include WhiteBoardExt.Type
+                include WhiteBoardExt
                 val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
               end) : sig
 

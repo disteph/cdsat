@@ -13,9 +13,9 @@ module Make(WB: WhiteBoardExt.Type) = struct
   open WB
   open DS
 
-  let add     (type sign) ((module Cont): (sign,Assign.t) slot_machine) = Cont.add
-  let clone   (type sign) ((module Cont): (sign,Assign.t) slot_machine) = Cont.clone()
-  let suicide (type sign) ((module Cont): (sign,Assign.t) slot_machine) = Cont.suicide
+  let add     (type sign) ((module Cont): sign islot_machine) = Cont.add
+  let clone   (type sign) ((module Cont): sign islot_machine) = Cont.clone()
+  let suicide (type sign) ((module Cont): sign islot_machine) = Cont.suicide
 
   let rec flush reader writer msg =
     let aux = function

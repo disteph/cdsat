@@ -1,6 +1,8 @@
 open Async
 
-module Make(WB : WhiteBoardExt.Type) : sig
+open Interfaces
+       
+module Make(WB : WhiteBoardExt) : sig
   
   val make :
     WB.msg2th Pipe.Reader.t

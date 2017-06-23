@@ -8,8 +8,10 @@ open Top.Messages
 open Theories.Register
 
 open Tools.PluginsTh
-       
-module Make(WB : WhiteBoardExt.Type) = struct
+
+open Interfaces
+
+module Make(WB : WhiteBoardExt) = struct
 
   open WB
   open DS
@@ -27,19 +29,19 @@ module Make(WB : WhiteBoardExt.Type) = struct
         | Sat tset1, Sat tset2 -> Assign.equal tset1 tset2
         | Propa(tset1,Unsat), Propa(tset2,Unsat) -> Assign.equal tset1 tset2
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
-          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2'
+          -> Assign.equal tset1 tset2 && [%eq:Term.t*bool] tset1' tset2'
         | Propa(tset1,Both(tset1',tset1'')), Propa(tset2, Both(tset2',tset2''))
-          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2' && Assign.equal tset1'' tset2''
+          -> Assign.equal tset1 tset2 && [%eq:Term.t*bool] tset1' tset2' && [%eq:Term.t*bool] tset1'' tset2''
         | Propa(tset1,Either(tset1',tset1'')), Propa(tset2, Either(tset2',tset2''))
-          -> Assign.equal tset1 tset2 && Assign.equal tset1' tset2' && Assign.equal tset1'' tset2''
+          -> Assign.equal tset1 tset2 && [%eq:Term.t*bool] tset1' tset2' && [%eq:Term.t*bool] tset1'' tset2''
 
     let hash (type a) _ _ (WB(hdls,msg):a WB.t) =
       match msg with
       | Sat tset -> 2*(Assign.id tset)
       | Propa(tset,Unsat) -> 1+3*(Assign.id tset)
-      | Propa(tset,Straight tset') -> 1+7*(Assign.id tset)+11*(Assign.id tset')
-      | Propa(tset,Both(tset1,tset2)) -> 1+13*(Assign.id tset)+17*(Assign.id tset1)+19*(Assign.id tset2)
-      | Propa(tset,Either(tset1,tset2)) -> 1+23*(Assign.id tset)+29*(Assign.id tset1)+31*(Assign.id tset2)
+      | Propa(tset,Straight tset') -> 1+7*(Assign.id tset)+11*([%hash:Term.t*bool] tset')
+      | Propa(tset,Both(tset1,tset2)) -> 1+13*(Assign.id tset)+17*([%hash:Term.t*bool] tset1)+19*([%hash:Term.t*bool] tset2)
+      | Propa(tset,Either(tset1,tset2)) -> 1+23*(Assign.id tset)+29*([%hash:Term.t*bool] tset1)+31*([%hash:Term.t*bool] tset2)
                                    
   end
   module H = MakePoly(M)

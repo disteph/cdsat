@@ -9,7 +9,7 @@ module type Type = sig
   
   module DS : Theories.Prop.APIplugin.PlugDSType
 
-  module Make(K: Kernel.Export.API) : sig
+  module Make(K: Kernel.Export.APIext) : sig
     val solve : unit -> K.answer
     val clear : unit -> unit
   end
@@ -24,7 +24,7 @@ module type IPluginProp = sig
 end
 
 module type Input = sig
-  include  Kernel.Export.API
+  include  Kernel.Export.APIext
   (* module IPluginProp : IPluginProp *)
   val pluginsTh : WB.DS.Assign.t sslot_machine Theories.Register.HandlersMap.t
   val clear : unit -> unit
