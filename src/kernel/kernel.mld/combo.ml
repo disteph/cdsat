@@ -30,7 +30,8 @@ open Export
    DataType
    where all symbols and all terms can be represented *)
 (*********************************************************************)
-       
+
+
 module type VValue = sig
   module Value : PH
   module CValue : sig
@@ -42,7 +43,13 @@ module type VValue = sig
 end
 
 type 'v cval = (bool option,'v) sum  [@@deriving eq,ord,show,hash]        
-                       
+
+module type Proj = sig
+  type cvalue
+  val proj : (_*(_*_*'vopt*_)) Tags.t -> (cvalue,'vopt)proj
+end
+
+
 module type Vplus = sig
   include VValue
   type old_value
@@ -53,6 +60,9 @@ module type Vplus = sig
               -> (old_value -> 'gv)
                  * ('cv -> old_cvalue)
                  * (vopt,'gv,'cv cval) conv
+                 *( (_*(_*_*vopt*_)) Tags.t
+                    -> (module Proj with type cvalue = 'cv cval)
+                    -> (module Proj with type cvalue = 'cv cval) )
 end
                       
 module Value_add(V : PH)(Vold : VValue) =
@@ -91,16 +101,29 @@ module Value_add(V : PH)(Vold : VValue) =
           (f : Value.t -> gv)
           (g : cv -> CValue.t)
       =
+      let pr = function
+        | Case1 None    -> None
+        | Case1(Some b) -> Some(Values.Boolean b)
+        | Case2 v ->
+           match fst(g v) with
+           | None    -> None
+           | Some v' -> Some(Values.NonBoolean v')
+      in
       (fun ov -> f(Case2 ov)),
       (fun cv -> snd(g cv)),
-      HasVconv((fun nv -> f(Case1 nv)),
-               function
-               | Case1 None    -> None
-               | Case1(Some b) -> Some(Values.Boolean b)
-               | Case2 v ->
-                  match fst(g v) with
-                  | None -> None
-                  | Some v' -> Some(Values.NonBoolean v'))
+      HasVconv((fun nv -> f(Case1 nv)),pr),
+      fun hdl
+          (module Proj : Proj with type cvalue = cv cval)
+      ->
+      (module struct
+         type cvalue = cv cval
+         module P = struct
+           type (_,_,_,_,_,'v) t = (cvalue,'v) proj
+         end
+         module M = Tags.TestEq(P)
+         let proj tag = M.eq hdl tag (Proj pr) (Proj.proj tag)
+       end :
+       Proj with type cvalue = cv cval)
               
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
@@ -115,7 +138,7 @@ module Value_keep(Vold : VValue) =
     type old_cvalue = CValue.t
     type vopt = has_no_values
 
-    let trans f g = f,g,HasNoVconv
+    let trans f g = f,g,HasNoVconv,fun _ proj -> proj
               
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
@@ -126,6 +149,7 @@ type _ typedList =
   | El  : unit typedList
   | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList
 
+                                                                 
 module type State = sig
 
   module DT : DataType
@@ -139,6 +163,7 @@ module type State = sig
                 -> ('cv -> VV.CValue.t)
                 -> ('termdata,'gv,'cv cval,'assign) globalDS
                 -> ('termdata*'gv*'assign) Register.Modules.t list
+                   * (module Proj with type cvalue = 'cv cval)
 end
 
 
@@ -179,7 +204,7 @@ let theory_add (type tva)(type sign) (type ts)(type values)(type api)
              g
              ((module DS) : (gts,gv,cv cval,a) globalDS)
          =
-         let inj_old,proj_old,conv = Vplus.trans f g in
+         let inj_old,proj_old,conv,proj_make = Vplus.trans f g in
          let module NewDS =
            (struct
              include DS
@@ -194,7 +219,11 @@ let theory_add (type tva)(type sign) (type ts)(type values)(type api)
                           and type values = values)
          in
          let tm = Modules.make hdl (module NewDS) in
-         tm::(S.modules (fun x -> proj2(proj x)) inj_old proj_old (module DS))
+         let reclist, proj_mod =
+           S.modules (fun x -> proj2(proj x)) inj_old proj_old (module DS)
+         in
+         tm::reclist,
+         proj_make hdl proj_mod
 
      end)
   in
@@ -246,7 +275,19 @@ module InitState : State = struct
   end
                      
   let tsHandlers = El
-  let modules _ _ _ _ = []
+  let modules (type cv) _ _ _ _ =
+    [],
+    (module struct
+       type cvalue = cv cval
+       let proj tag =
+         let _,values = Modules.get tag in
+         let aux (type vopt) (v: vopt Theory.values_opt) : (cvalue,vopt)proj
+           = match v with
+           | Theory.HasValues _ -> Proj(fun _ -> None)
+           | Theory.HasNoValues -> NoProj
+         in aux values
+
+     end : Proj with type cvalue = cv cval)
 end
 
 module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
@@ -473,8 +514,12 @@ let make
 
      end
 
-     let th_modules = State.modules snd (fun x->x) (fun x->x) (module DS)
+     let th_modules,o = State.modules snd (fun x->x) (fun x->x) (module DS)
 
+     module VProj = (val o)
+
+     let vproj = VProj.proj
+       
      let problem = List.fold
                      (fun formula
                       -> DS.Assign.add (Values.bassign(DS.Term.lift [] formula)))

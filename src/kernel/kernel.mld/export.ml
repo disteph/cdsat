@@ -16,6 +16,8 @@ module type WhiteBoard = sig
       type t [@@deriving eq, ord, hash, show]
     end
 
+    module CValue : CValue with type value := Value.t
+
     type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
 
     module SAssign : sig
@@ -50,6 +52,9 @@ module type WhiteBoard = sig
   val curryfy  : Assign.t -> unsat t -> straight t
 end
 
+type (_,_) proj =
+  | Proj : ('cv -> 'v Values.t option) -> ('cv,'v has_values) proj
+  | NoProj : ('cv,has_no_values) proj
 
 module type API = sig
   type uaset
@@ -61,6 +66,8 @@ module type API = sig
 			                  and type FE.FSet.ps = ufset
 			                  and type FE.ASet.ps = uaset
   val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
+  val vproj      : (_ * (_ * _ * 'd * _)) Theories.Register.Tags.t
+                   -> (CValue.t, 'd) proj
   val problem    : Assign.t
   val expected   : bool option
   type answer = private

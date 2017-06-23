@@ -36,6 +36,36 @@ module Tags = struct
     | LRA        -> fprintf fmt "LRA"
     | IfThenElse -> fprintf fmt "IfThenElse"
     | FirstOrder -> fprintf fmt "FirstOrder"
+
+  module TestEq(M : sig
+               type (_,_,_,_,_,_) t
+             end) = struct
+    open General.Sums
+    let eq
+          (type s1)(type t1)(type v1)(type tva1)(type api1)
+          (type s2)(type t2)(type v2)(type tva2)(type api2)
+          (tag1 : (tva1*(s1*t1*v1*api1)) t)
+          (tag2 : (tva2*(s2*t2*v2*api2)) t)
+          (iftrue  : (s1,t1,v1,s1,t1,v1) M.t)
+          (iffalse : (s1,t1,v1,s2,t2,v2) M.t)
+        : (s1,t1,v1,s2,t2,v2) M.t
+      =
+      match tag1,tag2 with
+      | Empty, Empty   -> iftrue
+      | Eq, Eq         -> iftrue
+      | Arrays, Arrays -> iftrue
+      | LRA, LRA       -> iftrue
+      | IfThenElse, IfThenElse -> iftrue
+      | FirstOrder, FirstOrder -> iftrue
+      | _ -> iffalse
+  end
+
+  module M = TestEq(struct
+                       type (_,_,_,_,_,_) t = bool
+                     end)
+
+  let eq tag1 tag2 = M.eq tag1 tag2 true false
+
 end
 
 module Modules = struct
