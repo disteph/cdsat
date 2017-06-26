@@ -10,10 +10,12 @@ open Top.Messages
 open General
 open Patricia_interfaces
 open Sums
+
+open Interfaces
        
 (* This module implements conflict analysis *)
 
-module Make(WB : Export.WhiteBoard) : sig
+module Make(WB : WhiteBoardExt) : sig
 
   open WB.DS
 
@@ -31,18 +33,18 @@ The reason it was added to it was either:
     | Decided of both WB.t
     | Tried
 
-  include PATMapType with type keys = Term.t
+  include PATMapType with type keys = SAssign.t
                       and type values = int*int*nature
                       (* First int is level, second int is timestamp*)
                       (* and type infos  = D.infos *)
                       (* and type common = I.common *)
                       (* and type branching = I.branching *)
-                      and type ('v,'i) param = (Term.t,'v,int,int,'i) Patricia.poly
+                      and type ('v,'i) param = (SAssign.t,'v,int,int,'i) Patricia.poly
   (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
 
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)
-                -> (unsat WB.t -> Term.t -> Term.t option -> unit Deferred.t)
+                -> (unsat WB.t -> WB.sassign -> WB.sassign option -> unit Deferred.t)
                 (* a function to which we can pass stuff to learn *)
                 -> (unsat WB.t,  (* Either a subset of the original formulae are unsat *)
                     int * straight WB.t) (* Or there is a level to backjump to,

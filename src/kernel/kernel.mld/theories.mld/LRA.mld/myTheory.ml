@@ -11,51 +11,51 @@ include Theory.HasNoValues
 type ts = unit
 let ts = Termstructures.Register.NoRep
 
-module type API = sig
-  type assign
-  type sassign
-  val init: (sign,assign,sassign) slot_machine
-  val clear: unit -> unit
-end
-
 module Make(DS: GlobalDS) = struct
 
   open DS
-  type assign = Assign.t
-  type sassign = Term.t * Value.t Values.t
+  type datatypes = Term.datatype*Value.t*Assign.t
                                   
   let rec state atomN =
-    (module struct
+    SlotMachine(
+        module struct
+          
+          type term   = Term.t
+          type value  = Value.t
+          type assign = Assign.t
+          type newoutput = (sign,Term.datatype * Value.t * Assign.t) output
 
-      type assign = Assign.t
-      type sassign = Term.t * Value.t Values.t
-      type newoutput = (sign,assign,sassign) output
+          let treated () = atomN
 
-      let treated () = atomN
+          let add = function
+            | None -> Output(None,state atomN)
+            | Some a ->
+               let newtreated = Assign.add a atomN in
+               Output(Some(sat () newtreated),state newtreated)
 
-      let add = function
-        | None -> Output(None,state atomN)
-        | Some a ->
-           let newtreated = Assign.add a atomN in
-           Output(Some(sat () newtreated),state newtreated)
+          let normalise _ = failwith "Not a theory with normaliser"
 
-      let normalise _ = failwith "Not a theory with normaliser"
+          let clone () = Output(None, state atomN)
 
-      let clone () = Output(None, state atomN)
+          let suicide _ = ()
 
-      let suicide _ = ()
-
-     end : SlotMachine with type newoutput = (sign,Assign.t,Term.t * Value.t Values.t) output
-                        and type assign = Assign.t
-                        and type sassign = Term.t * Value.t Values.t)
+        end : SlotMachine with type newoutput = (sign,Term.datatype * Value.t * Assign.t) output
+                           and type term   = Term.t
+                           and type value  = Value.t
+                           and type assign = Assign.t)
 
   let init = state Assign.empty
   let clear () = ()
                    
 end
 
-type ('t,'v,'a) api = (module API with type assign = 'a
-                                   and type sassign= ('t,'v)sassign)
+module type API = sig
+  type datatypes
+  val init: (sign,datatypes) slot_machine
+  val clear: unit -> unit
+end
+
+type ('t,'v,'a) api = (module API with type datatypes = 't*'v*'a)
 
 let make (type t)(type v)(type a)
       ((module DS): (ts,values,t,v,a) dsProj)

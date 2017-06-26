@@ -26,7 +26,8 @@ end
 module type Input = sig
   include  Kernel.Export.APIext
   (* module IPluginProp : IPluginProp *)
-  val pluginsTh : WB.DS.Assign.t sslot_machine Theories.Register.HandlersMap.t
+  open WB.DS
+  val pluginsTh : (Term.datatype*Value.t*Assign.t) sslot_machine Theories.Register.HandlersMap.t
   val clear : unit -> unit
 end
        

@@ -138,21 +138,24 @@ end
                           
 module type SlotMachine = sig
   type newoutput
+  type term
+  type value
   type assign
-  type sassign
-  val add      : sassign option -> newoutput
+  val add      : (term*value Values.t) option -> newoutput
   val clone    : unit -> newoutput
   val suicide  : assign -> unit
 end
 
-type ('sign,'assign,'sassign) slot_machine
-  = (module SlotMachine with type newoutput = ('sign,'assign,'sassign) output
-                         and type assign = 'assign
-                         and type sassign = 'sassign)
+type (_,_) slot_machine
+  = SlotMachine : (module SlotMachine with type newoutput = ('sign,'t*'v*'a) output
+                                       and type term   = 't termF
+                                       and type value  = 'v
+                                       and type assign = 'a)
+                  -> ('sign,'t*'v*'a) slot_machine [@@unboxed]
       
- and (_,_,_) output =
+ and (_,_) output =
    Output:
-     ('sign,'ds,_) Messages.message option
-   * ('sign,'assign,'sassign) slot_machine
-   -> ('sign,'assign,'sassign) output
+     ('sign,'a*('t termF*bool),_) Messages.message option
+   * ('sign,'t*'v*'a) slot_machine
+   -> ('sign,'t*'v*'a) output
         

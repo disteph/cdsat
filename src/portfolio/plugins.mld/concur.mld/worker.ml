@@ -7,15 +7,16 @@ open Top.Specs
 open Theories.Register
 
 open Plugin
+open Interfaces
 
-module Make(WB: WhiteBoardExt.Type) = struct
+module Make(WB: WhiteBoardExt) = struct
 
   open WB
   open DS
 
-  let add     (type sign) ((module Cont): sign islot_machine) = Cont.add
-  let clone   (type sign) ((module Cont): sign islot_machine) = Cont.clone()
-  let suicide (type sign) ((module Cont): sign islot_machine) = Cont.suicide
+  let add     (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.add
+  let clone   (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.clone()
+  let suicide (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.suicide
 
   let rec flush reader writer msg =
     let aux = function
@@ -44,7 +45,7 @@ module Make(WB: WhiteBoardExt.Type) = struct
            Deferred.all_unit
              [loop_read hdl cont    newreader1 newwriter1 ;
               loop_read hdl newcont newreader2 newwriter2 ]
-      | KillYourself(WB(_,msg),_,_) -> return(suicide cont msg)
+      | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return(suicide cont assign)
     in
     Lib.read
       ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "%a dies" Tags.pp hdl)))

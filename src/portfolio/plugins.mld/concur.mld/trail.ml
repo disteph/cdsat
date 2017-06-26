@@ -13,14 +13,15 @@ open Patricia_interfaces
 open Patricia
 open SetConstructions
 open Sums
-       
+
 (* This module implements conflict analysis *)
 
 module Make(WB : Export.WhiteBoard) = struct
 
   open WB.DS
+  type sassign = Term.t*(Value.t Values.t) [@@deriving show]
          
-  module I = TypesFromHConsed(Term)
+  module I = TypesFromHConsed(SAssign)
 
   (* type nature indicates the status of each formula accumulated in the trail so far.
 The reason it was added to it was either:
@@ -49,15 +50,15 @@ The reason it was added to it was either:
   type max = {
       level : int;
       chrono : int;
-      term : unit -> Term.t;
+      sassign: unit -> sassign;
       nature : unit -> nature;
       is_uip : unit -> bool;
       has_guess : unit -> bool
     }
 
   module DestWInfo = struct
-    type keys    = Term.t
-    let kcompare = Term.compare
+    type keys    = SAssign.t
+    let kcompare = SAssign.compare
     type values  = int*int*nature
     type infos   = max
 
@@ -66,7 +67,7 @@ The reason it was added to it was either:
         empty_info  = {
           level = -1;
           chrono = -1;
-          term =  (fun()->failwith "Empty Trail");
+          sassign=  (fun()->failwith "Empty Trail");
           nature = (fun()->failwith "Empty Trail");
           is_uip = (fun()->failwith "Empty Trail");
           has_guess = (fun()->failwith "Empty Trail");
@@ -76,7 +77,7 @@ The reason it was added to it was either:
           {
             level = i;
             chrono = j;
-            term = (fun()-> x);
+            sassign= (fun()-> SAssign.reveal x);
             nature = (fun()-> v);
             is_uip = (fun()-> true);
             has_guess =
@@ -138,18 +139,18 @@ The reason it was added to it was either:
         let next = get_data trail msg in
         (* Second formula participating to conflict *)
         let second = if is_empty next then None
-                     else Some((info next).term()) in
+                     else Some((info next).sassign()) in
         Dump.print ["trail",1] (fun p ->
             p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n%a"
               data.level
-              Term.pp (data.term())
+              pp_sassign (data.sassign())
               (info next).level
-              (Opt.pp_print_option Term.pp) second
+              (Opt.pp_print_option SAssign.pp) (Opt.map SAssign.build second)
               WB.pp msg
           );
         (* We learn the conflict, watching first and second formulae *)
 
-        learn conflict (data.term()) second >>| fun ()->
+        learn conflict (data.sassign()) second >>| fun ()->
         (* Now jumping to level of second formula contributing to conflict *)
         
         Case2((info next).level, msg)
@@ -165,7 +166,7 @@ The reason it was added to it was either:
          
          let t1,rest = Assign.next semsplit in
          let t2,_ = Assign.next rest in
-         learn conflict t1 (Some t2) >>| fun ()->
+         learn conflict t1 (Some(t2)) >>| fun ()->
          (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
 
@@ -198,19 +199,19 @@ The reason it was added to it was either:
                  && (data.is_uip())       (* and data.term() is a UIP *)
                  && data.level > 0        (* and conflict is not of level 0 *)
               then (* ...we might use that UIP to switch branches *)
-                Some((WB.curryfy (Assign.singleton(data.term())) conflict))
+                Some((WB.curryfy (Assign.singleton(data.sassign())) conflict))
               else None
             in
             begin match curry with
-            | Some(WB.WB(_,Propa(_,Straight tset)) as msg)
-                 when not(subset_poly (fun() _ -> true) tset trail)
+            | Some(WB.WB(_,Propa(_,Straight(l,b))) as msg)
+                 when not(mem (SAssign.build(Values.bassign ~b l)) trail)
                          (* ...but only if the negation of the UIP is new knowledge *)
               -> finalise msg
             | _ ->
                Dump.print ["trail",1] (fun p ->
-                   let level,chrono,_ = find (data.term()) trail in
+                   let level,chrono,_ = find (SAssign.build(data.sassign())) trail in
                    p "Explaining %a of level %i and chrono %i, using message\n%a"
-                     Term.pp (data.term())
+                     pp_sassign (data.sassign())
                      level chrono
                      WB.pp msg
                  );
@@ -222,7 +223,8 @@ The reason it was added to it was either:
                  (* The latest contributing decision is a guess,
                  and is among the nodes we are about to add:
                  we refuse to resolve *)
-                 aux conflict ~level:data.level (Assign.add (data.term()) semsplit) newdata
+                 aux conflict ~level:data.level
+                   (Assign.add (data.sassign()) semsplit) newdata
                else
                  aux newconflict ?level semsplit newdata
             end

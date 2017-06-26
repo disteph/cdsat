@@ -8,5 +8,5 @@ module Make(DS: GlobalDS) : sig
   open DS
          
   val make : (Term.datatype*Value.t*Assign.t) Modules.t
-             -> (DS.Assign.t*((Term.datatype,Value.t) sassign)) PluginTh.sslot_machine * (unit -> unit)
+             -> (Term.datatype*Value.t*Assign.t) PluginTh.sslot_machine * (unit -> unit)
 end

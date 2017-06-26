@@ -60,7 +60,7 @@ module Make(WB : WhiteBoardExt) = struct
     val init : t
     val extend : Assign.t -> t -> t
     val notfixed : t -> Assign.t -> Assign.t
-    val is_fixed : Term.t -> t -> bool
+    val is_fixed : Term.t*Value.t Top.Values.t -> t -> bool
     val are_fixed : Assign.t -> t -> bool
   end = struct
     type t = Assign.t
@@ -76,22 +76,25 @@ module Make(WB : WhiteBoardExt) = struct
     val id : t -> int
     val msg : t -> unsat WB.t
     val make : unsat WB.t -> t
-    val tset : t -> Assign.t
+    val assign : t -> Assign.t
     val simplify : Fixed.t -> t -> t
   end = struct
     type t = H'.t
     let id = H.id
     let msg = H.reveal
     let make = H'.build
-    let tset c =
+    let assign c =
       let WB(_,Propa(tset,Unsat)) = msg c in
       tset
     let simplify _ msg = msg
   end
 
+  module Var = struct
+    type t = Term.t*Value.t Top.Values.t [@@deriving ord,show]
+  end
           
   module Config
-         : (TwoWatchedLits.Config with type Var.t = Term.t
+         : (TwoWatchedLits.Config with type Var.t = Term.t*Value.t Top.Values.t
                                    and type Constraint.t = Constraint.t
                                    and type fixed = Fixed.t) = struct
     
@@ -102,14 +105,14 @@ module Make(WB : WhiteBoardExt) = struct
     (* Constraints are unsat messages. *)
     module Constraint = Constraint
 
-    module Var = Term
+    module Var = Var
 
     type fixed = Fixed.t
                    
     let simplify = Constraint.simplify
                      
     let pick_another fixed (c : Constraint.t) i (previous : Var.t list) : Var.t list option =
-      let tset = Fixed.notfixed fixed (Constraint.tset c) in
+      let tset = Fixed.notfixed fixed (Constraint.assign c) in
       let newlist =
         TwoWatchedLits.pick_another_make
           ~is_empty:Assign.is_empty
@@ -124,14 +127,14 @@ module Make(WB : WhiteBoardExt) = struct
              p "%t" (fun fmt ->
                  Format.fprintf fmt "Memo: Have to watch %i terms in %a\nHave chosen %a from %a"
                    i
-                   Assign.pp (Constraint.tset c)
-                   (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") Term.pp) newlist
+                   Assign.pp (Constraint.assign c)
+                   (List.pp Var.pp) newlist
                    Assign.pp tset)
           | None ->
              p "%t" (fun fmt ->
                  Format.fprintf fmt "Memo: Unable to pick %i terms to watch in %a\nMust choose from %a"
                    i
-                   Assign.pp (Constraint.tset c)
+                   Assign.pp (Constraint.assign c)
                    Assign.pp tset
         ));
       newlist
@@ -139,10 +142,10 @@ module Make(WB : WhiteBoardExt) = struct
   end 
 
   module P = TwoWatchedLits.Make(Config)
-                                
+
   module WR : sig
-    val add : Constraint.t -> Term.t -> Term.t option -> unit
-    val treat : Config.fixed -> Assign.t -> (Config.Constraint.t*Term.t list) option
+    val add : Constraint.t -> Var.t -> Var.t option -> unit
+    val treat : Config.fixed -> Var.t -> (Config.Constraint.t*Var.t list) option
   end = struct
     
     let watchref = ref P.init
@@ -157,18 +160,18 @@ module Make(WB : WhiteBoardExt) = struct
          Dump.print ["watch",1] (fun p-> p "Already know");
          true
           
-    let add c term1 term2 =
-      let tset = Constraint.tset c in
+    let add c sassign1 sassign2 =
+      let tset = Constraint.assign c in
       if not(prove tset)
       then
         watchref := P.addconstraintNflag c
-                      (term1::(match term2 with None -> [] | Some t2 -> [t2]))
+                      (sassign1::(match sassign2 with None -> [] | Some t2 -> [t2]))
                       !watchref;
         incr watchcount;
         Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 
-    let treat fixed tset =
-      let watch = Assign.fold P.fix tset !watchref in
+    let treat fixed sassign =
+      let watch = P.fix sassign !watchref in
       let msg, watch = P.next ~howmany:2 fixed watch in
       watchref := watch;
       msg
@@ -199,10 +202,10 @@ module Make(WB : WhiteBoardExt) = struct
 
   let rec loop_read fixed from_pl to_pl =
     let aux = function 
-      | MsgStraight(tset,chrono) ->
-         let fixed = Fixed.extend tset fixed in
-         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Assign.pp tset);
-         loop_write (WR.treat fixed tset) fixed chrono from_pl to_pl
+      | MsgStraight(sassign,chrono) ->
+         let fixed = Fixed.extend (Assign.singleton sassign) fixed in
+         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Var.pp sassign);
+         loop_write (WR.treat fixed sassign) fixed chrono from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) ->
          Deferred.all_unit
            [ loop_read fixed newreader1 newwriter1 ;
@@ -222,8 +225,8 @@ module Make(WB : WhiteBoardExt) = struct
            loop_read fixed from_pl to_pl ]
     | Some(constr,termlist) ->
        let msg = Constraint.msg constr in
-       let tset = Constraint.tset constr in
-       if Fixed.are_fixed tset fixed
+       let assign = Constraint.assign constr in
+       if Fixed.are_fixed assign fixed
        then
          (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
           let msg = Msg(None,Say msg,chrono) in
@@ -231,16 +234,16 @@ module Make(WB : WhiteBoardExt) = struct
             [ Lib.write to_pl msg;
               flush from_pl to_pl msg ])
        else
-         let terms = Fixed.notfixed fixed tset in
+         let terms = Fixed.notfixed fixed assign in
          (Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
                 WB.pp msg Assign.pp terms);
           let msg = WB.curryfy terms msg in
           let WB(_,Propa(_,Straight tset)) = msg in
-          if Fixed.are_fixed tset fixed
+          if Fixed.are_fixed assign fixed
           then
             (Dump.print ["memo",0] (fun p->
-                 p "Memo: %a already known" Assign.pp tset);
+                 p "Memo: %a already known" Assign.pp assign);
              Deferred.all_unit
                [ Lib.write to_pl (Msg(None,Ack,chrono));
                  loop_read fixed from_pl to_pl ])

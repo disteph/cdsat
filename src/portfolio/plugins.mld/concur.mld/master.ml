@@ -26,7 +26,7 @@ module Make(WB: sig
               end) = struct
 
   open WB
-         
+
   (* We load the code of the slave workers, generated from the
       Whiteboard *)
 
@@ -80,11 +80,8 @@ module Make(WB: sig
     in
     WM.broadcast treat_worker pipe_map
 
-  let trail_ext level chrono msg =
-    T.union_poly
-      (fun _ () v -> v)
-      (T.map (fun _ () -> level,chrono,msg))
-      (fun trail -> trail)
+  let trail_ext level chrono msg sassign trail =
+    T.add (DS.SAssign.build sassign) (fun _ -> (level,chrono,msg)) trail
 
   (* This is a branching function telling all slave workers:
 
@@ -129,7 +126,14 @@ module Make(WB: sig
     (ans,
      (fun msg2 ->
        let WB(_,Propa(_,Straight new2)) = msg2 in
-       let trail = trail_ext state.level (state.chrono+1) (T.Propagated msg2) new2 state.trail
+       let new2 = Top.Values.boolassign new2 in
+       let trail =
+         trail_ext
+           state.level
+           (state.chrono+1)
+           (T.Propagated msg2)
+           new2
+           state.trail
        in
        Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
        let newstate2 = { state with
@@ -183,8 +187,8 @@ module Make(WB: sig
                | Ack ->
                   Dump.print ["concur",2] (fun p-> p "Hearing Ack %i from %a" chrono Agents.pp agent);
                   select_msg state
-               | Try term -> 
-                  Dump.print ["concur",2] (fun p-> p "Hearing guess %a from %a" DS.Term.pp term Agents.pp agent);
+               | Try sassign -> 
+                  Dump.print ["concur",2] (fun p-> p "Hearing guess %a from %a" pp_sassign sassign Agents.pp agent);
                   select_msg { state with try_list = msg::state.try_list }
                | Say(WB(_,Propa(_,Both _))) -> 
                   Dump.print ["concur",2] (fun p-> p "Hearing split demand from %a" Agents.pp agent);
@@ -198,7 +202,7 @@ module Make(WB: sig
 
   (* Main loop of the master thread *)
 
-  let main_worker from_workers to_pl0 pipe_map tset =
+  let main_worker from_workers to_pl0 pipe_map assign0 =
 
     let rec main_worker (WB(rest, Sat consset) as current) state =
 
@@ -258,13 +262,15 @@ module Make(WB: sig
                Case1 ans
 
             | Propa(old,Straight newa) ->
+               let newa = Top.Values.boolassign newa in
                let chrono = state.chrono+1 in
                Dump.print ["concur",1] (fun p ->
                    p "Level %i; chrono %i; %a"
                      state.level chrono WB.pp thmsg);
                (* A theory deduced literals newa from literals
                old. We broadcast them to all theories *)
-               send state.pipe_map (MsgStraight(newa,chrono)) >>= fun () ->
+               send state.pipe_map (MsgStraight(newa,chrono))
+               >>= fun () ->
                main_worker current
                  { state with
                    waiting4 = AS.all;
@@ -277,6 +283,7 @@ module Make(WB: sig
                              state.trail }
 
             | Propa(old,Both(newa,_)) ->
+               let newa = Top.Values.boolassign newa in
                Dump.print ["concur",1] (fun p ->
                    p "Level %i; chrono %i; %a"
                      (state.level+1) (state.chrono+1) WB.pp thmsg);
@@ -313,11 +320,13 @@ module Make(WB: sig
         waiting4     = AS.all;
         level        = 0;
         chrono       = 0;
-        trail        = T.map (fun _ () -> 0,0,T.Original) tset
+        trail        = T.map (fun _ () -> 0,0,T.Original) assign0
       }
     in
-    send state.pipe_map (MsgStraight(tset,0)) >>= fun () ->
-    main_worker (WB.sat_init tset) state >>| function
+    let list0 = DS.Assign.fold (fun sassign sofar -> sassign::sofar) assign0 [] in
+    let aux sassign = send state.pipe_map (MsgStraight(sassign,0)) in
+    Deferred.all_unit (List.map aux list0) >>= fun () ->
+    main_worker (WB.sat_init assign0) state >>| function
     | Case1(Case1 conflict) -> Case1 conflict
     | Case1(Case2 _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg

@@ -11,6 +11,10 @@ let pp_print_option ?pp_none print_in_fmt fmt = function
      end
   | Some a -> print_in_fmt fmt a
 
+let map f = function
+  | None -> None
+  | Some a -> Some(f a)
+                           
 type some = private S
 type none = private N
 

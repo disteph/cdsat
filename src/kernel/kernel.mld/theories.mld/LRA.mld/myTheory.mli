@@ -3,13 +3,11 @@ open Top.Specs
 type sign
 
 module type API = sig
-  type assign
-  type sassign
-  val init: (sign,assign,sassign) slot_machine
+  type datatypes
+  val init: (sign,datatypes) slot_machine
   val clear: unit -> unit
 end
 
 include Theory.Type
-        with type ('t,'v,'a) api = (module API with type assign = 'a
-                                                and type sassign= ('t,'v)sassign)
+        with type ('t,'v,'a) api = (module API with type datatypes = 't*'v*'a)
                         

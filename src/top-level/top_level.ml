@@ -108,7 +108,7 @@ let run parser input =
 
 let parseNrun input =
   let parsers = match !PFlags.parser with
-    | Some parsers -> List.map Kernel.Parsers.Register.parse parsers
+    | Some parsers -> List.map Kernel.Parsers.Register.parse_name parsers
     | None -> Kernel.Parsers.Register.all
   in
   let rec trying = function
