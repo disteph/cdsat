@@ -38,10 +38,10 @@ The reason it was added to it was either:
     | Tried
 
 
-  (* When doing conflict analysis, the current set of formulae in conflict is implemented in type t below. In that set we want to retain some general information:
+  (* When doing conflict analysis, the current set of assignments in conflict is implemented in type t below. In that set we want to retain some general information:
 - level: the maximal level (or possibly an upper bound on it)
-- chrono: the timestamp of the latest formula in the conflict
-- term: that formula
+- chrono: the timestamp of the latest assignment in the conflict
+- sassign: that assignment
 - nature: the nature of this formula, as above
 - is_uip: is true iff this formula is a UIP
 - has_guess: is true iff the highest level is that of a guess (formula whose nature is Tried)
@@ -108,7 +108,7 @@ The reason it was added to it was either:
                        
   include PATMap.Make(DestWInfo)(I)
 
-  (* Extracts from trail the fragment tset that is used in left-hand
+  (* Extracts from trail the fragment that is used in left-hand
   side of propa message, from which we removed semsplit. I.e. the
   formulae in semsplit do not end up in the extraction. *)
                      
@@ -135,9 +135,9 @@ The reason it was added to it was either:
        *)
       
       let finalise msg =
-        (* First computing the formulae we need for the branch we backjump to *)
+        (* First computing the assignments we need for the branch we backjump to *)
         let next = get_data trail msg in
-        (* Second formula participating to conflict *)
+        (* Second assignment participating to conflict *)
         let second = if is_empty next then None
                      else Some((info next).sassign()) in
         Dump.print ["trail",1] (fun p ->
@@ -166,69 +166,65 @@ The reason it was added to it was either:
          
          let t1,rest = Assign.next semsplit in
          let t2,_ = Assign.next rest in
-         learn conflict t1 (Some(t2)) >>| fun ()->
+         learn conflict t1 (Some t2) >>| fun ()->
          (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
 
-         Case2(level-1, WB.curryfy semsplit conflict)
+         Case2(level-1, WB.curryfy ~assign:semsplit conflict)
 
-      | _ -> (* Otherwise we analyse the nature of the latest formula
+      | _ -> (* Otherwise we analyse the nature of the latest assignment
               contributing to the conflict *)
 
-         begin match data.nature() with
+         begin match data.nature(),data.sassign() with
 
-         | Tried -> failwith "Latest formula in conflict is a guess: TO BE IMPLEMENTED"
-                             
-         | Original ->
+         | Original,_ ->
             (* It's a formula of the original problem, and so is the
                whole conflict.  We stop. *)
 
             return(Case1 conflict)
 
-         | Decided msg  ->
+         | Decided msg,_  ->
             (* It's a decision created by PropaBoth message msg.  We
                create the propagation message we use for the backjump
                branch, and finalise our answer. *)
 
             finalise (WB.both2straight msg conflict)
 
-         | Propagated msg ->
-
-            let curry =
-              if (Assign.is_empty semsplit) (* If we are not in semsplit *)
-                 && (data.is_uip())       (* and data.term() is a UIP *)
-                 && data.level > 0        (* and conflict is not of level 0 *)
-              then (* ...we might use that UIP to switch branches *)
-                Some((WB.curryfy (Assign.singleton(data.sassign())) conflict))
-              else None
-            in
-            begin match curry with
-            | Some(WB.WB(_,Propa(_,Straight(l,b))) as msg)
-                 when not(mem (SAssign.build(Values.bassign ~b l)) trail)
-                         (* ...but only if the negation of the UIP is new knowledge *)
-              -> finalise msg
-            | _ ->
-               Dump.print ["trail",1] (fun p ->
-                   let level,chrono,_ = find (SAssign.build(data.sassign())) trail in
-                   p "Explaining %a of level %i and chrono %i, using message\n%a"
-                     pp_sassign (data.sassign())
-                     level chrono
-                     WB.pp msg
-                 );
-               (* Proposed new conflict, and its data *)
-               let newconflict = WB.resolve msg conflict in
-               let newdata = info(get_data trail ~semsplit newconflict) in
-               if newdata.has_guess()
-               then
-                 (* The latest contributing decision is a guess,
+         | _,(t,Values.Boolean b)
+              when (Assign.is_empty semsplit) (* If we are not in semsplit *)
+                   && (data.is_uip())       (* and data.term() is a UIP *)
+                   && data.level > 0        (* and conflict is not of level 0 *)
+                   && not(mem (SAssign.build(Values.bassign ~b:(not b) t)) trail)
+                         (* ...if the negation of the UIP is new knowledge *)
+           -> (* ...we might use that UIP to switch branches *)
+            finalise (WB.curryfy ~flip:(t,b) conflict)
+                     
+         | Propagated msg,_ ->
+            begin
+              Dump.print ["trail",1] (fun p ->
+                  let level,chrono,_ = find (SAssign.build(data.sassign())) trail in
+                  p "Explaining %a of level %i and chrono %i, using message\n%a"
+                    pp_sassign (data.sassign())
+                    level chrono
+                    WB.pp msg
+                );
+              (* Proposed new conflict, and its data *)
+              let newconflict = WB.resolve msg conflict in
+              let newdata = info(get_data trail ~semsplit newconflict) in
+              if newdata.has_guess()
+              then
+                (* The latest contributing decision is a guess,
                  and is among the nodes we are about to add:
                  we refuse to resolve *)
-                 aux conflict ~level:data.level
-                   (Assign.add (data.sassign()) semsplit) newdata
-               else
-                 aux newconflict ?level semsplit newdata
+                aux conflict ~level:data.level
+                  (Assign.add (data.sassign()) semsplit) newdata
+              else
+                aux newconflict ?level semsplit newdata
             end
+
+         | Tried,_ -> failwith "There is a guess in the original conflict!!! Not supported (should apply rule Undo)"
+                             
          end
     in aux conflict Assign.empty (info(get_data trail conflict))
-      
+           
 end

@@ -86,8 +86,8 @@ module Make(WB: sig
   (* This is a branching function telling all slave workers:
 
          "Please, clone yourself; here are the new pipes to be used
-         for your clone to communicate with me; add the literals newa
-         to your original self, add the literals newb to your clone."
+         for your clone to communicate with me; add the boolean assignment newa
+         to your original self, add the boolean assignment newb to your clone."
 
          Once all slave workers have done so, we apply continuation
          cont to treat the first branch (with newa). When that
@@ -107,7 +107,16 @@ module Make(WB: sig
       WM.clone aux state.pipe_map
     in
     Deferred.all_unit tasks >>= fun () -> 
-    Dump.print ["concur",1] (fun p -> p "%s" "Everybody cloned themselves; now starting first branch");
+    Dump.print ["concur",1] (fun p ->
+        p "%s" "Everybody cloned themselves; now starting first branch");
+    let trail =
+      trail_ext
+        (state.level+1)
+        (state.chrono+1)
+        (T.Decided msg)
+        new1
+        state.trail
+    in
     let newstate1 = { state with
                       from_workers = new_from_workers1;
                       to_plugin = new_to_pl1;
@@ -115,11 +124,7 @@ module Make(WB: sig
                       waiting4  = AS.all;
                       level     = state.level+1;
                       chrono    = state.chrono+1;
-                      trail = trail_ext (state.level+1)
-                                (state.chrono+1)
-                                (T.Decided msg)
-                                new1
-                                state.trail }
+                      trail     = trail }
     in
     send new_pipe_map1 (MsgStraight(new1,newstate1.chrono)) >>= fun () ->
     cont newstate1 >>| fun ans ->
@@ -220,7 +225,23 @@ module Make(WB: sig
       else
         select_msg state
         >>= function
-        | Try term, state -> failwith "TODO"
+        | Try sassign, state ->
+           let level = state.level +1 in
+           let chrono = state.chrono +1 in
+           Dump.print ["concur",1] (fun p -> p "Trying %a" WB.pp_sassign sassign);
+           send state.pipe_map (MsgStraight(sassign,chrono))
+           >>= fun () ->
+           main_worker current
+             { state with
+               waiting4 = AS.all;
+               level  = level;
+               chrono = chrono;
+               trail = trail_ext
+                         level
+                         chrono
+                         T.Tried
+                         sassign
+                         state.trail }
                                       
         | Say(WB(_,msg) as thmsg), state ->
            (match msg with

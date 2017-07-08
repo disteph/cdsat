@@ -10,11 +10,6 @@ module FVSubst : sig
   val get_arity : t -> World.t
   val get: int -> t -> FreeVar.t*World.t
 end
-
-module SAssign(DS:GlobalDS) : sig
-  open DS
-  type t = Term.t * Value.t Values.t [@@deriving eq, show]
-end
        
 val fail_state : (_,_*_*_) Specs.slot_machine
 

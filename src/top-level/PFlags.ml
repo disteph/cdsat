@@ -18,3 +18,6 @@ let myplugin : string ref = ref "basic"           (* Default plugin *)
 let notheories: string list option ref = ref (Some[]) (* List of forbidden theories *)
 let addtheories: string list option ref = ref (Some[]) (* List of added theories *)
 
+let dtag     = ref ""      (* Temp variable to construct following ref *)
+let dtags : (string*int*bool) list ref
+             = ref []      (* Activates debug mode (displays fails, etc) *)

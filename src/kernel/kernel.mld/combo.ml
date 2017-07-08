@@ -55,7 +55,11 @@ module Value_add(V : PH)(Vold : VValue) =
   (struct
 
     module Value = struct
-      type t = (V.t,Vold.Value.t) sum [@@deriving eq,ord,show,hash]
+      type t = (V.t,Vold.Value.t) sum [@@deriving eq,ord,hash]
+      let pp fmt = function
+        | Case1 v -> V.pp fmt v
+        | Case2 v -> Vold.Value.pp fmt v
+      let show  = Dump.stringOf pp
     end
 
     module CValue = struct
@@ -162,6 +166,12 @@ let theory_add (type tva)(type sign) (type ts)(type values)(type api)
   let (module Vplus) =
     match values with
     | Theory.HasValues(module V) ->
+       let module V = struct
+           type t = V.t [@@deriving eq,ord,hash]
+           let pp fmt v = Format.printf "%a<%a>" Tags.pp hdl V.pp v
+           let show  = Dump.stringOf pp
+         end
+       in
        (module Value_add(V)(S.VV) : Vplus with type old_value = S.VV.Value.t
                                            and type old_cvalue = S.VV.CValue.t
                                            and type vopt = values)
@@ -326,29 +336,29 @@ module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
           -> failwith "Comparing Booleans with non-booleans"
     end
 
-    module VValue = struct
-      type t = Value.t Values.t  [@@deriving eq, hash, ord, show]
-    end
-
     type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
-
-    module Param = struct
-      type 'a t = Term.t * VValue.t [@@deriving eq, hash, show]
-      let hash t = Hash.wrap1 hash_fold_t t
-    end
-                     
-    module H = HCons.Make(Param)
+    type sassign = Term.t * Value.t Values.t [@@deriving eq, hash]
+    let pp_sassign fmt (t,v) =
+      match v with
+      | Values.Boolean true -> Format.fprintf fmt "%a" Term.pp t
+      | Values.Boolean false -> Format.fprintf fmt "!(%a)" Term.pp t
+      | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" Term.pp t Value.pp v
+                                    
     module SAssign = struct
-      include H
+      module Param = struct
+        type 'a t = sassign [@@deriving eq, hash, show]
+        let name = "SingleAssignment"
+      end
+      include HCons.Make(Param)
       include Init(HCons.NoBackIndex)
-      let pp fmt t = Param.pp (fun _ _ -> ()) fmt (reveal t)
+      let pp fmt t = pp_sassign fmt (reveal t)
       let show  = Dump.stringOf pp
     end
 
     module Assign = struct
       open SetConstructions
       open Patricia
-      type e = Term.t*VValue.t [@@deriving eq, ord, hash, show]
+      type e = sassign [@@deriving eq, hash, show]
       module D = struct
         type keys      = SAssign.t
         let kcompare   = SAssign.compare
@@ -483,19 +493,23 @@ let make
          WB(HandlersMap.union hdls1 hdls2,
             straight () (Assign.union res oldset) newbassign)
 
-       let curryfy assign (WB(hdls,Propa(thset,Unsat))) =
-         let aux ((term,value) as a) ((thset,clause) as sofar) =
+       let curryfy ?(assign=Assign.empty) ?(flip=Term.bC Symbols.False [],false) (WB(hdls,Propa(thset,Unsat))) =
+         let t,b = flip in
+         let thset = Assign.remove (t,Values.Boolean b) thset in
+         let aux ((term,value) as a) ((thset,clause,b) as sofar) =
            match value with
-           | Values.Boolean true when Assign.mem a thset
+           | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
               -> Assign.remove a thset,
-                 Term.bC Symbols.Imp [term;clause]
+                 Term.bC Symbols.Imp (if b then [term;clause] else [clause;term]),
+                 true                 
            | Values.Boolean false when Assign.mem a thset
               -> Assign.remove a thset,
-                 Term.bC Symbols.Or [term;clause]
+                 Term.bC (if b then Symbols.Or else Symbols.And) [term;clause],
+                 b
            | _ -> sofar
          in
-         let thset,rhs = Assign.fold aux assign (thset, Term.bC Symbols.False []) in
-         WB(hdls,Propa(thset, Straight(rhs,true)))
+         let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
+         WB(hdls,Propa(thset, Straight(rhs,b)))
 
      end
 

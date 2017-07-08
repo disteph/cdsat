@@ -2,10 +2,6 @@
 (* Dump flags *)
 
 let latex    = ref false   (* Activates latex output *)
-let debug    = ref 0       (* Activates debug mode (displays fails, etc) *)
-let dtag     = ref ""      (* Temp variable to construct following ref *)
-let dtags : (string*int*bool) list ref
-             = ref []      (* Activates debug mode (displays fails, etc) *)
 
 (* Plotting *)
 let plot = ref false (* Produce debug output in a form suitable for plotting *)

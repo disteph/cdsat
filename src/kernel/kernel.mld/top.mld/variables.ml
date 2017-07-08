@@ -20,7 +20,7 @@ module FreeVar = struct
 
   module Arg = struct
     type 'a t = freeVarExposed [@@deriving eq, hash]
-    let hash f = Hash.wrap1 hash_fold_t f
+    let name = "FreeVar"
   end
 
   include HCons.Make(Arg)
@@ -43,7 +43,7 @@ module World = struct
 
   module Arg = struct
     type 'r t = 'r worldExposed [@@deriving eq, hash]
-    let hash hash_rec = Hash.wrap1 hash_fold_t hash_rec
+    let name = "World"
   end
 
   include HCons.Make(Arg)

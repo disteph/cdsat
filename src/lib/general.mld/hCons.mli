@@ -26,12 +26,10 @@ module type PolyS = sig
   val compare: ('a,'data) generic -> ('a,'data) generic -> int
 end
 
-module MakePoly
-         (M: sig 
-              type ('t,'a) t
-              val equal: ('t->'t->bool) -> ('a->'a->bool) -> (('t,'a) t -> ('t,'a) t -> bool) 
-              val hash : ('t->int) -> ('a->int) -> (('t,'a) t -> int)    
-            end) : sig
+module MakePoly(M: sig 
+                    type ('t,'a) t [@@deriving eq, hash]
+                    val name : string
+                  end) : sig
 
   include PolyS with type ('t,'a) initial = ('t,'a) M.t
 
@@ -70,12 +68,10 @@ module type S = sig
   val compare: 'data generic -> 'data generic -> int
 end
 
-module Make
-         (M: sig 
-              type 't t
-              val equal: ('t->'t->bool) -> 't t -> 't t -> bool
-              val hash : ('t->int) -> 't t -> int
-            end) : sig
+module Make(M: sig 
+                type 't t [@@deriving eq, hash]
+                val name : string
+              end) : sig
   
   include S with type 't initial = 't M.t
 

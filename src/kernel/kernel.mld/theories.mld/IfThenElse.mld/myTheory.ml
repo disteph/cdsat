@@ -15,7 +15,6 @@ module Make(DS: DSproj) = struct
 
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
-  module SAssign = Tools.SAssign(DS)
 
   module TSet = Set.Make(Term)
   module TMap = Map.Make(Term)

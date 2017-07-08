@@ -36,11 +36,7 @@ The reason it was added to it was either:
   include PATMapType with type keys = SAssign.t
                       and type values = int*int*nature
                       (* First int is level, second int is timestamp*)
-                      (* and type infos  = D.infos *)
-                      (* and type common = I.common *)
-                      (* and type branching = I.branching *)
                       and type ('v,'i) param = (SAssign.t,'v,int,int,'i) Patricia.poly
-  (* and type t = (D.keys,int*int*nature,int,int,D.infos) poly *)
 
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)

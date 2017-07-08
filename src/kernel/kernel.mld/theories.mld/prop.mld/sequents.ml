@@ -59,8 +59,7 @@ module Make(PlDS: PlugDSType) = struct
     type dsubsts     = FVSubst.t
     type constraints = FirstOrder.Constraint.t
     type assign      = Assign.t
-    module SAssign = Tools.SAssign(DS)
-    type sassign     = SAssign.t
+    type sassign     = Term.t * Value.t Values.t [@@deriving eq, show]
 
     let ppC = FirstOrder.Constraint.pp
     let ppL = LitF.print_in_fmt ~print_atom:Term.print_of_id
@@ -318,7 +317,7 @@ module Make(PlDS: PlugDSType) = struct
     | Notify   of seqU seq*constraints*bool*('a notified -> 'a output)*('a address)
     | AskFocus of seqU seq*constraints*FSet.t*bool*bool*('a focusCoin -> 'a output)*('a address)
     | AskSide  of seqF seq*constraints*('a sideCoin -> 'a output)*('a address)
-    | CloseNow of SAssign.t * Assign.t * ((Assign.t,constraints) stream -> 'a output)
+    | CloseNow of sassign * Assign.t * ((Assign.t,constraints) stream -> 'a output)
     | Check    of Assign.t * ((Assign.t,constraints) stream -> 'a output)
     | Stop     of bool*bool*(unit -> 'a output)
 

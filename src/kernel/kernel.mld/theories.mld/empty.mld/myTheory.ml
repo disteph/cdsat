@@ -15,7 +15,7 @@ module Make(DS: GlobalDS) = struct
 
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
-  module SAssign = Tools.SAssign(DS)
+  type sassign = Term.t * Value.t Values.t [@@deriving eq, show]
 
   let rec machine atomN =
     SlotMachine(
@@ -29,7 +29,7 @@ module Make(DS: GlobalDS) = struct
           let add = function
             | None -> Output(None, machine atomN)
             | Some a ->
-               Dump.print ["empty",1] (fun p-> p "Empty adds %a" SAssign.pp a);
+               Dump.print ["empty",1] (fun p-> p "Empty adds %a" pp_sassign a);
                let atomN = Assign.add a atomN in
                let tmp =
                  Assign.fold

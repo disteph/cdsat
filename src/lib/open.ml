@@ -17,7 +17,11 @@ include Pervasives
 
 let id2compare id a b = compare (id a) (id b)
 let id2equal   id a b = (id a)=(id b)
-      
+
+let (<*<) compare1 compare2 (a1,a2) (b1,b2)
+  = let c = compare1 a1 b1 in
+    if c = 0 then compare2 a2 b2 else c
+                                 
 type _ compare =
   | Compare : ('a->'a->int)-> 'a compare
   | IntCompare : int compare

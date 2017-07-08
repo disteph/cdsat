@@ -21,9 +21,9 @@ module Make(DS: GlobalDS) = struct
          let module M = Empty_pl1.Make(DS) in         
          aux M.make
 
-      (* | Bool  -> *)
-      (*    let module M = Bool_pl1.Make(DS) in *)
-      (*    aux M.make *)
+      | Bool  ->
+         let module M = Bool_pl1.Make(DS) in
+         aux M.make
 
       (* | CC    -> *)
       (*    let module M = CC_pl1.Make(DS) in *)

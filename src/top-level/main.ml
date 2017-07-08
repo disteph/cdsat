@@ -104,7 +104,7 @@ Available options are:";;
 *)
 
 Arg.parse options (fun a->fname:= a::!fname) description;
-Dump.init();
+Dump.init !dtags;
 let trname, trstdin = treatprimitives() in
 let rec treat = function
   | []      -> ()

@@ -1,34 +1,15 @@
 open HardCaml.Bits.Comb.IntbitsList
-let a = width (const "12'd0")
+(* let a = width (const "12'd0") *)
 
+open Top.Basic
 
 module BDD = struct
 
   include MLBDD
 
-  module M = Map.Make(struct type t = int let compare = compare end)
+  module M = IntMap
       
   let getM a t = if M.mem a t then M.find a t else []
-
-  (* let compile_old x =  *)
-  (*   let visited = ref M.empty in *)
-  (*   let rec aux y = *)
-  (*     if M.mem (id y) !visited then (M.empty,true) *)
-  (*     else *)
-  (*       begin *)
-  (*         (\* print_endline("Visiting "^string_of_int (id y)); *\) *)
-  (*         visited := M.add (id y) () !visited; *)
-  (*         match inspectb y with *)
-  (*         | BFalse -> M.empty, false *)
-  (*         | BTrue  -> M.empty, true *)
-  (*         | BIf(f,var,t) -> *)
-  (*            let fmap,_ = aux f in *)
-  (*            let tmap,_ = aux t in *)
-  (*            let map = M.union (fun _ s1 s2 -> Some(List.append s1 s2)) fmap tmap in *)
-  (*            M.add var ((id y,id f,id t)::(getM var map)) map,true *)
-  (*       end *)
-  (*   in *)
-  (*   aux x *)
 
   let compile x = 
     let ident = ref 0 in
@@ -171,34 +152,34 @@ end
 
 module Circuit = HardCaml.Comb.Make(HardCaml.Transform.MakeCombGates(C))
 
-open Circuit
+(* open Circuit *)
 
 
-let un = consti 4 1
-let () = print_endline(to_bstr un)
-let () = print_endline(to_bstr(select un 1 0))
+(* let un = consti 4 1 *)
+(* let () = print_endline(to_bstr un) *)
+(* let () = print_endline(to_bstr(select un 1 0)) *)
                       
-let deux = consti 4 2
-let () = print_endline(to_bstr deux)
+(* let deux = consti 4 2 *)
+(* let () = print_endline(to_bstr deux) *)
 
-let var = wire 4
-let dd = (((deux *+ var) +:. 1) &:. 1) ==:. 1
-let () = print_endline(to_string dd)
+(* let var = wire 4 *)
+(* let dd = (((deux *+ var) +:. 1) &:. 1) ==:. 1 *)
+(* let () = print_endline(to_string dd) *)
                    
-let dd = (((var) +:. 1) &:. 1) ==:. 1
-let () = print_endline(to_string dd)
+(* let dd = (((var) +:. 1) &:. 1) ==:. 1 *)
+(* let () = print_endline(to_string dd) *)
 
-let smiii = (var <:. 3)
-let () = print_endline(to_string smiii)
+(* let smiii = (var <:. 3) *)
+(* let () = print_endline(to_string smiii) *)
 
-let odd = (select var 0 0 ==:. 1) &: (select var 0 0 ==:. 1)
-let () = print_endline(to_string odd)
+(* let odd = (select var 0 0 ==:. 1) &: (select var 0 0 ==:. 1) *)
+(* let () = print_endline(to_string odd) *)
            
-let () = print_endline(to_string(odd &: smiii))
+(* let () = print_endline(to_string(odd &: smiii)) *)
 
-let complex = sll (select (var *: var) 3 0) 2 <: (var -: (srl var 3))
-let () = print_endline(to_string(complex))
+(* let complex = sll (select (var *: var) 3 0) 2 <: (var -: (srl var 3)) *)
+(* let () = print_endline(to_string(complex)) *)
 
-let test = negate(((var *: var) >:. 4) &: (var <:. 10))
+(* let test = negate(((var *: var) >:. 4) &: (var <:. 10)) *)
                       
-let () = print_endline(to_string test)
+(* let () = print_endline(to_string test) *)

@@ -1,3 +1,4 @@
+open Interfaces_basic
 open Specs
 
 module FVSubst = struct
@@ -6,12 +7,6 @@ module FVSubst = struct
   let get_arity = DSubst.get_arity
   let get = DSubst.get FreeVar.pp       
 end
-                   
-module SAssign(DS:GlobalDS) = struct
-  open DS
-  type t = Term.t * Value.t Values.t [@@deriving eq, show]
-end
-
                    
 let fail_state (type sign) (type t) (type v) (type a)
     : (sign,t*v*a) Specs.slot_machine =

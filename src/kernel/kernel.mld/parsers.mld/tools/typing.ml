@@ -66,9 +66,8 @@ let forParser (type a)
 	     with MultiaryError msg
                 | TypingError msg
                   -> 
-                   if !Flags.debug>0
-                   then Dump.print ["typing",1]
-                          (fun p->p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
+                   Dump.print ["typing",1] (fun p->
+                       p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
 	           aux k l expsort)
          | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
        in aux (parseSymb s)

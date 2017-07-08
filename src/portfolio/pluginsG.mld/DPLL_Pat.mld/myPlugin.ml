@@ -131,10 +131,13 @@ module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
       *)
 
     | InsertCoin(Notify(_,_,_,machine,olda))  when not !Flags.memo
-        ->if !Flags.debug>0&& (count.(0) mod Flags.every.(7) =0)
-          then print_endline(print_state olda);
-          count.(4)<-count.(4)+1;
-          solve (machine (true,(fun _ ->0),accept,fNone))
+      ->
+       Dump.print ["dpll_pat",2] (fun p->
+           if count.(0) mod Flags.every.(7) =0
+           then p "%s" (print_state olda)
+           else ());
+       count.(4)<-count.(4)+1;
+       solve (machine (true,(fun _ ->0),accept,fNone))
 
       (* If Memoisation is on, we
 	 - accept defeat if kernel has detected a loop and proposes to fail
@@ -150,18 +153,16 @@ module Strategy(FE:FrontEnd with type IForm.datatype = DS.UF.t
       *)
 
     | InsertCoin(Notify(seq,_,_,machine,olda))     
-      -> (* (match !address with *)
-	(* 	| Almost(exp) when exp<>olda -> failwith("Expected another address: got "^string_of_int olda^" instead of "^string_of_int exp) *)
-	(* 	| Yes(exp) -> failwith("Yes not expected") *)
-	(* 	| _ -> address:=No); *)
-	(* if !Flags.debug>0&& count.(0) =100000 then failwith("stop") else*)
-      if !Flags.debug>0&& (count.(0) mod Flags.every.(7) =0)
-      then print_endline(print_state olda);
-	count.(4)<-count.(4)+1;
-	solve(machine(true,
-                      (fun _ -> count.(4)),
-                      (fun a -> let _ = Me.tomem a in ()),
-                      Me.search4provableNact seq ((fun _ -> count.(4)),(fun _ -> count.(4))) fNone))
+      ->
+       Dump.print ["dpll_pat",2] (fun p->
+           if count.(0) mod Flags.every.(7) =0
+           then p "%s" (print_state olda)
+           else ());
+       count.(4)<-count.(4)+1;
+       solve(machine(true,
+                     (fun _ -> count.(4)),
+                     (fun a -> let _ = Me.tomem a in ()),
+                     Me.search4provableNact seq ((fun _ -> count.(4)),(fun _ -> count.(4))) fNone))
 
 
       (* When we are asked a side, we always go for the left first *)

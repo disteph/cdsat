@@ -14,7 +14,7 @@ module IntSort = struct
 
   module M = struct
     type 'a t = int*bool*Sorts.t [@@deriving eq, hash]
-    let hash f = Hash.wrap1 hash_fold_t f
+    let name = "IntSort"
   end
 
   module H = HCons.Make(M)
@@ -46,9 +46,8 @@ module IntSort = struct
 end
 
 module IntMap = Map.Make(struct
-  type t = int
-  let compare = Pervasives.compare
-end)
+                    type t = int [@@deriving ord]
+                  end)
 
 module IdMon = struct
   type 'a t = 'a

@@ -26,7 +26,7 @@ module Leaf = struct
 
   module Arg = struct
     type 'a t = leafExposed [@@deriving eq,hash]
-    let hash x = Hash.wrap1 hash_fold_t x
+    let name = "UnifierLeaf"
   end
 
   include HCons.Make(Arg)

@@ -24,7 +24,7 @@ module Pervasives : sig
   val exit : int -> 'a
 end
 
-
+val (<*<) : ('a->'a->int) -> ('b->'b->int) -> ('a*'b) -> ('a*'b) ->int
                       
 module List : sig
   type 'a t = 'a list [@@deriving eq, hash, show]

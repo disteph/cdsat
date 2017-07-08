@@ -10,7 +10,7 @@ module LitF = struct
 
   include HCons.Make(struct
     type 'a t = bool*int [@@deriving eq,hash]
-    let hash f = Hash.wrap1 hash_fold_t f
+    let name = "LitF"
   end)
 
   include Init(HCons.NoBackIndex)
@@ -37,7 +37,7 @@ module LitB = struct
 
   module LF = struct
     type 'a t = bool*Terms.TermB.t [@@deriving eq,hash,show]
-    let hash f = Hash.wrap1 hash_fold_t f
+    let name = "LitB"
   end
 
   include HCons.Make(LF)

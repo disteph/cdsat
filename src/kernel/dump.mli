@@ -4,7 +4,7 @@
 (* printed.                                             *)
 (********************************************************)
 
-val init : unit -> unit
+val init : (string * int * bool) list -> unit
 
 (**********************)
 (* Printing functions *)

@@ -86,7 +86,9 @@ module TermB = struct
   module B = struct
     type nonrec 'a t = ('a,bound) xterm
     let equal eqRec = equal BoundVar.equal BoundFunc eqRec 
-    let hash hRec = hash BoundVar.hash BoundFunc hRec 
+    let hash hRec = hash BoundVar.hash BoundFunc hRec
+    let hash_fold_t hash_fold_a = Hash.hash2fold(hash(Hash.fold2hash hash_fold_a))
+    let name = "TermB"
   end
 
   include HCons.Make(B)
@@ -121,6 +123,9 @@ module F = struct
                             (FreeFunc(fun x->FreeFunc(TermB.equal x)))
                             eqRec
   let hash hRec hPar = hash hPar (FreeFunc TermB.hash) hRec
+  let hash_fold_t hash_fold_a hash_fold_l
+    = Hash.hash2fold(hash(Hash.fold2hash hash_fold_a)(Hash.fold2hash hash_fold_l))
+  let name = "TermF"
 end
 
 include HCons.MakePoly(F)

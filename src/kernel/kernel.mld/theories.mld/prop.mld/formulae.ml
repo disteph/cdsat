@@ -183,6 +183,8 @@ module F = struct
   type 'a t = ('a, Terms.TermB.t free) form
   let equal eqRec = equal (FreeFunc(fun x->FreeFunc(Terms.TermB.equal x))) eqRec 
   let hash hRec = hash (FreeFunc Terms.TermB.hash) hRec
+  let hash_fold_t hash_fold_a = Hash.hash2fold(hash(Hash.fold2hash hash_fold_a))
+  let name = "FormulaF"
 end
 
 module FormulaF = struct
