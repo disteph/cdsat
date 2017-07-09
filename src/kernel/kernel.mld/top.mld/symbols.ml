@@ -4,8 +4,10 @@
 
 open Format
        
-type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash]
+type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash, ord]
 
+(* let hash_fold_array f s a = List.hash_fold_t f s (Array.to_list a) *)
+  
 type t =
 
   | User of string*arity
@@ -25,7 +27,12 @@ type t =
 
   (* Arrays *)
   | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
-                                                   [@@deriving eq, hash]
+
+  (* BitVectors *)
+  | Extract of int*int*int
+  | Conc of int*int
+  | CstBV of string
+               [@@deriving eq, hash, ord]
 
 let arity = function
   | User(_,ar)                        -> ar
@@ -41,6 +48,9 @@ let arity = function
   | Ge | Gt | Le | Lt                 -> Sorts.Prop, [Sorts.Rat;Sorts.Rat]
   | Select(indices,values)            -> values, [Sorts.Array(indices,values);indices]
   | Store(indices,values)             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
+  | Extract(hi,lo,orig)               -> Sorts.BV (max (hi-lo+1) 0), [Sorts.BV orig]
+  | Conc(l1,l2)                       -> Sorts.BV(l1+l2), [Sorts.BV l1; Sorts.BV l2]
+  | CstBV s                           -> Sorts.BV(String.length s), []
 
 
 let print_in_fmt_latex fmt = function
@@ -70,6 +80,10 @@ let print_in_fmt_latex fmt = function
   | Lt          -> fprintf fmt "<"
   | Select(_,_) -> fprintf fmt "\\mbox{\\small select}"
   | Store(_,_)  -> fprintf fmt "\\mbox{\\small store}"
+  | Extract(hi,lo,_) when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
+  | Extract(hi,lo,_) -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
+  | Conc(l1,l2)      -> fprintf fmt "\\circl"
+  | CstBV s          -> fprintf fmt "%s" s
 
 let print_in_fmt_utf8 fmt = function
   | User(f,ar)  -> fprintf fmt "%s" f
@@ -98,6 +112,10 @@ let print_in_fmt_utf8 fmt = function
   | Lt          -> fprintf fmt "<"
   | Select(_,_) -> fprintf fmt "select"
   | Store(_,_)  -> fprintf fmt "store"
+  | Extract(hi,lo,_) when hi = lo -> fprintf fmt "ex[%i]" hi
+  | Extract(hi,lo,_) -> fprintf fmt "ex[%i:%i]" hi lo
+  | Conc(l1,l2)      -> fprintf fmt "⚬"
+  | CstBV s          -> fprintf fmt "%s" s
 
 let pp fmt = match !Dump.display with
   | Dump.Latex -> print_in_fmt_latex fmt

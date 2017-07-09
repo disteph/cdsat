@@ -1,5 +1,8 @@
+(* Type of all term representation handlers *)
+
 type _ t =
   | NoRep   : unit t
+  | BV      : VarSet.BV.t t
   | LitF    : Literals.TS.t t
   | Clauses : Clauses.TS.t t
   | Rationals : Rationals.TS.t t
@@ -9,6 +12,7 @@ let equal (type a) (type b) : a t -> b t -> (a -> b) option =
   fun ts1 ts2 ->
   match ts1,ts2 with
   | NoRep, NoRep    -> Some(fun x->x)
+  | BV, BV          -> Some(fun x->x)
   | LitF, LitF      -> Some(fun x->x)
   | Clauses,Clauses -> Some(fun x->x)
   | Rationals, Rationals -> Some(fun x->x)
@@ -21,6 +25,7 @@ type _ get =
            
 let get (type a) : a t -> a get = function
   | NoRep     -> NoRepModule
+  | BV        -> RepModule(module VarSet.BV)
   | LitF      -> RepModule(module Literals.TS)
   | Clauses   -> RepModule(module Clauses.TS)
   | Rationals -> RepModule(module Rationals.TS)

@@ -1,5 +1,6 @@
 type _ t =
   | NoRep   : unit t
+  | BV      : VarSet.BV.t t
   | LitF    : Literals.TS.t t
   | Clauses : Clauses.TS.t t
   | Rationals : Rationals.TS.t t

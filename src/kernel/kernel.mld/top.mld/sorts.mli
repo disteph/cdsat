@@ -7,6 +7,7 @@ type t = | Prop
          | Array of t*t
          | Fun  of t*(t list)
          | User of string
-                     [@@deriving eq, hash, show]
+         | BV of int
+                     [@@deriving eq, hash, show, ord]
 
 val allsorts : string list -> t list

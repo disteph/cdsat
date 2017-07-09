@@ -10,7 +10,8 @@ type t =
 | Array of t*t
 | Fun  of t*(t list)
 | User of string
-            [@@deriving eq, hash]
+| BV of int
+            [@@deriving eq, hash, ord]
 
 let rec pp fmt = function
   | Prop -> fprintf fmt "{\\sf prop}"
@@ -21,6 +22,7 @@ let rec pp fmt = function
       pp o
       pp_list i
   | User s -> fprintf fmt "\"%s\"" s
+  | BV i -> fprintf fmt "\"BV_{%i}\"" i
 and pp_list fmt = function
   | []   -> fprintf fmt "()"
   | [so] -> fprintf fmt "%a" pp so

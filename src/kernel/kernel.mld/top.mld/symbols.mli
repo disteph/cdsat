@@ -23,6 +23,11 @@ type t =
 
 (* Arrays *)
 | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t
-                                                 [@@deriving eq, show, hash]
+
+(* BitVectors *)
+| Extract of int*int*int
+| Conc of int*int
+| CstBV of string
+             [@@deriving eq, show, hash, ord]
                                                  
 val arity : t -> arity
