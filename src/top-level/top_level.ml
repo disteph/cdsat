@@ -1,6 +1,6 @@
-(************************************)
-(* Main entry point for Psyche runs *)
-(************************************)
+(***********************************)
+(* Main entry point for CDSAT runs *)
+(***********************************)
 
 type _ stringOrunit =
   | String : string stringOrunit
@@ -12,12 +12,7 @@ let run parser input =
   (* Setting up the Kernel *)
   
   let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
-  let (module PlG) = PluginsG.Register.get !PFlags.mypluginG in
-  let (module K)   = Kernel.Top_level.init
-                       (module PlG.DS)
-                       ~parser
-                       input
-  in
+  let (module K)   = Kernel.Top_level.init ~parser input in
 
   (* Getting the result for the run *)
 
@@ -26,62 +21,56 @@ let run parser input =
     (* Looking at the expectations and skipping the problem if need be *)
 
     match K.expected with 
-    | None        when !PFlags.skipunknown-> print_endline("Skipping problem with no expectation");None
-    | Some(true)  when !PFlags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
-    | Some(false) when !PFlags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
+    | None       when !PFlags.skipunknown-> print_endline("Skipping problem with no expectation");None
+    | Some true  when !PFlags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
+    | Some false when !PFlags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
     | _ ->
-       try 
 
-         (* Setting up the Plugins *)
+       (* Setting up the Plugins *)
 
-         let module A = struct
+       let module A = struct
 
-             include K
-             include PlG.Strategy(K.PropModule.FE)
+           include K
 
-             open Kernel.Theories.Register
-                    
-             let add_plugin
-                   (Modules.Module(tag,_) as plugin)
-                   (plugins_sofar, clear_sofar)
-               =
-               let module Pl = PluginsTh.Register.Make(K.WB.DS) in
-               let init,clear = Pl.make plugin in
-               HandlersMap.add (Handlers.Handler tag) init plugins_sofar,
-               (fun () -> clear_sofar (); clear ())
+           open Kernel.Theories.Register
+                  
+           let add_plugin
+                 (Modules.Module(tag,_) as plugin)
+                 (plugins_sofar, clear_sofar)
+             =
+             let module Plugin = PluginsTh.Register.Make(K.WB.DS) in
+             let init,clear = Plugin.make plugin in
+             HandlersMap.add (Handlers.Handler tag) init plugins_sofar,
+             (fun () -> clear_sofar (); clear ())
 
-             (* We create a map pluginsTh that maps every (involved) theory
+           (* We create a map pluginsTh that maps every (involved) theory
       handler to (the initial state of) a decision procedure for it. *)
 
-             let pluginsTh, clear =
-               List.fold
-                 add_plugin
-                 K.th_modules
-                 (HandlersMap.empty,(fun () -> ()))
-           end
-         in         
-         let module P = Pl.Make(A) in
+           let pluginsTh, clear =
+             List.fold
+               add_plugin
+               K.th_modules
+               (HandlersMap.empty,(fun () -> ()))
+         end
+       in         
+       let module P = Pl.Make(A) in
 
-         (* RUNNING PSYCHE *)
-         
-         let answer = P.solve() in
-         P.clear();
-	 print_endline(
-             match K.expected, answer with
-	     |None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
-	     |None ,K.SAT _        -> "Nothing expected, got Unprovable (SAT)"
-	     |Some true, K.UNSAT _ -> "Expected Provable (UNSAT), got it"
-	     |Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
-	     |Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
-	     |Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
-	     |_, K.NotAnsweringProblem -> "You did not answer the problem"
-	   );
-	 Some answer
+       (* RUNNING PSYCHE *)
+       
+       let answer = P.solve() in
+       P.clear();
+       print_endline(
+           match K.expected, answer with
+	   |None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
+	   |None ,K.SAT _        -> "Nothing expected, got Unprovable (SAT)"
+	   |Some true, K.UNSAT _ -> "Expected Provable (UNSAT), got it"
+	   |Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
+	   |Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
+	   |Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
+	   |_, K.NotAnsweringProblem -> "You did not answer the problem"
+	 );
+       Some answer
 
-       with PluginsG.PluginG.PluginAbort s
-            -> Dump.Kernel.fromPlugin();
-               Dump.Kernel.report s;
-               None
   in 
 
   (* Post-treatment of answer *)
@@ -118,7 +107,9 @@ let parseNrun input =
           run parser input
 	with Kernel.Parsers.Parser.ParsingError s
            | Kernel.Parsers.Typing.TypingError s ->
-              print_endline(Dump.toString (fun p->p "Parser %a could not parse input, because \n%s" Kernel.Parsers.Register.pp parser s));
+              print_endline(Dump.toString (fun p->
+                                p "Parser %a could not parse input, because \n%s"
+                                  Kernel.Parsers.Register.pp parser s));
               trying other_parsers
       end
     | [] -> print_endline "No parser seems to work for this input."; function _ -> None
@@ -190,7 +181,7 @@ let treatdir pack dirname =
 			 (fun filename -> dirname^Filename.dir_sep^filename) 
 			 (Array.to_list (Sys.readdir dirname))) in
   let rec aux acc = function
-    | []          -> pack.final acc 
+    | []      -> pack.final acc 
     | name::l ->
       let newacc = if not(Sys.is_directory name)
 	then treatfile_aux pack.accu acc name

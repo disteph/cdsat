@@ -1,37 +1,29 @@
 open Format
 
-module Empty  = Theory.Make(Empty.MyTheory)
 module Bool   = Theory.Make(Bool.MyTheory)
 module Arrays = Theory.Make(Arrays.MyTheory)
 module LRA    = Theory.Make(LRA.MyTheory)
 module IfThenElse = Theory.Make(IfThenElse.MyTheory)
-module FirstOrder = Theory.Make(FirstOrder.MyTheory)
        
 module Tags = struct
 
   type _ t = 
-    | Empty : (_,_,_) Empty.signature t
     | Bool  : (_,_,_) Bool.signature t
     | Arrays: (_,_,_) Arrays.signature t
     | LRA   : (_,_,_) LRA.signature t
     | IfThenElse: (_,_,_) IfThenElse.signature t
-    | FirstOrder: (_,_,_) FirstOrder.signature t
 
   let id (type a) : a t -> int = function
-    | Empty -> 1
     | Bool -> 2
     | Arrays -> 3
     | LRA -> 4
     | IfThenElse -> 5
-    | FirstOrder -> 6
                 
   let pp fmt (type a) : a t -> unit = function
-    | Empty      -> fprintf fmt "Empty"
     | Bool       -> fprintf fmt "Bool"
     | Arrays     -> fprintf fmt "Arrays"
     | LRA        -> fprintf fmt "LRA"
     | IfThenElse -> fprintf fmt "IfThenElse"
-    | FirstOrder -> fprintf fmt "FirstOrder"
 
   module TestEq(M : sig
                type (_,_,_,_,_,_) t
@@ -47,12 +39,10 @@ module Tags = struct
         : (s1,t1,v1,s2,t2,v2) M.t
       =
       match tag1,tag2 with
-      | Empty, Empty   -> iftrue
       | Bool, Bool   -> iftrue
       | Arrays, Arrays -> iftrue
       | LRA, LRA       -> iftrue
       | IfThenElse, IfThenElse -> iftrue
-      | FirstOrder, FirstOrder -> iftrue
       | _ -> iffalse
   end
 
@@ -71,12 +61,10 @@ module Modules = struct
        : ts Termstructures.Register.t * v Theory.values_opt
     = let open Tags in
       match tag with
-    | Empty      -> Empty.ts, Empty.values
     | Bool       -> Bool.ts, Bool.values
     | Arrays     -> Arrays.ts, Arrays.values
     | LRA        -> LRA.ts, LRA.values
     | IfThenElse -> IfThenElse.ts, IfThenElse.values
-    | FirstOrder -> FirstOrder.ts, FirstOrder.values
                              
   type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
 
@@ -86,12 +74,10 @@ module Modules = struct
     =
     let open Tags in
     match tag with 
-    | Empty      -> Module(Empty,Empty.make ds)
     | Bool       -> Module(Bool,Bool.make ds)
     | Arrays     -> Module(Arrays,Arrays.make ds)
     | LRA        -> Module(LRA,LRA.make ds)
     | IfThenElse -> Module(IfThenElse,IfThenElse.make ds)
-    | FirstOrder -> Module(FirstOrder,FirstOrder.make ds)
                              
 end
 
@@ -104,7 +90,6 @@ end
 
 let all_theories_list = 
   [
-    Handlers.Handler Tags.Empty;
     Handlers.Handler Tags.Bool;
     Handlers.Handler Tags.Arrays;
     Handlers.Handler Tags.LRA;
@@ -147,9 +132,7 @@ let all_theories = List.fold (fun hdl -> HandlersMap.add hdl ()) all_theories_li
 exception NotFound of string
 
 let parse = function
-  | "empty" | "prop" -> Handlers.Handler Tags.Empty
   | "LRA"        -> Handlers.Handler Tags.LRA
-  | "LIA"        -> Handlers.Handler Tags.LRA
   | "Arrays"     -> Handlers.Handler Tags.Arrays
   | "IfThenElse" -> Handlers.Handler Tags.IfThenElse
   | "bool"       -> Handlers.Handler Tags.Bool

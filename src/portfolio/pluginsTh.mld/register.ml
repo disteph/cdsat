@@ -17,9 +17,6 @@ module Make(DS: GlobalDS) = struct
     in
     let open Tags in
       match tag with
-      | Empty ->
-         let module M = Empty_pl1.Make(DS) in         
-         aux M.make
 
       | Bool  ->
          let module M = Bool_pl1.Make(DS) in
@@ -40,7 +37,5 @@ module Make(DS: GlobalDS) = struct
       | IfThenElse ->
          let module M = IfThenElse_pl1.Make(DS) in
          aux M.make
-
-      | FirstOrder -> failwith "No plugin for FirstOrder"
 
 end

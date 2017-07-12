@@ -112,7 +112,18 @@ let plot label y =
 module Kernel = struct
   (* Array where we count how many events we get *)
   let count = [|0;0;0;0;0;0;0;0;0;0;0|]
-  let count_labels = [|"00: Local successes";"01: Local failures";"kernel2";"kernel3";"04: Focuses";"05: Cuts";"06: Open branches";"kernel7";"kernel8";"09: Kernel operations";"10: Calls to plugin"|]
+  let count_labels =
+    [|"00: Local successes";
+      "01: Local failures";
+      "kernel2";
+      "kernel3";
+      "04: Focuses";
+      "05: Cuts";
+      "06: Open branches";
+      "kernel7";
+      "kernel8";
+      "09: Kernel operations";
+      "10: Calls to plugin"|]
 
   let read_count i = count.(i)
 

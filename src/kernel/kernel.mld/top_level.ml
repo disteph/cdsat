@@ -6,18 +6,14 @@ open General.Sums
 open Top
 open Messages
 
-let init (type uaset)(type uf)(type ufset)
-      (plDS : (module Theories.Prop.APIplugin.PlugDSType with type UASet.t= uaset
-                                                          and type UF.t   = uf
-                                                          and type UFSet.t= ufset))
-      ?(disableProp=false)
+let init
       ?(withtheories=Some[]) (* List of added theories *)
       ?(withouttheories=Some[]) (* List of forbidden theories *)
       ~parser
       input
   =
 
-  let th,termB,expected = Parsers.Register.parse parser ~disableProp input in
+  let th,termB,expected = Parsers.Register.parse parser input in
   (* Now we look at the theories involved *)
   let open Theories.Register in
   let theories =
@@ -34,7 +30,7 @@ let init (type uaset)(type uf)(type ufset)
                     p "Using theories: %a" HandlersMap.pp theories));
 
   (* Now that we know the theories, we build the combined datastructures *)
-  let (module C) = Combo.make theories plDS in
+  let (module C) = Combo.make theories in
   (module struct
      include C
      open WB
@@ -59,6 +55,4 @@ let init (type uaset)(type uf)(type ufset)
             when DS.Assign.subset problem assign -> SAT(msg)
        | _ -> NotAnsweringProblem
 
-   end : Export.APIext with type uaset = uaset
-                        and type uf    = uf
-                        and type ufset = ufset)
+   end : Export.APIext)

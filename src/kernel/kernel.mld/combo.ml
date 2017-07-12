@@ -286,14 +286,9 @@ module InitState : State = struct
      end : Proj with type cvalue = cv cval)
 end
 
-module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
+module Make(State:State) = struct
 
-  module PS = Prop.MyTheory.ProofSearch(PlugDS)
-
-  module DT =
-    Tools.Pairing
-      (Tools.Pairing(PS.Semantic)(Termstructures.Varcheck.TS))
-      (State.DT)
+  module DT = State.DT
 
   module DS = struct
 
@@ -390,31 +385,11 @@ module Make(PlugDS : Prop.APIplugin.PlugDSType)(State:State) = struct
     let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
   end
 
-  module DS4Prop = struct
-      include DS
-      type ts = PS.Semantic.t
-      let proj x = fst(fst x)
-      type values = has_no_values
-      let conv = HasNoVconv
-    end
-
-  module PropModule = PS.Make(DS4Prop)
-
   module EGraph = Eq.MyTheory.Make(DS)
 end
 
   
-let make
-      (type uaset)(type uf)(type ufset)
-      theories
-      (module PlugDS : Prop.APIplugin.PlugDSType
-              with type UASet.t = uaset
-               and type UF.t    = uf
-               and type UFSet.t = ufset)
-      
-    : (module API with type uaset = uaset
-                   and type uf    = uf
-                   and type ufset = ufset) =
+let make theories : (module API) =
 
   let (module State) = 
     let aux (Handlers.Handler hdl) () sofar = theory_add hdl sofar
@@ -423,12 +398,8 @@ let make
   in
 
   (module struct
-     include Make(PlugDS)(State)
+     include Make(State)
 
-     type nonrec uaset = uaset
-     type nonrec uf    = uf
-     type nonrec ufset = ufset
-       
      module WB = struct
 
        module DS = DS
@@ -513,7 +484,7 @@ let make
 
      end
 
-     let th_modules,o = State.modules snd (fun x->x) (fun x->x) (module DS)
+     let th_modules,o = State.modules (fun x->x) (fun x->x) (fun x->x) (module DS)
 
      module VProj = (val o)
 

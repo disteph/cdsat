@@ -16,7 +16,7 @@ let parse_name = function
   | "dimacs"    -> DIMACS
   | s -> raise (NotFound ("Parser "^s^" does not exist; see -help"))
 
-let parse parser ?(disableProp=false) input =
+let parse parser input =
   let (module MyParser) = get parser in
   let aft = MyParser.glance input in
   
@@ -28,11 +28,5 @@ let parse parser ?(disableProp=false) input =
   let parsed =
     List.map (fun f -> f Top.Sorts.Prop) parsable
   in
-  let termB =
-    if disableProp
-    then List.map (fun x->Typing.ForParsing.bC Top.Symbols.IsTrue [x]) parsed
-    else
-      parsed
-  in
-  (* print_endline("We want to prove: "^List.show Top.Terms.TermB.pp termB); *)
-  MyParser.guessThDecProc aft,termB,expected
+  (* print_endline("We want to prove: "^List.show Top.Terms.TermB.pp parsed); *)
+  MyParser.guessThDecProc aft,parsed,expected

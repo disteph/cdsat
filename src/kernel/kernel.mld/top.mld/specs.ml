@@ -81,7 +81,6 @@ module type GlobalDS = sig
   module Value  : PH
   module CValue : CValue with type value := Value.t
   module Assign : Collection with type e = Term.t * Value.t Values.t
-  val makes_sense : Term.t -> World.t -> bool
 end
 
 (* type version of the above *)

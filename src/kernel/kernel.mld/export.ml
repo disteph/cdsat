@@ -32,7 +32,6 @@ module type WhiteBoard = sig
                                      General.Patricia.poly
       val id : t -> int
     end
-    val makes_sense : Term.t -> Variables.World.t -> bool
   end
 
   open DS
@@ -57,15 +56,8 @@ type (_,_) proj =
   | NoProj : ('cv,has_no_values) proj
 
 module type API = sig
-  type uaset
-  type uf
-  type ufset
   module WB : WhiteBoard
   open WB.DS
-
-  module PropModule : Prop.APIplugin.API with type FE.IForm.datatype = uf
-			                  and type FE.FSet.ps = ufset
-			                  and type FE.ASet.ps = uaset
 
   module EGraph : Eq.Interfaces.API with type sign = Eq.MyTheory.sign
                                      and type termdata = Term.datatype

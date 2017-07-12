@@ -12,7 +12,6 @@ exception NotFound of string
 val parse_name : string -> t
 
 val parse : t
-            -> ?disableProp:bool
             -> string
             -> (string list option)
                * (Top.Terms.TermB.t list)
