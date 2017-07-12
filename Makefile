@@ -1,5 +1,7 @@
 SETUP = ocaml setup.ml
 
+-include makefile.data
+
 build: setup.data
 	$(SETUP) -build $(BUILDFLAGS)
 
@@ -9,55 +11,42 @@ doc: setup.data build
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
 
-all:
-	make kernel_lib build install clean
-	make kernel build install clean
-	make portfolio build install clean
-	make psyche build
-
-install:: setup.data
+install: setup.data
 	$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall:: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
 clean:
 	$(SETUP) -clean $(CLEANFLAGS)
 
-distclean: rm_makefile_data
+distclean: rm_makefile.data
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
 setup.data:
 	$(SETUP) -configure $(CONFIGUREFLAGS)
 
-configure: rm_setup_data
-	$(SETUP) -configure $(CONFIGUREFLAGS)
+ifdef LIB
 
-.PHONY: build doc test all install uninstall reinstall clean distclean configure rm_makefile_data configure_lib kernel_lib kernel portfolio psyche
+uninstall_base:
+	ocamlfind remove $(LIB)
 
--include Makefile.data
+else
+uninstall_base:
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+endif
 
-# ifdef LIB
-# install reinstall:: TO_INSTALL =                         \
-# 	$(ROOTDIR)/META \
-# 	$(shell find _build/src -name open.cmx)  \
-# 	$(shell find _build/src -name flags.cmx)  \
-# 	$(shell find _build/src -name dump.cmx)
-# install reinstall::
-# 	ocamlfind install -add $(LIB) $(TO_INSTALL)
-# endif
+uninstall:
+	make uninstall_base
 
-rm_makefile_data:
-	rm Makefile.data || true
-rm_setup_data:
+reinstall: uninstall install
+
+rm_makefile.data:
+	rm makefile.data || true
+
+rm_data: rm_makefile.data
 	rm setup.data || true
 
 configure_lib:
-	$(file >Makefile.data,LIB = $(LIB))
-	$(file >>Makefile.data,ROOTDIR = $(ROOTDIR))
+	$(file >makefile.data,LIB = $(LIB))
+	$(file >>makefile.data,ROOTDIR = $(ROOTDIR))
 
 kernel_lib: CONFIGUREFLAGS = --enable-kernel-lib
 kernel_lib: LIB = psyche_kernel_lib
@@ -73,5 +62,21 @@ portfolio: ROOTDIR = src/portfolio
 
 psyche: CONFIGUREFLAGS = --enable-psyche
 
-kernel_lib kernel portfolio: configure_lib configure
-psyche: rm_makefile_data configure
+kernel_lib kernel portfolio: rm_data configure_lib setup.data
+
+psyche: rm_data setup.data
+
+.PHONY: build doc test all install reinstall uninstallall clean distclean rm_makefile.data rm_data configure_lib kernel_lib kernel portfolio psyche
+
+all:
+	make clean kernel_lib build reinstall
+	make clean kernel build reinstall
+	make clean portfolio build reinstall
+	make clean psyche build
+
+uninstallall:
+	make clean kernel_lib uninstall
+	make clean kernel uninstall
+	make clean portfolio uninstall
+	make clean psyche uninstall
+
