@@ -1,0 +1,24 @@
+opam-version: "1.2"
+name: "cdsat-libs"
+version: "1.0"
+maintainer: "Stephane Graham-Lengrand <stephane.graham-lengrand@sri.com>"
+authors: "Stephane Graham-Lengrand <stephane.graham-lengrand@sri.com>"
+homepage: "https://github.com/disteph/cdsat"
+bug-reports: "https://github.com/disteph/cdsat/issues"
+license: "CeCILL-C"
+dev-repo: "https://github.com/disteph/cdsat.git"
+build: [
+  ["make" "libs"]
+]
+remove: [
+  ["make" "uninstall_libs"]
+]
+depends: [
+  "mld"
+  "hardcaml"
+  "mlbdd"
+  "async"
+  "ppx_hash"
+  "ppx_deriving"
+  "ocamlfind" {build}
+]
