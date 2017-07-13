@@ -1,4 +1,0 @@
-bf0432-007 | 1040 | 3668 |  | Fatal error: out of memory.
-bf1355-075 | 2180 | 6778 |  | Fatal error: out of memory.
-bf1355-638 | 2177 | 6768 |  | Fatal error: out of memory.
-bf2670-001 | 1393 | 3434 | Total Success, in 118.899431 seconds | 

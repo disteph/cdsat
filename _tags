@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: a20c23508b80138514b474eb1572d72e)
+# DO NOT EDIT (digest: fde2f93c9a12be43ae1597a35de44196)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -20,7 +20,7 @@ true: annot, bin_annot
 "src/kernel/kernel.cmxs": use_kernel
 # Library portfolio
 "src/portfolio/portfolio.cmxs": use_portfolio
-# Executable main
+# Executable psyche
 # OASIS_STOP
 
 # This is to silence warnings "Tag ... is not used"

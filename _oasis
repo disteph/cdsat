@@ -62,14 +62,14 @@ Library portfolio
   XMETADescription: Psyche's portfolio of plugins
   XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std str"
 
-Flag psyche
+Flag exec
   Description: Target is Psyche's executable
   Default: false
 
-Executable main
+Executable psyche
   Path:       src/top-level
-  Build$:     flag(psyche)
-  Install$:   flag(psyche)
+  Build$:     flag(exec)
+  Install$:   flag(exec)
   MainIs:     main.ml
   CompiledObject: best
 

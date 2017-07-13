@@ -60,23 +60,21 @@ portfolio: CONFIGUREFLAGS = --enable-portfolio
 portfolio: LIB = psyche_portfolio
 portfolio: ROOTDIR = src/portfolio
 
-psyche: CONFIGUREFLAGS = --enable-psyche
+cdsat: CONFIGUREFLAGS = --enable-exec
 
 kernel_lib kernel portfolio: rm_data configure_lib setup.data
 
-psyche: rm_data setup.data
+cdsat: rm_data setup.data
 
-.PHONY: build doc test all install reinstall uninstallall clean distclean rm_makefile.data rm_data configure_lib kernel_lib kernel portfolio psyche
+.PHONY: build doc test libs install reinstall uninstall_libs clean distclean rm_makefile.data rm_data configure_lib kernel_lib kernel portfolio psyche
 
-all:
+libs:
 	make clean kernel_lib build reinstall
 	make clean kernel build reinstall
 	make clean portfolio build reinstall
-	make clean psyche build
 
-uninstallall:
+uninstall_libs:
 	make clean kernel_lib uninstall
 	make clean kernel uninstall
 	make clean portfolio uninstall
-	make clean psyche uninstall
 

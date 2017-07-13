@@ -1,3 +1,0 @@
-f1000 | 1000 | 4250 |  | Fatal error: out of memory.
-f2000 | 2000 | 8500 |  | Fatal error: out of memory.
-f600 | 600 | 2550 |  | Fatal error: out of memory.

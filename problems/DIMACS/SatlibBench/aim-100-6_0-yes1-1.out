@@ -1,5 +1,0 @@
-===========================
-Treating file aim-100-6_0-yes1-1.cnf
----
-200 atoms and negations present in non-unit clauses
-Fatal error: exception Failure("Remove: Was not there -leaf")

@@ -1,7 +1,0 @@
-(set-logic empty)
-(set-info :status unsat)
-(declare-fun p () Bool)
-(declare-fun q () Bool)
-(assert (not (=> (not (=> p q)) (=> q p))))
-(check-sat)
-(exit)

@@ -1,8 +1,0 @@
-(set-logic FO)
-(declare-sort Term 0)
-(declare-fun p () Bool)
-(declare-fun f (Term) Bool)
-(set-info :status unsat)
-(assert (not (<=> (forall ((x Term)) (or p (f x))) (or p (forall ((x Term)) (f x))))))
-(check-sat)
-(exit)
