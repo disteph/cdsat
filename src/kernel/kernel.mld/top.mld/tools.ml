@@ -8,19 +8,12 @@ module FVSubst = struct
   let get = DSubst.get FreeVar.pp       
 end
                    
-let fail_state (type sign) (type t) (type v) (type a)
-    : (sign,t*v*a) Specs.slot_machine =
-  Specs.SlotMachine(module struct 
-                      type newoutput = (sign,t*v*a) Specs.output
-                      type term   = t Specs.termF
-                      type value  = v
-                      type assign = a
-                      let treated _ = failwith "Are you dumb? I already told you it was provable"
-                      let add     _ = failwith "Are you dumb? I already told you it was provable"
-                      let normalise _ = failwith "Are you dumb? I already told you it was provable"
-                      let clone   _ = failwith "Are you dumb? I already told you it was provable"
-                      let suicide _ = failwith "Are you dumb? I already told you it was provable"
-                    end)
+let fail_state =
+  Specs.SlotMachine {
+      add     = (fun _ -> failwith "Are you dumb? I already told you it was provable");
+      clone   = (fun _ -> failwith "Are you dumb? I already told you it was provable");
+      suicide = (fun _ -> failwith "Are you dumb? I already told you it was provable")
+    }
                    
 module Pairing(B1: DataType)(B2: DataType)
        : (DataType with type t = B1.t*B2.t) =

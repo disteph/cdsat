@@ -47,7 +47,6 @@ module type WhiteBoard = sig
   val sat_init : Assign.t -> sat t
   val sat      : sat t -> sat t -> sat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
-  val both2straight: ?side:bool -> both t -> unsat t -> straight t
   val curryfy  : ?assign:Assign.t -> ?flip:Term.t*bool -> unsat t -> straight t
 end
 

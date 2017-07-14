@@ -30,18 +30,12 @@ module Make(WB : WhiteBoardExt) = struct
         | Propa(tset1,Unsat), Propa(tset2,Unsat) -> Assign.equal tset1 tset2
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
           -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2'
-        | Propa(tset1,Both(tset1',tset1'')), Propa(tset2, Both(tset2',tset2''))
-          -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2' && equal_bassign tset1'' tset2''
-        | Propa(tset1,Either(tset1',tset1'')), Propa(tset2, Either(tset2',tset2''))
-          -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2' && equal_bassign tset1'' tset2''
 
     let hash (type a) (WB(hdls,msg):a WB.t) =
       match msg with
       | Sat tset -> 2*(Assign.id tset)
       | Propa(tset,Unsat) -> 1+3*(Assign.id tset)
       | Propa(tset,Straight tset') -> 1+7*(Assign.id tset)+11*(hash_bassign tset')
-      | Propa(tset,Both(tset1,tset2)) -> 1+13*(Assign.id tset)+17*(hash_bassign tset1)+19*(hash_bassign tset2)
-      | Propa(tset,Either(tset1,tset2)) -> 1+23*(Assign.id tset)+29*(hash_bassign tset1)+31*(hash_bassign tset2)
 
     let hash_fold_t _ _ = Hash.hash2fold hash
     let name = "WhiteBoardMessages_in_Memo"

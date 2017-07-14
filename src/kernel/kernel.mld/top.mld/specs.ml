@@ -5,6 +5,7 @@
 open Format
 
 open General
+open Sums
        
 open Interfaces_basic
 open Basic
@@ -134,27 +135,18 @@ module type ProofType = sig
 end
 
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
-                          
-module type SlotMachine = sig
-  type newoutput
-  type term
-  type value
-  type assign
-  val add      : (term*value Values.t) option -> newoutput
-  val clone    : unit -> newoutput
-  val suicide  : assign -> unit
-end
 
-type (_,_) slot_machine
-  = SlotMachine : (module SlotMachine with type newoutput = ('sign,'t*'v*'a) output
-                                       and type term   = 't termF
-                                       and type value  = 'v
-                                       and type assign = 'a)
-                  -> ('sign,'t*'v*'a) slot_machine [@@unboxed]
-      
- and (_,_) output =
-   Output:
-     ('sign,'a*('t termF*bool),_) Messages.message option
-   * ('sign,'t*'v*'a) slot_machine
-   -> ('sign,'t*'v*'a) output
-        
+type (_,_) output =
+   | Silence
+   | Msg: ('s,'a*('t termF*bool),_) Messages.message -> ('s,'t*_*'a) output
+   | Try: ('t termF * 'v Values.t)                   -> (_,'t*'v*_) output
+
+type ('s,'t,'v,'a) slot_machine_rec = {
+    add      : ('t termF * 'v Values.t) option -> ('s,'t*'v*'a) output * ('s,'t*'v*'a) slot_machine;
+    clone    : unit -> ('s,'t*'v*'a) slot_machine;
+    suicide  : 'a -> unit
+  }
+
+ and (_,_) slot_machine =
+   SlotMachine : ('s,'t,'v,'a) slot_machine_rec
+                 -> ('s,'t*'v*'a) slot_machine [@@unboxed]

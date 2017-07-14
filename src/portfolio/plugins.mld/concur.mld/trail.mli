@@ -30,7 +30,6 @@ The reason it was added to it was either:
   type nature =
     | Original
     | Propagated of straight WB.t
-    | Decided of both WB.t
     | Tried
 
   include PATMapType with type keys = SAssign.t

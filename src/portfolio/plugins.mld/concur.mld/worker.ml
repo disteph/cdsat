@@ -14,9 +14,9 @@ module Make(WB: WhiteBoardExt) = struct
   open WB
   open DS
 
-  let add     (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.add
-  let clone   (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.clone()
-  let suicide (type sign) (SlotMachine(module Cont): sign islot_machine) = Cont.suicide
+  let add     (SlotMachine m) = m.add
+  let clone   (SlotMachine m) = m.clone()
+  let suicide (SlotMachine m) = m.suicide
 
   let rec flush reader writer msg =
     let aux = function
@@ -41,7 +41,7 @@ module Make(WB: WhiteBoardExt) = struct
       | MsgStraight(tset,chrono)
         -> loop_write hdl (add cont (Some tset)) chrono from_pl to_pl
       | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
-        -> let Output(_,newcont) = clone cont in
+        -> let newcont = clone cont in
            Deferred.all_unit
              [loop_read hdl cont    newreader1 newwriter1 ;
               loop_read hdl newcont newreader2 newwriter2 ]
@@ -51,22 +51,23 @@ module Make(WB: WhiteBoardExt) = struct
       ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "%a dies" Tags.pp hdl)))
       from_pl aux
 
-  and loop_write hdl (Output(output_msg,cont)) chrono from_pl to_pl =
+  and loop_write hdl (say,cont) chrono from_pl to_pl =
 
     let hhdl = Some(Handlers.Handler hdl) in
 
     Dump.print ["worker",1] (fun p-> p "%a looks at its output_msg" Tags.pp hdl);
 
-    match output_msg with
-    | None -> 
-       Dump.print ["worker",1] (fun p-> p "%a: no output msg" Tags.pp hdl);
+    match say with
+    | Silence -> 
+       Dump.print ["worker",1] (fun p-> p "%a: Silence" Tags.pp hdl);
        Deferred.all_unit
          [
            Lib.write to_pl (Msg(hhdl,Ack,chrono)) ;
            loop_read hdl cont from_pl to_pl
          ]
-    | Some msg ->
-       Dump.print ["worker",1] (fun p-> p "%a: Outputting message %a" Tags.pp hdl Msg.pp msg);
+
+    | Msg msg ->
+       Dump.print ["worker",1] (fun p-> p "%a: Message %a" Tags.pp hdl Msg.pp msg);
        let msg2pl = Msg(hhdl,Say(WB.stamp hdl msg),chrono) in
        Deferred.all_unit
          [
@@ -77,6 +78,15 @@ module Make(WB: WhiteBoardExt) = struct
               flush from_pl to_pl msg2pl
            | _ ->
               loop_read hdl cont from_pl to_pl
+         ]
+
+    | Try sassign ->
+       Dump.print ["worker",1] (fun p-> p "%a: Try %a" Tags.pp hdl pp_sassign sassign);
+       let msg2pl = Msg(hhdl,Try sassign,chrono) in
+       Deferred.all_unit
+         [
+           Lib.write to_pl msg2pl ;
+           loop_read hdl cont from_pl to_pl
          ]
 
   let make (PluginsTh.PluginTh.Signed(hdl,init)) = loop_read hdl init

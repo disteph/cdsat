@@ -449,22 +449,10 @@ let make theories : (module API) =
          WB(HandlersMap.union hdls1 hdls2,
             propa () (Assign.union res oldset) o)
            
-       (* val both2straight: both t -> unsat t -> straight t *)
-
-       let both2straight
-             ?(side=true)
-             (WB(hdls1,Propa(oldset,Both(assign1,assign2))))
-             (WB(hdls2,Propa(thset,Unsat)))
-         =
-         let bassign,newbassign =
-           if side then assign1,assign2
-           else assign2,assign1
-         in
-         let res = Assign.remove (Values.boolassign bassign) thset in
-         WB(HandlersMap.union hdls1 hdls2,
-            straight () (Assign.union res oldset) newbassign)
-
-       let curryfy ?(assign=Assign.empty) ?(flip=Term.bC Symbols.False [],false) (WB(hdls,Propa(thset,Unsat))) =
+       let curryfy
+             ?(assign = Assign.empty)
+             ?(flip   = Term.bC Symbols.False [],false)
+             (WB(hdls,Propa(thset,Unsat))) =
          let t,b = flip in
          let thset = Assign.remove (t,Values.Boolean b) thset in
          let aux ((term,value) as a) ((thset,clause,b) as sofar) =

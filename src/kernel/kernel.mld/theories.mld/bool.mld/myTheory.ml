@@ -17,32 +17,16 @@ module Make(DS: GlobalDS) = struct
   type datatypes = Term.datatype*Value.t*Assign.t
                                   
   let rec state atomN =
-    SlotMachine(
-        module struct
-          
-          type term   = Term.t
-          type value  = Value.t
-          type assign = Assign.t
-          type newoutput = (sign,Term.datatype * Value.t * Assign.t) output
-
-          let treated () = atomN
-
-          let add = function
-            | None -> Output(None,state atomN)
-            | Some a ->
-               let newtreated = Assign.add a atomN in
-               Output(Some(sat () newtreated),state newtreated)
-
-          let normalise _ = failwith "Not a theory with normaliser"
-
-          let clone () = Output(None, state atomN)
-
-          let suicide _ = ()
-
-        end : SlotMachine with type newoutput = (sign,Term.datatype * Value.t * Assign.t) output
-                           and type term   = Term.t
-                           and type value  = Value.t
-                           and type assign = Assign.t)
+    Specs.SlotMachine {
+        add = (function
+               | None -> Silence, state atomN
+               | Some a ->
+                  let newtreated = Assign.add a atomN in
+                  Msg(sat () newtreated),state newtreated);
+        
+        clone   = (fun () -> state atomN);
+        suicide = (fun _ -> ())
+      }
 
   let init = state Assign.empty
   let clear () = ()

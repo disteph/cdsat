@@ -1,7 +1,7 @@
-=========================
+=============================
          CDSAT,
-Part of the Psyche suite
-=========================
+Branch of the Psyche software
+=============================
 
 
 LICENSING

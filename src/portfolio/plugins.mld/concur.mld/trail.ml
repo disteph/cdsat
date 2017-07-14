@@ -34,7 +34,6 @@ The reason it was added to it was either:
   type nature =
     | Original
     | Propagated of straight WB.t
-    | Decided of both WB.t
     | Tried
 
 
@@ -83,7 +82,7 @@ The reason it was added to it was either:
             has_guess =
               match v with
               | Tried -> fun()->true
-              | Decided _ | Propagated _ | Original -> fun()->false;
+              | Propagated _ | Original -> fun()->false;
           }
         );
 
@@ -182,13 +181,6 @@ The reason it was added to it was either:
                whole conflict.  We stop. *)
 
             return(Case1 conflict)
-
-         | Decided msg,_  ->
-            (* It's a decision created by PropaBoth message msg.  We
-               create the propagation message we use for the backjump
-               branch, and finalise our answer. *)
-
-            finalise (WB.both2straight msg conflict)
 
          | _,(t,Values.Boolean b)
               when (Assign.is_empty semsplit) (* If we are not in semsplit *)
