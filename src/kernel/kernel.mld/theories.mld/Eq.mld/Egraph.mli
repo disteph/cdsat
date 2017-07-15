@@ -11,10 +11,8 @@ module Make(DS: GlobalDS) : sig
   open DS
 
   (* Abbreviation for single assignments *)
-  type sassign = Term.t*(Value.t Values.t) [@@deriving eq,show]
-  type boolassign = Term.t*bool [@@deriving eq,show]
-  type straight = (unit,Assign.t*boolassign,Messages.straight) message
-  type stop = straight list * ((unit,Assign.t*boolassign,unsat) message)
+  type straight = (unit,Assign.t*bassign,Messages.straight) message
+  type stop = straight list * ((unit,Assign.t*bassign,unsat) message)
 
   (* The information we want to keep about each component *)
   type info              

@@ -82,10 +82,17 @@ module Modules = struct
 end
 
 module Handlers = struct
-  type t = Handler: (_*(_*_*_*_)) Tags.t -> t [@@unboxed]
-  let id (Handler hdl) = Tags.id hdl
+  type t =
+    | Handler: (_*(_*_*_*_)) Tags.t -> t
+    | Eq
+  let id = function
+    | Handler hdl -> Tags.id hdl +1
+    | Eq -> 0
+                             
   let compare = id2compare id
-  let pp fmt (Handler hdl) = Tags.pp fmt hdl
+  let pp fmt = function
+    | Handler hdl -> Tags.pp fmt hdl
+    | Eq -> Format.fprintf fmt "Eq"
 end
 
 let all_theories_list = 
@@ -94,19 +101,23 @@ let all_theories_list =
     Handlers.Handler Tags.Arrays;
     Handlers.Handler Tags.LRA;
     Handlers.Handler Tags.IfThenElse;
+    Handlers.Eq
   ]
 
+    
 module HandlersMap = struct
   include Map.Make(Handlers)
 
-  let pp fmt hdls =
-    let _ =
-      fold
-        (fun a _ b ->
-          fprintf fmt "%s%a" (if b then ", " else "") Handlers.pp a; true)
-        hdls false in
-    ()
+  let pp_binding ?pp_v fmt (hdl,v) =
+    match pp_v with
+    | Some f -> Format.fprintf fmt "(%a↦%a)" Handlers.pp hdl f v
+    | None -> Format.fprintf fmt "%a" Handlers.pp hdl
 
+  let pp_opt ?pp_v fmt hdlmap =
+    List.pp (pp_binding ?pp_v) fmt (bindings hdlmap)
+
+  let pp fmt hdls = pp_opt fmt hdls
+                           
   let union_aux _ a b = match a,b with
     | None, None -> None
     | Some v, None | None, Some v | Some _, Some v -> Some v
@@ -140,3 +151,5 @@ let parse = function
 
 let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories
 let get l = List.fold (fun name -> HandlersMap.add (parse name) ()) l HandlersMap.empty
+
+              

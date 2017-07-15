@@ -14,7 +14,7 @@ open Async
 open Kernel
 open Top.Messages
 open Theories.Register
-
+       
 open Interfaces
 
 open General.Sums
@@ -23,8 +23,16 @@ open Lib
 module Make(WB: sig
                 include WhiteBoardExt
                 val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
-              end) = struct
+              end)
+         (EGraph: Theories.Eq.Interfaces.API
+          with type sign = Theories.Eq.MyTheory.sign
+           and type termdata = WB.DS.Term.datatype
+           and type value  = WB.DS.Value.t
+           and type cval   = WB.DS.CValue.t
+           and type assign = WB.DS.Assign.t)
+  = struct
 
+             
   open WB
 
   (* We load the code of the slave workers, generated from the
@@ -37,24 +45,15 @@ module Make(WB: sig
     type t = Handlers.t option [@@deriving ord]
 
     let pp fmt = function
-      | None -> Format.fprintf fmt "Memo module"
-      | Some hdl -> Format.fprintf fmt "%a module" Handlers.pp hdl
+      | None -> Format.fprintf fmt "Memo"
+      | Some hdl -> Format.fprintf fmt "%a" Handlers.pp hdl
                                    
   end
                     
   module AS = struct
     include Set.Make(Agents)
     let all = theories_fold (fun hdl -> add(Some hdl)) (singleton None)
-
-    let pp fmt hdls =
-      let _ =
-        fold
-          (fun a b ->
-            Format.fprintf fmt "%s%a" (if b then ", " else "") Agents.pp a;
-            true)
-          hdls false in
-      ()
-
+    let pp fmt hdls = List.pp Agents.pp fmt (elements hdls)
   end
 
   type state = {
@@ -78,10 +77,8 @@ module Make(WB: sig
     in
     WM.broadcast treat_worker pipe_map
 
-  let trail_ext level chrono msg sassign trail =
-    T.add (DS.SAssign.build sassign) (fun _ -> (level,chrono,msg)) trail
-
-
+  let trail_ext level chrono nature sassign trail =
+    T.add (DS.SAssign.build sassign) (fun _ -> (level,chrono,nature)) trail
       
   (* Select message function:
      reads input channel and selects a message to process;
@@ -91,7 +88,7 @@ module Make(WB: sig
       
   let rec select_msg state : (say answer * state) Deferred.t =
     Dump.print ["concur",2]
-      (fun p-> p "Wanna hear from %a" AS.pp state.waiting4);
+      (fun p-> p "Want to hear from %a" AS.pp state.waiting4);
     match state.try_list with
 
     | thmsg::l  when AS.is_empty state.waiting4 ->
@@ -103,46 +100,54 @@ module Make(WB: sig
             | `Eof -> failwith "Eof"
             | `Ok(Msg(agent,msg,chrono)) ->
                let state =
-                 match msg with
-                 | Say(WB(_,Propa(_,Straight _))) -> state
-                 | _ -> 
+                 (* match msg with *)
+                 (* | Say(WB(_,Propa(_,Straight _))) -> state *)
+                 (* | _ ->  *)
                     if (chrono = state.chrono)&&(AS.mem agent state.waiting4)
                     then { state with waiting4 = AS.remove agent state.waiting4 }
                     else state
                in
                match msg with
                | Ack ->
-                  Dump.print ["concur",2] (fun p-> p "Hearing Ack %i from %a" chrono Agents.pp agent);
+                  Dump.print ["concur",2] (fun p->
+                      p "Hearing Ack %i from %a" chrono Agents.pp agent);
                   select_msg state
                | Try sassign -> 
-                  Dump.print ["concur",2] (fun p-> p "Hearing guess %a from %a" pp_sassign sassign Agents.pp agent);
+                  Dump.print ["concur",2] (fun p->
+                      p "Hearing guess %a from %a" pp_sassign sassign Agents.pp agent);
                   select_msg { state with try_list = msg::state.try_list }
                | Say(WB _) ->
-                  Dump.print ["concur",2] (fun p-> p "Hearing from %a:" Agents.pp agent);
+                  Dump.print ["concur",2] (fun p->
+                      p "Hearing from %a:" Agents.pp agent);
                   return (msg, state) )
 
   (* Main loop of the master thread *)
 
-  let main_worker from_workers to_pl0 pipe_map assign0 =
+  let master from_workers to_pl0 pipe_map assign0 =
 
-    let rec main_worker (WB(rest, Sat consset) as current) state =
+    let rec master (WB(rest, Sat consset) as current) state =
 
-      Dump.print ["concur",2] (fun p-> p "\nMain_worker enters new loop");
+      Dump.print ["concur",2] (fun p-> p "\nmaster enters new loop");
       if HandlersMap.is_empty rest
       (* rest being empty means that all theories have
-         stamped the set of literals consset as being consistent
+         stamped the assignment consset as being consistent
          with them, so we can finish, closing all pipes *)
       then kill_pipes state.pipe_map state.to_plugin >>| fun () ->
            Case2 current
 
-      (* some theories still haven't stamped that set of
-         literals consset as being consistent with them, so we
-         read what the theories have to tell us *)
+      (* some theories still haven't stamped that assignment as being consistent with them,
+         so we read what the theories have to tell us *)
       else
         select_msg state
         >>= function
+
         | Try sassign, state ->
            Dump.print ["concur",1] (fun p -> p "About to try %a" WB.pp_sassign sassign);
+
+           (* This is a branching point where we tell all slave workers:
+              "Please, clone yourself; here are the new pipes to be used
+              for your clone to communicate with me." *)
+
            let aux to_worker new_from_pl1 new_to_pl1 new_from_pl2 new_to_pl2 =
              Lib.write to_worker (MsgBranch(new_from_pl1,new_to_pl1,new_from_pl2,new_to_pl2))
            in
@@ -155,12 +160,18 @@ module Make(WB: sig
            in
            Deferred.all_unit tasks >>= fun () ->
 
+           (* Once all slave workers have cloned themselves,
+              we add sassign to treat the first branch.
+              When that finishes with answer ans, we output ans and a thunk to
+              trigger the exploration of the second branch. *)
+
            Dump.print ["concur",1] (fun p ->
                p "Everybody cloned themselves; now starting first branch\nat level %i; chrono %i; Trying %a"
                  (state.level+1) (state.chrono+1) WB.pp_sassign sassign);
+
            send new_pipe_map1 (MsgStraight(sassign,state.chrono+1))
            >>= fun () ->
-           let cont = main_worker current in
+
            let newstate1 = { state with
                              from_workers = new_from_workers1;
                              to_plugin = new_to_pl1;
@@ -175,7 +186,7 @@ module Make(WB: sig
                                        sassign
                                        state.trail }
            in
-           cont newstate1 >>= fun ans1 ->
+           master current newstate1 >>= fun ans1 ->
            let def_ans2 msg2 =
              Dump.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
              let WB(_,Propa(_,Straight new2)) = msg2 in
@@ -194,7 +205,7 @@ module Make(WB: sig
                                              state.trail }
              in
              send new_pipe_map2 (MsgStraight(new2,newstate2.chrono)) >>= fun () ->
-             cont newstate2
+             master current newstate2
            in
            let kill2 () = kill_pipes new_pipe_map2 new_to_pl2
            in
@@ -211,17 +222,6 @@ module Make(WB: sig
            | _ -> kill2() >>| fun () -> ans1
            end
 
-  (* This is a branching function telling all slave workers:
-
-         "Please, clone yourself; here are the new pipes to be used
-         for your clone to communicate with me; add the boolean assignment newa
-         to your original self, add the boolean assignment newb to your clone."
-
-         Once all slave workers have done so, we apply continuation
-         cont to treat the first branch (with newa). When that
-         finishes with answer ans, we output ans and a thunk to
-         trigger the exploration of the second branch (with newb).
-   *)
 
 
              
@@ -229,7 +229,6 @@ module Make(WB: sig
            (match msg with
               
             | Sat newtset -> 
-               Dump.print ["concur",1] (fun p -> p "Sat");
                Dump.print ["concur",3] (fun p -> p "%a" WB.pp thmsg);
                (* A theory found a counter-model newtset. If it is the
                 same as tset, then it means the theory has stamped the
@@ -238,10 +237,13 @@ module Make(WB: sig
 
                let newcurrent =
                  if WB.DS.Assign.equal newtset consset
-                 then current
-                 else WB.sat_init newtset
+                 then WB.sat thmsg current
+                 else
+                   if WB.DS.Assign.subset newtset consset
+                   then current
+                   else WB.sat_init newtset
                in
-               main_worker (WB.sat thmsg newcurrent) state
+               master newcurrent state
 
             | Propa(tset,Unsat) -> 
                Dump.print ["concur",1] (fun p -> p "Conflict %a" WB.pp thmsg);
@@ -270,11 +272,11 @@ module Make(WB: sig
                Dump.print ["concur",1] (fun p ->
                    p "Level %i; chrono %i; %a"
                      state.level chrono WB.pp thmsg);
-               (* A theory deduced literals newa from literals
-               old. We broadcast them to all theories *)
+               (* A theory deduced a boolean assignment newa from assignment
+               old. We broadcast it to all theories *)
                send state.pipe_map (MsgStraight(newa,chrono))
                >>= fun () ->
-               main_worker current
+               master current
                  { state with
                    waiting4 = AS.all;
                    chrono = chrono;
@@ -290,6 +292,13 @@ module Make(WB: sig
                   sat WB.t) sum Deferred.t)
 
     in
+    let treat sassign (trail,tasks,chrono) =
+      let chrono = chrono+1 in
+      trail_ext 0 chrono T.Original sassign trail,
+      ((send pipe_map (MsgStraight(sassign,chrono)))::tasks),
+      chrono
+    in
+    let trail,tasks,chrono = DS.Assign.fold treat assign0 (T.empty,[],0) in
     let state = {
         from_workers = from_workers;
         to_plugin    = to_pl0;
@@ -297,14 +306,12 @@ module Make(WB: sig
         try_list     = [];
         waiting4     = AS.all;
         level        = 0;
-        chrono       = 0;
-        trail        = T.map (fun _ () -> 0,0,T.Original) assign0
+        chrono       = chrono;
+        trail        = trail
       }
     in
-    let list0 = DS.Assign.fold (fun sassign sofar -> sassign::sofar) assign0 [] in
-    let aux sassign = send state.pipe_map (MsgStraight(sassign,0)) in
-    Deferred.all_unit (List.map aux list0) >>= fun () ->
-    main_worker (WB.sat_init assign0) state >>| function
+    Deferred.all_unit tasks >>= fun () ->
+    master (WB.sat_init assign0) state >>| function
     | Case1(Case1 conflict) -> Case1 conflict
     | Case1(Case2 _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg

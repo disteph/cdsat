@@ -338,6 +338,7 @@ module Make(State:State) = struct
       | Values.Boolean true -> Format.fprintf fmt "%a" Term.pp t
       | Values.Boolean false -> Format.fprintf fmt "!(%a)" Term.pp t
       | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" Term.pp t Value.pp v
+    let show_sassign = Dump.stringOf pp_sassign
                                     
     module SAssign = struct
       module Param = struct
@@ -349,6 +350,7 @@ module Make(State:State) = struct
       let pp fmt t = pp_sassign fmt (reveal t)
       let show  = Dump.stringOf pp
     end
+    type sassign_hashconsed = SAssign.t
 
     module Assign = struct
       open SetConstructions
@@ -366,6 +368,8 @@ module Make(State:State) = struct
       type t = M.t
       let pp    = M.print_in_fmt SAssign.pp
       let show  = Dump.stringOf pp
+      let hash = M.hash
+      let hash_fold_t = Hash.hash2fold M.hash
       let empty = M.empty
       let singleton e = M.singleton(SAssign.build e)
       let add e = M.add (SAssign.build e)
@@ -382,7 +386,14 @@ module Make(State:State) = struct
       let fold aux = M.fold (fun e -> aux(SAssign.reveal e))
       let id = M.id
     end
+
     let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
+
+    module Msg = struct
+      type ('sign,'b) t = ('sign,Assign.t*bassign,'b) message
+      let pp fmt = print_msg_in_fmt Assign.pp pp_bassign fmt
+    end
+
   end
 
   module EGraph = Eq.MyTheory.Make(DS)
@@ -392,10 +403,15 @@ end
 let make theories : (module API) =
 
   let (module State) = 
-    let aux (Handlers.Handler hdl) () sofar = theory_add hdl sofar
+    let aux hdl () sofar =
+      match hdl with
+      | Handlers.Handler tag -> theory_add tag sofar
+      | Handlers.Eq -> sofar
     in
     HandlersMap.fold aux theories (module InitState: State)
   in
+
+  let theoriesWeq = HandlersMap.add Handlers.Eq () theories in
 
   (module struct
      include Make(State)
@@ -406,11 +422,6 @@ let make theories : (module API) =
                      
        open DS
 
-       module Msg = struct
-         type ('sign,'b) t = ('sign,Assign.t*bassign,'b) message
-         let pp fmt = print_msg_in_fmt Assign.pp pp_bassign fmt
-       end
-
        type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
 
        let pp fmt (type a) (WB(hdls,msg) : a t) =
@@ -418,18 +429,18 @@ let make theories : (module API) =
          | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
                         HandlersMap.pp hdls
                         Msg.pp msg
-         | Sat   _ -> Format.fprintf fmt "%a is/are fine with %a"
-                        HandlersMap.pp (HandlersMap.diff theories hdls)
-                        Msg.pp msg
+         | Sat assign -> Format.fprintf fmt "%a is/are fine with %a"
+                        HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
+                        Assign.pp assign
 
-       let sat_init assign = WB(theories, Messages.sat () assign)
+       let sat_init assign = WB(theoriesWeq, Messages.sat () assign)
                                
        let sat (WB(rest1, Sat assign1)) (WB(rest2, Sat assign2)) =
          if Assign.equal assign1 assign2
          then WB(HandlersMap.inter rest1 rest2, sat () assign1)
          else failwith "Theories disagree on model"
 
-       let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theories then ()
+       let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theoriesWeq then ()
                        else failwith "Using a theory that is not allowed"
 
        let stamp (type b) (hdl: (_*('a*_*_*_)) Tags.t) : ('a,b) Msg.t -> b t = function
@@ -438,7 +449,15 @@ let make theories : (module API) =
             WB(HandlersMap.singleton (Handlers.Handler hdl) (),
                Messages.propa () assign o)
          | Sat assign ->
-            WB(HandlersMap.remove (Handlers.Handler hdl) theories,
+            WB(HandlersMap.remove (Handlers.Handler hdl) theoriesWeq,
+               Messages.sat () assign)
+
+       let stamp_Eq (type b) : (Eq.MyTheory.sign,b) Msg.t -> b t = function
+         | Propa(assign,o) ->
+            WB(HandlersMap.singleton Handlers.Eq (),
+               Messages.propa () assign o)
+         | Sat assign ->
+            WB(HandlersMap.remove Handlers.Eq theoriesWeq,
                Messages.sat () assign)
 
        let resolve
@@ -472,10 +491,9 @@ let make theories : (module API) =
 
      end
 
-     let th_modules,o = State.modules (fun x->x) (fun x->x) (fun x->x) (module DS)
+     let th_modules,vproj = State.modules (fun x->x) (fun x->x) (fun x->x) (module DS)
 
-     module VProj = (val o)
-
+     module VProj = (val vproj)
      let vproj = VProj.proj
 
      let parse parser input =

@@ -81,7 +81,13 @@ module type GlobalDS = sig
   module Term   : Term
   module Value  : PH
   module CValue : CValue with type value := Value.t
-  module Assign : Collection with type e = Term.t * Value.t Values.t
+  type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
+  type sassign = Term.t * Value.t Values.t [@@deriving eq, hash, show]
+  module Assign : Collection with type e = sassign
+  module Msg : sig
+    type ('sign,'b) t = ('sign,Assign.t*bassign,'b) Messages.message
+    val pp : formatter -> (_,_) t -> unit
+  end
 end
 
 (* type version of the above *)

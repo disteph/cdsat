@@ -19,7 +19,7 @@ module IdMon : MonadType with type 'a t = 'a
 
 module MakeCollection
          (OT: sig
-              type t [@@deriving ord,show]
+              type t [@@deriving ord,show,hash]
             end) 
        : Collection with type e = OT.t
 

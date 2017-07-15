@@ -11,7 +11,6 @@ let run parser input =
 
   (* Setting up the Kernel *)
   
-  let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
   let (module K)   = Kernel.Top_level.init ~parser input in
 
   (* Getting the result for the run *)
@@ -26,7 +25,11 @@ let run parser input =
     | Some false when !PFlags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
     | _ ->
 
-       (* Setting up the Plugins *)
+       (* OK, we have some work to do. First get the plugin *)
+
+       let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
+
+       (* Setting up the plugin *)
 
        let module A = struct
 
@@ -34,13 +37,14 @@ let run parser input =
 
            open Kernel.Theories.Register
                   
+           module Plugin = PluginsTh.Register.Make(WB.DS)
+
            let add_plugin
                  (Modules.Module(tag,_) as plugin)
                  (plugins_sofar, clear_sofar)
              =
-             let module Plugin = PluginsTh.Register.Make(K.WB.DS) in
              let init,clear = Plugin.make plugin in
-             HandlersMap.add (Handlers.Handler tag) init plugins_sofar,
+             init::plugins_sofar,
              (fun () -> clear_sofar (); clear ())
 
            (* We create a map pluginsTh that maps every (involved) theory
@@ -50,9 +54,10 @@ let run parser input =
              List.fold
                add_plugin
                K.th_modules
-               (HandlersMap.empty,(fun () -> ()))
+               ([],(fun () -> ()))
          end
-       in         
+       in
+
        let module P = Pl.Make(A) in
 
        (* RUNNING PSYCHE *)

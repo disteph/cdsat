@@ -57,19 +57,14 @@ end
 
 module MakeCollection
          (OT: sig
-              type t [@@deriving ord,show]
+              type t [@@deriving ord,show,hash]
             end) = struct
   include Set.Make(OT)
   type e    = elt
   let next t = let e = choose t in (e,remove e t)
-  let pp fmt s =
-    let _ = fold
-              (fun a b -> fprintf fmt "%s%a"
-                            (if b then ", " else "")
-                            OT.pp a;
-                          true)
-              s false in
-    ()
+  let hash t = List.hash OT.hash (elements t)
+  let hash_fold_t s t = List.hash_fold_t OT.hash_fold_t s (elements t)
+  let pp fmt s = List.pp OT.pp fmt (elements s)
   let show = Dump.stringOf pp
 end
 
@@ -86,6 +81,7 @@ module MakePATCollection(M: PHCons) = struct
   module I = TypesFromHConsed(M)
 
   include PATSet.Make(DSet)(I)
+  let hash_fold_t = Hash.hash2fold hash
   let next t = let e = choose t in (e,remove e t)
   let pp fmt s = print_in_fmt M.pp fmt s
   let show = Dump.stringOf pp

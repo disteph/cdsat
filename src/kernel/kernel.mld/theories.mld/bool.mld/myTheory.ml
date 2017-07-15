@@ -1,3 +1,5 @@
+open General
+
 open Top
 open Messages
 open Specs
@@ -16,19 +18,27 @@ module Make(DS: GlobalDS) = struct
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
                                   
-  let rec state atomN =
+  let rec machine state =
     Specs.SlotMachine {
-        add = (function
-               | None -> Silence, state atomN
-               | Some a ->
-                  let newtreated = Assign.add a atomN in
-                  Msg(sat () newtreated),state newtreated);
+        add =
+          (function
+           | None ->
+              Print.print ["kernel.bool",2] (fun p ->
+                  p "kernel.bool receiving None");
+              Silence, machine state
+           | Some a ->
+              Print.print ["kernel.bool",2] (fun p ->
+                  p "kernel.bool receiving Some(%a)"
+                    pp_sassign a
+                );
+              let state = Assign.add a state in
+              Msg(sat () state), machine state);
         
-        clone   = (fun () -> state atomN);
+        clone   = (fun () -> machine state);
         suicide = (fun _ -> ())
       }
 
-  let init = state Assign.empty
+  let init = machine Assign.empty
   let clear () = ()
                    
 end

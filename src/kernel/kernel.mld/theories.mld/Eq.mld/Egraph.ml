@@ -12,10 +12,8 @@ module Make(DS: GlobalDS) = struct
   
   open DS
 
-  type sassign    = Term.t*(Value.t Values.t) [@@deriving eq,show]
-  type boolassign = Term.t*bool [@@deriving eq,show]
-  type straight   = (unit,Assign.t*boolassign,Messages.straight) message
-  type stop       = straight list * ((sign,Assign.t*boolassign,unsat) message)
+  type straight   = (unit,Assign.t*bassign,Messages.straight) message
+  type stop       = straight list * ((sign,Assign.t*bassign,unsat) message)
 
   (* Sum type for terms+values *)
 
@@ -44,7 +42,7 @@ module Make(DS: GlobalDS) = struct
       cval: CValue.t; (* Combined value *)
       (* Terms that are declared disequal from this component have an entry,
          mapped to the corresponding single assignment *)
-      diseq: (Term.t*Term.t*boolassign) TMap.t;
+      diseq: (Term.t*Term.t*bassign) TMap.t;
       listening: TVSet.t
     }
                 [@@deriving eq,show] 

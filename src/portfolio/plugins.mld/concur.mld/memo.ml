@@ -33,9 +33,9 @@ module Make(WB : WhiteBoardExt) = struct
 
     let hash (type a) (WB(hdls,msg):a WB.t) =
       match msg with
-      | Sat tset -> 2*(Assign.id tset)
-      | Propa(tset,Unsat) -> 1+3*(Assign.id tset)
-      | Propa(tset,Straight tset') -> 1+7*(Assign.id tset)+11*(hash_bassign tset')
+      | Sat tset -> 2*(Assign.hash tset)
+      | Propa(tset,Unsat) -> 1+3*(Assign.hash tset)
+      | Propa(tset,Straight tset') -> 1+7*(Assign.hash tset)+11*(hash_bassign tset')
 
     let hash_fold_t _ _ = Hash.hash2fold hash
     let name = "WhiteBoardMessages_in_Memo"

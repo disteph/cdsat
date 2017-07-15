@@ -31,15 +31,19 @@ module Make(W: sig
     in
     hdlfold aux hdlsmap ([worker],init stuff)
                         
-  let make f hdlsmap =
+  let make memo hdlsmap =
+    let f = function
+      | Some a -> a
+      | None -> memo
+    in
     let from_workers,to_pl = Pipe.create () in
     let repeat a =
       let from_pl,to_worker = Pipe.create () in
       f a from_pl to_pl, to_worker
     in
-    let init to_worker = (HandlersMap.empty,to_worker) in
+    let init to_worker = HandlersMap.empty, to_worker in
     let transform hdl to_worker (sofar,memo) =
-      (HandlersMap.add hdl to_worker sofar,memo)
+      HandlersMap.add hdl to_worker sofar, memo
     in
     let tasks,pipemap = fold repeat init transform hdlsmap in
     from_workers, to_pl, tasks, pipemap

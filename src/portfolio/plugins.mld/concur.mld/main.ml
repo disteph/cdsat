@@ -14,7 +14,7 @@ open Async
 open General.Sums
 
 open Kernel
-
+open Theories.Register
 open Lib
 
 module Make(K:Plugin.Input) = struct
@@ -23,40 +23,46 @@ module Make(K:Plugin.Input) = struct
   module WBE = struct
     include WB
     include WhiteBoardExt.Make(WB)
-    let theories_fold f = Theories.Register.HandlersMap.fold (fun hdl _ -> f hdl) pluginsTh
   end
-
+                 
   (* We load the code of the Memoisation module, of the workers' module, and of
   the master module. *)
                  
   module Mm = Memo.Make(WBE)
+  module EG = EgraphWorker.Make(WBE)(EGraph)
   module W  = Worker.Make(WBE)
-  module M  = Master.Make(WBE)
 
+  let aux (PluginsTh.PluginTh.Signed(tag,_) as smachine) sofar =
+    HandlersMap.add (Handlers.Handler tag) (W.make smachine) sofar
+
+  let pluginsTh = List.fold aux pluginsTh (HandlersMap.singleton Handlers.Eq EG.make)
+
+  module M  = Master.Make(struct
+                  include WBE
+                  let theories_fold f seed =
+                    HandlersMap.fold (fun hdl _ -> f hdl) pluginsTh seed
+                end)
+                (EGraph)
   open M
          
   (* Main code for master thread, parameterised by the original
          set of formulae we want to prove inconsistent *)
 
   let mysolve tset =
-
+    
     (* For each decision procedure in pluginsTh, we create a
            slave worker controlling it, with a dedicated pipe to write
            to that slave. From this we collect the list of workers,
            and a map mapping each theory handler to the pipe writer
            used to communicate to its corresponding slave. *)
 
-    let aux = function
-      | Some a -> W.make a
-      | None -> Mm.make
-    in
     let from_workers, to_pl, workers_list, pipe_map =
-      WM.make aux pluginsTh
+      WM.make Mm.make pluginsTh
     in
 
     (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)
-    main_worker from_workers to_pl pipe_map tset >>= fun a ->
+    master from_workers to_pl pipe_map tset >>= fun a ->
     Dump.print ["concur",1] (fun p-> p "Finished computation");
     Deferred.all_unit workers_list
     >>| fun () -> a

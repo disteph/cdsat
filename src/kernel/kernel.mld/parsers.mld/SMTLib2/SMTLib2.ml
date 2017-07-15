@@ -200,6 +200,6 @@ let parse (type t) aft interpreter =
   let aux t =
     let formula = transformTerm EmptyEnv [] t
     in
-    if aft.satprov then formula else I.sigsymb "not" [formula]
+    if not aft.satprov then formula else I.sigsymb "not" [formula]
   in
   List.map aux aft.form_list, aft.status

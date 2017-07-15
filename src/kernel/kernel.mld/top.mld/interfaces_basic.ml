@@ -21,7 +21,7 @@ end
 
 module type Collection = sig
   type e
-  type t [@@deriving eq,show]
+  type t [@@deriving eq,show,hash]
   val empty: t
   val singleton: e -> t
   val add  : e -> t -> t

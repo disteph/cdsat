@@ -22,7 +22,13 @@ open General.Sums
 module Make(WB: sig
                 include WhiteBoardExt
                 val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
-              end) : sig
+              end)
+         (EGraph: Theories.Eq.Interfaces.API
+          with type sign = Theories.Eq.MyTheory.sign
+           and type termdata = WB.DS.Term.datatype
+           and type value  = WB.DS.Value.t
+           and type cval   = WB.DS.CValue.t
+           and type assign = WB.DS.Assign.t) : sig
 
   open WB
 
@@ -31,15 +37,15 @@ module Make(WB: sig
     type t
 
     val make :
-      ('c option -> msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'd)
-      -> 'c HandlersMap.t
+      (msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'd)
+      -> (msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'd) HandlersMap.t
       -> msg2pl Pipe.Reader.t * msg2pl Pipe.Writer.t * 'd list * t
 
   end
 
   type state
 
-  val main_worker :
+  val master :
     msg2pl Pipe.Reader.t
     -> msg2pl Pipe.Writer.t
     -> WM.t

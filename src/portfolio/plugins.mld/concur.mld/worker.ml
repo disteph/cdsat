@@ -48,7 +48,7 @@ module Make(WB: WhiteBoardExt) = struct
       | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return(suicide cont assign)
     in
     Lib.read
-      ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "%a dies" Tags.pp hdl)))
+      ~onkill:(fun ()->return(Dump.print ["worker",2] (fun p-> p "%a dies" Tags.pp hdl)))
       from_pl aux
 
   and loop_write hdl (say,cont) chrono from_pl to_pl =

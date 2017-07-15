@@ -10,40 +10,21 @@ open Specs
 module type WhiteBoard = sig
 
   module DS : sig
-    module Term : Term
-
-    module Value  : sig
-      type t [@@deriving eq, ord, hash, show]
-    end
-
-    module CValue : CValue with type value := Value.t
-
-    type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
-
+    type sassign_hashconsed
+    include GlobalDS with type Assign.t = (sassign_hashconsed, unit, int, int, unit)
+                                            General.Patricia.poly
     module SAssign : sig
-      include PHCons
+      include PHCons with type t = sassign_hashconsed
       val reveal : t -> Term.t*(Value.t Values.t)
       val build  : Term.t*(Value.t Values.t) -> t
     end
-                       
-    module Assign : sig
-      include Collection with type e = Term.t*(Value.t Values.t)
-                          and type t = (SAssign.t, unit, int, int, unit)
-                                     General.Patricia.poly
-      val id : t -> int
-    end
   end
-
   open DS
-
-  module Msg : sig
-    type ('sign,'a) t = ('sign,Assign.t*bassign,'a) Messages.message
-    val pp : Format.formatter -> (_,_)t -> unit
-  end
 
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
   val pp       : Format.formatter -> 'a t -> unit
   val stamp    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
+  val stamp_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
   val sat_init : Assign.t -> sat t
   val sat      : sat t -> sat t -> sat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
