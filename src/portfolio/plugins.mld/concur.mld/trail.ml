@@ -1,11 +1,12 @@
-(*********************)
-(* Conflict analysis *)
-(*********************)
+(*******************************)
+(* Trail and Conflict analysis *)
+(*******************************)
 
 open Async
        
 open Kernel
 open Top
+open Basic
 open Messages
 
 open General
@@ -19,31 +20,44 @@ open Sums
 module Make(WB : Export.WhiteBoard) = struct
 
   open WB.DS
-  type sassign = Term.t*(Value.t Values.t) [@@deriving show]
          
-  module I = TypesFromHConsed(SAssign)
-
-  (* type nature indicates the status of each formula accumulated in the trail so far.
-The reason it was added to it was either:
+  (* type nature indicates the status of each single assignment
+     accumulated in the trail so far.
+The reason it was added to the trail was either:
 - It was in the original problem
-- It was propagated from other formulae already present in the trail
+- It was propagated from other assignments already present in the trail
 - It was a decision
-- It was tried (i.e. a decision that is not on a formula of the finite basis, and therefore can't just be switched when realising this decision leads to conflict)
    *)
                              
   type nature =
-    | Original
-    | Propagated of straight WB.t
-    | Tried
+    | Input
+    | Deduction of straight WB.t
+    | Decision
 
+  let pp_nature fmt = function
+    | Input -> Format.fprintf fmt "Input"
+    | Deduction msg -> Format.fprintf fmt "Deduction(%a)" WB.pp msg
+    | Decision -> Format.fprintf fmt "Decision"
 
-  (* When doing conflict analysis, the current set of assignments in conflict is implemented in type t below. In that set we want to retain some general information:
-- level: the maximal level (or possibly an upper bound on it)
-- chrono: the timestamp of the latest assignment in the conflict
+  let show_nature = Print.stringOf pp_nature
+      
+  (* The main data-structure in the trail is a map from single assignments to a triple
+     (level, chrono, nature) where
+     - level is the level of the assignment
+     - chrono is the identifier of the assignment,
+       attributed in chronological order and also called timestamp
+     - nature is the nature of the assignment as described above
+     We now build that map datastructure. *)
+
+  (* Such maps will also be used for providing useful information
+     about a set of single assignments (e.g. a CDSAT conflict).
+     For such a set it is useful to know the following information:
+- level: the maximal level
+- chrono: the timestamp of the latest single assignment in the conflict
 - sassign: that assignment
-- nature: the nature of this formula, as above
-- is_uip: is true iff this formula is a UIP
-- has_guess: is true iff the highest level is that of a guess (formula whose nature is Tried)
+- nature: the nature of this single assignment, as above
+- is_uip: is true iff this assignment is a UIP
+- has_guess: is true iff the highest level is that of a non-Boolean decision
  *)
 
   type max = {
@@ -81,8 +95,8 @@ The reason it was added to it was either:
             is_uip = (fun()-> true);
             has_guess =
               match v with
-              | Tried -> fun()->true
-              | Propagated _ | Original -> fun()->false;
+              | Decision -> fun()->true
+              | Deduction _ | Input -> fun()->false;
           }
         );
 
@@ -103,56 +117,115 @@ The reason it was added to it was either:
 
   end
 
-  (* Creating the data-structure for Trails *)
-                       
-  include PATMap.Make(DestWInfo)(I)
+  (* We now create the data-structure for Trail Maps *)
+  module TrailMap = PATMap.Make(DestWInfo)(TypesFromHConsed(SAssign))
 
-  (* Extracts from trail the fragment that is used in left-hand
-  side of propa message, from which we removed semsplit. I.e. the
+  (* Extracts from a trail map the fragment that is used in the left-hand
+  side of a propa message, from which we removed semsplit. I.e. the
   formulae in semsplit do not end up in the extraction. *)
                      
-  let get_data trail ?(semsplit=Assign.empty) msg =
+  let get_data trailmap ?(semsplit=Assign.empty) msg =
     let WB.WB(_,Propa(tset,_)) = msg in
-    inter_poly (fun _ v () ->v) trail (Assign.diff tset semsplit)
+    let map = TrailMap.inter_poly (fun _ v () ->v) trailmap (Assign.diff tset semsplit) in
+    TrailMap.info map
 
-               
+  (* Now we define the type for trails *)
+                        
+  type t = {
+      map : TrailMap.t; (* It contains a trail map *)
+      late : (straight WB.t * int * int) list
+      (* List of late propagations (head is the latest one),
+         each represented as (msg,level,actual_level),
+         where msg is the propagation message, level is the current level at the time
+         of the addition to the trail, and actual_level is the real level of the 
+         propagation. This is useful for backjumping. *)
+    }
+
+  (* Extracts the latest level of the trail *)
+  let level trail = (TrailMap.info trail.map).level
+
+  (* Extracts the latest timestamp of the trail *)
+  let chrono trail = (TrailMap.info trail.map).chrono
+
+  (* Constructs the list of propagations A1::...::An::msg
+     where A1,...,An are the propagations of level <= i
+     that were added (in chronological order) to the trail after decision i was made. *)
+  let late i trail msg =
+    let rec aux accu = function
+      | [] -> accu
+      | (_,level,_)::_ when level <= i -> accu
+      | (msg,_,actual_level)::tail when actual_level <= i -> aux (msg::accu) tail
+      | _::tail -> aux accu tail
+    in
+    aux [msg] trail.late
+
+  (* Empty trail *)
+  let init = {
+      map = TrailMap.empty;
+      late = []
+    }
+      
+  (* Adds a new assignment on the trail *)
+  let add ~nature sassign trail =
+    Dump.print ["trail",1] (fun p ->
+        p "Adding %a as %a" pp_sassign sassign pp_nature nature);
+    let infos = TrailMap.info trail.map in
+    let map level = TrailMap.add
+                      (SAssign.build sassign)
+                      (fun _ -> level,infos.chrono+1,nature)
+                      trail.map
+    in
+    match nature with
+    | Input -> { trail with map = map 0 }
+    | Decision -> { trail with map = map (infos.level+1) }
+    | Deduction msg ->
+       let level = Pervasives.max (get_data trail.map msg).level 0 in
+       if level < infos.level (* Late propagation ! *)
+       then 
+         { map  = map level;
+           late = (msg,infos.level,level)::trail.late }
+       else
+         { trail with map = map level }
+           
+                                                             
   let analyse trail conflict learn =
     
+    let map = trail.map in
+      
     let rec aux
               conflict (* The conflict to analyse *)
-              ?level   (* Level of latest contributing decision, only present if it is a guess *)
+              ?level   (* Level of latest contributing decision, only present if it is non-Boolean *)
               semsplit (* This is where we collect semsplit formulae *)
               data     (* Data about { conflict formulae minus semsplit formulae } *)
-            : (unsat WB.t, int * straight WB.t) sum Deferred.t
+            : (unsat WB.t, int * straight WB.t list) sum Deferred.t
       =
 
       Dump.print ["trail",1] (fun p ->
           p "Analysing Conflict: %a" WB.pp conflict);
 
       (* This is what we do when we finalise an answer:
-       msg is the propagation message we use for the branch we backjump to.
-       *)
+       msg is the propagation message we use for the branch we backjump to. *)
       
       let finalise msg =
         (* First computing the assignments we need for the branch we backjump to *)
-        let next = get_data trail msg in
+        let next = get_data map msg in
         (* Second assignment participating to conflict *)
-        let second = if is_empty next then None
-                     else Some((info next).sassign()) in
+        let second = if next.level < -1 then None
+                     else Some(next.sassign()) in
         Dump.print ["trail",1] (fun p ->
             p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n%a"
               data.level
               pp_sassign (data.sassign())
-              (info next).level
+              next.level
               (Opt.pp_print_option SAssign.pp) (Opt.map SAssign.build second)
               WB.pp msg
           );
-        (* We learn the conflict, watching first and second formulae *)
 
+        (* We learn the conflict, watching first and second formulae *)
         learn conflict (data.sassign()) second >>| fun ()->
+
         (* Now jumping to level of second formula contributing to conflict *)
-        
-        Case2((info next).level, msg)
+        Case2(next.level, late next.level trail msg)
       in
 
       match level with
@@ -168,15 +241,14 @@ The reason it was added to it was either:
          learn conflict t1 (Some t2) >>| fun ()->
          (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
-
-         Case2(level-1, WB.curryfy ~assign:semsplit conflict)
+         Case2(level-1, late (level-1) trail (WB.curryfy ~assign:semsplit conflict))
 
       | _ -> (* Otherwise we analyse the nature of the latest assignment
               contributing to the conflict *)
 
          begin match data.nature(),data.sassign() with
 
-         | Original,_ ->
+         | Input,_ ->
             (* It's a formula of the original problem, and so is the
                whole conflict.  We stop. *)
 
@@ -186,15 +258,18 @@ The reason it was added to it was either:
               when (Assign.is_empty semsplit) (* If we are not in semsplit *)
                    && (data.is_uip())       (* and data.term() is a UIP *)
                    && data.level > 0        (* and conflict is not of level 0 *)
-                   && not(mem (SAssign.build(Values.bassign ~b:(not b) t)) trail)
+                   && not(TrailMap.mem
+                            (SAssign.build(Values.bassign ~b:(not b) t))
+                            map)
                          (* ...if the negation of the UIP is new knowledge *)
            -> (* ...we might use that UIP to switch branches *)
             finalise (WB.curryfy ~flip:(t,b) conflict)
                      
-         | Propagated msg,_ ->
+         | Deduction msg,_ ->
             begin
               Dump.print ["trail",1] (fun p ->
-                  let level,chrono,_ = find (SAssign.build(data.sassign())) trail in
+                  let level,chrono,_ = TrailMap.find (SAssign.build(data.sassign())) map
+                  in
                   p "Explaining %a of level %i and chrono %i, using message\n%a"
                     pp_sassign (data.sassign())
                     level chrono
@@ -202,7 +277,7 @@ The reason it was added to it was either:
                 );
               (* Proposed new conflict, and its data *)
               let newconflict = WB.resolve msg conflict in
-              let newdata = info(get_data trail ~semsplit newconflict) in
+              let newdata = get_data map ~semsplit newconflict in
               if newdata.has_guess()
               then
                 (* The latest contributing decision is a guess,
@@ -214,9 +289,10 @@ The reason it was added to it was either:
                 aux newconflict ?level semsplit newdata
             end
 
-         | Tried,_ -> failwith "There is a guess in the original conflict!!! Not supported (should apply rule Undo)"
+         | Decision,_ ->
+            failwith "There is a guess in the original conflict!!! Not supported (should apply rule Undo)"
                              
          end
-    in aux conflict Assign.empty (info(get_data trail conflict))
+    in aux conflict Assign.empty (get_data map conflict)
            
 end
