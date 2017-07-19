@@ -26,7 +26,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
   open WB4M
   open WBE
 
-  module T  = Trail.Make(WBE)
+  module T = Trail.Make(WBE)
 
   module Agents = struct
     type t = Handlers.t option [@@deriving ord]
