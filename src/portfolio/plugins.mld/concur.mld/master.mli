@@ -19,36 +19,8 @@ open Interfaces
 
 open General.Sums
 
-module Make(WB: sig
-                include WhiteBoardExt
-                val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
-              end)
-         (EGraph: Theories.Eq.Interfaces.API
-          with type sign = Theories.Eq.MyTheory.sign
-           and type termdata = WB.DS.Term.datatype
-           and type value  = WB.DS.Value.t
-           and type cval   = WB.DS.CValue.t
-           and type assign = WB.DS.Assign.t) : sig
-
-  open WB
-
-  module WM : sig
-
-    type t
-
-    val make :
-      (msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'd)
-      -> (msg2th Pipe.Reader.t -> msg2pl Pipe.Writer.t -> 'd) HandlersMap.t
-      -> msg2pl Pipe.Reader.t * msg2pl Pipe.Writer.t * 'd list * t
-
-  end
-
-  type state
-
-  val master :
-    msg2pl Pipe.Reader.t
-    -> msg2pl Pipe.Writer.t
-    -> WM.t
-    -> DS.Assign.t
-    -> (unsat WB.t, sat WB.t) sum Deferred.t
+module Make(WBEH: WhiteBoard4Master) : sig
+  open WBEH
+  open WBE
+  val master : H.t -> DS.Assign.t -> (unsat t, sat t) sum Deferred.t
 end

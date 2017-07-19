@@ -10,8 +10,6 @@ module Make(WB: WhiteBoardExt)
            and type value  = WB.DS.Value.t
            and type cval   = WB.DS.CValue.t
            and type assign = WB.DS.Assign.t) : sig
-  val make :
-    WB.msg2th Pipe.Reader.t ->
-    WB.msg2pl Pipe.Writer.t ->
-    unit Deferred.t
+  open WB
+  val make : egraph ports -> unit Deferred.t
 end

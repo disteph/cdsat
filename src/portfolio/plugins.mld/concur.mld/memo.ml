@@ -179,46 +179,49 @@ module Make(WB : WhiteBoardExt) = struct
     then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
           WR.add (Constraint.make msg) term1 term2)
 
-  let rec flush reader writer msg =
+  let rec flush ports msg =
     Dump.print ["memo",2] (fun p-> p "Memo enters flush");
-    let aux = function
-      | MsgStraight _ -> flush reader writer msg
-      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) -> 
+    let aux (incoming : regular msg2th) =
+      match incoming with
+      | MsgStraight _ | Infos _ -> flush ports msg
+      | MsgBranch(ports1,ports2) -> 
          Deferred.all_unit
            [
-             Lib.write newwriter1 msg;
-             Lib.write newwriter2 msg;
-             flush newreader1 newwriter1 msg;
-             flush newreader2 newwriter2 msg
+             Lib.write ports1.writer msg;
+             Lib.write ports2.writer msg;
+             flush ports1 msg;
+             flush ports2 msg
            ]
       | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
-      reader aux
+      ports.reader aux
 
-  let rec loop_read fixed from_pl to_pl =
-    let aux = function 
+  let rec loop_read fixed ports =
+    let aux (incoming : regular msg2th) =
+      match incoming with
       | MsgStraight(sassign,chrono) ->
          let fixed = Fixed.extend (Assign.singleton sassign) fixed in
          Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Var.pp sassign);
-         loop_write (WR.treat fixed sassign) fixed chrono from_pl to_pl
-      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) ->
+         loop_write (WR.treat fixed sassign) fixed chrono ports
+      | MsgBranch(ports1,ports2) ->
          Deferred.all_unit
-           [ loop_read fixed newreader1 newwriter1 ;
-             loop_read fixed newreader2 newwriter2 ]
+           [ loop_read fixed ports1 ;
+             loop_read fixed ports2 ]
+      | Infos _ -> loop_read fixed ports
       | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
-      from_pl aux
+      ports.reader aux
 
-  and loop_write outmsg fixed chrono from_pl to_pl =
+  and loop_write outmsg fixed chrono ports =
 
     match outmsg with
     | None -> 
        Dump.print ["memo",2] (fun p-> p "Memo: no output msg");
        Deferred.all_unit
-         [ Lib.write to_pl (Msg(None,Ack,chrono));
-           loop_read fixed from_pl to_pl ]
+         [ Lib.write ports.writer (Msg(None,Ack,chrono));
+           loop_read fixed ports ]
     | Some(constr,termlist) ->
        let msg = Constraint.msg constr in
        let assign = Constraint.assign constr in
@@ -227,8 +230,8 @@ module Make(WB : WhiteBoardExt) = struct
          (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
           let msg = Msg(None,Say msg,chrono) in
           Deferred.all_unit
-            [ Lib.write to_pl msg;
-              flush from_pl to_pl msg ])
+            [ Lib.write ports.writer msg;
+              flush ports msg ])
        else
          let terms = Fixed.notfixed fixed assign in
          (Dump.print ["memo",1] (fun p->
@@ -241,13 +244,13 @@ module Make(WB : WhiteBoardExt) = struct
             (Dump.print ["memo",0] (fun p->
                  p "Memo: %a already known" Assign.pp assign);
              Deferred.all_unit
-               [ Lib.write to_pl (Msg(None,Ack,chrono));
-                 loop_read fixed from_pl to_pl ])
+               [ Lib.write ports.writer (Msg(None,Ack,chrono));
+                 loop_read fixed ports ])
           else
             (Dump.print ["memo",0] (fun p-> p "Memo: useful prop");
              Deferred.all_unit
-               [ Lib.write to_pl (Msg(None,Say msg,chrono));
-                 loop_read fixed from_pl to_pl ]))
+               [ Lib.write ports.writer (Msg(None,Say msg,chrono));
+                 loop_read fixed ports ]))
 
   let make = loop_read Fixed.init
                        

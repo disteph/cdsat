@@ -31,18 +31,19 @@ module Make(K:Plugin.Input) = struct
   module Mm = Memo.Make(WBE)
   module EG = EgraphWorker.Make(WBE)(EGraph)
   module W  = Worker.Make(WBE)
+  module H  = Hub.Make(WBE)
 
   let aux (PluginsTh.PluginTh.Signed(tag,_) as smachine) sofar =
     HandlersMap.add (Handlers.Handler tag) (W.make smachine) sofar
 
-  let pluginsTh = List.fold aux pluginsTh (HandlersMap.singleton Handlers.Eq EG.make)
+  let pluginsTh = List.fold aux pluginsTh HandlersMap.empty
 
   module M  = Master.Make(struct
-                  include WBE
+                  module WBE = WBE
+                  module H = H
                   let theories_fold f seed =
-                    HandlersMap.fold (fun hdl _ -> f hdl) pluginsTh seed
+                    HandlersMap.fold (fun hdl _ -> f hdl) pluginsTh (f Handlers.Eq seed)
                 end)
-                (EGraph)
   open M
          
   (* Main code for master thread, parameterised by the original
@@ -56,16 +57,13 @@ module Make(K:Plugin.Input) = struct
            and a map mapping each theory handler to the pipe writer
            used to communicate to its corresponding slave. *)
 
-    let from_workers, to_pl, workers_list, pipe_map =
-      WM.make Mm.make pluginsTh
-    in
+    let workers, hub = H.make EG.make Mm.make pluginsTh in
 
     (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)
-    master from_workers to_pl pipe_map tset >>= fun a ->
+    Deferred.both workers (master hub tset) >>| fun ((),a) ->
     Dump.print ["concur",1] (fun p-> p "Finished computation");
-    Deferred.all_unit workers_list
-    >>| fun () -> a
+    a
 
   (* Finally, we launch the scheduler on mysolve tset, waiting for
          all tasks to be done before returning. *)

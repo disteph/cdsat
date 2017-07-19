@@ -28,40 +28,46 @@ module Make(WB: WhiteBoardExt)
        >>= fun () ->
        flush_write writer unsat_msg l
          
-  let rec flush reader writer unsat_msg l =
-    let aux = function
-      | MsgStraight _ -> flush reader writer unsat_msg l
+  let rec flush ports unsat_msg l =
+    let aux (incoming : egraph msg2th) =
+      match incoming with
+      | MsgStraight _ | TheoryAsk _ -> flush ports unsat_msg l
 
-      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2) -> 
+      | MsgBranch(ports1,ports2) -> 
          Deferred.all_unit
            [
-             flush_write newwriter1 unsat_msg l;
-             flush_write newwriter2 unsat_msg l;
-             flush newreader1 newwriter1 unsat_msg l;
-             flush newreader2 newwriter2 unsat_msg l
+             flush_write ports1.writer unsat_msg l;
+             flush_write ports2.writer unsat_msg l;
+             flush ports1 unsat_msg l;
+             flush ports2 unsat_msg l
            ]
       | KillYourself _ -> return()
     in
-    Lib.read reader aux
+    Lib.read ports.reader aux
 
 
-  let rec loop_read egraph from_pl to_pl = 
+  let rec loop_read egraph ports = 
     let aux msg =
-      Dump.print ["egraph",1] (fun p-> p "The E-graph reads %a" print2th_in_fmt msg);
+      Dump.print ["egraph",1] (fun p-> p "The E-graph reads %a" pp_msg2th msg);
       match msg with
       | MsgStraight(sassign,chrono)
-        -> loop_write (egraph.add sassign) chrono from_pl to_pl
-      | MsgBranch(newreader1,newwriter1,newreader2,newwriter2)
+        -> loop_write (egraph.add sassign) chrono ports
+      | TheoryAsk(address,tv)
+        -> let nf,cval,distinct,egraph = egraph.ask tv in
+           Deferred.all_unit
+             [ Lib.write address (Infos(tv,nf,cval,distinct));
+               loop_read egraph ports ]
+      | MsgBranch(ports1,ports2)
         -> Deferred.all_unit
-             [loop_read egraph newreader1 newwriter1 ;
-              loop_read egraph newreader2 newwriter2 ]
+             [loop_read egraph ports1 ;
+              loop_read egraph ports2 ]
       | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return()
     in
     Lib.read
       ~onkill:(fun ()->return(Dump.print ["egraph",2] (fun p-> p "E-graph dies")))
-      from_pl aux
+      ports.reader aux
 
-  and loop_write output chrono from_pl to_pl =
+  and loop_write output chrono ports =
 
     let hhdl = Some Handlers.Eq in
     let msg_make msg = Msg(hhdl,Say(WB.stamp_Eq msg),chrono) in
@@ -76,16 +82,16 @@ module Make(WB: WhiteBoardExt)
        let l = List.map msg_make propas in
        Deferred.all_unit
          [
-           flush_write to_pl unsat_msg l ;
-           flush from_pl to_pl unsat_msg l
+           flush_write ports.writer unsat_msg l ;
+           flush ports unsat_msg l
          ]
 
     | SAT(msg,egraph) ->
        Dump.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
        Deferred.all_unit
          [
-           Lib.write to_pl (msg_make msg) ;
-           loop_read egraph from_pl to_pl
+           Lib.write ports.writer (msg_make msg) ;
+           loop_read egraph ports
          ]
 
   let make = loop_read EGraph.init

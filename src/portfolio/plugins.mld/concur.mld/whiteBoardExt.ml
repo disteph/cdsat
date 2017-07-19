@@ -1,5 +1,6 @@
 open Async
 
+open General.Sums
 open Kernel
 open Top.Messages
 open Top.Specs
@@ -11,8 +12,10 @@ module Make(WB: Export.WhiteBoard) = struct
   open WB
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
-  type assign = Assign.t
-  type sassign = Term.t * Value.t Top.Values.t [@@deriving show]
+  type term      = Term.t
+  type vvalue    = Value.t Top.Values.t
+  type cval      = CValue.t
+  type sassign   = term*vvalue
                                   
   type ack = private AckL
   type say = private MsgL
@@ -23,17 +26,38 @@ module Make(WB: Export.WhiteBoard) = struct
     
   type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
       
-  type msg2th =
-    | MsgStraight of sassign*int
-    | MsgBranch of (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
-                   * (msg2th Pipe.Reader.t) * (msg2pl Pipe.Writer.t)
-    | KillYourself of unsat t * sassign * sassign option
+  type regular = private RegularL
+  type egraph  = private EGraphL
 
-  let print2th_in_fmt fmt = function
+  type 'a ports = {
+      reader : 'a msg2th Pipe.Reader.t;
+      writer : msg2pl Pipe.Writer.t;
+      eports : 'a eports
+    }
+   and _ eports =
+     | EPorts      : egraph eports
+     | RegularPorts: (term,vvalue) sum Pipe.Writer.t -> regular eports
+   and _ msg2th =
+     | MsgStraight : sassign*int         -> _ msg2th
+     | MsgBranch   : 'a ports * 'a ports -> 'a msg2th
+     | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
+     | TheoryAsk   : (regular msg2th Pipe.Writer.t)
+                     * ((term,vvalue) sum)
+                     -> egraph msg2th
+     | KillYourself: unsat t * sassign * sassign option -> _ msg2th
+
+  let pp_tv = General.Sums.pp_sum Term.pp (Top.Values.pp Value.pp)
+                                                             
+  let pp_msg2th fmt (type a) : a msg2th -> unit = function
     | MsgStraight(assign,chrono)
       -> Format.fprintf fmt "MsgStraight_%i %a" chrono pp_sassign assign
-    | MsgBranch(_,_,_,_)
+    | MsgBranch(_,_)
       -> Format.fprintf fmt "MsgBranch"
+    | Infos(tv,nf,cval,distinct)
+      -> Format.fprintf fmt "Infos for %a:\nNormal form is %a\nValues are %a\nDistinct values are %a"
+           pp_tv tv Term.pp nf CValue.pp cval (List.pp CValue.pp) (distinct())
+    | TheoryAsk(_,tv)
+      -> Format.fprintf fmt "Asking about %a" pp_tv tv
     | KillYourself(_,_,_)
       -> Format.fprintf fmt "KillYourself"
 
