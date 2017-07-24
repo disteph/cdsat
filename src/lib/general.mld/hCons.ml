@@ -104,7 +104,7 @@ module MakePoly(M: sig
       (* try H.find table f *)
       try H.find table a
       with Not_found -> 
-        let newf = { reveal =  a; id = !unique; data = Data.build !unique a} in
+        let newf = { reveal =  a; id = !unique; data = Data.build !unique a } in
         incr unique;
         H.add table a newf;
         (* H.add table newf; *)

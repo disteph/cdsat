@@ -110,7 +110,7 @@ type ('t,'v,'a) api = (module API with type termdata = 't
                                    and type value = 'v
                                    and type assign = 'a)
 
-let make (type t)(type v)(type a)
+let make (type t v a)
       ((module DS): (ts,values,t,v,a) dsProj)
     : (t,v,a) api =
   (module Make(DS))

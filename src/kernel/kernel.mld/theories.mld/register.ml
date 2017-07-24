@@ -30,8 +30,8 @@ module Tags = struct
              end) = struct
     open General.Sums
     let eq
-          (type s1)(type t1)(type v1)(type tva1)(type api1)
-          (type s2)(type t2)(type v2)(type tva2)(type api2)
+          (type s1 t1 v1 tva1 api1
+                  s2 t2 v2 tva2 api2)
           (tag1 : (tva1*(s1*t1*v1*api1)) t)
           (tag2 : (tva2*(s2*t2*v2*api2)) t)
           (iftrue  : (s1,t1,v1,s1,t1,v1) M.t)
@@ -56,7 +56,7 @@ end
 
 module Modules = struct
 
-  let get (type tva)(type sign)(type ts)(type v)(type api)
+  let get (type tva sign ts v api)
         (tag : (tva*(sign*ts*v*api)) Tags.t)
        : ts Termstructures.Register.t * v Theory.values_opt
     = let open Tags in
@@ -68,7 +68,7 @@ module Modules = struct
                              
   type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
 
-  let make(type tva)(type sign)(type ts)(type v)(type api)
+  let make(type tva sign ts v api)
         (tag : (tva*(sign*ts*v*api)) Tags.t)
         (ds  : (ts,v,_,_,_) Top.Specs.dsProj)
     =

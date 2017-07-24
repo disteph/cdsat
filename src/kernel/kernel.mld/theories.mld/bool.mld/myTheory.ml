@@ -51,7 +51,7 @@ end
 
 type ('t,'v,'a) api = (module API with type datatypes = 't*'v*'a)
 
-let make (type t)(type v)(type a)
+let make (type t v a)
       ((module DS): (ts,values,t,v,a) dsProj)
     : (t,v,a) api =
   (module Make(DS))

@@ -1,5 +1,8 @@
-open General.Sums
-
+open General
+open Sums
+open SetConstructions
+       
+open Patricia
 open Top
 open Specs
 open Messages
@@ -12,8 +15,8 @@ module Make(DS: GlobalDS) = struct
   
   open DS
 
-  type straight   = (unit,Assign.t*bassign,Messages.straight) message
-  type stop       = straight list * ((sign,Assign.t*bassign,unsat) message)
+  type straight = (unit,Assign.t*bassign,Messages.straight) message
+  type stop     = straight list * ((sign,Assign.t*bassign,unsat) message)
 
   (* Sum type for terms+values *)
 
@@ -21,13 +24,39 @@ module Make(DS: GlobalDS) = struct
     type t = (Term.t,Value.t Values.t) sum
                [@@deriving eq,ord,show,hash]                               
   end
-
                                            
   module TMap = struct
     include Map.Make(Term)
     let pp x fmt tmap =
       let aux fmt (nf,j) = Format.fprintf fmt "(%a->%a)" Term.pp nf x j in
       List.pp aux fmt (bindings tmap)
+  end
+
+  module BDest = struct
+    type keys = bassign
+    let kcompare = compare_bassign
+    type values = Term.t*Term.t
+    type infos = unit
+    let info_build = empty_info_build
+    let treeHCons = None
+  end
+                   
+  module TCons = TypesFromHConsed(struct
+                     type t = bassign
+                     let id (t,_) = Term.id t
+                   end)
+  module BCons = TypesFromHConsed(struct
+                     type t = bassign
+                     let id (_,b) = if b then 0 else 1
+                   end)
+  module I = LexProduct(TCons)(BCons)
+  module BMap = struct
+    include PATMap.Make(BDest)(I)
+    let pp fmt bmap =
+      let ppb fmt (bassign,term) =
+        Format.fprintf fmt "(%a->%a)" pp_bassign bassign Term.pp term
+      in
+      print_in_fmt ppb
   end
 
   module TVSet = struct
@@ -38,11 +67,10 @@ module Make(DS: GlobalDS) = struct
 
   (* The information we want to keep about each component *)
   type info = {
-      nf  : Term.t; (* Normal form *)
+      nf  : Term.t;   (* Normal form *)
       cval: CValue.t; (* Combined value *)
-      (* Terms that are declared disequal from this component have an entry,
-         mapped to the corresponding single assignment *)
-      diseq: (Term.t*Term.t*bassign) TMap.t;
+      (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
+      diseq: BMap.t;
       listening: TVSet.t
     }
                 [@@deriving eq,show] 
@@ -62,18 +90,18 @@ module Make(DS: GlobalDS) = struct
     let singleton t = {
         nf        = t;
         cval      = CValue.none (Term.get_sort t);
-        diseq     = TMap.empty;
+        diseq     = BMap.empty;
         listening = TVSet.empty
       }
 
     let nf i = i.nf
     let cval i = i.cval
     let distinct (EGraph eg) i =
-      let aux term _ sofar =
-        let pc = PC.get eg (Case1 term) in
+      let aux j (_,term) sofar =
+        let _, pc = PC.get eg (Case1 term) in
         (PC.get_info pc).cval::sofar
       in
-      TMap.fold aux i.diseq []
+      BMap.fold aux i.diseq []
 
 
     (* Generates equality inference *)
@@ -131,56 +159,63 @@ module Make(DS: GlobalDS) = struct
           | Case1 t2' -> singleton t2'
           | Case2 v   -> {nf = t;
                           cval = CValue.inj v;
-                          diseq = TMap.empty;
+                          diseq = BMap.empty;
                           listening = TVSet.empty }
         in
         add t2 info eg
       in
-      let pc1 = PC.get eg t1 in
-      let pc2 = PC.get eg t2 in
+      let eg, pc1 = PC.get eg t1 in
+      let eg, pc2 = PC.get eg t2 in
       let info1 = PC.get_info pc1 in
       let info2 = PC.get_info pc2 in
       if PC.equal pc1 pc2
       then merge pc1 pc2 info1 j eg, info1, []
       else
-        let aux k ((t3,t4,j_neq) as neq) sofar =
-          let pc = PC.get eg (Case1 k) in
-          if PC.equal pc pc2
-          then
-            let _,propa1,assign1 = treatpath(path (Case1 t3) t1 eg) in
-            let j_last,propa2,assign2 = treatpath(path (Case1 t4) t2 eg) in
-            let propas = List.append propa1 propa2 in
-            explain j j_last propas assign1 assign2 (Values.boolassign j_neq)
-          else TMap.add (PC.get_info pc).nf neq sofar
+        let merge_par = let open BMap in {
+            sameleaf = (fun bassign t1 _ -> Some(bassign,t1));
+            emptyfull= (fun _ -> None);
+            fullempty= (fun _ -> None);
+            combine  = (fun r1 r2 ->
+              match r1, r2 with
+              | Some _, _ -> r1
+              | _, Some _ -> r2
+              | None, None -> None)
+          }
         in
-        let diseq = TMap.fold aux info1.diseq TMap.empty in
-        match CValue.merge info1.cval info2.cval with
-        | Case1(v1,v2) ->
-           let path1 = path (Case2 v1) t1 eg in
-           let path2 = path (Case2 v2) t2 eg in
-           begin
-             match path1, path2 with
-             | j1::path1, j2::path2
-               -> let _,propa1,assign1 = treatpath path1 in
-                  let j_last,propa2,assign2 = treatpath path2 in
-                  let j_neq,p = eq_inf j1 j2 in
-                  let propas = p::(List.append propa1 propa2) in
-                  explain j j_last propas assign1 assign2 j_neq
-             | _ -> failwith "Paths to values are empty"
-           end
-        | Case2 cval ->
-           let nf = info1.nf in
-           let diseq = TMap.union (fun _ j _ -> Some j) diseq info2.diseq in
-           let listening = TVSet.union info1.listening info2.listening in
-           let info = { nf=nf; cval=cval; diseq=diseq; listening = listening } in
-           merge pc1 pc2 info j eg,
-           info,
-           let l1 = if CValue.equal cval info1.cval then TVSet.empty
-                    else info1.listening in
-           let l2 = if CValue.equal cval info2.cval then TVSet.empty
-                    else info2.listening in
-           let l = TVSet.fold (fun t sofar -> t::sofar) l1 [] in
-           TVSet.fold (fun t sofar -> t::sofar) l2 l
+        match BMap.merge merge_par info1.diseq info2.diseq with
+        | Some(j_neq,(t3,t4)) ->
+           let _,propa1,assign1 = treatpath(path (Case1 t3) pc1 eg) in
+           let j_last,propa2,assign2 = treatpath(path (Case1 t4) pc2 eg) in
+           let propas = List.append propa1 propa2 in
+           explain j j_last propas assign1 assign2 (Values.boolassign j_neq)
+        | None ->
+           match CValue.merge info1.cval info2.cval with
+           | Case1(v1,v2) ->
+              let path1 = path (Case2 v1) pc1 eg in
+              let path2 = path (Case2 v2) pc2 eg in
+              begin
+                match path1, path2 with
+                | j1::path1, j2::path2
+                  -> let _,propa1,assign1 = treatpath path1 in
+                     let j_last,propa2,assign2 = treatpath path2 in
+                     let j_neq,p = eq_inf j1 j2 in
+                     let propas = p::(List.append propa1 propa2) in
+                     explain j j_last propas assign1 assign2 j_neq
+                | _ -> failwith "Paths to values are empty"
+              end
+           | Case2 cval ->
+              let nf = info1.nf in
+              let diseq = BMap.union (fun _ v -> v) info1.diseq info2.diseq in
+              let listening = TVSet.union info1.listening info2.listening in
+              let info = { nf=nf; cval=cval; diseq=diseq; listening = listening } in
+              merge pc1 pc2 info j eg,
+              info,
+              let l1 = if CValue.equal cval info1.cval then TVSet.empty
+                       else info1.listening in
+              let l2 = if CValue.equal cval info2.cval then TVSet.empty
+                       else info2.listening in
+              let l = TVSet.fold (fun t sofar -> t::sofar) l1 [] in
+              TVSet.fold (fun t sofar -> t::sofar) l2 l
                        
                        
     let diseq t1 t2 j (EGraph eg) =
@@ -188,28 +223,27 @@ module Make(DS: GlobalDS) = struct
       let tv2 = Case1 t2 in
       let EGraph eg = add tv1 (singleton t1) eg in
       let EGraph eg = add tv2 (singleton t2) eg in
-      let pc1 = PC.get eg tv1 in
-      let pc2 = PC.get eg tv2 in
+      let eg,pc1 = PC.get eg tv1 in
+      let eg,pc2 = PC.get eg tv2 in
       if PC.equal pc1 pc2 then
-        let _,propas,assigns = treatpath(path tv1 tv2 eg) in
+        let _,propas,assigns = treatpath(path tv1 pc2 eg) in
         let unsat_core = Assign.add (Values.boolassign j) assigns in
         raise(Conflict(propas, unsat () unsat_core))
       else
         let info1 = PC.get_info pc1 in
-        let info2 = PC.get_info pc2 in
         let EGraph eg =
-          update pc1 {info1 with diseq = TMap.add info2.nf (t1,t2,j) info1.diseq } eg
+          update pc1 {info1 with diseq = BMap.add j (fun _ -> (t1,t2)) info1.diseq } eg
         in
-        let pc2 = PC.get eg tv2 in
+        let eg,pc2 = PC.get eg tv2 in
         let info2 = PC.get_info pc2 in
-        update pc2 {info2 with diseq = TMap.add info1.nf (t2,t1,j) info2.diseq } eg
+        update pc2 {info2 with diseq = BMap.add j (fun _ -> (t2,t1)) info2.diseq } eg
 
     let ask ?subscribe tv (EGraph eg) =
       let EGraph eg = match tv with
         | Case1 t -> add tv (singleton t) eg
         | Case2 v -> EGraph eg
       in
-      let pc = PC.get eg tv in
+      let eg,pc = PC.get eg tv in
       let info = PC.get_info pc in
       match subscribe with
       | None -> info, EGraph eg

@@ -8,7 +8,7 @@ type _ t =
   | Rationals : Rationals.TS.t t
   | VarCheck : Varcheck.TS.t t
                                
-let equal (type a) (type b) : a t -> b t -> (a -> b) option =
+let equal (type a b) : a t -> b t -> (a -> b) option =
   fun ts1 ts2 ->
   match ts1,ts2 with
   | NoRep, NoRep    -> Some(fun x->x)

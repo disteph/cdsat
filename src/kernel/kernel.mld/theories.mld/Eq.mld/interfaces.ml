@@ -19,7 +19,7 @@ module type RawEgraph = sig
     val equal : 'a t -> 'a t -> bool
     (* Getting the pointed component of a node.
        Fails if node does not exist. *)
-    val get   : 'a egraph -> node -> 'a t
+    val get   : 'a egraph -> node -> 'a egraph * 'a t
     (* Get info of pointed component *)
     val get_info  : _ t -> info
   end
@@ -37,13 +37,17 @@ module type RawEgraph = sig
      If it exists, returns the original graph. *)
   val add   : node -> info -> _ egraph -> t
 
-  (* Provide path between 2 nodes of the same component *)
-  val path  : node -> node -> _ egraph -> edge list
+  (* path t pc eg
+     provides path from t to t', where pc is "the component of t' "
+     (i.e. pc has been obtained by a call of PC.get on t').
+     t is assumed to belong to component pc, otherwise this function breaks.
+   *)
+  val path  : node -> 'a PC.t -> 'a egraph -> edge list
 end
 
 module type Parameters = sig
   module Node : sig
-    type t [@@deriving eq,ord]
+    type t [@@deriving eq,ord,hash]
   end
   type edge
   type info

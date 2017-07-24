@@ -21,8 +21,6 @@ type ('t,'v) sassign = 't termF * 'v Values.t
 
 module type DataType = Terms.DataType with type leaf := FreeVar.t
 
-exception ModelError of string
-
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -86,7 +84,7 @@ module type GlobalDS = sig
   module Assign : Collection with type e = sassign
   module Msg : sig
     type ('sign,'b) t = ('sign,Assign.t*bassign,'b) Messages.message
-    val pp : formatter -> (_,_) t -> unit
+    val pp : formatter -> _ t -> unit
   end
 end
 
@@ -129,16 +127,6 @@ type ('ts,'v,'gts,'gv,'assign) dsProj
                     and type Term.datatype = 'gts
                     and type Value.t  = 'gv
                     and type Assign.t = 'assign)
-                       
-(* Module type for proofs in Prop module*)
-                       
-module type ProofType = sig
-  type t [@@deriving show]
-  type seq
-  val zero : seq->t
-  val one  : seq->t->t
-  val two  : seq->t->t->t
-end
 
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
 

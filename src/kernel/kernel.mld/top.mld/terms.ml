@@ -20,7 +20,7 @@ type (_,_) func_prim =
 
 type ('a,'b) func = ('a,'b free) func_prim
 
-let equal (type l)(type b)(type a)
+let equal (type l b a)
       (eqLeaf: l -> l -> bool)
       (eqSub:(b,(b,bool)func)func)
       eqRec
@@ -36,7 +36,7 @@ let equal (type l)(type b)(type a)
   | _, _                       -> false
 
 
-let hash (type a)(type l)(type b)
+let hash (type a l b)
       (hLeaf:l->int) (hSub:(b,int)func) hRec : (a,l*b)xterm -> int  = function
   | V l        -> hLeaf l
   | C(symb,l)  -> 5*(Symbols.hash symb)+17*(List.hash hRec l)
@@ -45,7 +45,7 @@ let hash (type a)(type l)(type b)
   | BB(so,x)   -> 31*(hRec x)
 
 (* Displays a formula *)
-let pp (type a)(type l)(type b)
+let pp (type a l b)
       (pLeaf:formatter->l->unit)
       (pSub:(b,formatter->unit)func)
       pRec =
@@ -59,7 +59,7 @@ let pp (type a)(type l)(type b)
   in fun reveal fmt t -> aux fmt (reveal t)
 
                              
-let get_sort (type a)(type l)(type b)
+let get_sort (type a l b)
       sLeaf
       (sSub:(b,Sorts.t)func)
       sRec =

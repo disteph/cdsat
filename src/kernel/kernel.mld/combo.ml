@@ -87,7 +87,7 @@ module Value_add(V : PH)(Vold : VValue) =
     type old_cvalue = Vold.CValue.t
     type vopt = V.t has_values
 
-    let trans (type gv) (type cv)
+    let trans (type gv cv)
           (f : Value.t -> gv)
           (g : cv -> CValue.t)
       =
@@ -157,7 +157,7 @@ module type State = sig
 end
 
 
-let theory_add (type tva)(type sign) (type ts)(type values)(type api)
+let theory_add (type tva sign ts values api)
       (hdl: (tva*(sign*ts*values*api)) Tags.t)
       (module S : State) =
   
@@ -194,7 +194,7 @@ let theory_add (type tva)(type sign) (type ts)(type values)(type api)
        module VV = Vplus
                      
        let tsHandlers  = tsHandlers
-       let modules (type gts) (type gv) (type cv) (type a)
+       let modules (type gts gv cv a)
              proj
              f
              g
