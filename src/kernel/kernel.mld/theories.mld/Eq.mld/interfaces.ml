@@ -47,9 +47,9 @@ end
 
 module type Parameters = sig
   module Node : sig
-    type t [@@deriving eq,ord,hash]
+    type t [@@deriving eq,ord,hash,show]
   end
-  type edge
+  type edge [@@deriving show]
   type info
 end
 

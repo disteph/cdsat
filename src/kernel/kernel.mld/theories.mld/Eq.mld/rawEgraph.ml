@@ -1,4 +1,5 @@
-open General.Sums       
+open General
+open Sums       
 open Interfaces
                                  
 module Make(P : Parameters) = struct
@@ -121,6 +122,7 @@ module Make(P : Parameters) = struct
   exception DiffComp
     
   let path t pc eg =
+    Print.print ["kernel.egraph",3] (fun p -> p "Starting path search between %a and %a" Node.pp t Node.pp PC.(pc.pointed));
     let table = H.create (3*PC.(pc.size)) in
     let table_pc = H.create (3*PC.(pc.size)) in
     H.add table t [];
@@ -134,7 +136,7 @@ module Make(P : Parameters) = struct
         if b then List.rev_append accu1 accu2
         else List.rev_append accu2 accu1
       else
-        match NodeMap.find t eg.parent with
+        match NodeMap.find t1 eg.parent with
         | Some(t1',e)
           -> let accu1 = e::accu1 in
              H.add table1 t1' accu1;
@@ -148,9 +150,8 @@ module Make(P : Parameters) = struct
              | None -> raise DiffComp
                          
     in
-    aux t [] (Some(PC.(pc.pointed),[])) true
-
-
-    
+    let l = aux t [] (Some(PC.(pc.pointed),[])) true in
+    Print.print ["kernel.egraph",5] (fun p -> p "%a" (List.pp pp_edge) l);
+    l    
 
 end

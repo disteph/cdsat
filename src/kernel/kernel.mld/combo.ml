@@ -332,11 +332,14 @@ module Make(State:State) = struct
     end
 
     type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
+    let pp_bassign fmt (t,b) =
+      if b then Format.fprintf fmt "%a" Term.pp t
+      else Format.fprintf fmt "!(%a)" Term.pp t
+
     type sassign = Term.t * Value.t Values.t [@@deriving eq, hash]
     let pp_sassign fmt (t,v) =
       match v with
-      | Values.Boolean true -> Format.fprintf fmt "%a" Term.pp t
-      | Values.Boolean false -> Format.fprintf fmt "!(%a)" Term.pp t
+      | Values.Boolean b    -> pp_bassign fmt (t,b)
       | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" Term.pp t Value.pp v
     let show_sassign = Dump.stringOf pp_sassign
                                     

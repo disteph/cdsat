@@ -1,4 +1,5 @@
-open General.Sums
+open General
+open Sums
 
 open Top
 open Specs
@@ -23,7 +24,7 @@ module Make(DS: GlobalDS) = struct
 
   module P = struct
     module Node = TermValue
-    type edge = sassign
+    type edge = sassign [@@deriving show]
     type nonrec info = info
   end
 
@@ -78,7 +79,7 @@ module Make(DS: GlobalDS) = struct
       add =
         (function
            sassign ->
-           Dump.print ["kernel.egraph",1] (fun p-> p "EGraph adds %a" pp_sassign sassign);
+           Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph adds %a" pp_sassign sassign);
            let term,value = sassign in
            let treated = Assign.add sassign state.treated in
            try
@@ -97,12 +98,12 @@ module Make(DS: GlobalDS) = struct
                  -> EG.diseq t1 t2 (term,false) eg, tvmap
                | _ -> eg, tvmap
              in
-             Dump.print ["kernel.egraph",1] (fun p-> p "EGraph is fine with %a" Assign.pp treated);
+             Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph is fine with %a" Assign.pp treated);
              SAT(sat () treated, machine { egraph = eg ; treated = treated })
            with
              EG.Conflict(propa,conflict) ->
-             Dump.print ["kernel.egraph",1] (fun p->
-                 p "EGraph detected conflict:\n %a\nleads to %a"
+             Print.print ["kernel.egraph",1] (fun p->
+                 p "kernel.egraph detected conflict:\n %a\n leads to %a"
                    (List.pp Msg.pp) propa
                    Msg.pp conflict);
              UNSAT(propa,conflict)

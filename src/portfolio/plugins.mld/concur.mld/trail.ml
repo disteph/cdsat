@@ -166,8 +166,8 @@ The reason it was added to the trail was either:
       
   (* Adds a new assignment on the trail *)
   let add ~nature sassign trail =
-    Dump.print ["trail",1] (fun p ->
-        p "Adding %a as %a" pp_sassign sassign pp_nature nature);
+    Print.print ["trail",1] (fun p ->
+        p "Trail adding %a as %a" pp_sassign sassign pp_nature nature);
     let infos = TrailMap.info trail.map in
     let map level = TrailMap.add
                       (SAssign.build sassign)
@@ -200,7 +200,7 @@ The reason it was added to the trail was either:
             : (unsat WB.t, int * straight WB.t list) sum Deferred.t
       =
 
-      Dump.print ["trail",1] (fun p -> p "Analysing Conflict: %a" WB.pp conflict);
+      Print.print ["trail",1] (fun p -> p "Analysing Conflict: %a" WB.pp conflict);
 
       if data.level < level
       then
@@ -241,8 +241,8 @@ The reason it was added to the trail was either:
            (* Second assignment participating to conflict *)
            let second = if next.level < -1 then None
                         else Some(next.sassign()) in
-           Dump.print ["trail",1] (fun p ->
-               p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n%a"
+           Print.print ["trail",1] (fun p ->
+               p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n %a"
                  data.level
                  pp_sassign (data.sassign())
                  next.level
@@ -259,9 +259,9 @@ The reason it was added to the trail was either:
                 
         | Deduction msg, sassign ->
            (* The latest assignment in the conflict has been propagated *)
-           Dump.print ["trail",1] (fun p ->
+           Print.print ["trail",1] (fun p ->
                let level,chrono,_ = TrailMap.find (SAssign.build sassign) map in
-               p "Explaining %a of level %i and chrono %i, using message\n%a"
+               p "Explaining %a of level %i and chrono %i, using message\n %a"
                  pp_sassign (data.sassign())
                  level chrono
                  WB.pp msg);

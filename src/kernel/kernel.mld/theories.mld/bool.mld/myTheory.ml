@@ -10,14 +10,14 @@ type sign = unit
 include Theory.HasNoValues
 
 (* We are not using alternative term representation *)
-type ts = unit
-let ts = Termstructures.Register.NoRep
+type ts = Termstructures.Clauses.TS.t
+let ts = Termstructures.Register.Clauses
 
 module Make(DS: GlobalDS) = struct
 
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
-                                  
+
   let rec machine state =
     Specs.SlotMachine {
         add =
@@ -32,7 +32,18 @@ module Make(DS: GlobalDS) = struct
                     pp_sassign a
                 );
               let state = Assign.add a state in
-              Msg(sat () state), machine state);
+              let term,v = a in
+              match Terms.reveal term, v with
+              | Terms.C(Symbols.Neg,[t]), Values.Boolean b
+                   when not(Assign.mem (t,Values.Boolean(not b)) state)
+                ->
+                 let assign = Assign.singleton a in
+                 let msg = straight () assign (t,not b) in
+                 Print.print ["kernel.bool",2] (fun p ->
+                     p "kernel.bool propagating %a" Msg.pp msg);
+                 Msg msg, machine state
+              | _ ->               
+                 Msg(sat () state), machine state);
         
         clone   = (fun () -> machine state);
         suicide = (fun _ -> ())

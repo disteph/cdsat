@@ -43,6 +43,13 @@ module List = struct
             
   type 'a t = 'a list [@@deriving eq, hash, show]
 
+  let pp f fmt =
+    let rec aux fmt = function
+    | []   -> Format.fprintf fmt ""
+    | [a]  -> Format.fprintf fmt "%a" f a
+    | a::l -> Format.fprintf fmt "%a; %a" f a aux l
+    in Format.fprintf fmt"[%a]" aux
+       
   let rec mem eq x = function
     | [] -> false
     | y::l when eq x y -> true
