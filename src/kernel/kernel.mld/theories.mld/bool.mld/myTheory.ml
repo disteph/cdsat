@@ -67,7 +67,7 @@ module Make(DS: DSproj with type ts = ts) = struct
        then Satisfied(prune (Constraint.justif c) bassign)
        else
          let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
-         Unit(straight () justif (term,[%eq:bool] b b'))
+         Unit(straight () justif (term,not([%eq:bool] b b')))
     | Some _ -> raise Nothing2say
     | None   -> Satisfied(prune (Constraint.justif c) bassign)
            
