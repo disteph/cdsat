@@ -163,6 +163,7 @@ let glance input =
 let guessThDecProc aft =
   match aft.theory with
     | None   -> None
+    | Some "QF_BOOL"-> Some ["bool"]
     | Some "QF_UF"  -> Some ["CC"; "bool"; "IfThenElse"]
     | Some "QF_LRA" -> Some ["LRA"; "CC"; "bool"; "IfThenElse"]
     | Some "QF_LIA" -> Some ["LIA"; "CC"; "bool"; "IfThenElse"]

@@ -4,29 +4,27 @@ open Literals
 
 open General
 open Patricia
-open SetConstructions
+open Patricia_tools
 
 (* LSet = Sets of literals, patricia tries implementation.
 The only extra information that is stored is the cardinality of the set *)
 
 module I = TypesFromHConsed(LitF)
   
-module DSet = struct
-  type keys      = LitF.t
-  let kcompare   = LitF.compare
-  type infos     = int
-  let info_build = c_info_build
+module Arg = struct
+  include LitF
+  include CardInfo
   let treeHCons  = None (* Some LitF.id  *)
 end
 
 module LSet = struct
-  include PATSet.Make(DSet)(I)
+  include PatSet.Make(Arg)(I)
   let next lset = let lit = choose lset in lit, remove lit lset
 end
   
-(* Representation of terms for boolean reasoning *)
-
-(* asLit is the representation of the term as a literal
+(* Representation of terms for boolean reasoning *)                
+                         
+  (* asLit is the representation of the term as a literal
 No other connective than negation is known in this representation,
 but aslit for term t is equal to aslit for term not(not(t)).
 
@@ -37,33 +35,26 @@ are known.
 
 None is used to represent the trivially true clause, i.e. the negation
 of the empty clause. 
-*)
-                
-type data = {
+   *)
+
+type t = {
     aslit    : LitF.t;
     asclause : LSet.t option;
     nasclause: LSet.t option
   }
-                         
+           
 module TS = struct
     
-  type t = data
-
-  (* testing if the term starts with odd/even number of negations,
-     looking at whether its aslit field has a negation *)
-             
-  let is_neg t =
-    let b,_ = LitF.reveal t.aslit
-    in not b
-
+  type nonrec t = t
+                    
   (* Building the unary clause containing literal lit *)
            
   let build_slit lit = Some(LSet.singleton lit)
 
   let build_lit lit = {
       aslit = lit;
-      asclause = build_slit lit;
-      nasclause = build_slit (LitF.negation lit)
+      asclause = build_slit (LitF.negation lit);
+      nasclause = build_slit lit
     }
 
   (* Two clauses in a disjunction -> union, 
@@ -135,9 +126,7 @@ module TS = struct
     | Symbols.Or, [a;b] -> oor tag a b
     | Symbols.And,[a;b] -> aand tag a b
     | Symbols.Imp,[a;b] -> iimp tag a b
-    (* | Symbols.Neg,[a] when is_neg a -> build_lit(LitF.negation a.aslit) *)
     | Symbols.Neg,[a]   -> negation a
-    | Symbols.IsTrue,[a] -> build_lit a.aslit
     | _,_ ->  bV tag l
 
 end

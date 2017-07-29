@@ -1,7 +1,7 @@
 open General
-open Patricia_interfaces
 open Patricia
-open SetConstructions
+open Patricia_interfaces
+open Patricia_tools
 
 module type Config = sig
   module Constraint: FromHConsed
@@ -26,24 +26,22 @@ module Make (C : Config) = struct
   module I = TypesFromHConsed(Constraint)
                           
   module CSetD = struct
-    type keys        = Constraint.t
-    let kcompare     = id2compare Constraint.id
-    type infos       = unit
-    let info_build   = empty_info_build
+    type t           = Constraint.t
+    let compare      = id2compare Constraint.id
+    include EmptyInfo
     let treeHCons    = None
   end
 
   module CMapD = struct
-    type keys        = Constraint.t
-    let kcompare     = id2compare Constraint.id
+    type t           = Constraint.t
+    let compare      = id2compare Constraint.id
     type values      = VarSet.t
-    type infos       = unit
-    let info_build   = empty_info_build
+    include EmptyInfo
     let treeHCons    = None
   end
 
-  module CSet = PATSet.Make(CSetD)(I)
-  module CMap = PATMap.Make(CMapD)(I)
+  module CSet = PatSet.Make(CSetD)(I)
+  module CMap = PatMap.Make(CMapD)(I)
 
   type t = {
       var2cons: CSet.t VarMap.t;
@@ -56,6 +54,8 @@ module Make (C : Config) = struct
     cons2var = CMap.empty;
     todo = Pqueue.empty()
   }
+
+  (* Adding or updating a constraint once we know the variables it will watch *)
 
   let addconstraint c ?(oldwatched=VarSet.empty) newwatchedlist t =
     (* The newly watched variables, as a VarSet *)
@@ -87,52 +87,50 @@ module Make (C : Config) = struct
       var2cons = var2cons;
       cons2var = CMap.add c (fun _ -> newwatched) t.cons2var }
 
-               
-  let treat fixed ?howmany t cset =
-    let rec aux t cset = match CSet.reveal cset with
-      | Empty      -> None, t
-      | Leaf(c,()) ->
-         (* c is constraint for which we want to pick watched vars *)
-         (* Here are the vars currently watched by c *)
-         let watched = CMap.find c t.cons2var in
-         (* Same thing as a list *)
-         let watchedlist = VarSet.elements watched in
-         (* How many do we need to watch outside fixed? *)
-         let number = match howmany with
-           | Some i -> i
-           | None -> List.length watchedlist
-         in
-         (* Let's simplify constraint c according to the currently fixed vars *)
-         let c' = simplify fixed c in
-         begin
-	   match pick_another fixed c' number watchedlist with
-	   | None -> Some(c',watchedlist), t
-           | Some varlist ->
-              let t = { t with
-                        cons2var = CMap.remove c t.cons2var }
-              in None, addconstraint c' ~oldwatched:watched varlist t
-         end
-      | Branch(_,_,l,r) -> 
-         match aux t l with
-	 | None, t          -> aux t r
-	 | Some _ as ans, t -> ans, {t with todo = Pqueue.push r t.todo}
+  (* Adding or updating a constraint before we know the variables to watch *)
+      
+  let treat_one fixed ?howmany c t =
+    (* c is constraint for which we want to pick watched vars *)
+    (* Here are the vars currently watched by c *)
+    let watched = CMap.find c t.cons2var in
+    (* Same thing as a list *)
+    let watchedlist = VarSet.elements watched in
+    (* How many do we need to watch outside fixed? *)
+    let number = match howmany with
+      | Some i -> i
+      | None -> List.length watchedlist
     in
-    aux t cset
+    (* Let's simplify constraint c according to the currently fixed vars *)
+    let c' = simplify fixed c in
+    match pick_another fixed c' number watchedlist with
+    | None -> Some(c',watchedlist), t
+    | Some varlist ->
+       let t = { t with cons2var = CMap.remove c t.cons2var }
+       in None, addconstraint c' ~oldwatched:watched varlist t
+
+      
+  (* Now we say what to do with a set cset of constraints
+     that need to update their watch list.
+     We range through cset and update the watchlists until we find a problem. *)
+
+  let return t = None, t
+  let bind reccall cset (sofar,t) =
+    match sofar with
+    | None -> reccall cset t
+    | Some _ -> sofar, {t with todo = Pqueue.push cset t.todo}
+      
+  let treat fixed ?howmany = CSet.fold_monad ~return ~bind (treat_one fixed ?howmany)
 
   let rec next fixed ?howmany t = 
     match Pqueue.pop t.todo with
     | None -> None, t
     | Some(cset,cont) -> 
-       begin
-         match treat fixed ?howmany { t with todo = cont } cset with
-         | None, t -> next fixed ?howmany t
-         | ans  -> ans
-       end
+       match treat fixed ?howmany cset { t with todo = cont } with
+       | None, t -> next fixed ?howmany t
+       | ans  -> ans
 
-  let addconstraint c newwatchedlist t = addconstraint c newwatchedlist t
-
-  let addconstraintNflag constr varlist t =
-    let t = addconstraint constr varlist t in
+  let addconstraintNflag ?(ifpossible=[]) constr t =
+    let t = addconstraint constr ifpossible t in
     let cset = CSet.singleton constr in
     { t with todo = Pqueue.push cset t.todo }
 

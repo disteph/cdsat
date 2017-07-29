@@ -5,20 +5,13 @@
 
 open Sums
 
-(* Direct type of Patricia tries. 'a is the type of the sub-tries *)
-
-type ('a,'keys,'values,'common,'branching) poly_rev =
-  | Empty
-  | Leaf of 'keys * 'values
-  | Branch of 'common * 'branching * 'a * 'a
-
 (* We embark extra info in Patricia tries. How to construct this info
    is given as a record of this type *)
       
 type ('keys,'values,'infos) info_build_type = 
-  {empty_info  : 'infos;
-   leaf_info   : 'keys -> 'values -> 'infos;
-   branch_info : 'infos -> 'infos -> 'infos}
+  { empty_info  : 'infos;
+    leaf_info   : 'keys -> 'values -> 'infos;
+    branch_info : 'infos -> 'infos -> 'infos }
 
 (* The two interfaces Dest and Intern descibe the material that must be
   provided to construct a Patricia tree structure.
@@ -29,14 +22,12 @@ type ('keys,'values,'infos) info_build_type =
   Patricia trees; standard implementations of Intern are the object of module
   SetConstructions *)
 
-module type MapDestType = sig
+module type MapArg = sig
 
-  (* Domain of the map/set (keys)*)
-  type keys
-  val kcompare : keys -> keys -> int
+  (* Domain of the map (keys) *)
+  type t [@@deriving ord]
 
-  (* Co-domain of the map (values), set it to unit for a set *)    
-
+  (* Co-domain of the map (values) *)
   type values
 
   (* Allows to store information about the Patricia tree: typically, number of
@@ -45,12 +36,11 @@ module type MapDestType = sig
 
   (* Provides info for empty tree, singleton tree, and disjoint union
     of two tree *)
-  val info_build : (keys,values,infos) info_build_type
+  val info_build : (t,values,infos) info_build_type
 
   (* Do you want the patricia trees hconsed? if so you should provide
     an equal function for values, and hash functions for keys and values *) 
-
-  val treeHCons : ((keys->int)
+  val treeHCons : ((t->int)
                    *(values->int)
                    *(values -> values -> bool)) option
 end
@@ -83,7 +73,7 @@ module type Intern = sig
   val match_prefix : common -> common -> branching -> bool
 end
 
-module type PATMapType = sig
+module type PatMap = sig
   type keys
   type values
   type common
@@ -95,7 +85,6 @@ module type PATMapType = sig
 
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> (t,keys,values,common,branching) poly_rev
   val id     : t -> int
   val info   : t -> infos
   val clear    : unit -> unit
@@ -107,20 +96,51 @@ module type PATMapType = sig
   val cardinal : t -> int
   val empty    : t
   val singleton: keys -> values -> t
+
   val remove : keys -> t -> t
   val add    : keys -> (values option -> values) -> t -> t
-  type ('v1,'i1,'v2,'i2,'a) merge = {
-      sameleaf  : keys -> 'v1 -> 'v2 -> 'a;
-      emptyfull : ('v2,'i2) param -> 'a;
-      fullempty : ('v1,'i1) param -> 'a;
-      combine   : 'a -> 'a -> 'a
-    }
-  val merge_poly : ('v1,'i1,'v2,'i2,'a) merge
+
+  val iter   : (keys -> values -> unit) -> t -> unit
+  val fold   : (keys -> values -> 'a -> 'a) -> t -> 'a -> 'a
+  val fold_monad : return:('a -> 'b) -> bind:((t -> 'a -> 'b) -> t -> 'b -> 'b)
+               -> (keys -> values -> 'a -> 'b) -> t -> 'a -> 'b
+  val map    : (keys -> 'v -> values) -> ('v,_)param -> t
+  val choose : t -> keys * values
+
+  module Fold2 : sig
+    type ('v1,'i1,'v2,'i2,'a,'b) t = {
+        sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
+        emptyfull : ('v2,'i2) param -> 'a -> 'b;
+        fullempty : ('v1,'i1) param -> 'a -> 'b;
+        combine   : 'b -> ('a -> 'b) -> 'b
+      }
+  end
+
+  val fold2_poly : ('v1,'i1,'v2,'i2,'a,'b) Fold2.t
+                   -> ('v1,'i1) param
+                   -> ('v2,'i2) param
+                   -> 'a -> 'b
+  val fold2      : ?equal:(('v,'i)param -> 'a -> 'b)
+                   -> ('v,'i,'v,'i,'a,'b) Fold2.t
+                   -> ('v,'i) param
+                   -> ('v,'i) param
+                   -> 'a -> 'b
+
+  module Merge : sig
+    type ('v1,'i1,'v2,'i2,'a) t = {
+        sameleaf  : keys -> 'v1 -> 'v2 -> 'a;
+        emptyfull : ('v2,'i2) param -> 'a;
+        fullempty : ('v1,'i1) param -> 'a;
+        combine   : 'a -> 'a -> 'a
+      }
+  end
+                   
+  val merge_poly : ('v1,'i1,'v2,'i2,'a) Merge.t
                    -> ('v1,'i1) param
                    -> ('v2,'i2) param
                    -> 'a
   val merge      : ?equal:(('v,'i)param -> 'a)
-                   -> ('v,'i,'v,'i,'a) merge
+                   -> ('v,'i,'v,'i,'a) Merge.t
                    -> ('v,'i) param
                    -> ('v,'i) param
                    -> 'a
@@ -137,47 +157,31 @@ module type PATMapType = sig
   val diff_poly  : (keys -> values -> 'v -> t) -> t -> ('v,_)param  -> t
   val subset_poly: ('v1 -> 'v2 -> bool) -> ('v1,_)param -> ('v2,_)param -> bool
   val subset     : (values -> values -> bool)  -> t -> t -> bool
-  val sub :
-    (bool -> keys -> values -> values option -> (unit, 'a) almost) ->
-    (t -> t) -> bool -> t -> t -> (unit, 'a) almost
   val first_diff :
     (keys -> values -> values -> 'a option * bool) ->
     ('a -> 'a -> int) -> (t -> 'a option) -> t -> t -> 'a option * bool
-  val iter   : (keys -> 'v -> unit) -> ('v,_)param -> unit
-  val map    : (keys -> 'v -> values) -> ('v,_)param -> t
-  val fold   : (keys -> 'v -> 'a -> 'a) -> ('v,_)param -> 'a -> 'a
-  val choose : t -> keys * values
   val make :
     ('a -> values option -> values) -> (keys * 'a) list -> t
   val elements : t -> (keys * values) list
+
   val print_tree_in_fmt:
     ?common      :(Format.formatter -> common -> unit)
     -> ?branching:(Format.formatter -> branching -> unit)
     -> (Format.formatter -> (keys * 'v) -> unit)option
     -> Format.formatter -> ('v,_) param -> unit
+
   val print_in_fmt:
     ?tree:((Format.formatter -> common -> unit)
            *(Format.formatter -> branching -> unit))
     -> (Format.formatter -> (keys * 'v) -> unit)
     -> Format.formatter -> ('v,_) param -> unit
-  val find_su :
-    (keys -> values -> 'a) ->
-    (keys -> values -> branching -> 'b) ->
-    'b ->
-    ('b -> 'b -> 'b) ->
-    (common ->
-     common -> branching option -> ('c, branching) almost) ->
-    bool ->
-    (branching -> bool) ->
-    ('b -> bool) -> common -> t -> ('a, 'b) sum
 end
 
 
-module type SetDestType = sig
-  (* Domain of the map/set (keys)*)
+module type SetArg = sig
 
-  type keys
-  val kcompare : keys -> keys -> int
+  (* Elements of the set *)
+  type t [@@deriving ord]
 
   (* Allows to store information about the Patricia tree: typically, number of
     bindings stored, etc *) 
@@ -185,15 +189,15 @@ module type SetDestType = sig
 
   (* Provides info for empty tree, singleton tree, and disjoint union
     of two tree *)
-  val info_build : (keys,unit,infos) info_build_type
+  val info_build : (t,unit,infos) info_build_type
 
   (* Do you want the patricia trees hconsed? if so you should provide
   a hash function for keys *) 
-  val treeHCons : (keys->int) option 
+  val treeHCons : (t->int) option 
 
 end
 
-module type PATSetType = sig
+module type PatSet = sig
   type e
   type common
   type branching
@@ -203,7 +207,6 @@ module type PATSetType = sig
   type t = (unit,infos) param
   val equal  : t -> t -> bool
   val hash   : t -> int
-  val reveal : t -> (t,e,unit,common,branching) poly_rev
   val id     : t -> int
   val info   : t -> infos
   val clear  : unit -> unit
@@ -221,27 +224,16 @@ module type PATSetType = sig
   val inter  : t -> t -> t
   val inter_poly : t -> (_,_)param -> t
   val subset : t -> t -> bool
+  val subset_poly : t -> (_,_)param -> bool
   val diff   : t -> t -> t
   val diff_poly : t -> (_,_)param -> t
-  val first_diff :
-    (t -> e option) -> t -> t -> e option * bool
-  val sub :
-    (t -> t) ->
-    bool -> t -> t -> (unit, e) almost
+  val first_diff : (t -> e option) -> t -> t -> e option * bool
   val iter   : (e -> unit) -> t -> unit
   val fold   : (e -> 'a -> 'a) -> t -> 'a -> 'a
+  val fold_monad : return:('a -> 'b) -> bind:((t -> 'a -> 'b) -> t -> 'b -> 'b)
+                   -> (e -> 'a -> 'b) -> t -> 'a -> 'b
   val choose : t -> e
   val elements : t -> e list
-  val find_su :
-    (e -> 'a) ->
-    (e -> branching -> 'b) ->
-    'b ->
-    ('b -> 'b -> 'b) ->
-    (common ->
-     common -> branching option -> ('c, branching) almost) ->
-    bool ->
-    (branching -> bool) ->
-    ('b -> bool) -> common -> t -> ('a, 'b) sum
   val print_tree_in_fmt:
     ?common      :(Format.formatter -> common -> unit)
     -> ?branching:(Format.formatter -> branching -> unit)

@@ -151,23 +151,25 @@ module Make(WB4M: WhiteBoard4Master) = struct
          
        | Sat newtset -> 
           (* A theory found a counter-model newtset. If it is the
-                same as tset, then it means the theory has stamped the
+                same as the current one, then it means the theory has stamped the
                 model for which we were collecting stamps. If not, now
                 all other theories need to stamp newtset. *)
 
           let WB(rest, Sat consset) as current =
             match current with
-            | Some(WB(_, Sat consset) as c) when DS.Assign.equal consset newtset
-              ->
-               Print.print ["concur",2] (fun p -> p "Matches previous model");
+            | Some(WB(_, Sat consset) as c) when DS.Assign.equal consset newtset ->
+               Print.print ["concur",3] (fun p -> p "Matches previous model");
                sat thmsg c
-            | Some(WB(_, Sat consset) as c) when DS.Assign.subset consset newtset
-              ->
-               Print.print ["concur",2] (fun p -> p "Fuller model");
+            | Some(WB(_, Sat consset)) when DS.Assign.subset consset newtset ->
+               Print.print ["concur",3] (fun p -> p "Fuller model");
+               thmsg
+            | Some c ->
+               Print.print ["concur",3] (fun p -> p "Strange model");
                c
-            | _ ->
-               Print.print ["concur",2] (fun p -> p "New model");
-               sat_init newtset
+            | None ->
+               Print.print ["concur",3] (fun p -> p "New model");
+               sat thmsg (sat_init newtset)
+               
           in
           if HandlersMap.is_empty rest
           then
@@ -179,15 +181,17 @@ module Make(WB4M: WhiteBoard4Master) = struct
              H.kill state.hub;
              return(Case2 current))
           else
-            (* some theories still haven't stamped that assignment
+            (Print.print ["concur",2] (fun p ->
+                p " still waiting for %a" HandlersMap.pp rest);
+          (* some theories still haven't stamped that assignment
                  as being consistent with them,
                  so we read what the theories have to tell us *)
-            master_loop ~current state
+             master_loop ~current state)
 
        | Propa(tset,Unsat) -> 
           (* A theory found a proof. We stop and close all pipes. *)
-          let finalise conflict uip second_term =
-            H.suicide state.hub conflict uip second_term
+          let finalise conflict uip =
+            H.suicide state.hub conflict uip
           in
           T.analyse state.trail thmsg finalise >>| fun ans ->
           H.kill state.hub;

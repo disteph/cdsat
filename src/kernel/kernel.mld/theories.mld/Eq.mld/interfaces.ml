@@ -38,7 +38,7 @@ module type RawEgraph = sig
   val add   : node -> info -> _ egraph -> t
 
   (* path t pc eg
-     provides path from t to t', where pc is "the component of t' "
+     provides path from t' to t, where pc is "the component of t' "
      (i.e. pc has been obtained by a call of PC.get on t').
      t is assumed to belong to component pc, otherwise this function breaks.
    *)
@@ -66,7 +66,7 @@ module type Egraph = sig
          
   type t
   val init : t
-  val eq : term -> termValue -> sassign -> t -> t*info*(termValue list)
+  val eq : term -> termValue -> (term*bool,sassign)sum -> t -> t*info*(termValue list)
   val diseq : term -> term -> (term*bool) -> t -> t
   (* Ask information about the termvalue,
        possibly subscribe (subscribe=true) or unsubscribe (subscribe=false)

@@ -1,11 +1,8 @@
 open General
 open Top.Basic
 
-module IntSortSet : Patricia.PATSet.S with type e      = IntSort.t
-                                      and  type infos  = unit
-                                      and  type common = int
-                                      and  type branching = int
-                                      and  type ('v,'i) param = (IntSort.t,'v,int,int,'i) Patricia.poly
+module IntSortSet : Patricia.PatSet.S with type e = IntSort.t
+                                       and type ('v,'i) param = (IntSort.t,'v,int,int,'i) Patricia.poly
 
 (* module SortSet : Set.S with type elt = Top.Sorts.t *)
 (* module SymbSet : Set.S with type elt = Top.Symbols.t *)

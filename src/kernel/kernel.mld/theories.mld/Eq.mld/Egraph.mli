@@ -23,9 +23,9 @@ module Make(DS: GlobalDS) : sig
                [@@deriving eq,ord,show,hash]                               
   end
 
-  module Make(REG : RawEgraph with type node := TermValue.t
-                               and type edge := sassign
-                               and type info := info)
+  module Make(REG : RawEgraph with type node = TermValue.t
+                               and type edge = (bassign,sassign)sum
+                               and type info = info)
          : (Egraph with type info := info
                                  and type cval := CValue.t
                                               and type stop := stop

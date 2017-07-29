@@ -343,6 +343,9 @@ module Make(State:State) = struct
       | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" Term.pp t Value.pp v
     let show_sassign = Dump.stringOf pp_sassign
                                     
+    open Patricia
+    open Patricia_tools
+
     module SAssign = struct
       module Param = struct
         type 'a t = sassign [@@deriving eq, hash, show]
@@ -352,26 +355,19 @@ module Make(State:State) = struct
       include Init(HCons.NoBackIndex)
       let pp fmt t = pp_sassign fmt (reveal t)
       let show  = Dump.stringOf pp
+      include EmptyInfo
+      let treeHCons = Some id
     end
+
     type sassign_hashconsed = SAssign.t
 
     module Assign = struct
-      open SetConstructions
-      open Patricia
       type e = sassign [@@deriving eq, hash, show]
-      module D = struct
-        type keys      = SAssign.t
-        let kcompare   = SAssign.compare
-        type infos     = unit
-        let info_build = empty_info_build
-        let treeHCons  = Some(SAssign.id)
-      end
-      module I = TypesFromHConsed(SAssign)
-      module M = PATSet.Make(D)(I)
+      module M = PatSet.Make(SAssign)(TypesFromHConsed(SAssign))
       type t = M.t
       let pp    = M.print_in_fmt SAssign.pp
       let show  = Dump.stringOf pp
-      let hash = M.hash
+      let hash  = M.hash
       let hash_fold_t = Hash.hash2fold M.hash
       let empty = M.empty
       let singleton e = M.singleton(SAssign.build e)
@@ -384,6 +380,7 @@ module Make(State:State) = struct
       let mem e t = M.mem (SAssign.build e) t
       let equal = M.equal
       let subset = M.subset
+      let choose t = SAssign.reveal (M.choose t)
       let next t = let e = M.choose t in
                    SAssign.reveal e, M.remove e t
       let fold aux = M.fold (fun e -> aux(SAssign.reveal e))

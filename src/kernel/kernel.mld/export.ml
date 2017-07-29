@@ -1,5 +1,8 @@
-open General.Sums
-
+open General
+open Sums
+open Patricia
+open Patricia_tools
+       
 open Top
 open Interfaces_basic
 open Messages
@@ -11,8 +14,9 @@ module type WhiteBoard = sig
 
   module DS : sig
     type sassign_hashconsed
-    include GlobalDS with type Assign.t = (sassign_hashconsed, unit, int, int, unit)
-                                            General.Patricia.poly
+    include GlobalDS
+            with type Assign.t
+                      = (sassign_hashconsed, unit, int, int, EmptyInfo.infos) poly
     module SAssign : sig
       include PHCons with type t = sassign_hashconsed
       val reveal : t -> Term.t*(Value.t Values.t)

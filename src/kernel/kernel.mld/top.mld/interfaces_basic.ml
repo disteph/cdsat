@@ -33,6 +33,7 @@ module type Collection = sig
   val mem      : e -> t -> bool
   val equal    : t -> t -> bool
   val subset   : t -> t -> bool
+  val choose   : t -> e
   val next     : t -> e*t
   val fold     : (e -> 'a -> 'a) -> t -> 'a -> 'a
 end

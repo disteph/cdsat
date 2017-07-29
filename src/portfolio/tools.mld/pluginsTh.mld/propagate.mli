@@ -8,7 +8,7 @@
 (**********************************************************************)
 
 open General
-open SetConstructions
+open Patricia_tools
 open Kernel.Top.Messages
 
 module type Config = sig
@@ -82,12 +82,10 @@ module Make(C: Config) : sig
   val init  : t
 
   (* run state
-     - either a conflict is detected, in which case we get Sums.A stop,
+     - either a conflict is detected, in which case we get Sums.Case1 stop,
      where stop is the data resulting from the conflict
      - or we return a new state, where all propagations have been
-     performed without generating a conflict, together with some messages
-     describing the propagations that we have performed. 
-  *)
+     performed without generating a conflict. *)
   val run : t -> (C.stop, t) Sums.sum
 
   (* Variant of the above, where we provide a function that
@@ -95,8 +93,7 @@ module Make(C: Config) : sig
   val fix : (C.fixed -> C.result) -> t -> (C.stop, t) Sums.sum
 
   (* add_constraint constraint state     
-     treats the addition of a new constraint:
-  *)
+     treats the addition of a new constraint: *)
   val add_constraint : C.Constraint.t -> t -> t
 
   val extract_msg: t -> C.msg option * t

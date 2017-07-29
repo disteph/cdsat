@@ -1,6 +1,30 @@
 open Patricia_interfaces
 open Sums
 
+(***************************************************)
+(* Pre-defined infos types and build functions *)
+       
+(* Gives the standard info_build when info type is unit *)
+module EmptyInfo : sig
+  type infos
+  val info_build : ('keys,'values,infos) info_build_type
+end
+                       
+(* Info build function to record cardinal *)
+module CardInfo  : sig
+  type infos = int
+  val info_build : ('keys,'values,infos) info_build_type
+end
+
+(* Info type to record maximum key *)
+module MaxInfo(K: sig type t [@@deriving ord] end) : sig
+  type infos = K.t option
+  val info_build : (K.t,'values,infos) info_build_type
+end
+
+(***************************************************)
+(* Automatic construction of a I:Intern from a HConsed type *)
+                                                       
 module type FromHConsed = sig
   type t 
   val id : t -> int 
@@ -13,15 +37,18 @@ module TypesFromHConsed(S : FromHConsed)
        val pequals:common->common->bool
   end
   
+(***************************************************)
+(* Automatic construction of a I:Intern from a collection *)
+
 module type FromCollect = sig
   type keys
-  type t
+  type t [@@deriving ord]
   val tag : keys -> t
-  type e
+  type e [@@deriving ord]
   val mem        : e -> t -> bool
   val inter      : t -> t -> t
-  val compare    : t -> t -> int
-  val compareE   : e -> e -> int
+    (* Computes the smallest element that is in one set 
+       and not in the other, according to order compareE *)
   val first_diff : t -> t -> e option * bool
 end
 
@@ -33,6 +60,9 @@ module TypesFromCollect(S : FromCollect)
     val pequals:common->common->bool
   end
   
+(***************************************************)
+(* Automatic construction of a I:Intern for the product of two sets,
+   given I1:Intern and I2:Intern *)
 
 module LexProduct  
   (I1:sig
@@ -51,6 +81,9 @@ module LexProduct
     val pequals:(I2.common->I2.common->bool)->common->common->bool
   end
 
+(***************************************************)
+(* Automatic construction of an Intern for a set extended with a top element,
+   given the I:Intern for the original set *)
 
 module Lift(I:sig include Intern
 		  type newkeys 

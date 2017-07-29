@@ -1,7 +1,38 @@
 open Sums
 open Patricia_interfaces
 
-(* Automatic construction of a UT:UserTypes from a HConsed type *)
+module EmptyInfo = struct
+  type infos = unit
+  let info_build = {
+      empty_info  = ();
+      leaf_info   = (fun _ _ ->());
+      branch_info = (fun _ _-> ())
+    }
+end
+                       
+module CardInfo = struct
+  type infos = int
+  let info_build = {
+      empty_info  = 0;
+      leaf_info   = (fun x _ -> 1);
+      branch_info = (fun x1 x2 -> x1 + x2)
+    }
+end
+
+module MaxInfo(K: sig type t [@@deriving ord] end) = struct
+  type infos = K.t option
+  let info_build = {
+      empty_info  = None;
+      leaf_info   = (fun x _ -> Some x);
+      branch_info = (fun x1 x2 ->
+        match x1,x2 with
+        | None,_ -> failwith "Bad1"
+        | _,None -> failwith "Bad2"
+        | Some v1,Some v2-> if K.compare v1 v2<0 then x1 else x2
+      )
+    }
+end
+
 
 module type FromHConsed = sig
   type t
@@ -29,22 +60,13 @@ module TypesFromHConsed(S:FromHConsed) = struct
   let pequals i1 i2 = (i1=i2)
 end
 
-(* Automatic construction of a UT:UserTypes from a collection *)
-
 module type FromCollect = sig
   type keys
-  type t
+  type t [@@deriving ord]
   val tag: keys->t
-
-  type e
+  type e [@@deriving ord]
   val mem  : e->t->bool
   val inter: t->t->t
-    (* Comparison of collections *)
-  val compare    : t->t->int
-    (* Comparison of elements *)
-  val compareE   : e->e->int
-    (* Computes the smallest element that is in one set 
-       and not in the other, according to order compareE *)
   val first_diff : t->t->(e option*bool)
 end
 
@@ -56,12 +78,12 @@ module TypesFromCollect(S: FromCollect) = struct
   let kcompare t1 t2 = S.compare(tag t1)(tag t2)
     
   type branching = S.e
-  let bcompare   = S.compareE
+  let bcompare   = S.compare_e
   let check p m  = S.mem m p
 
   let match_prefix q p m = (S.compare q p=0) ||
     match S.first_diff q p with
-      | (Some x,_)  when S.compareE x m<0 -> false
+      | (Some x,_)  when S.compare_e x m<0 -> false
       | _ -> true
 
   let disagree p0 p1 = match S.first_diff p0 p1 with
@@ -70,10 +92,6 @@ module TypesFromCollect(S: FromCollect) = struct
 
   let pequals p1 p2 = (S.compare p1 p2=0)
 end
-
-
-(* Automatic construction of a I:Intern for the product of two sets,
-   given I1:Intern and I2:Intern *)
 
 module LexProduct
   (I1:sig
@@ -125,8 +143,6 @@ module LexProduct
   let pequals pequals2 (p1,p2) (p1',p2')=I1.pequals p1 p1' && pequals2 p2 p2'
 end
 
-(* Automatic construction of an Intern for a set extended with a top element,
-   given the I:Intern for the original set *)
 
 module Lift(I:sig include Intern
 		  type newkeys 

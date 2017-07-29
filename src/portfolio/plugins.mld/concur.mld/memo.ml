@@ -140,7 +140,7 @@ module Make(WB : WhiteBoardExt) = struct
   module P = TwoWatchedLits.Make(Config)
 
   module WR : sig
-    val add : Constraint.t -> Var.t -> Var.t option -> unit
+    val add : Constraint.t -> Var.t -> unit
     val treat : Config.fixed -> Var.t -> (Config.Constraint.t*Var.t list) option
   end = struct
     
@@ -156,13 +156,11 @@ module Make(WB : WhiteBoardExt) = struct
          Dump.print ["watch",1] (fun p-> p "Already know");
          true
           
-    let add c sassign1 sassign2 =
+    let add c sassign =
       let tset = Constraint.assign c in
       if not(prove tset)
       then
-        watchref := P.addconstraintNflag c
-                      (sassign1::(match sassign2 with None -> [] | Some t2 -> [t2]))
-                      !watchref;
+        watchref := P.addconstraintNflag c ~ifpossible:[sassign] !watchref;
         incr watchcount;
         Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
 
@@ -174,10 +172,10 @@ module Make(WB : WhiteBoardExt) = struct
         
   end
 
-  let suicide msg term1 term2 =
+  let suicide msg term =
     if !Flags.memo
     then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
-          WR.add (Constraint.make msg) term1 term2)
+          WR.add (Constraint.make msg) term)
 
   let rec flush ports msg =
     Dump.print ["memo",2] (fun p-> p "Memo enters flush");
@@ -192,7 +190,7 @@ module Make(WB : WhiteBoardExt) = struct
              flush ports1 msg;
              flush ports2 msg
            ]
-      | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
+      | KillYourself(conflict,t) -> return(suicide conflict t)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       ports.reader aux
@@ -209,7 +207,7 @@ module Make(WB : WhiteBoardExt) = struct
            [ loop_read fixed ports1 ;
              loop_read fixed ports2 ]
       | Infos _ -> loop_read fixed ports
-      | KillYourself(conflict,t1,t2) -> return(suicide conflict t1 t2)
+      | KillYourself(conflict,t) -> return(suicide conflict t)
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
       ports.reader aux

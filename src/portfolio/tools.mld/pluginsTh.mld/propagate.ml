@@ -27,24 +27,17 @@ module Make(C: Config) = struct
 
   module WL = TwoWatchedLits.Make(C)
 
-  type t = {
-    fixed : C.fixed;
-    watch : WL.t
-  }
+  type t = { fixed : C.fixed;
+             watch : WL.t }
 
-  let init = {
-    fixed = C.init_fixed;
-    watch = WL.init
-  }
+  let init = { fixed = C.init_fixed;
+               watch = WL.init }
 
   let rec analyse t = function
     | C.UNSAT stop -> Sums.Case1 stop
     | C.Propagate(fixed',varlist) ->
-       run
-         {
-           fixed = fixed';
-           watch = List.fold WL.fix varlist t.watch
-         }
+       run { fixed = fixed';
+             watch = List.fold WL.fix varlist t.watch }
                
   and run t = 
     let res, watch' = WL.next t.fixed ~howmany:C.howmany t.watch in
@@ -54,7 +47,7 @@ module Make(C: Config) = struct
     | None   -> Sums.Case2 t
                            
   let add_constraint c t =
-    { t with watch = WL.addconstraintNflag c [] t.watch }
+    { t with watch = WL.addconstraintNflag c t.watch }
 
   let fix f t = analyse t (f t.fixed)
         

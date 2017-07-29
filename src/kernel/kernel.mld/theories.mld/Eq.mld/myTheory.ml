@@ -24,7 +24,7 @@ module Make(DS: GlobalDS) = struct
 
   module P = struct
     module Node = TermValue
-    type edge = sassign [@@deriving show]
+    type edge = (bassign,sassign)sum [@@deriving show]
     type nonrec info = info
   end
 
@@ -83,13 +83,13 @@ module Make(DS: GlobalDS) = struct
            let term,value = sassign in
            let treated = Assign.add sassign state.treated in
            try
-             let eg,info,tvset = EG.eq term (Case2 value) sassign state.egraph in
+             let eg,info,tvset = EG.eq term (Case2 value) (Case2 sassign) state.egraph in
              let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
              let eg, tvmap =
                match Terms.reveal term, value with
-               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true
-                 | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false
-                 -> let eg,info,tvset = EG.eq t1 (Case1 t2) sassign eg in
+               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean (true as b)
+                 | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean (false as b)
+                 -> let eg,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,b)) eg in
                     let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
                     eg, tvmap
                | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true

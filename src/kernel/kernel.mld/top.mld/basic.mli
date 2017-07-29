@@ -23,8 +23,12 @@ module MakeCollection
             end) 
        : Collection with type e = OT.t
 
+open General
+open Patricia
+open Patricia_tools
+       
 module MakePATCollection(M: PHCons) : sig
   include Collection with type e = M.t
-                      and type t = (M.t, unit, int, int, unit) General.Patricia.poly
+                      and type t = (M.t, unit, int, int, EmptyInfo.infos) poly
   val id : t -> int
 end

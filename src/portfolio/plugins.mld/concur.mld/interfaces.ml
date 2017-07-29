@@ -51,7 +51,7 @@ module type Extra = sig
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
                      * ((term,vvalue) sum)
                      -> egraph msg2th
-     | KillYourself: unsat t * sassign * sassign option -> _ msg2th
+     | KillYourself: unsat t * sassign -> _ msg2th
 
   val pp_msg2th : Format.formatter -> _ msg2th -> unit
                                                             
@@ -79,7 +79,7 @@ module type WhiteBoard4Master = sig
     (* Sending a message to all slaves *)
     val broadcast : t -> WBE.sassign -> chrono:int -> unit Deferred.t
     (* Telling all slaves to kill themselves *)
-    val suicide   : t -> unsat WBE.t -> WBE.sassign -> WBE.sassign option -> unit Deferred.t
+    val suicide   : t -> unsat WBE.t -> WBE.sassign -> unit Deferred.t
     (* The pipe reader on which the master thread must read *)
     val reader    : t -> WBE.msg2pl Pipe.Reader.t
   end

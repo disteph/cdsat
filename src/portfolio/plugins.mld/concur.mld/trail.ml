@@ -10,9 +10,9 @@ open Basic
 open Messages
 
 open General
-open Patricia_interfaces
 open Patricia
-open SetConstructions
+open Patricia_interfaces
+open Patricia_tools
 open Sums
 
 (* This module implements conflict analysis *)
@@ -68,8 +68,7 @@ The reason it was added to the trail was either:
     }
 
   module DestWInfo = struct
-    type keys    = SAssign.t
-    let kcompare = SAssign.compare
+    include SAssign
     type values  = int*int*nature
     type infos   = max
 
@@ -109,7 +108,7 @@ The reason it was added to the trail was either:
   end
 
   (* We now create the data-structure for Trail Maps *)
-  module TrailMap = PATMap.Make(DestWInfo)(TypesFromHConsed(SAssign))
+  module TrailMap = PatMap.Make(DestWInfo)(TypesFromHConsed(SAssign))
 
   (* Extracts from a trail map the fragment that is used in the left-hand
   side of a propa message, from which we removed semsplit. I.e. the
@@ -209,9 +208,8 @@ The reason it was added to the trail was either:
           the split.  We want to learn the conflict as a clause, so we
           pick 2 formulae to watch. *)
         
-        let t1,rest = Assign.next semsplit in
-        let t2,_    = Assign.next rest in
-        learn conflict t1 (Some t2) >>| fun ()->
+        let t = Assign.choose semsplit in
+        learn conflict t >>| fun ()->
         (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
         Case2(level-1, late (level-1) trail [WB.curryfy ~assign:semsplit conflict])
@@ -238,20 +236,16 @@ The reason it was added to the trail was either:
            let msg = WB.curryfy ~flip:(t,b) conflict in
            (* First computing the assignments we need for the branch we backjump to *)
            let next = get_data map msg in
-           (* Second assignment participating to conflict *)
-           let second = if next.level < -1 then None
-                        else Some(next.sassign()) in
            Print.print ["trail",1] (fun p ->
-               p "Conflict level: %i; first term: %a; second level: %i; second term:%a, inferred propagation:\n %a"
+               p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
                  data.level
                  pp_sassign (data.sassign())
                  next.level
-                 (Opt.pp_print_option SAssign.pp) (Opt.map SAssign.build second)
                  WB.pp msg
              );
 
            (* We learn the conflict, watching first and second formulae *)
-           learn conflict (data.sassign()) second >>| fun ()->
+           learn conflict (data.sassign()) >>| fun ()->
 
            (* Now jumping to level of second formula contributing to conflict *)
            Case2(next.level, late next.level trail [msg])

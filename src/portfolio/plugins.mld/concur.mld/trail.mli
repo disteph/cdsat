@@ -44,7 +44,7 @@ The reason it was added to it was either:
                 
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)
-                -> (unsat WB.t -> WB.sassign -> WB.sassign option -> unit Deferred.t)
+                -> (unsat WB.t -> WB.sassign -> unit Deferred.t)
                 (* a function to which we can pass stuff to learn *)
                 -> (unsat WB.t,  (* Either a subset of the original formulae are unsat *)
                     int * straight WB.t list) (* Or there is a level to backjump to,

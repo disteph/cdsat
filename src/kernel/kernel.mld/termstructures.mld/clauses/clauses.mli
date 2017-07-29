@@ -6,20 +6,19 @@ open General
 open Patricia
 open Patricia_interfaces
 
-
 module I : Intern with type keys = LitF.t
                    and type common = int
                    and type branching = int
                       
-(* LSet = Sets of literals, patricia tries implementation (hconsed) *)
+(* LSet = Sets of literals, patricia tries implementation (hconsed)
+   infos is the cardinal of the set *)
 
 module LSet : sig
-
-  include PATSetType
+  include PatSet
           with type e = LitF.t
            and type infos = int
            and type ('v, 'i) param =
-                      (LitF.t, 'v, I.common, I.branching, 'i) General.Patricia.poly
+                      (LitF.t, 'v, I.common, I.branching, 'i) poly
   val next : t -> e*t
 end
      
@@ -32,11 +31,10 @@ end
    are usually Some a, Some b, with one of a or b being a singleton
    and the other one being non-empty. *)
 
-type data = private {
+type t = private {
     aslit    : LitF.t;
     asclause : LSet.t option;
     nasclause: LSet.t option
-  }
-                                                           
+  }                                                           
 
-module TS : DataType with type t = data
+module TS : DataType with type t = t

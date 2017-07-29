@@ -26,7 +26,7 @@
 (******************************************************************)
 
 open General
-open SetConstructions
+open Patricia_tools
 
 module type Config = sig
   (* Provides the datastructure for constraints *)
@@ -51,7 +51,12 @@ module type Config = sig
      constraint, previous will be the empty list).
 
      The output provides (Some varlist), if varlist is the new list of length
-     (number) of variable to watch, or None, if (number) could not be reached. *)
+     (number) of variable to watch, or None, if (number) could not be reached.
+
+     NOTE: simplify is systematically called before pick_another,
+     so when writing pick_another,
+     you can assume the constraint is simplified w.r.t fixed
+ *)
 
   val pick_another: fixed
                     -> Constraint.t
@@ -81,16 +86,11 @@ module Make(C : Config) : sig
 
   (* addconstraint constraint varlist whowatcheswhat
 
-     adds, to the datastructure whowatcheswhat, a constraint
-     constraint watching varlist. *)
+     adds constraint to the datastructure whowatcheswhat,
+     and flags it for scheduling new watched variables picking
+     ifpossible says "try and pick those variables if possible" *)
 
-  val addconstraint : Constraint.t -> Var.t list -> t -> t
-
-  (* addconstraintNflag constraint varlist whowatcheswhat
-
-     same as above, but also flags constraint for scheduling new
-     watched variables picking *)
-  val addconstraintNflag : Constraint.t -> Var.t list -> t -> t
+  val addconstraintNflag : ?ifpossible:(Var.t list) -> Constraint.t -> t -> t
 
   (* next fixed ?howmany whowatcheswhat
 

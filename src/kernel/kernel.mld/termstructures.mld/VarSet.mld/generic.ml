@@ -1,17 +1,16 @@
 open General
 open Patricia
+open Patricia_tools
 open Top
 open Basic
        
 module D = struct
-  type keys = IntSort.t
-  let kcompare = IntSort.compare
-  type infos = unit
-  let info_build = empty_info_build
+  include IntSort
+  include EmptyInfo
   let treeHCons = Some(IntSort.id)
 end
              
-module IntSortSet = PATSet.Make(D)(SetConstructions.TypesFromHConsed(IntSort))
+module IntSortSet = PatSet.Make(D)(TypesFromHConsed(IntSort))
 
 type t = IntSortSet.t
 

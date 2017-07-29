@@ -8,7 +8,7 @@ open Interfaces_basic
 
 open General
 open Patricia
-open SetConstructions
+open Patricia_tools
 
 module IntSort = struct
 
@@ -70,17 +70,15 @@ end
 
 module MakePATCollection(M: PHCons) = struct
 
-  module DSet = struct
-    type keys      = M.t
-    let kcompare   = id2compare M.id
-    type infos     = unit
-    let info_build = empty_info_build
+  module Arg = struct
+    include M
+    include EmptyInfo
     let treeHCons  = Some M.id
   end
 
   module I = TypesFromHConsed(M)
 
-  include PATSet.Make(DSet)(I)
+  include PatSet.Make(Arg)(I)
   let hash_fold_t = Hash.hash2fold hash
   let next t = let e = choose t in (e,remove e t)
   let pp fmt s = print_in_fmt M.pp fmt s

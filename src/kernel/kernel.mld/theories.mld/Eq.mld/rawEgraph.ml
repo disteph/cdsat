@@ -6,6 +6,8 @@ module Make(P : Parameters) = struct
 
   open P
   type node = Node.t
+  type edge = P.edge
+  type info = P.info
   module NodeMap = Map.Make(Node)
 
   type _ egraph = {
@@ -133,8 +135,8 @@ module Make(P : Parameters) = struct
       if H.mem table2 t1
       then
         let accu2 = H.find table2 t1 in
-        if b then List.rev_append accu1 accu2
-        else List.rev_append accu2 accu1
+        if b then List.rev_append accu2 accu1
+        else List.rev_append accu1 accu2
       else
         match NodeMap.find t1 eg.parent with
         | Some(t1',e)

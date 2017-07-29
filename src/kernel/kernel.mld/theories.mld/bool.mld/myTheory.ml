@@ -1,66 +1,113 @@
 open General
+open Patricia
+open Patricia_interfaces
+open Patricia_tools
+open Sums       
 
 open Top
 open Messages
 open Specs
+open Termstructures.Literals
+open Termstructures.Clauses
 
+open API
+       
 type sign = unit
 
 (* We are not using values *)
 include Theory.HasNoValues
 
+module Clauses = TS
+          
 (* We are not using alternative term representation *)
-type ts = Termstructures.Clauses.TS.t
+type ts = Clauses.t
 let ts = Termstructures.Register.Clauses
 
-module Make(DS: GlobalDS) = struct
+module Make(DS: DSproj with type ts = ts) = struct
 
   open DS
-  type datatypes = Term.datatype*Value.t*Assign.t
+  type nonrec sign = sign
+  type nonrec assign = Assign.t
+  type nonrec bassign = bassign
+  type nonrec sassign = sassign
 
-  let rec machine state =
-    Specs.SlotMachine {
-        add =
-          (function
-           | None ->
-              Print.print ["kernel.bool",2] (fun p ->
-                  p "kernel.bool receiving None");
-              Silence, machine state
-           | Some a ->
-              Print.print ["kernel.bool",2] (fun p ->
-                  p "kernel.bool receiving Some(%a)"
-                    pp_sassign a
-                );
-              let state = Assign.add a state in
-              let term,v = a in
-              match Terms.reveal term, v with
-              | Terms.C(Symbols.Neg,[t]), Values.Boolean b
-                   when not(Assign.mem (t,Values.Boolean(not b)) state)
-                ->
-                 let assign = Assign.singleton a in
-                 let msg = straight () assign (t,not b) in
-                 Print.print ["kernel.bool",2] (fun p ->
-                     p "kernel.bool propagating %a" Msg.pp msg);
-                 Msg msg, machine state
-              | _ ->               
-                 Msg(sat () state), machine state);
-        
-        clone   = (fun () -> machine state);
-        suicide = (fun _ -> ())
-      }
+  include Basis.Make(DS)
 
-  let init = machine Assign.empty
-  let clear () = ()
-                   
+  (* state type:
+     in order to produce the message Sat(seen),
+     one must satisfy each constraint in todo. *)
+  type state = { seen : Assign.t;
+                 todo : Assign.t; }
+
+  (* Initial state. Note: can produce Sat(init). *)
+  let init = { seen = Assign.empty;
+               todo = Assign.empty; }
+
+  type interesting =
+    | Falsified of (sign,unsat) Msg.t
+    | Unit of (sign,straight) Msg.t
+    | Satisfied of (state -> state)
+
+  exception Nothing2say
+              
+  let prune justif bassign state =
+    let sassign = Values.boolassign bassign in
+    if Assign.mem sassign state.todo && Assign.subset justif state.seen
+    then { state with todo = Assign.remove sassign state.todo }
+    else state
+
+  let infer c =
+    let (t,b) as bassign = Constraint.bassign c in
+    match Constraint.simpl c with
+    | Some(_,[])  -> Falsified(unsat () (Constraint.justif c))
+    | Some(_,[l]) ->
+       let b',id = LitF.reveal l in
+       let term = Term.term_of_id id in
+       if Term.equal t term
+       then Satisfied(prune (Constraint.justif c) bassign)
+       else
+         let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
+         Unit(straight () justif (term,[%eq:bool] b b'))
+    | Some _ -> raise Nothing2say
+    | None   -> Satisfied(prune (Constraint.justif c) bassign)
+           
+  let sat state =
+    if Assign.is_empty state.todo
+    then Some(sat () state.seen)
+    else None
+               
+  let add sassign state =
+    Print.print ["kernel.bool",2] (fun p ->
+        p "kernel.bool receiving %a"
+          pp_sassign sassign
+      );
+    let seen = Assign.add sassign state.seen in
+    let term,v = sassign in
+    match v with
+    | Values.NonBoolean _ -> Some [], { state with seen = seen }
+    | Values.Boolean b ->
+       let propas,todo =
+         match cube (term,b) with
+         | Some set when LSet.cardinal set > 1 ->
+            let aux lit (sofar,todo) =
+              let b',id = LitF.reveal lit in
+              let derived = Term.term_of_id id,([%eq:bool] b b') in
+              let msg     = straight () (Assign.singleton sassign) derived in
+              msg::sofar,
+              Assign.add (Values.boolassign derived) todo
+            in
+            let propas, todo = LSet.fold aux set ([],state.todo) in
+            Some propas, todo
+         | _ -> None, Assign.add sassign state.todo
+       in
+       propas, { seen = seen; todo = todo }
+                            
 end
 
-module type API = sig
-  type datatypes
-  val init: (sign,datatypes) slot_machine
-  val clear: unit -> unit
-end
-
-type ('t,'v,'a) api = (module API with type datatypes = 't*'v*'a)
+type ('t,'v,'a) api = (module API with type sign = sign
+                                   and type assign  = 'a
+                                   and type bassign = 't termF * bool
+                                   and type sassign = 't termF * 'v Values.t)
 
 let make (type t v a)
       ((module DS): (ts,values,t,v,a) dsProj)
