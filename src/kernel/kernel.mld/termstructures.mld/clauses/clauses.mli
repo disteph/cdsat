@@ -31,10 +31,7 @@ end
    are usually Some a, Some b, with one of a or b being a singleton
    and the other one being non-empty. *)
 
-type t = private {
-    aslit    : LitF.t;
-    asclause : LSet.t option;
-    nasclause: LSet.t option
-  }                                                           
+type t = private { asclause : LSet.t option;
+                   ascube   : LSet.t option }                 
 
 module TS : DataType with type t = t

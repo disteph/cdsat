@@ -59,28 +59,43 @@ module Make(DS: DSproj with type ts = ts) = struct
   let infer c =
     let (t,b) as bassign = Constraint.bassign c in
     match Constraint.simpl c with
-    | Some(_,[])  -> Falsified(unsat () (Constraint.justif c))
+    | Some(_,[])  ->
+       Print.print ["kernel.bool",4] (fun p ->
+           p "kernel.bool: %a is falsified" Constraint.pp c);
+       Falsified(unsat () (Constraint.justif c))
     | Some(_,[l]) ->
        let b',id = LitF.reveal l in
        let term = Term.term_of_id id in
        if Term.equal t term
-       then Satisfied(prune (Constraint.justif c) bassign)
+       then
+         (Print.print ["kernel.bool",4] (fun p ->
+              p "kernel.bool: Detected UP, but %a is satisfied by %a"
+                Constraint.pp c Assign.pp (Constraint.justif c));
+          Satisfied(prune (Constraint.justif c) bassign))
        else
+         (Print.print ["kernel.bool",4] (fun p ->
+              p "kernel.bool: Detected UP for constraint %a (justif %a)"
+                Constraint.pp c Assign.pp (Constraint.justif c));
          let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
-         Unit(straight () justif (term,not([%eq:bool] b b')))
+         Unit(straight () justif (term,not([%eq:bool] b b'))))
     | Some _ -> raise Nothing2say
-    | None   -> Satisfied(prune (Constraint.justif c) bassign)
+    | None   ->
+       Print.print ["kernel.bool",4] (fun p ->
+           p "kernel.bool: Detected true lit, so %a is satisfied by %a"
+             Constraint.pp c Assign.pp (Constraint.justif c));
+       Satisfied(prune (Constraint.justif c) bassign)
            
   let sat state =
     if Assign.is_empty state.todo
     then Some(sat () state.seen)
-    else None
+    else
+      (Print.print ["kernel.bool",2] (fun p ->
+           p "kernel.bool: not sat, still waiting to satisfy %a" Assign.pp state.todo);
+       None)
                
   let add sassign state =
     Print.print ["kernel.bool",2] (fun p ->
-        p "kernel.bool receiving %a"
-          pp_sassign sassign
-      );
+        p "kernel.bool receiving %a" pp_sassign sassign);
     let seen = Assign.add sassign state.seen in
     let term,v = sassign in
     match v with

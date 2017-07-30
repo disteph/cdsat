@@ -202,6 +202,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
           let state = { state with
+                        decisions= Pqueue.empty(); (* we cancel all decision proposals *)
                         waiting4 = AS.all;
                         trail = T.add
                                   ~nature:(T.Deduction thmsg)

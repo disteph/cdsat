@@ -37,11 +37,8 @@ None is used to represent the trivially true clause, i.e. the negation
 of the empty clause. 
    *)
 
-type t = {
-    aslit    : LitF.t;
-    asclause : LSet.t option;
-    nasclause: LSet.t option
-  }
+type t = { asclause : LSet.t option;  (* None if trivially true *)
+           ascube   : LSet.t option } (* None if trivially false *)
            
 module TS = struct
     
@@ -51,11 +48,8 @@ module TS = struct
            
   let build_slit lit = Some(LSet.singleton lit)
 
-  let build_lit lit = {
-      aslit = lit;
-      asclause = build_slit (LitF.negation lit);
-      nasclause = build_slit lit
-    }
+  let build_lit lit = { asclause = build_slit (LitF.negation lit);
+                        ascube   = build_slit lit }
 
   (* Two clauses in a disjunction -> union, 
      unless one is trivially true *)
@@ -73,48 +67,29 @@ module TS = struct
     | None, a | a, None -> a
     | _ -> build_slit lit
 
-  let ttrue tag = {
-      aslit = LitF.build(true,tag);
-      asclause = None;
-      nasclause = Some LSet.empty
-    }
+  let ttrue tag = { asclause = None;
+                    ascube = Some LSet.empty }
 
-  let ffalse tag = {
-      aslit = LitF.build(true,tag);
-      asclause = Some LSet.empty;
-      nasclause = None
-    }
+  let ffalse tag = { asclause = Some LSet.empty;
+                     ascube = None }
 
   let oor tag a b =
     let lit = LitF.build(true,tag) in
-    {
-      aslit = lit;
-      asclause = or_comb(a.asclause,b.asclause);
-      nasclause = and_comb (LitF.negation lit) (a.nasclause,b.nasclause)
-    }
+    { asclause = or_comb (a.asclause,b.asclause);
+      ascube = and_comb lit (a.ascube,b.ascube) }
 
   let aand tag a b =
     let lit = LitF.build(true,tag) in
-    {
-      aslit = lit;
-      asclause = and_comb lit (a.asclause,b.asclause);
-      nasclause = or_comb (a.nasclause,b.nasclause)
-    }
+    { asclause = and_comb (LitF.negation lit) (a.asclause,b.asclause);
+      ascube = or_comb (a.ascube,b.ascube) }
 
   let iimp tag a b =
     let lit = LitF.build(true,tag) in
-    {
-      aslit = lit;
-      asclause = or_comb(a.nasclause,b.asclause);
-      nasclause = and_comb (LitF.negation lit) (a.asclause,b.nasclause)
-    }
+    { asclause = or_comb (a.ascube,b.asclause);
+      ascube = and_comb lit (a.asclause,b.ascube) }
 
-  let negation t = {
-      aslit = LitF.negation t.aslit;
-      asclause = t.nasclause;
-      nasclause = t.asclause;
-    }
-             
+  let negation t = { asclause = t.ascube;
+                     ascube = t.asclause; }
 
   let bV tag _ = build_lit (LitF.build(true,tag))
     

@@ -57,6 +57,8 @@ module Make(DS:GlobalDS) = struct
         watched: WL.t;         (* The state of our watched literals *)
         propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
         undetermined : TSet.t; (* The set of Boolean terms whose value would help *)
+        (* Constraints that will be satisfied by propagations sent to master *)
+        willbefine : K.Constraint.t Pqueue.t;
         silent : bool          (* Whether we have already sent an unsat message *)
       }
 
@@ -74,36 +76,58 @@ module Make(DS:GlobalDS) = struct
          match output with
          | None ->
             (* All clauses seem fine. Maybe the problem is sat ? *)
-            begin match K.sat state.kernel with
+            Print.print ["bool",4] (fun p -> p "bool: Watched literals are done");
+            (* We first force the kernel to forget the constraints that are already true *)
+            let rec aux accu kernel willbefine = 
+              match Pqueue.pop willbefine with
+              | None -> accu, kernel
+              | Some(c,willbefine) ->
+                 let c = K.Constraint.simplify state.fixed c in
+                 match K.infer c with
+                 | K.Satisfied f -> aux accu (f kernel) willbefine
+                 | _ -> aux (Pqueue.push c accu) kernel willbefine
+            in
+            let willbefine, kernel = aux (Pqueue.empty()) state.kernel state.willbefine in
+            let state = { state with watched = watched;
+                                     willbefine = willbefine;
+                                     kernel = kernel }
+            in
+            (* Now we ask the kernel whether it still has any constraints to satisfy *)
+            begin match K.sat kernel with
             | Some msg ->
                (* Kernel says all clauses are satisfied and gave us the message to send *)
-               Msg msg, machine { state with watched = watched }
+               Msg msg, machine state
             | None ->
                (* Some clauses still need to be satisfied somehow. It's time to split. *)
                let sassign = TSet.choose state.undetermined,
                              Top.Values.Boolean false
                in
-               Try sassign, machine { state with watched = watched }
+               Print.print ["bool",4] (fun p ->
+                   p "bool: kernel is not fine yet, proposing %a" pp_sassign sassign);
+               Try sassign, machine state
             end
+
          | Some(c,_) ->
             (* Watched literals have found a weird clause.
                Let's see what the kernel can make of it. *)
             let open K in
             match infer c with
             | Falsified msg ->
-               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
                (* Clause is false and kernel gave us the unsat message to send. *)
+               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
                Msg msg, machine { state with watched = watched;
                                              silent = true }
             | Unit msg ->
-               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
                (* Clause is unit and kernel gave us the propagation message to send. *)
-               Msg msg, machine { state with watched = watched }
+               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
+               let willbefine = Pqueue.push c state.willbefine in
+               Msg msg, machine { state with watched = watched;
+                                             willbefine = willbefine }
             | Satisfied f ->
-               Print.print ["bool",4] (fun p ->
-                   p "bool: kernel says %a is satisfied" Constraint.pp c);
                (* Clause is satisfied. We tell the kernel to update its state
                   and look for something else to say*)
+               Print.print ["bool",4] (fun p ->
+                   p "bool: kernel says %a is satisfied" Constraint.pp c);
                speak machine { state with watched = watched;
                                           kernel = f state.kernel }
 
@@ -152,10 +176,10 @@ module Make(DS:GlobalDS) = struct
                             p "Model says this is inconsistent!");
                         Msg msg, machine { state with silent = true }
 
-                     | Case1(l,nl,fixed) ->
+                     | Case1(l,fixed) ->
                         (* Model is consistent. We declare to the watched literals
                         that 2 literals have been fixed *)
-                        let watched = WL.fix l (WL.fix nl state.watched) in
+                        let watched = WL.fix l (WL.fix (LitF.negation l) state.watched) in
                         (* Let's look at what the kernel said. *)
                         match recorded with
                         | Some propas ->
@@ -203,6 +227,7 @@ module Make(DS:GlobalDS) = struct
                          watched= WL.init;
                          propas = Pqueue.empty();
                          undetermined = TSet.empty;
+                         willbefine = Pqueue.empty();
                          silent = false }
 
     let clear () = K.clear ()

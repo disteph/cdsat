@@ -34,8 +34,8 @@ module Make(DS: DSproj with type ts = TS.t) : sig
   module Model : sig
       type t
       val empty : t
-      val add : bassign -> t -> (LitF.t*LitF.t*t, (unit,unsat) Msg.t) sum
-      val agree : bool -> t -> LMap.t
+      val add : bassign -> t -> (LitF.t*t, (unit,unsat) Msg.t) sum
+      val map : t -> LMap.t
   end
 
   val clause : bassign -> LSet.t option

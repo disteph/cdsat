@@ -21,8 +21,8 @@ module type API = sig
   module Model : sig
     type t
     val empty : t
-    val add : bassign -> t -> (LitF.t*LitF.t*t, (sign,assign*bassign,unsat) message) sum
-    val agree : bool -> t -> LMap.t (* The LMap of lits set to b *)
+    val add : bassign -> t -> (LitF.t*t, (sign,assign*bassign,unsat) message) sum
+    val map : t -> LMap.t (* The model as an LMap from true lits to bassign *)
   end
 
   module Constraint : sig

@@ -40,29 +40,27 @@ module Make(DS: DSproj with type ts = TS.t) = struct
   module Model : sig
     type t
     val empty : t
-    val add : bassign -> t -> (LitF.t*LitF.t*t, (unit,unsat) Msg.t) sum
-    val agree : bool -> t -> LMap.t
+    val add : bassign -> t -> (LitF.t*t, (unit,unsat) Msg.t) sum
+    val map : t -> LMap.t
   end = struct
 
-    type t = Model of LMap.t*LMap.t [@@deriving show]
+    type t = LMap.t [@@deriving show]
 
-    let empty = Model(LMap.empty,LMap.empty)
+    let empty = LMap.empty
 
-    let add ((term,b) as bassign) (Model(t,tn) as m) =
+    let add ((term,b) as bassign) m =
       Dump.print ["kernel.bool",2]
         (fun p->p "Recording this Boolean assignment (%a) in the Boolean model %a "
                   pp_bassign bassign pp m);
-      let l_term  = (proj (Terms.data term)).aslit in
-      let l,nl = if b then l_term, LitF.negation l_term
-                 else LitF.negation l_term, l_term
-      in
-      if LMap.mem nl t
+      let l  = LitF.build (b,Term.id term) in
+      let nl = LitF.negation l in
+      if LMap.mem nl m
       then
         begin
           Dump.print ["kernel.bool",5]
             (fun p->p "Lit nl = %a already set to true!" DMap.pp nl);
           let sassign1 = Values.boolassign bassign in
-          let sassign2 = Values.boolassign(LMap.find nl t) in
+          let sassign2 = Values.boolassign(LMap.find nl m) in
           Case2(unsat () (Assign.add sassign1 (Assign.singleton sassign2)))
         end
       else
@@ -70,22 +68,21 @@ module Make(DS: DSproj with type ts = TS.t) = struct
           Dump.print ["kernel.bool",5]
             (fun p->p "Lit nl = %a was not already set to true" DMap.pp nl);
           let dejavu _ = bassign in
-          let t = LMap.add l dejavu t in
-          let tn = LMap.add nl dejavu tn in
-          Case1(l,nl,Model(t,tn))
+          let m = LMap.add l dejavu m in
+          Case1(l,m)
         end
           
-      let agree b (Model(astrue,asfalse)) = if b then astrue else asfalse
+      let map m = m
 
   end
 
   let clause (t,b) =
     let data = proj (Terms.data t) in
-    if b then data.asclause else data.nasclause
+    if b then data.asclause else data.ascube
 
   let cube (t,b) =
     let data = proj (Terms.data t) in
-    if b then data.nasclause else data.asclause
+    if b then data.ascube else data.asclause
 
           
   (*******************************************************************)
@@ -130,8 +127,9 @@ module Make(DS: DSproj with type ts = TS.t) = struct
           | Some(_,watched),_ when List.length watched < 2 -> reccall todo watched
           | _ -> res)
         (fun lit watched ->
-          if LMap.mem lit model
-          then None,Assign.singleton(Values.boolassign(LMap.find lit model))
+          let l = LitF.negation lit in
+          if LMap.mem l model
+          then None,Assign.singleton(Values.boolassign(LMap.find l model))
           else Some(c,lit::watched),Assign.empty)
         c
         watched
@@ -189,14 +187,16 @@ module Make(DS: DSproj with type ts = TS.t) = struct
       }
                 
     let simplify model constr =
-      let _,b = constr.bassign in
       match constr.simpl with
       | None -> constr
       | Some(c,watched) ->
          let simpl, justif =
-           LMap.fold2_poly (action (Model.agree (not b) model)) c (Model.agree b model) []
+           LMap.fold2_poly (action (Model.map model)) c (Model.map model) []
          in
-         { constr with simpl = simpl; justif = Assign.union constr.justif justif }
+         match simpl with
+         | Some _ ->
+            { constr with simpl = simpl; justif = Assign.union constr.justif justif }
+         | None -> { constr with simpl = simpl; justif = justif }
 
     let pp fmt t =
       Format.fprintf fmt "%a" pp_bassign t.bassign
