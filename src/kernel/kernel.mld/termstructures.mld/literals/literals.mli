@@ -6,12 +6,12 @@ open Basic
 open Specs
 
 module LitF : sig
-  type t [@@deriving eq,hash]
+  type t [@@deriving eq,hash,ord,show]
   val id : t -> int
   val print_in_fmt : ?print_atom:(formatter -> int -> unit)
                      -> formatter -> t -> unit
+  val pp : formatter -> t -> unit
   val clear : unit -> unit
-  val compare : t -> t -> int
   type revealed = bool*int
   val reveal : t -> revealed
   val build : revealed -> t

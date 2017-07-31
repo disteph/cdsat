@@ -26,7 +26,9 @@ module LitF = struct
     match !Dump.display with
     | Dump.Latex -> fprintf fmt "%s{%t}" (if b then "" else "\\overline") print_atom
     | _ -> fprintf fmt "%s%t" (if b then "" else "¬") print_atom
-                
+
+  let pp fmt t = print_in_fmt fmt t
+  let show = Print.stringOf pp
   let negation l = 
     let b,a = reveal l in build(not b,a)
 

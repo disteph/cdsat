@@ -16,16 +16,17 @@ module Make(DS: DSproj with type ts = TS.t) = struct
   open DS
          
   (* Module for maps from literals to Boolean assignments *)
-  module DMap = struct
+  module Arg = struct
     include LitF
-    let pp fmt t = print_in_fmt fmt t
+    let pp_i fmt i = Format.fprintf fmt "<%a>" Term.pp (Term.term_of_id i)
+    let pp fmt t = print_in_fmt ~print_atom:pp_i fmt t
     type values   = bassign
     include EmptyInfo
     let treeHCons = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
   module LMap = struct
-    include PatMap.Make(DMap)(I)
-    type binding = DMap.t*bassign [@@deriving show]
+    include PatMap.Make(Arg)(I)
+    type binding = Arg.t*bassign [@@deriving show]
     let pp fmt t = print_in_fmt pp_binding fmt t
   end
 
@@ -50,7 +51,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
 
     let add ((term,b) as bassign) m =
       Dump.print ["kernel.bool",2]
-        (fun p->p "Recording this Boolean assignment (%a) in the Boolean model %a "
+        (fun p->p "kernel.bool records Boolean assignment %a in Boolean model %a "
                   pp_bassign bassign pp m);
       let l  = LitF.build (b,Term.id term) in
       let nl = LitF.negation l in
@@ -58,7 +59,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
       then
         begin
           Dump.print ["kernel.bool",5]
-            (fun p->p "Lit nl = %a already set to true!" DMap.pp nl);
+            (fun p->p "Lit %a already set to true!" Arg.pp nl);
           let sassign1 = Values.boolassign bassign in
           let sassign2 = Values.boolassign(LMap.find nl m) in
           Case2(unsat () (Assign.add sassign1 (Assign.singleton sassign2)))
@@ -66,7 +67,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
       else
         begin
           Dump.print ["kernel.bool",5]
-            (fun p->p "Lit nl = %a was not already set to true" DMap.pp nl);
+            (fun p->p "Lit %a was not already set to true" Arg.pp nl);
           let dejavu _ = bassign in
           let m = LMap.add l dejavu m in
           Case1(l,m)
@@ -174,16 +175,22 @@ module Make(DS: DSproj with type ts = TS.t) = struct
              we try to complete watched to 2: *)
           fullempty= pick2 model;
           
-          combine = (fun ((res1,justif1) as ans1) todo ->
-            (* Clause is split in two, ans1 is the result from the left exploration.
-               todo is the job to do for the right exploration. *)
-            match res1 with
-            | Some(lset1,watched1) when List.length watched1 < 2
-              -> (match todo watched1 with
-                 | Some(lset2,watched2),justif2
-                   -> Some(LSet.union lset1 lset2,watched2), Assign.union justif1 justif2
-                 | ans2 -> ans2 )
-            | _ -> ans1 ) (* If we already have 2 literals, don't look any further *)
+          combine = make_combine LSet.empty LMap.empty
+                      (fun treat rset rmap ((res1,justif1) as ans1) ->
+                        (* Clause is split in two, ans1 is the result from the left exploration.
+               (treat rset rmap) is the job to do for the right exploration. *)
+                        match res1 with
+                        | Some(lset1,watched1) when List.length watched1 < 2
+                          -> begin match treat rset rmap watched1 with
+                             | Some(lset2,watched2),justif2
+                               -> Some(LSet.union lset1 lset2,watched2),
+                                  Assign.union justif1 justif2
+                             | ans2 -> ans2
+                             end
+                        | Some(lset1,watched1) ->
+                        (* If we already have 2 literals, don't look any further *)
+                           Some(LSet.union lset1 rset,watched1), justif1
+                        | None -> ans1 ) 
       }
                 
     let simplify model constr =
@@ -194,12 +201,18 @@ module Make(DS: DSproj with type ts = TS.t) = struct
            LMap.fold2_poly (action (Model.map model)) c (Model.map model) []
          in
          match simpl with
-         | Some _ ->
+         | Some(c',watched) ->
+            Print.print ["kernel.bool",4] (fun p ->
+                p "kernel.bool: Constraint %a is simplified to %a watching %a (justified by %a, adding to %a)"
+                  pp_bassign constr.bassign
+                  (List.pp Arg.pp) (LSet.elements c')
+                  (List.pp Arg.pp) watched
+                  Assign.pp justif
+                  Assign.pp constr.justif );
             { constr with simpl = simpl; justif = Assign.union constr.justif justif }
          | None -> { constr with simpl = simpl; justif = justif }
 
-    let pp fmt t =
-      Format.fprintf fmt "%a" pp_bassign t.bassign
+    let pp fmt t = Format.fprintf fmt "%a" pp_bassign t.bassign
   end
 
   let clear() = LSet.clear();LMap.clear()

@@ -35,7 +35,12 @@ module Poly(I:Intern) = struct
     let info f   = f.info
     let rec checktree aux t = match reveal t with
       | Empty               -> true
-      | Leaf (j,_)          -> List.fold (fun m b -> let g = check (tag j) m in if not g then print_endline("Warning leaf"); b&&g) aux true
+      | Leaf (j,_)          ->
+         List.fold (fun m b ->
+             let g = check (tag j) m in
+             if not g then print_endline("Warning leaf");
+             b&&g)
+           aux true
       | Branch (_, m, l, r) ->
     	 let aux' = m::aux in
     	 let o = match aux with
@@ -267,11 +272,11 @@ module Poly(I:Intern) = struct
         match reveal t with
         | Empty              -> return sofar
         | Leaf (k,x)         -> f k x sofar
-        | Branch (_,_,t0,t1) -> bind aux t1 (aux t0 sofar)
+        | Branch (_,_,t0,t1) -> sofar |> aux t0 |> bind aux t1 
       in
       aux t seed
 
-    let fold f = fold_monad ~return:(fun x->x) ~bind:(fun x->x) f
+    let fold f = fold_monad ~return:(fun x->x) ~bind:(fun x -> x) f
           
     let iter f t =
       let aux k x () = f k x in
@@ -309,67 +314,79 @@ module Poly(I:Intern) = struct
           sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
           emptyfull : ('v2,'i2) param -> 'a -> 'b;
           fullempty : ('v1,'i1) param -> 'a -> 'b;
-          combine   : 'b -> ('a -> 'b) -> 'b
+          combine   : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+                      -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
+                         * (('v2,'i2) param -> 'b -> 'b)
+                         * (('v1,'i1) param -> 'b -> 'b)
         }
+
+      let make_combine empty1 empty2 combine reccall =
+        combine reccall,
+        (fun t2 b -> combine reccall empty1 t2 b),
+        (fun t1 b -> combine reccall t1 empty2 b)
+                                         
       let merge2fold2 m = {
-          sameleaf = (fun k v1 v2 () -> Merge.(m.sameleaf k v1 v2));
-          emptyfull = (fun a () -> Merge.(m.emptyfull a));
-          fullempty = (fun a () -> Merge.(m.fullempty a));
-          combine   = (fun a f -> Merge.(m.combine a (f())))
+          sameleaf  = Merge.(fun k v1 v2 () -> m.sameleaf k v1 v2);
+          emptyfull = Merge.(fun a () -> m.emptyfull a);
+          fullempty = Merge.(fun a () -> m.fullempty a);
+          combine   = Merge.(fun reccall ->
+            (fun a1 a2 b -> m.combine b (reccall a1 a2())),
+            (fun a b -> m.combine b (m.emptyfull a)),
+            (fun a b -> m.combine b (m.fullempty a)))
         }
     end
 
-    let disjoint action s1 s2 seed =
-      let open Fold2 in
-      action.combine (action.fullempty s1 seed) (action.emptyfull s2)
-                                     
     let fold2_trans reccall action s1 s2 seed =
       let open Fold2 in
+      let combine,combineEF,combineFE = action.combine reccall in
+      let disjoint s1 s2 seed = seed |> action.fullempty s1 |> combineEF s2 in
+        
       match reveal s1, reveal s2 with
 
-      | Empty, _ -> action.emptyfull s2 seed
+      | Empty, _ -> seed |> action.emptyfull s2
 
-      | _, Empty -> action.fullempty s1 seed
+      | _, Empty -> seed |> action.fullempty s1
 
       | Leaf(k1,x1), Leaf(k2,x2) ->
 	 if  K.compare k1 k2 =0
          then action.sameleaf k1 x1 x2 seed
-	 else disjoint action s1 s2 seed
+	 else seed |> disjoint s1 s2
 
       | Leaf(k,x), Branch(p,m,t1,t2) ->
          let tagk = tag k in
 	 if match_prefix tagk p m then
 	   if check tagk m then
-	     action.combine (reccall s1 t1 seed) (action.emptyfull t2)
+	     seed |> reccall s1 t1 |> combineEF t2
 	   else
-             action.combine (action.emptyfull t1 seed) (reccall s1 t2)
+             seed |> action.emptyfull t1 |> combine s1 t2
          else
-           disjoint action s1 s2 seed
+           seed |> disjoint s1 s2
                 
       | Branch(p,m,t1,t2), Leaf(k,x) ->
          let tagk = tag k in
 	 if match_prefix tagk p m then
 	   if check tagk m then 
-	     action.combine (reccall t1 s2 seed) (action.fullempty t2)
+	     seed |> reccall t1 s2 |> combineFE t2
 	   else
-	     action.combine (action.fullempty t1 seed) (reccall t2 s2)
+	     seed |> action.fullempty t1 |> combine t2 s2
 	 else
-	   disjoint action s1 s2 seed
+           seed |> disjoint s1 s2
 
       | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
 	 if (bcompare m1 m2=0) && match_prefix p1 p2 m1 then 
-	   action.combine (reccall l1 l2 seed) (reccall r1 r2)
+	   seed |> reccall l1 l2 |> combine r1 r2
 	 else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
-	   if check p2 m1
-           then action.combine (reccall l1 s2 seed) (action.fullempty r1)
-	   else action.combine (action.fullempty l1 seed) (reccall r1 s2)
-	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
-	   if check p1 m2
-           then action.combine (reccall s1 l2 seed) (action.emptyfull r2)
+	   if check p2 m1 then
+             seed |> reccall l1 s2 |> combineFE r1
 	   else
-             action.combine (action.emptyfull l2 seed) (reccall s1 r2)
+             seed |> action.fullempty l1 |> combine r1 s2
+	 else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
+	   if check p1 m2 then
+             seed |> reccall s1 l2 |> combineEF r2
+	   else
+             seed |> action.emptyfull l2 |> combine s1 r2
 	 else
-	   disjoint action s1 s2 seed
+           seed |> disjoint s1 s2
 
     let fold2_poly action =
       let rec aux s1 s2 = fold2_trans aux action s1 s2
@@ -456,7 +473,10 @@ module Poly(I:Intern) = struct
         sameleaf  = (fun _ x y () -> f x y);
         emptyfull = (fun _ () -> true);
         fullempty = (fun _ () -> false);
-        combine   = fun l r -> l && r()
+        combine   = fun reccall ->
+                    (fun a1 a2 l -> l && reccall a1 a2 ()),
+                    (fun a2 l    -> l),
+                    (fun a1 l    -> false)
       }
 
     let subset_poly f =

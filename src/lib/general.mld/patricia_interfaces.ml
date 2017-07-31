@@ -112,8 +112,19 @@ module type PatMap = sig
         sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
         emptyfull : ('v2,'i2) param -> 'a -> 'b;
         fullempty : ('v1,'i1) param -> 'a -> 'b;
-        combine   : 'b -> ('a -> 'b) -> 'b
+        combine   : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+                    -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
+                       * (('v2,'i2) param -> 'b -> 'b)
+                       * (('v1,'i1) param -> 'b -> 'b)
       }
+    val make_combine :
+      ('v1,'i1) param -> ('v2,'i2) param
+      -> ((('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+          -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b))
+      -> (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+      -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
+         * (('v2,'i2) param -> 'b -> 'b)
+         * (('v1,'i1) param -> 'b -> 'b)
   end
 
   val fold2_poly : ('v1,'i1,'v2,'i2,'a,'b) Fold2.t

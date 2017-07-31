@@ -62,7 +62,8 @@ module Make(DS: DSproj with type ts = ts) = struct
     | Some(_,[])  ->
        Print.print ["kernel.bool",4] (fun p ->
            p "kernel.bool: %a is falsified" Constraint.pp c);
-       Falsified(unsat () (Constraint.justif c))
+       let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
+       Falsified(unsat () justif)
     | Some(_,[l]) ->
        let b',id = LitF.reveal l in
        let term = Term.term_of_id id in
