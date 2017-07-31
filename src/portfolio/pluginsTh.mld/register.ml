@@ -4,7 +4,8 @@ open Kernel
 open Top.Specs
 open Theories.Register
        
-module Make(DS: GlobalDS) = struct
+module Make(WB: Export.WhiteBoard) = struct
+  open WB
   open DS
 
   let make (Modules.Module(tag,k): (Term.datatype*Value.t*Assign.t) Modules.t)
@@ -19,23 +20,23 @@ module Make(DS: GlobalDS) = struct
       match tag with
 
       | Bool  ->
-         let module M = Bool_pl1.Make(DS) in
+         let module M = Bool_pl1.Make(WB) in
          aux M.make
 
       (* | CC    -> *)
-      (*    let module M = CC_pl1.Make(DS) in *)
+      (*    let module M = CC_pl1.Make(WB) in *)
       (*    aux M.make *)
 
       | Arrays->
-         let module M = Arrays_pl1.Make(DS) in
+         let module M = Arrays_pl1.Make(WB) in
          aux M.make
 
       | LRA   ->
-         let module M = LRA_pl1.Make(DS) in
+         let module M = LRA_pl1.Make(WB) in
          aux M.make
 
       | IfThenElse ->
-         let module M = IfThenElse_pl1.Make(DS) in
+         let module M = IfThenElse_pl1.Make(WB) in
          aux M.make
 
 end

@@ -468,12 +468,19 @@ let make theories : (module API) =
          WB(HandlersMap.union hdls1 hdls2,
             propa () (Assign.union res oldset) o)
            
+       let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
+         WB(hdls,Propa(Assign.add (Values.boolassign(t,not b)) thset,Unsat))
+
        let curryfy
              ?(assign = Assign.empty)
-             ?(flip   = Term.bC Symbols.False [],false)
+             ?flip
              (WB(hdls,Propa(thset,Unsat))) =
-         let t,b = flip in
-         let thset = Assign.remove (t,Values.Boolean b) thset in
+         let thset,(t,b) =
+           match flip with
+           | None -> thset, (Term.bC Symbols.False [],false)
+           | Some bassign -> Assign.remove (Values.boolassign bassign) thset,
+                             bassign
+         in
          let aux ((term,value) as a) ((thset,clause,b) as sofar) =
            match value with
            | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'

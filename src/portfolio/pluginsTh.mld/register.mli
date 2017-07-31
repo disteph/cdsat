@@ -4,7 +4,8 @@ open Kernel
 open Top.Specs
 open Theories.Register
     
-module Make(DS: GlobalDS) : sig
+module Make(WB: Export.WhiteBoard) : sig
+  open WB
   open DS
          
   val make : (Term.datatype*Value.t*Assign.t) Modules.t

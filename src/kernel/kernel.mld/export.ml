@@ -31,6 +31,7 @@ module type WhiteBoard = sig
   val stamp_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
   val sat_init : Assign.t -> sat t
   val sat      : sat t -> sat t -> sat t
+  val unsat    : straight t -> unsat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
   val curryfy  : ?assign:Assign.t -> ?flip:Term.t*bool -> unsat t -> straight t
 end

@@ -2,7 +2,10 @@ open Async
 
 open General
 open HCons
+open Patricia
+open Patricia_tools
 
+       
 open Kernel
 open Top.Messages
 open Theories.Register
@@ -52,7 +55,7 @@ module Make(WB : WhiteBoardExt) = struct
   module H' = H.Init(NoBackIndex)(Bogus)
 
   module Fixed : sig
-    type t
+    type t = Assign.t
     val init : t
     val extend : Assign.t -> t -> t
     val notfixed : t -> Assign.t -> Assign.t
@@ -86,7 +89,8 @@ module Make(WB : WhiteBoardExt) = struct
   end
 
   module Var = struct
-    type t = Term.t*Value.t Top.Values.t [@@deriving ord,show]
+    type t = Term.t*Value.t Top.Values.t [@@deriving ord]
+    let pp = pp_sassign
   end
           
   module Config
@@ -106,33 +110,40 @@ module Make(WB : WhiteBoardExt) = struct
     type fixed = Fixed.t
                    
     let simplify = Constraint.simplify
+
                      
-    let pick_another fixed (c : Constraint.t) i (previous : Var.t list) : Var.t list option =
-      let tset = Fixed.notfixed fixed (Constraint.assign c) in
-      let newlist =
-        TwoWatchedLits.pick_another_make
-          ~is_empty:Assign.is_empty
-          ~mem:Assign.mem
-          ~next:Assign.next
-          ~remove:Assign.remove
-          tset i previous
-      in
-      Dump.print ["memo",2] (fun p ->
-          match newlist with
-          | Some newlist ->
-             p "%t" (fun fmt ->
-                 Format.fprintf fmt "Memo: Have to watch %i terms in %a\nHave chosen %a from %a"
-                   i
-                   Assign.pp (Constraint.assign c)
-                   (List.pp Var.pp) newlist
-                   Assign.pp tset)
-          | None ->
-             p "%t" (fun fmt ->
-                 Format.fprintf fmt "Memo: Unable to pick %i terms to watch in %a\nMust choose from %a"
-                   i
-                   Assign.pp (Constraint.assign c)
-                   Assign.pp tset
-        ));
+    module Arg = struct
+      include SAssign
+      type values = unit
+      include EmptyInfo
+      let treeHCons  = None
+    end
+    module Patricia = PatMap.Make(Arg)(TypesFromHConsed(SAssign))
+
+    let action ideally =
+      Patricia.Fold2.{
+          sameleaf = (fun sassign () () sofar -> sofar);
+          emptyfull= (fun _ sofar -> sofar);
+          fullempty= (fun assign sofar ->
+            let return x = x in
+            let bind reccall todo sofar =
+              if List.length sofar >=ideally then sofar else reccall todo sofar
+            in
+            let f sassign () sofar = (SAssign.reveal sassign)::sofar in
+            Patricia.fold_monad ~return ~bind f assign sofar);
+          combine  =
+            let aux reccall assign fixed sofar =
+              if List.length sofar >=ideally then sofar else reccall assign fixed sofar
+            in
+            make_combine Assign.empty Assign.empty aux
+      }
+
+    let pick_another fixed c i _ : Var.t list =
+      let assign = Constraint.assign c in
+      let newlist = Patricia.fold2 (action i) assign fixed [] in
+      Print.print ["memo",2] (fun p ->
+          p  "Memo: Have to watch %i terms in %a\nHave chosen %a"
+            i Assign.pp assign (List.pp Var.pp) newlist);
       newlist
         
   end 
@@ -160,9 +171,9 @@ module Make(WB : WhiteBoardExt) = struct
       let tset = Constraint.assign c in
       if not(prove tset)
       then
-        watchref := P.addconstraintNflag c ~ifpossible:[sassign] !watchref;
-        incr watchcount;
-        Dump.print ["watch",1] (fun p-> p "%i" !watchcount)
+        (watchref := P.addconstraintNflag c ~ifpossible:[sassign] !watchref;
+         incr watchcount;
+         Dump.print ["watch",1] (fun p-> p "%i" !watchcount))
 
     let treat fixed sassign =
       let watch = P.fix sassign !watchref in
@@ -222,33 +233,48 @@ module Make(WB : WhiteBoardExt) = struct
            loop_read fixed ports ]
     | Some(constr,termlist) ->
        let msg = Constraint.msg constr in
-       let assign = Constraint.assign constr in
-       if Fixed.are_fixed assign fixed
-       then
-         (Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
+       Dump.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
+       let prune sassign sofar =
+         if Fixed.is_fixed sassign fixed then sofar else sassign::sofar in
+       Dump.print ["memo",0] (fun p-> p "Memo: Pruned List is %a" (List.pp Var.pp) (List.fold prune termlist []));
+       match List.fold prune termlist [] with
+       | [] ->
+          Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
+          let WB(_,Propa(justif,_)) = msg in
           let msg = Msg(None,Say msg,chrono) in
+          Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+          assert (Assign.subset justif fixed);
           Deferred.all_unit
             [ Lib.write ports.writer msg;
-              flush ports msg ])
-       else
-         let terms = Fixed.notfixed fixed assign in
-         (Dump.print ["memo",1] (fun p->
+              flush ports msg ]
+       | ((_,Top.Values.NonBoolean _) as last)::_ ->
+          Dump.print ["memo",0] (fun p->
+              p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
+                WB.pp msg Var.pp last);
+          Deferred.all_unit
+            [ Lib.write ports.writer (Msg(None,Ack,chrono));
+              loop_read fixed ports ]
+       | (t,Top.Values.Boolean b)::_ ->
+          let newmsg = WB.curryfy ~flip:(t,b) msg in
+          let WB(_,Propa(justif,Straight flipped)) = newmsg in
+          Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
-                WB.pp msg Assign.pp terms);
-          let msg = WB.curryfy ~assign:terms msg in
-          let WB(_,Propa(_,Straight tset)) = msg in
-          if Fixed.are_fixed assign fixed
+                WB.pp msg pp_bassign flipped);
+          Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+          assert (Assign.subset justif fixed);
+          assert (not(Assign.mem (Top.Values.boolassign flipped) justif));
+          if Fixed.is_fixed (Top.Values.boolassign flipped) fixed
           then
             (Dump.print ["memo",0] (fun p->
-                 p "Memo: %a already known" Assign.pp assign);
+                 p "Memo: %a already known" pp_bassign flipped);
              Deferred.all_unit
                [ Lib.write ports.writer (Msg(None,Ack,chrono));
                  loop_read fixed ports ])
           else
             (Dump.print ["memo",0] (fun p-> p "Memo: useful prop");
              Deferred.all_unit
-               [ Lib.write ports.writer (Msg(None,Say msg,chrono));
-                 loop_read fixed ports ]))
+               [ Lib.write ports.writer (Msg(None,Say newmsg,chrono));
+                 loop_read fixed ports ])
 
   let make = loop_read Fixed.init
                        

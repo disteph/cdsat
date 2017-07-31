@@ -12,7 +12,7 @@ module type Config = sig
                     -> Constraint.t
                     -> int
                     -> Var.t list
-                    -> Var.t list option
+                    -> Var.t list
 end
 
 
@@ -102,11 +102,11 @@ module Make (C : Config) = struct
     in
     (* Let's simplify constraint c according to the currently fixed vars *)
     let c' = simplify fixed c in
-    match pick_another fixed c' number watchedlist with
-    | None -> Some(c',watchedlist), t
-    | Some varlist ->
-       let t = { t with cons2var = CMap.remove c t.cons2var }
-       in None, addconstraint c' ~oldwatched:watched varlist t
+    let varlist = pick_another fixed c' number watchedlist in
+    if List.length varlist < number then Some(c',varlist), t
+    else
+      let t = { t with cons2var = CMap.remove c t.cons2var }
+      in None, addconstraint c' ~oldwatched:watched varlist t
 
       
   (* Now we say what to do with a set cset of constraints
@@ -143,8 +143,8 @@ end
 
 let pick_another_make ~is_empty ~mem ~next ~remove left = 
   let rec aux newlist left i = function
-    | _ when i=0 -> Some newlist
-    | [] when is_empty left -> None
+    | _ when i=0 -> newlist
+    | [] when is_empty left -> newlist
     | [] ->
        let var, left = next left in
        aux (var::newlist) left (i-1) []

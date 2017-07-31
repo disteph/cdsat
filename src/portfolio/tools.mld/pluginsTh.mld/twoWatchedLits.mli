@@ -50,8 +50,8 @@ module type Config = sig
      (its length might be different from (number), typically for a new 
      constraint, previous will be the empty list).
 
-     The output provides (Some varlist), if varlist is the new list of length
-     (number) of variable to watch, or None, if (number) could not be reached.
+     The output provides a new list of variables to watch,
+     of length (number) if possible, or as close to (number) as possible if not.
 
      NOTE: simplify is systematically called before pick_another,
      so when writing pick_another,
@@ -62,7 +62,7 @@ module type Config = sig
                     -> Constraint.t
                     -> int
                     -> Var.t list
-                    -> Var.t list option
+                    -> Var.t list
 end
 
 (* Given such a configuration module C, Make(C) provides an
@@ -117,4 +117,4 @@ val pick_another_make
       'varset ->
       int ->
       'var list ->
-      'var list option
+      'var list

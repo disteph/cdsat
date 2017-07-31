@@ -33,15 +33,10 @@ The reason it was added to it was either:
 
   type t
 
-  val init : t
-  val add: nature:nature
-           -> sassign
-           -> t
-           -> t
-
-  val level: t -> int
+  val level : t -> int
   val chrono: t -> int
-                
+  val init  : t
+  val add   : nature:nature -> sassign -> t -> t option
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)
                 -> (unsat WB.t -> WB.sassign -> unit Deferred.t)

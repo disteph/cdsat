@@ -2,6 +2,7 @@ open General
 open Sums
 open Patricia
 open Patricia_tools
+open Patricia_interfaces
        
 open Kernel
 open Top.Specs
@@ -14,8 +15,10 @@ open Tools.PluginsTh
        
 type sign = MyTheory.sign
 
-module Make(DS:GlobalDS) = struct
+              
+module Make(WB:Export.WhiteBoard) = struct
 
+  open WB
   open DS
   module Make(K: API.API with type sign = MyTheory.sign
                           and type assign  = Assign.t
@@ -25,6 +28,70 @@ module Make(DS:GlobalDS) = struct
 
     type datatypes = Term.datatype*Value.t*Assign.t
 
+    (* We are implementing VSIDS heuristics for choosing decisions:
+       we need to keep a score of each bassign, we need to update the scores,
+       and we need to pick the lit with highest score.
+       We use a patricia tries for this. *)
+                                             
+    module ArgMap = struct
+      include SAssign
+      type values    = float
+      type infos     = (SAssign.t*float) option
+      let info_build = {
+          empty_info  = None;
+          leaf_info   =
+            (fun lit score -> Some(lit,score));
+          branch_info =
+            (fun x1 x2 ->
+              match x1,x2 with
+              | None,_ -> failwith "Bad1"
+              | _,None -> failwith "Bad2"
+              | Some(_,s1),Some(_,s2)->
+                 if [%ord:float] s1 s2 < 0 then x2 else x1
+            )
+        }
+      let treeHCons = None
+    end
+
+    module ArgSet = struct
+      include SAssign
+      include EmptyInfo
+      let treeHCons = None
+    end
+
+    module BaMap = struct
+      include PatMap.Make(ArgMap)(TypesFromHConsed(ArgMap))
+      let pp = print_in_fmt (fun fmt (l,_) -> pp_sassign fmt (SAssign.reveal l))
+    end
+                     
+    module BaSet = struct
+      include PatSet.Make(ArgSet)(TypesFromHConsed(ArgSet))
+      let pp = print_in_fmt (fun fmt l -> pp_sassign fmt (SAssign.reveal l))
+    end
+                     
+    let decay = 3.
+    let factor = decay**1000.
+
+    let scores = ref BaMap.empty
+    let bump_value = ref 1.
+    let since_last = ref 1
+
+    let bump baset =
+      scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
+                  (* (LMap.map (fun _ () -> !bump_value)) *)
+                  (fun _ -> BaMap.empty)
+                  (fun scores -> scores)
+                  baset !scores;
+      Dump.print ["bool_pl1",2] (fun p ->
+          p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+      incr since_last;
+      bump_value := !bump_value *. decay;
+      if !since_last > 1000
+      then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
+            bump_value := !bump_value /. factor;
+            since_last := 1)
+
+                                             
     type fixed = K.Model.t
                        
     (* Configuration for the 2-watched literals module *)
@@ -35,28 +102,19 @@ module Make(DS:GlobalDS) = struct
       let simplify fixed = Constraint.simplify fixed
       let pick_another _ c i _ =
         match Constraint.simpl c with
-        | Some(_,watchable) when List.length watchable >= i -> Some watchable
-        | _ -> None
+        | Some(_,watchable) -> watchable
+        | None -> []
     end
 
     (* 2-watched literals module *)
     module WL = TwoWatchedLits.Make(Config)
 
-    (* Set of terms *)
-    module Arg = struct
-      include Term
-      include EmptyInfo
-      let treeHCons = None
-    end
-
-    module TSet = PatSet.Make(Arg)(TypesFromHConsed(Term))
-                                   
     type state = {
         kernel : K.state;      (* The state of the kernel *)
         fixed  : Config.fixed; (* Our Boolean model *)
         watched: WL.t;         (* The state of our watched literals *)
         propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
-        undetermined : TSet.t; (* The set of Boolean terms whose value would help *)
+        undetermined : BaSet.t; (* The set of assignments we could fix *)
         (* Constraints that will be satisfied by propagations sent to master *)
         willbefine : K.Constraint.t Pqueue.t;
         silent : bool          (* Whether we have already sent an unsat message *)
@@ -97,10 +155,20 @@ module Make(DS:GlobalDS) = struct
             | Some msg ->
                (* Kernel says all clauses are satisfied and gave us the message to send *)
                Msg msg, machine state
+
             | None ->
                (* Some clauses still need to be satisfied somehow. It's time to split. *)
-               let sassign = TSet.choose state.undetermined,
-                             Top.Values.Boolean false
+               let remaining =
+                 BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
+               in
+               Dump.print ["bool_pl1",3] (fun p ->
+                   p "All scored lits\n%a" BaMap.pp !scores);
+               Dump.print ["bool_pl1",2] (fun p ->
+                   p "Choosing among %a" BaMap.pp remaining);
+               let sassign =
+                 SAssign.reveal(match BaMap.info remaining with
+                                | Some(sassignh,_) -> sassignh
+                                | None -> BaSet.choose state.undetermined)
                in
                Print.print ["bool",4] (fun p ->
                    p "bool: kernel is not fine yet, proposing %a" pp_sassign sassign);
@@ -160,11 +228,15 @@ module Make(DS:GlobalDS) = struct
                   | Top.Values.Boolean b ->
                      let undetermined =
                        (* If the term was undetermined, we now have a value *)
-                       if TSet.mem t state.undetermined
+                       let sassignh = SAssign.build a in
+                       if BaSet.mem sassignh state.undetermined
                        then
                          (Print.print ["bool",4] (fun p ->
                               p "bool: was wondering about %a" Term.pp t);
-                          TSet.remove t state.undetermined)
+                          let sassign'  = Top.Values.bassign ~b:(not b) t in
+                          let sassignh' = SAssign.build sassign' in
+                          BaSet.remove sassignh
+                            (BaSet.remove sassignh' state.undetermined))
                        else state.undetermined
                      in
                      let bassign = t,b in
@@ -206,12 +278,32 @@ module Make(DS:GlobalDS) = struct
                              | Some(newlits,_) -> newlits
                              | _ -> LSet.empty
                            in
-                           let aux l =
-                             let _,i = LitF.reveal l in
-                             TSet.add (Term.term_of_id i)
+                           let aux lit sofar =
+                             let _,i = LitF.reveal lit in
+                             let t = Term.term_of_id i in
+                             let sassignh = SAssign.build(Top.Values.bassign t) in
+                             let sassignh' = SAssign.build(Top.Values.bassign ~b:(not b) t) in
+                             BaSet.add sassignh (BaSet.add sassignh' sofar)
                            in
-                           let newterms = LSet.fold aux newlits TSet.empty in
-                           let undetermined = TSet.union undetermined newterms in
+                           let newsassign = LSet.fold aux newlits BaSet.empty in
+                           let undetermined = BaSet.union newsassign undetermined in
+
+                           Dump.print ["bool",2] (fun p ->
+                               p "Putting scores for %a"
+                                 (LSet.print_in_fmt LitF.print_in_fmt) newlits);
+                           (* Every literal in newlits that we have never seen 
+                           before is given score !bump_value. *)
+                           scores := BaMap.union_poly
+                                       (fun _ () score -> score)
+                                       (BaMap.map (fun _ () -> !bump_value))
+                                       (fun scores -> scores)
+                                       newsassign
+                                       !scores;
+                           Dump.print ["bool",2] (fun p ->
+                               p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+                           Dump.print ["bool",3] (fun p ->
+                               p "All scored lits\n%a" BaMap.pp !scores);
+                           
                            (* And now we look at what we have to say *)
                            speak machine { state with kernel = kernel;
                                                       fixed  = fixed;
@@ -226,7 +318,7 @@ module Make(DS:GlobalDS) = struct
                          fixed  = K.Model.empty;
                          watched= WL.init;
                          propas = Pqueue.empty();
-                         undetermined = TSet.empty;
+                         undetermined = BaSet.empty;
                          willbefine = Pqueue.empty();
                          silent = false }
 

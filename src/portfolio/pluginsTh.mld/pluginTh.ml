@@ -16,7 +16,8 @@ type ('sign,'tva) pluginTh = {
 module type Type = sig
   type sign
   type (_,_,_) api
-  module Make(DS: GlobalDS) : sig
+  module Make(WB: Export.WhiteBoard) : sig
+    open WB
     open DS
     val make: (Term.datatype,Value.t,Assign.t) api
               -> (sign,Term.datatype*Value.t*Assign.t) pluginTh

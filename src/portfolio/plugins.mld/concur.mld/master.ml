@@ -42,11 +42,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
   end
 
   type state = {
-      hub        : H.t;                 (* Communication channels with other modules *)
-      messages   : say answer Pqueue.t; (* The buffer queue for messages *)
-      decisions  : say answer Pqueue.t; (* The buffer queue for decisions *)
-      waiting4   : AS.t;                (* The agents from which we await an answer *)
-      trail      : T.t                  (* The trail *)
+      hub      : H.t;                 (* Communication channels with other modules *)
+      messages : say answer Pqueue.t; (* The buffer queue for messages *)
+      decision : say answer option;   (* The latest decision proposal *)
+      waiting4 : AS.t;                (* The agents from which we await an answer *)
+      trail    : T.t                  (* The trail *)
     }
 
 
@@ -64,9 +64,9 @@ module Make(WB4M: WhiteBoard4Master) = struct
     | None ->
        Print.print ["concur",2]
          (fun p-> p "Want to hear from %a" AS.pp state.waiting4);
-       match Pqueue.pop state.decisions with
-       | Some(thmsg,l) when AS.is_empty state.waiting4 ->
-          return(thmsg, { state with decisions = l } )
+       match state.decision with
+       | Some thmsg when AS.is_empty state.waiting4 ->
+          return(thmsg, { state with decision = None } )
        | _ ->
           Pipe.read (H.reader state.hub) >>= function
           | `Eof -> failwith "Eof"
@@ -84,7 +84,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              | Try sassign -> 
                 Print.print ["concur",2] (fun p->
                     p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
-                select_msg { state with decisions = Pqueue.push msg state.decisions }
+                select_msg { state with decision = Some msg }
              | Say m ->
                 Print.print ["concur",2] (fun p->
                     p "Hearing from %a, and buffering:\n %a" Agents.pp agent WBE.pp m);
@@ -96,56 +96,62 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     Print.print ["concur",2] (fun p-> p "\nMaster thread enters new loop");
 
-    select_msg state
-    >>= function
+    select_msg state >>= function
 
     | Try sassign, state ->
        Print.print ["concur",1] (fun p -> p "About to try %a" DS.pp_sassign sassign);
 
-       (* This is a branching point where we tell all slave workers:
+       (* We attempt to create the trail extended with the decision *)
+       begin match T.add ~nature:T.Decision sassign state.trail with
+       | None -> (* The flip of the decision is in the trail, we ignore the decision *)
+          master_loop ?current state
+       | Some trail ->
+          (* This is a branching point where we tell all slave workers:
               "Please, clone yourself; here are the new pipes to be used
               for your clone to communicate with me." *)
 
-       H.clone state.hub >>= fun (hub1,hub2) ->
+          H.clone state.hub >>= fun (hub1,hub2) ->
 
-       (* Once all slave workers have cloned themselves,
+          H.kill state.hub;
+          (* Once all slave workers have cloned themselves,
               we add sassign to treat the first branch.
               When that finishes with answer ans, we output ans and a thunk to
               trigger the exploration of the second branch. *)
 
-       Print.print ["concur",1] (fun p ->
-           p "Everybody cloned themselves; now starting first branch");
+          Print.print ["concur",1] (fun p ->
+              p "Everybody cloned themselves; now starting first branch");
 
-       let newstate1 = { state with
-                         hub      = hub1;
-                         waiting4 = AS.all;
-                         trail    = T.add ~nature:T.Decision sassign state.trail }
-       in
-       H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
-       master_loop newstate1 >>= fun ans1 ->
-       H.kill hub1;
-       begin match ans1 with
-       | Case1(Case2(level,msg_list)) when level=T.level state.trail
-         ->
-          Print.print ["concur",0] (fun p -> 
-              p "Backtrack level: %i, Propagations:\n %a"
-                (T.level state.trail+1)
-                (List.pp WBE.pp) msg_list);
-          Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
-          
-          let newstate2 = { state with
-                            hub      = hub2;
+          let newstate1 = { state with
+                            hub      = hub1;
                             waiting4 = AS.all;
-                            messages = let enqueue msg = Pqueue.push(Say msg) in
-                                       List.fold enqueue msg_list state.messages }
+                            trail    = trail }
           in
-          master_loop newstate2
-                 
-       | _ -> H.kill hub2; return ans1
-       end
+          H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
+          master_loop newstate1 >>= fun ans1 ->
+          H.kill hub1;
+          begin match ans1 with
+          | Case1(Case2(level,msg_list)) when level=T.level state.trail
+            ->
+             Print.print ["concur",0] (fun p -> 
+                 p "Backtrack level: %i, Propagations:\n %a"
+                   (T.level state.trail)
+                   (List.pp WBE.pp) msg_list);
+             Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
+             
+             let newstate2 = { state with
+                               hub      = hub2;
+                               waiting4 = AS.all;
+                               messages = let enqueue msg = Pqueue.push(Say msg) in
+                                          List.fold enqueue msg_list state.messages }
+             in
+             master_loop newstate2
+                         
+          | _ -> H.kill hub2; return ans1
+          end
+       end         
 
-         
     | Say(WB(_,msg) as thmsg), state ->
+
        Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
        match msg with
          
@@ -169,23 +175,23 @@ module Make(WB4M: WhiteBoard4Master) = struct
             | None ->
                Print.print ["concur",3] (fun p -> p "New model");
                sat thmsg (sat_init newtset)
-               
+                   
           in
           if HandlersMap.is_empty rest
           then
             (Print.print ["concur",2] (fun p ->
                  p "All theories were fine with model %a" DS.Assign.pp consset);
              (* rest being empty means that all theories have
-                   stamped the assignment consset as being consistent
-                   with them, so we can finish, closing all pipes *)
+             stamped the assignment consset as being consistent with them,
+             so we can finish, closing all pipes *)
              H.kill state.hub;
              return(Case2 current))
           else
             (Print.print ["concur",2] (fun p ->
-                p " still waiting for %a" HandlersMap.pp rest);
-          (* some theories still haven't stamped that assignment
-                 as being consistent with them,
-                 so we read what the theories have to tell us *)
+                 p " still waiting for %a" HandlersMap.pp rest);
+             (* some theories still haven't stamped that assignment
+             as being consistent with them,
+             so we read what the theories have to tell us *)
              master_loop ~current state)
 
        | Propa(tset,Unsat) -> 
@@ -197,40 +203,47 @@ module Make(WB4M: WhiteBoard4Master) = struct
           H.kill state.hub;
           Case1 ans
 
-       | Propa(old,Straight newa) ->
-          let newa = Top.Values.boolassign newa in
-          (* A theory deduced a boolean assignment newa from assignment
+       | Propa(old,Straight bassign) ->
+          (* A theory deduced a boolean assignment bassign from assignment old. *)
+          let sassign = Top.Values.boolassign bassign in
+          match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
+          | None -> (* The flip of bassign is in the trail, we have a conflict *)
+             let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
+             master_loop ?current { state with messages = messages }
+          | Some trail ->
+             (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
-          let state = { state with
-                        decisions= Pqueue.empty(); (* we cancel all decision proposals *)
-                        waiting4 = AS.all;
-                        trail = T.add
-                                  ~nature:(T.Deduction thmsg)
-                                  newa
-                                  state.trail }
-          in
-          H.broadcast state.hub newa (T.chrono state.trail) >>= fun () ->
-          master_loop state
+             let state = { state with
+                           decision = None; (* we cancel remaining decision proposal *)
+                           waiting4 = AS.all;
+                           trail = trail }
+             in
+             H.broadcast state.hub sassign (T.chrono state.trail) >>= fun () ->
+             master_loop state
 
 
   let master hub input =
 
     let treat sassign (trail,tasks) =
-      let trail = T.add ~nature:T.Input sassign trail in
-      trail, (H.broadcast hub sassign (T.chrono trail))::tasks
+      match T.add ~nature:T.Input sassign trail with
+      | Some trail -> trail, (H.broadcast hub sassign (T.chrono trail))::tasks
+      | None -> failwith "Trail should not fail on input"
     in
     let trail,tasks = DS.Assign.fold treat input (T.init,[]) in
     let state = {
-        hub       = hub;
-        waiting4  = AS.all;
-        messages  = Pqueue.empty();
-        decisions = Pqueue.empty();
-        trail     = trail
+        hub      = hub;
+        waiting4 = AS.all;
+        messages = Pqueue.empty();
+        decision = None;
+        trail    = trail
       }
     in
     Deferred.all_unit tasks >>= fun () ->
     master_loop ~current:(sat_init input) state >>| function
-    | Case1(Case1 conflict) -> Case1 conflict
+    | Case1(Case1 conflict) ->
+       Print.print ["concur",2] (fun p ->
+           p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);
+       Case1 conflict
     | Case1(Case2 _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg
                          

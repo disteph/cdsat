@@ -5,8 +5,8 @@ open Theories.IfThenElse
 
 type sign = MyTheory.sign
 
-module Make(DS:GlobalDS) = struct
-
+module Make(WB:Export.WhiteBoard) = struct
+  open WB
   open DS
 
   let make (k: (Term.datatype,Value.t,Assign.t) MyTheory.api)

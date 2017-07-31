@@ -47,12 +47,28 @@ let init
        | SAT of sat WB.t
        | NotAnsweringProblem
 
-     let answer = function
-       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg)
-            when DS.Assign.subset assign problem
-         -> UNSAT(msg)
-       | Case2(WB.WB(_,Sat assign) as msg)
-            when DS.Assign.subset problem assign -> SAT(msg)
-       | _ -> NotAnsweringProblem
+     let answer =
+       let open DS in
+       function
+       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg) ->
+          if Assign.subset assign problem
+          then UNSAT msg
+          else
+            (print_endline(
+                 Dump.toString (fun p->
+                     p "You said %a but this involves new hypotheses %a"
+                       pp msg
+                       Assign.pp (Assign.diff assign problem)));
+             NotAnsweringProblem)    
+                    
+       | Case2(WB.WB(_,Sat assign) as msg) ->
+          if Assign.subset problem assign then SAT msg
+          else
+            (print_endline(
+                 Dump.toString (fun p->
+                     p "You said %a but this ignores hypotheses %a"
+                       pp msg
+                       Assign.pp (Assign.diff problem assign)));
+             NotAnsweringProblem)
 
    end : Export.APIext)

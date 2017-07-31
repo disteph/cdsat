@@ -162,28 +162,53 @@ The reason it was added to the trail was either:
       map = TrailMap.empty;
       late = []
     }
-      
+
+  let is_contradicting (t,v) trail =
+    match v with
+    | Values.Boolean b ->
+       let sassign = SAssign.build(Values.boolassign(t, not b)) in
+       if TrailMap.mem sassign trail.map
+       then Some sassign
+       else None
+    | Values.NonBoolean _ -> None
+
+               
   (* Adds a new assignment on the trail *)
   let add ~nature sassign trail =
-    Print.print ["trail",1] (fun p ->
-        p "Trail adding %a as %a" pp_sassign sassign pp_nature nature);
     let infos = TrailMap.info trail.map in
-    let map level = TrailMap.add
-                      (SAssign.build sassign)
-                      (fun _ -> level,infos.chrono+1,nature)
-                      trail.map
+    let map level =
+      Print.print ["trail",1] (fun p ->
+          p "Trail adding %a at level %i and chrono %i as %a"
+            pp_sassign sassign
+            level
+            (infos.chrono+1)
+            pp_nature nature);
+      TrailMap.add
+        (SAssign.build sassign)
+        (function
+         | None -> level,infos.chrono+1,nature
+         | Some triple -> triple)
+        trail.map
     in
     match nature with
-    | Input -> { trail with map = map 0 }
-    | Decision -> { trail with map = map (infos.level+1) }
+    | Input -> Some { trail with map = map 0 }
+    | Decision ->
+       begin match is_contradicting sassign trail with
+       | Some sassign_neg -> None
+       | None -> Some { trail with map = map (infos.level+1) }
+       end
     | Deduction msg ->
-       let level = Pervasives.max (get_data trail.map msg).level 0 in
-       if level < infos.level (* Late propagation ! *)
-       then 
-         { map  = map level;
-           late = (msg,infos.level,level)::trail.late }
-       else
-         { trail with map = map level }
+       begin match is_contradicting sassign trail with
+       | Some sassign_neg -> None
+       | None -> 
+          let level = Pervasives.max (get_data trail.map msg).level 0 in
+          if level < infos.level (* Late propagation ! *)
+          then 
+            Some { map  = map level;
+                   late = (msg,infos.level,level)::trail.late }
+          else
+            Some { trail with map = map level }
+       end
            
                                                              
   let analyse trail conflict learn =
@@ -221,9 +246,12 @@ The reason it was added to the trail was either:
 
         match data.nature(),data.sassign() with
 
-        | Input,_ ->
+        | Input,sassign ->
            (* It's an assignment of the original problem, and so is the
                whole conflict.  We stop. *)
+           Print.print ["trail",1] (fun p ->
+               p "Assignment %a in the conflict is part of the original problem, and so are the others. We stop."
+                 pp_sassign sassign);
            return(Case1 conflict)
 
         | _,(t,Values.Boolean b)
