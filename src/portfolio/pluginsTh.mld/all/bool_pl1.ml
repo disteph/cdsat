@@ -277,7 +277,7 @@ module Make(WB:WhiteBoard) = struct
                                   p "Just put scores for %a" Assign.pp newlits);
                               (* The undetermined ones are recorded as undetermined *)
                               let watched =
-                                WL.addconstraint (* ~watched:watchable *) c watched
+                                WL.addconstraintNflag (* ~watched:watchable *) constr watched
                               in
                               (* And now we look at what we have to say *)
                               speak machine { state with kernel = kernel;
