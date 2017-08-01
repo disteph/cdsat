@@ -2,6 +2,8 @@
 (* Main entry point for CDSAT runs *)
 (***********************************)
 
+open TopFlags
+       
 type _ stringOrunit =
   | String : string stringOrunit
   | Unit   : unit stringOrunit
@@ -20,14 +22,14 @@ let run parser input =
     (* Looking at the expectations and skipping the problem if need be *)
 
     match K.expected with 
-    | None       when !PFlags.skipunknown-> print_endline("Skipping problem with no expectation");None
-    | Some true  when !PFlags.skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
-    | Some false when !PFlags.skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
+    | None       when !skipunknown-> print_endline("Skipping problem with no expectation");None
+    | Some true  when !skipunsat  -> print_endline("Skipping problem expected to be UNSAT/provable");None
+    | Some false when !skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
     | _ ->
 
        (* OK, we have some work to do. First get the plugin *)
 
-       let (module Pl)  = Plugins.Register.get !PFlags.myplugin in
+       let (module Pl)  = Plugins.Register.get !myplugin in
 
        (* Setting up the plugin *)
 
@@ -101,7 +103,7 @@ let run parser input =
 
 
 let parseNrun input =
-  let parsers = match !PFlags.parser with
+  let parsers = match !parser with
     | Some parsers -> List.map Kernel.Parsers.Register.parse_name parsers
     | None -> Kernel.Parsers.Register.all
   in
@@ -172,7 +174,7 @@ let treatfile pack filename =
 
 let collect_sort s =
   match Sys.os_type with
-    | "Unix" when !PFlags.sizesort ->
+    | "Unix" when !sizesort ->
 	let open Unix in
 	let size_of s = (stat s).st_size in
 	let l = List.map (fun filename -> (filename,size_of filename)) s in

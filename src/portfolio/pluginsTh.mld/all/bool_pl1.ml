@@ -5,6 +5,7 @@ open Patricia_tools
 open Patricia_interfaces
        
 open Kernel
+open Export
 open Top.Specs
 open Top.Messages
 open Termstructures.Literals
@@ -14,9 +15,8 @@ open Theories.Bool
 open Tools.PluginsTh
        
 type sign = MyTheory.sign
-
               
-module Make(WB:Export.WhiteBoard) = struct
+module Make(WB:WhiteBoard) = struct
 
   open WB
   open DS
@@ -29,7 +29,7 @@ module Make(WB:Export.WhiteBoard) = struct
     type datatypes = Term.datatype*Value.t*Assign.t
 
     (* We are implementing VSIDS heuristics for choosing decisions:
-       we need to keep a score of each bassign, we need to update the scores,
+       we need to keep a score of each assignment, we need to update the scores,
        and we need to pick the lit with highest score.
        We use a patricia tries for this. *)
                                              
@@ -53,44 +53,19 @@ module Make(WB:Export.WhiteBoard) = struct
       let treeHCons = None
     end
 
-    module ArgSet = struct
-      include SAssign
-      include EmptyInfo
-      let treeHCons = None
-    end
-
     module BaMap = struct
       include PatMap.Make(ArgMap)(TypesFromHConsed(ArgMap))
-      let pp = print_in_fmt (fun fmt (l,_) -> pp_sassign fmt (SAssign.reveal l))
+      let pp = print_in_fmt (fun fmt (l,f) ->
+                   Format.fprintf fmt "%a:%f"
+                   pp_sassign (SAssign.reveal l) f)
     end
                      
-    module BaSet = struct
-      include PatSet.Make(ArgSet)(TypesFromHConsed(ArgSet))
-      let pp = print_in_fmt (fun fmt l -> pp_sassign fmt (SAssign.reveal l))
-    end
-                     
-    let decay = 3.
+    let decay = !PFlags.bool_decay
     let factor = decay**1000.
 
     let scores = ref BaMap.empty
     let bump_value = ref 1.
     let since_last = ref 1
-
-    let bump baset =
-      scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
-                  (* (LMap.map (fun _ () -> !bump_value)) *)
-                  (fun _ -> BaMap.empty)
-                  (fun scores -> scores)
-                  baset !scores;
-      Dump.print ["bool_pl1",2] (fun p ->
-          p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-      incr since_last;
-      bump_value := !bump_value *. decay;
-      if !since_last > 1000
-      then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
-            bump_value := !bump_value /. factor;
-            since_last := 1)
-
                                              
     type fixed = K.Model.t
                        
@@ -114,7 +89,7 @@ module Make(WB:Export.WhiteBoard) = struct
         fixed  : Config.fixed; (* Our Boolean model *)
         watched: WL.t;         (* The state of our watched literals *)
         propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
-        undetermined : BaSet.t; (* The set of assignments we could fix *)
+        undetermined : Assign.t; (* The set of assignments we could fix *)
         (* Constraints that will be satisfied by propagations sent to master *)
         willbefine : K.Constraint.t Pqueue.t;
         silent : bool          (* Whether we have already sent an unsat message *)
@@ -124,8 +99,7 @@ module Make(WB:Export.WhiteBoard) = struct
     let rec speak machine state =
       (* First, we look at whether there are some propagation messages to send *)
       match Pqueue.pop state.propas with
-      | Some(msg,q) ->
-         (* ...in which case we send a propagation message *)
+      | Some(msg,q) -> (* ...in which case we send a propagation message *)
          Msg msg, machine { state with propas = q }
       | None -> 
          (* With no propagation message we ask the watched literals
@@ -135,7 +109,7 @@ module Make(WB:Export.WhiteBoard) = struct
          | None ->
             (* All clauses seem fine. Maybe the problem is sat ? *)
             Print.print ["bool",4] (fun p -> p "bool: Watched literals are done");
-            (* We first force the kernel to forget the constraints that are already true *)
+            (* We first force kernel to forget the constraints that are already true *)
             let rec aux accu kernel willbefine = 
               match Pqueue.pop willbefine with
               | None -> accu, kernel
@@ -161,16 +135,16 @@ module Make(WB:Export.WhiteBoard) = struct
                let remaining =
                  BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
                in
-               Dump.print ["bool_pl1",3] (fun p ->
-                   p "All scored lits\n%a" BaMap.pp !scores);
-               Dump.print ["bool_pl1",2] (fun p ->
-                   p "Choosing among %a" BaMap.pp remaining);
+               Dump.print ["bool",4] (fun p ->
+                   p "bool: All scored assignments\n %a" BaMap.pp !scores);
+               Dump.print ["bool",3] (fun p ->
+                   p "bool: Choosing among %a" BaMap.pp remaining);
                let sassign =
-                 SAssign.reveal(match BaMap.info remaining with
-                                | Some(sassignh,_) -> sassignh
-                                | None -> BaSet.choose state.undetermined)
+                 match BaMap.info remaining with
+                 | Some(sassignh,_) -> SAssign.reveal sassignh
+                 | None -> assert false (* Assign.choose state.undetermined *)
                in
-               Print.print ["bool",4] (fun p ->
+               Print.print ["bool",2] (fun p ->
                    p "bool: kernel is not fine yet, proposing %a" pp_sassign sassign);
                Try sassign, machine state
             end
@@ -223,20 +197,17 @@ module Make(WB:Export.WhiteBoard) = struct
                      Print.print ["bool",4] (fun p ->
                          p "bool ignores nonBoolean assignment");
                      (* Assignment is non-Boolean.
-                       We don't care about it and see if we have something to say *)
+                        We don't care about it and see if we have something to say *)
                      speak machine { state with kernel = kernel }
                   | Top.Values.Boolean b ->
                      let undetermined =
                        (* If the term was undetermined, we now have a value *)
-                       let sassignh = SAssign.build a in
-                       if BaSet.mem sassignh state.undetermined
+                       if Assign.mem a state.undetermined
                        then
                          (Print.print ["bool",4] (fun p ->
                               p "bool: was wondering about %a" Term.pp t);
-                          let sassign'  = Top.Values.bassign ~b:(not b) t in
-                          let sassignh' = SAssign.build sassign' in
-                          BaSet.remove sassignh
-                            (BaSet.remove sassignh' state.undetermined))
+                          let sassign  = Top.Values.bassign ~b:(not b) t in
+                          Assign.remove a (Assign.remove sassign state.undetermined))
                        else state.undetermined
                      in
                      let bassign = t,b in
@@ -262,7 +233,8 @@ module Make(WB:Export.WhiteBoard) = struct
                            speak machine { state with kernel  = kernel;
                                                       watched = watched;
                                                       fixed   = fixed;
-                                                      propas  = propas }
+                                                      propas  = propas;
+                                                      undetermined = undetermined }
                         | None ->
                            (* Asignment was of a disjunctive kind.
                            We create the constraint we need to satisfy,
@@ -278,51 +250,73 @@ module Make(WB:Export.WhiteBoard) = struct
                              | Some(newlits,_) -> newlits
                              | _ -> LSet.empty
                            in
-                           let aux lit sofar =
-                             let _,i = LitF.reveal lit in
-                             let t = Term.term_of_id i in
-                             let sassignh = SAssign.build(Top.Values.bassign t) in
-                             let sassignh' = SAssign.build(Top.Values.bassign ~b:(not b) t) in
-                             BaSet.add sassignh (BaSet.add sassignh' sofar)
-                           in
-                           let newsassign = LSet.fold aux newlits BaSet.empty in
-                           let undetermined = BaSet.union newsassign undetermined in
-
-                           Dump.print ["bool",2] (fun p ->
-                               p "Putting scores for %a"
-                                 (LSet.print_in_fmt LitF.print_in_fmt) newlits);
-                           (* Every literal in newlits that we have never seen 
-                           before is given score !bump_value. *)
-                           scores := BaMap.union_poly
-                                       (fun _ () score -> score)
-                                       (BaMap.map (fun _ () -> !bump_value))
-                                       (fun scores -> scores)
-                                       newsassign
-                                       !scores;
-                           Dump.print ["bool",2] (fun p ->
-                               p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-                           Dump.print ["bool",3] (fun p ->
-                               p "All scored lits\n%a" BaMap.pp !scores);
-                           
-                           (* And now we look at what we have to say *)
-                           speak machine { state with kernel = kernel;
-                                                      fixed  = fixed;
-                                                      watched= watched;
-                                                      undetermined = undetermined } );
+                             (* Getting a constraint literals (and negations)
+                              into an Assign.t *)
+                              let aux lit sofar =
+                                let _,i = LitF.reveal lit in
+                                let t = Term.term_of_id i in
+                                let sassign  = Top.Values.bassign t in
+                                let sassign' = Top.Values.bassign ~b:(not b) t in
+                                Assign.add sassign (Assign.add sassign' sofar)
+                              in
+                              let newlits = LSet.fold aux newlits Assign.empty in
+                              let undetermined = Assign.union newlits undetermined in
+                              (* Constraint's literals that we have never seen before
+                                 are given score !bump_value. *)
+                              scores := BaMap.union_poly
+                                          (fun _ () score -> score)
+                                          (BaMap.map (fun _ () -> !bump_value))
+                                          (fun scores -> scores)
+                                          newlits
+                                          !scores;
+                              Dump.print ["bool",5] (fun p ->
+                                  p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+                              Dump.print ["bool",6] (fun p ->
+                                  p "All scored lits\n%a" BaMap.pp !scores);
+                              Dump.print ["bool",5] (fun p ->
+                                  p "Just put scores for %a" Assign.pp newlits);
+                              (* The undetermined ones are recorded as undetermined *)
+                              let watched =
+                                WL.addconstraint (* ~watched:watchable *) c watched
+                              in
+                              (* And now we look at what we have to say *)
+                              speak machine { state with kernel = kernel;
+                                                         fixed  = fixed;
+                                                         watched= watched;
+                                                         undetermined = undetermined } );
           
           clone   = (fun () -> machine state);
-          suicide = (fun _ -> ())
+
+          suicide =
+            (fun baset ->
+              scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
+                          (fun _ -> BaMap.empty)
+                          (fun scores -> scores)
+                          baset !scores;
+              Dump.print ["bool",2] (fun p ->
+                  p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+              incr since_last;
+              bump_value := !bump_value *. decay;
+              if !since_last > 1000
+              then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
+                    bump_value := !bump_value /. factor;
+                    since_last := 1)
+            )
+
         }
                   
     let init = machine { kernel = K.init;
                          fixed  = K.Model.empty;
                          watched= WL.init;
                          propas = Pqueue.empty();
-                         undetermined = BaSet.empty;
+                         undetermined = Assign.empty;
                          willbefine = Pqueue.empty();
                          silent = false }
 
-    let clear () = K.clear ()
+    let clear () =
+      Dump.print ["bool",3] (fun p -> p "bool: clearing (including scores)");
+      scores := BaMap.empty;
+      K.clear ()
 
   end
 

@@ -1,4 +1,5 @@
 open Kernel
+open Export
 open Top.Specs
 open Theories.Register
 
@@ -16,7 +17,7 @@ type ('sign,'tva) pluginTh = {
 module type Type = sig
   type sign
   type (_,_,_) api
-  module Make(WB: Export.WhiteBoard) : sig
+  module Make(WB: WhiteBoard) : sig
     open WB
     open DS
     val make: (Term.datatype,Value.t,Assign.t) api

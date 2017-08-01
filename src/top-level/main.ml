@@ -17,6 +17,7 @@ open Arg
 
 open Flags
 open PFlags
+open TopFlags
 open IO
 open Top_level
 
@@ -45,6 +46,8 @@ let options =
     ("-skipunprovable",Set skipsat,                   "skips instances expected to be unprovable");
     ("-skipprovable",  Set skipunsat,                 "skips instances expected to be provable");
     ("-skipunknown", Set skipunknown,                 "skips instances without any result expectation");
+    ("-bool_decay",  String(fun s-> 
+                         bool_decay := float_of_string s), "sets the VSIDS decay factor (default 1.3)");
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],

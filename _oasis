@@ -57,7 +57,7 @@ Library portfolio
   Path:        src/portfolio
   Build$:      flag(portfolio)
   Install$:    flag(portfolio)
-  Modules:     Plugins, PluginsTh
+  Modules:     Plugins, PluginsTh, PFlags
   InternalModules : Tools
   XMETADescription: Psyche's portfolio of plugins
   XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std str"
