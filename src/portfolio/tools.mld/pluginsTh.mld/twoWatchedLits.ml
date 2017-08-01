@@ -129,7 +129,9 @@ module Make (C : Config) = struct
        | None, t -> next fixed ?howmany t
        | ans  -> ans
 
-  let addconstraintNflag ?(ifpossible=[]) constr t =
+  let addconstraint constr ~watched t = addconstraint constr watched t
+
+  let addconstraintNflag constr ?(ifpossible=[]) t =
     let t = addconstraint constr ifpossible t in
     let cset = CSet.singleton constr in
     { t with todo = Pqueue.push cset t.todo }

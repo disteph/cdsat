@@ -84,13 +84,16 @@ module Make(C : Config) : sig
      watch another variable" instead. *)
   val fix  : Var.t -> t -> t
 
-  (* addconstraint constraint varlist whowatcheswhat
+  (* addconstraint constraint ~watched whowatcheswhat
 
-     adds constraint to the datastructure whowatcheswhat,
-     and flags it for scheduling new watched variables picking
-     ifpossible says "try and pick those variables if possible" *)
+     adds constraint to the datastructure whowatcheswhat, watching watched *)
+  val addconstraint : Constraint.t -> watched:(Var.t list) -> t -> t
 
-  val addconstraintNflag : ?ifpossible:(Var.t list) -> Constraint.t -> t -> t
+  (* addconstraint constraint ~ifpossible whowatcheswhat
+
+     Same as above but schedules constr for new watched variable picking,
+     if possible reusing ifpossible *)
+  val addconstraintNflag : Constraint.t -> ?ifpossible:(Var.t list) -> t -> t
 
   (* next fixed ?howmany whowatcheswhat
 

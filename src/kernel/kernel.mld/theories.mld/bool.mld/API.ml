@@ -46,8 +46,7 @@ module type API = sig
     | Falsified of (sign,assign * bassign, unsat) message
     | Unit of (sign, assign * bassign, straight) message
     | Satisfied of (state -> state)
-
-  exception Nothing2say
+    | ToWatch   of LSet.t * LitF.t list
 
   (* Looks at simplified form of constraint and outputs
      - Satisfied f if clause is true

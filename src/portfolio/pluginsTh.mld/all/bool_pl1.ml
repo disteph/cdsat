@@ -172,6 +172,7 @@ module Make(WB:WhiteBoard) = struct
                    p "bool: kernel says %a is satisfied" Constraint.pp c);
                speak machine { state with watched = watched;
                                           kernel = f state.kernel }
+            | ToWatch(newlits,watchable) -> failwith "Watched Literals got it wrong"
 
     
     (* This is the main loop. *)                   

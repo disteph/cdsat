@@ -45,10 +45,9 @@ module Make(DS: DSproj with type ts = ts) = struct
 
   type interesting =
     | Falsified of (sign,unsat) Msg.t
-    | Unit of (sign,straight) Msg.t
+    | Unit      of (sign,straight) Msg.t
     | Satisfied of (state -> state)
-
-  exception Nothing2say
+    | ToWatch   of LSet.t * LitF.t list
               
   let prune justif bassign state =
     let sassign = Values.boolassign bassign in
@@ -79,7 +78,7 @@ module Make(DS: DSproj with type ts = ts) = struct
                 Constraint.pp c Assign.pp (Constraint.justif c));
          let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
          Unit(straight () justif (term,not([%eq:bool] b b'))))
-    | Some _ -> raise Nothing2say
+    | Some(lset,watchable) -> ToWatch(lset,watchable)
     | None   ->
        Print.print ["kernel.bool",4] (fun p ->
            p "kernel.bool: Detected true lit, so %a is satisfied by %a"
