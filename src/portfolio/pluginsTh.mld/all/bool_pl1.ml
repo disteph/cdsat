@@ -7,6 +7,7 @@ open Patricia_interfaces
 open Kernel
 open Export
 open Top.Specs
+open Top.Sassigns
 open Top.Messages
 open Termstructures.Literals
 open Termstructures.Clauses
@@ -20,10 +21,10 @@ module Make(WB:WhiteBoard) = struct
 
   open WB
   open DS
-  module Make(K: API.API with type sign = MyTheory.sign
-                          and type assign  = Assign.t
-                          and type bassign = Term.t * bool
-                          and type sassign = Term.t * Value.t Top.Values.t)
+  module Make(K: API.API with type sign   = MyTheory.sign
+                          and type assign = Assign.t
+                          and type termdata= Term.datatype
+                          and type value  = Value.t)
     = struct
 
     type datatypes = Term.datatype*Value.t*Assign.t
@@ -192,26 +193,26 @@ module Make(WB:WhiteBoard) = struct
                       p "bool receiving Some(%a)" pp_sassign a);
                   (* We ask the kernel to record the new assignment *)
                   let recorded,kernel = K.add a state.kernel in
-                  let t,v = a in
-                  match v with
-                  | Top.Values.NonBoolean _ ->
+                  match a with
+
+                  | SAssign(_,Top.Values.NonBoolean _) ->
                      Print.print ["bool",4] (fun p ->
                          p "bool ignores nonBoolean assignment");
                      (* Assignment is non-Boolean.
                         We don't care about it and see if we have something to say *)
                      speak machine { state with kernel = kernel }
-                  | Top.Values.Boolean b ->
+
+                  | SAssign((t,Top.Values.Boolean b) as bassign) ->
                      let undetermined =
                        (* If the term was undetermined, we now have a value *)
                        if Assign.mem a state.undetermined
                        then
                          (Print.print ["bool",4] (fun p ->
                               p "bool: was wondering about %a" Term.pp t);
-                          let sassign  = Top.Values.bassign ~b:(not b) t in
+                          let sassign = boolassign ~b:(not b) t in
                           Assign.remove a (Assign.remove sassign state.undetermined))
                        else state.undetermined
                      in
-                     let bassign = t,b in
                      (* We extend our Boolean model with the assignment *)
                      match K.Model.add bassign state.fixed with
                      | Case2 msg ->
@@ -256,8 +257,8 @@ module Make(WB:WhiteBoard) = struct
                               let aux lit sofar =
                                 let _,i = LitF.reveal lit in
                                 let t = Term.term_of_id i in
-                                let sassign  = Top.Values.bassign t in
-                                let sassign' = Top.Values.bassign ~b:(not b) t in
+                                let sassign  = boolassign t in
+                                let sassign' = boolassign ~b:(not b) t in
                                 Assign.add sassign (Assign.add sassign' sofar)
                               in
                               let newlits = LSet.fold aux newlits Assign.empty in

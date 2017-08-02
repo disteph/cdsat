@@ -12,8 +12,8 @@ module type API = sig
   module TSet : Set.S with type elt = termdata termF
   type state
   type output = 
-    | Sat   of (sign, assign*(termdata termF*bool),sat) message
-    | Propa of (sign, assign*(termdata termF*bool),straight) message
+    | Sat   of (sign, assign*(TSet.elt,value)bassign,sat) message
+    | Propa of (sign, assign*(TSet.elt,value)bassign,straight) message
 
   val add: (termdata termF, value) sassign -> state -> state
   val what_now: state -> output option * state

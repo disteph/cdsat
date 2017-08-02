@@ -6,6 +6,7 @@ open Kernel
 open Top
 open Messages
 open Specs
+open Sassigns
 open Theories.Register
        
 module type Extra = sig
@@ -20,8 +21,8 @@ module type Extra = sig
   (* Useful type abbreviations *)
   type datatypes = termdata*value*assign
   type term = termdata termF
-  type vvalue = value Values.t
-  type sassign = term*vvalue
+  type vvalue = value values
+  type nonrec sassign = (term,value)sassign
                         
          
   type ack = private AckL

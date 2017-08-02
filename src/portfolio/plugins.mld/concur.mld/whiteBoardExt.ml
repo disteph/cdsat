@@ -4,6 +4,7 @@ open General.Sums
 open Kernel
 open Top.Messages
 open Top.Specs
+open Top.Sassigns
 open Theories.Register
 open Interfaces
                              
@@ -13,9 +14,9 @@ module Make(WB: Export.WhiteBoard) = struct
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t
   type term      = Term.t
-  type vvalue    = Value.t Top.Values.t
+  type vvalue    = Value.t values
   type cval      = CValue.t
-  type sassign   = term*vvalue
+  type nonrec sassign = sassign
                                   
   type ack = private AckL
   type say = private MsgL
@@ -46,7 +47,7 @@ module Make(WB: Export.WhiteBoard) = struct
                      -> egraph msg2th
      | KillYourself: unsat t * sassign -> _ msg2th
 
-  let pp_tv = General.Sums.pp_sum Term.pp (Top.Values.pp Value.pp)
+  let pp_tv = General.Sums.pp_sum Term.pp (pp_values Value.pp)
                                                              
   let pp_msg2th fmt (type a) : a msg2th -> unit = function
     | MsgStraight(assign,chrono)

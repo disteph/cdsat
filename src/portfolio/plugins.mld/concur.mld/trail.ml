@@ -6,6 +6,7 @@ open Async
        
 open Kernel
 open Top
+open Sassigns
 open Basic
 open Messages
 
@@ -124,7 +125,7 @@ The reason it was added to the trail was either:
   let has_guess data =
     if data.level < 0 then false
     else match data.nature(), data.sassign() with
-         | Decision,(_, Values.NonBoolean _) -> true
+         | Decision,SAssign(_, Values.NonBoolean _) -> true
          | _ -> false
 
   (* Now we define the type for trails *)
@@ -163,14 +164,14 @@ The reason it was added to the trail was either:
       late = []
     }
 
-  let is_contradicting (t,v) trail =
-    match v with
-    | Values.Boolean b ->
-       let sassign = SAssign.build(Values.boolassign(t, not b)) in
+  let is_contradicting (SAssign pair) trail =
+    match pair with
+    | t,Values.Boolean b ->
+       let sassign = SAssign.build(SAssign(negation pair)) in
        if TrailMap.mem sassign trail.map
        then Some sassign
        else None
-    | Values.NonBoolean _ -> None
+    | _,Values.NonBoolean _ -> None
 
                
   (* Adds a new assignment on the trail *)
@@ -254,14 +255,14 @@ The reason it was added to the trail was either:
                  pp_sassign sassign);
            return(Case1 conflict)
 
-        | _,(t,Values.Boolean b)
+        | _,SAssign((_,Values.Boolean _) as bassign)
              (* This is a Backjump situation if the following condition is true *)
              when (Assign.is_empty semsplit) (* We are not in semsplit *)
                   && (data.is_uip())       (* and data.term() is a UIP *)
                   && level > 0             (* and conflict is not of level 0 *)
           -> (* ...we use that UIP to switch branches *)
 
-           let msg = WB.curryfy ~flip:(t,b) conflict in
+           let msg = WB.curryfy ~flip:bassign conflict in
            (* First computing the assignments we need for the branch we backjump to *)
            let next = get_data map msg in
            Print.print ["trail",1] (fun p ->

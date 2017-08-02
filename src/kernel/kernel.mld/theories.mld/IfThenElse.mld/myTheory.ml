@@ -43,8 +43,8 @@ module Make(DS: DSproj) = struct
     }
 
   type output =
-    | Sat   of (sign, Assign.t*(Term.t*bool),sat) message
-    | Propa of (sign, Assign.t*(Term.t*bool),straight) message
+    | Sat   of (sign, assign*bassign,sat) message
+    | Propa of (sign, assign*bassign,straight) message
       
   let what_now state =
     let rec aux = function
@@ -60,8 +60,8 @@ module Make(DS: DSproj) = struct
                        then b1
                        else b2
               in
-              let eq = Term.bC (Symbols.Eq so) [t;br] in
-              Some(Propa(straight () (Assign.singleton(boolassign c)) (eq,true))),
+              let eq = Term.bC (Symbols.Eq so) [t;br], Values.Boolean true in
+              Some(Propa(straight () (Assign.singleton(boolassign c)) eq)),
               { state with todo = l; solved = TSet.add t state.solved }
             else
               None,
@@ -98,8 +98,8 @@ module type API = sig
   module TSet : Set.S with type elt = termdata termF
   type state
   type output = 
-    | Sat   of (sign, assign*(termdata termF*bool),sat) message
-    | Propa of (sign, assign*(termdata termF*bool),straight) message
+    | Sat   of (sign, assign*(TSet.elt,value)bassign,sat) message
+    | Propa of (sign, assign*(TSet.elt,value)bassign,straight) message
 
   val add: (termdata termF, value) sassign -> state -> state
   val what_now: state -> output option * state

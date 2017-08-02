@@ -1,6 +1,7 @@
 open Kernel
 open Top
 open Specs
+open Sassigns
 open Theories.IfThenElse
 
 type sign = MyTheory.sign
@@ -18,7 +19,7 @@ module Make(WB:Export.WhiteBoard) = struct
         | None, state ->
            let tset = K.wondering state in
            let term = K.TSet.choose tset in
-           Try(Values.bassign term), machine state
+           Try(boolassign term), machine state
         and machine state =
           Specs.SlotMachine {
               add = (function

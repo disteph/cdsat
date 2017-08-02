@@ -131,8 +131,10 @@ type ('ts,'v,'gts,'gv,'assign) dsProj
 
 type (_,_) output =
    | Silence
-   | Msg: ('s,'a*('t termF*bool),_) Messages.message -> ('s,'t*_*'a) output
-   | Try: ('t termF, 'v) sassign              -> (_,'t*'v*_) output
+   | Msg: ('s,'a*('t termF, 'v) bassign,_) Messages.message
+          -> ('s,'t*'v*'a) output
+   | Try: ('t termF, 'v) sassign
+          -> (_,'t*'v*_) output
 
 type ('s,'t,'v,'a) slot_machine_rec = {
     add      : ('t termF, 'v) sassign option

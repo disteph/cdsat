@@ -8,6 +8,7 @@ open Patricia_tools
        
 open Kernel
 open Top.Messages
+open Top.Sassigns
 open Theories.Register
 
 open Tools.PluginsTh
@@ -59,7 +60,7 @@ module Make(WB : WhiteBoardExt) = struct
     val init : t
     val extend : Assign.t -> t -> t
     val notfixed : t -> Assign.t -> Assign.t
-    val is_fixed : Term.t*Value.t Top.Values.t -> t -> bool
+    val is_fixed : sassign -> t -> bool
     val are_fixed : Assign.t -> t -> bool
   end = struct
     type t = Assign.t
@@ -89,12 +90,11 @@ module Make(WB : WhiteBoardExt) = struct
   end
 
   module Var = struct
-    type t = Term.t*Value.t Top.Values.t [@@deriving ord]
-    let pp = pp_sassign
+    type t = sassign [@@deriving ord, show]
   end
           
   module Config
-         : (TwoWatchedLits.Config with type Var.t = Term.t*Value.t Top.Values.t
+         : (TwoWatchedLits.Config with type Var.t = Var.t
                                    and type Constraint.t = Constraint.t
                                    and type fixed = Fixed.t) = struct
     
@@ -243,27 +243,27 @@ module Make(WB : WhiteBoardExt) = struct
           let WB(_,Propa(justif,_)) = msg in
           let msg = Msg(None,Say msg,chrono) in
           Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
-          assert (Assign.subset justif fixed);
+          (* assert (Assign.subset justif fixed); *)
           Deferred.all_unit
             [ Lib.write ports.writer msg;
               flush ports msg ]
-       | ((_,Top.Values.NonBoolean _) as last)::_ ->
+       | (SAssign(_,Top.Values.NonBoolean _) as last)::_ ->
           Dump.print ["memo",0] (fun p->
               p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
                 WB.pp msg Var.pp last);
           Deferred.all_unit
             [ Lib.write ports.writer (Msg(None,Ack,chrono));
               loop_read fixed ports ]
-       | (t,Top.Values.Boolean b)::_ ->
-          let newmsg = WB.curryfy ~flip:(t,b) msg in
+       | SAssign((t,Top.Values.Boolean b) as bassign)::_ ->
+          let newmsg = WB.curryfy ~flip:bassign msg in
           let WB(_,Propa(justif,Straight flipped)) = newmsg in
           Dump.print ["memo",1] (fun p->
               p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
                 WB.pp msg pp_bassign flipped);
           Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
-          assert (Assign.subset justif fixed);
-          assert (not(Assign.mem (Top.Values.boolassign flipped) justif));
-          if Fixed.is_fixed (Top.Values.boolassign flipped) fixed
+          (* assert (Assign.subset justif fixed); *)
+          (* assert (not(Assign.mem (SAssign flipped) justif)); *)
+          if Fixed.is_fixed (SAssign flipped) fixed
           then
             (Dump.print ["memo",0] (fun p->
                  p "Memo: %a already known" pp_bassign flipped);

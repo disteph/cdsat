@@ -13,6 +13,7 @@ open Async
 
 open Kernel
 open Top.Messages
+open Top.Sassigns
 open Theories.Register
        
 open Interfaces
@@ -205,7 +206,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
        | Propa(old,Straight bassign) ->
           (* A theory deduced a boolean assignment bassign from assignment old. *)
-          let sassign = Top.Values.boolassign bassign in
+          let sassign = SAssign bassign in
           match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
           | None -> (* The flip of bassign is in the trail, we have a conflict *)
              let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
