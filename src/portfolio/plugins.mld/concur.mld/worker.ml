@@ -14,9 +14,9 @@ module Make(WB: WhiteBoardExt) = struct
   open WB
   open DS
 
-  let add     (SlotMachine m) = m.add
-  let clone   (SlotMachine m) = m.clone()
-  let suicide (SlotMachine m) = m.suicide
+  let add     (SlotMachine{add}) = add
+  let clone   (SlotMachine{clone}) = clone()
+  let suicide (SlotMachine{suicide}) = suicide
 
   let rec flush ports msg =
     let aux = function

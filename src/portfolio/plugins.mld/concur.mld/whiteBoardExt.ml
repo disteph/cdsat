@@ -12,7 +12,7 @@ module Make(WB: Export.WhiteBoard) = struct
 
   open WB
   open DS
-  type datatypes = Term.datatype*Value.t*Assign.t
+  type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
   type term      = Term.t
   type vvalue    = Value.t values
   type cval      = CValue.t

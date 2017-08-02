@@ -1,26 +1,25 @@
 (* This is the register of all generic plugins in Psyche *)
 
 open Kernel
+open Export
 open Top.Specs
-open Theories.Register
+open Theories.Register.Modules
        
-module Make(WB: Export.WhiteBoard) = struct
-  open WB
+module Make(DS: GlobalImplem) = struct
   open DS
 
-  let make (Modules.Module(tag,k): (Term.datatype*Value.t*Assign.t) Modules.t)
-    =
+  let make (Module(tag,k): (Term.datatype*Value.t*Assign.t*TSet.t) t) =
     let aux make = 
       let open PluginTh in
       let o = make k in
       Signed(tag,o.init),
       o.clear
     in
-    let open Tags in
+    let open Theories.Register.Tags in
       match tag with
 
       | Bool  ->
-         let module M = Bool_pl1.Make(WB) in
+         let module M = Bool.Pl1.Make(DS) in
          aux M.make
 
       (* | CC    -> *)
@@ -28,15 +27,15 @@ module Make(WB: Export.WhiteBoard) = struct
       (*    aux M.make *)
 
       | Arrays->
-         let module M = Arrays_pl1.Make(WB) in
+         let module M = Arrays.Pl1.Make(DS) in
          aux M.make
 
       | LRA   ->
-         let module M = LRA_pl1.Make(WB) in
+         let module M = LRA.Pl1.Make(DS) in
          aux M.make
 
       | IfThenElse ->
-         let module M = IfThenElse_pl1.Make(WB) in
+         let module M = IfThenElse.Pl1.Make(DS) in
          aux M.make
 
 end

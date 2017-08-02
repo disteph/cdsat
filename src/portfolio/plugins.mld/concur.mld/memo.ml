@@ -30,14 +30,14 @@ module Make(WB : WhiteBoardExt) = struct
       then false
       else
         match msg1,msg2 with
-        | Sat tset1, Sat tset2 -> Assign.equal tset1 tset2
+        | Sat m1, Sat m2 -> Assign.equal m1.assign m2.assign
         | Propa(tset1,Unsat), Propa(tset2,Unsat) -> Assign.equal tset1 tset2
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
           -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2'
 
     let hash (type a) (WB(hdls,msg):a WB.t) =
       match msg with
-      | Sat tset -> 2*(Assign.hash tset)
+      | Sat{ assign } -> 2*(Assign.hash assign)
       | Propa(tset,Unsat) -> 1+3*(Assign.hash tset)
       | Propa(tset,Straight tset') -> 1+7*(Assign.hash tset)+11*(hash_bassign tset')
 

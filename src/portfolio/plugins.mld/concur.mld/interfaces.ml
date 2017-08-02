@@ -11,15 +11,16 @@ open Theories.Register
        
 module type Extra = sig
 
-  (* The 3 data-structures defined by the combination *)
+  (* The data-structures defined by the combination *)
   type termdata
   type value
-  type cval
   type assign
+  type tset
+  type cval
   type _ t (* WB messages *)
 
   (* Useful type abbreviations *)
-  type datatypes = termdata*value*assign
+  type datatypes = termdata*value*assign*tset
   type term = termdata termF
   type vvalue = value values
   type nonrec sassign = (term,value)sassign
@@ -64,7 +65,12 @@ end
 module type WhiteBoardExt = sig
   include Export.WhiteBoard
   open DS
-  include Extra with type 'a t := 'a t and type termdata := Term.datatype and type value := Value.t and type assign := Assign.t and type cval := CValue.t
+  include Extra with type 'a t := 'a t
+                              and type termdata := Term.datatype
+                                               and type value := Value.t
+                                                             and type assign := Assign.t
+                                                                            and type tset := TSet.t
+                                                                                         and type cval := CValue.t
 end
 
 module type WhiteBoard4Master = sig

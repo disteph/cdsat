@@ -16,11 +16,10 @@ type ('sign,'tva) pluginTh = {
        
 module type Type = sig
   type sign
-  type (_,_,_) api
-  module Make(WB: WhiteBoard) : sig
-    open WB
+  type (_,_,_,_) api
+  module Make(DS: GlobalImplem) : sig
     open DS
-    val make: (Term.datatype,Value.t,Assign.t) api
-              -> (sign,Term.datatype*Value.t*Assign.t) pluginTh
+    val make: (Term.datatype,Value.t,Assign.t,TSet.t) api
+              -> (sign,Term.datatype*Value.t*Assign.t*TSet.t) pluginTh
   end
 end

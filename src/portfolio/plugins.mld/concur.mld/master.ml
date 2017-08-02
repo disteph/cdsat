@@ -156,18 +156,19 @@ module Make(WB4M: WhiteBoard4Master) = struct
        Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
        match msg with
          
-       | Sat newtset -> 
+       | Sat{ assign=newtset } -> 
           (* A theory found a counter-model newtset. If it is the
                 same as the current one, then it means the theory has stamped the
                 model for which we were collecting stamps. If not, now
                 all other theories need to stamp newtset. *)
 
-          let WB(rest, Sat consset) as current =
+          let WB(rest, Sat{ assign }) as current =
             match current with
-            | Some(WB(_, Sat consset) as c) when DS.Assign.equal consset newtset ->
+            | Some(WB(_, Sat{assign=consset}) as c)
+                 when DS.Assign.equal consset newtset ->
                Print.print ["concur",3] (fun p -> p "Matches previous model");
                sat thmsg c
-            | Some(WB(_, Sat consset)) when DS.Assign.subset consset newtset ->
+            | Some(WB(_, Sat{assign=consset})) when DS.Assign.subset consset newtset ->
                Print.print ["concur",3] (fun p -> p "Fuller model");
                thmsg
             | Some c ->
@@ -181,7 +182,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           if HandlersMap.is_empty rest
           then
             (Print.print ["concur",2] (fun p ->
-                 p "All theories were fine with model %a" DS.Assign.pp consset);
+                 p "All theories were fine with model %a" DS.Assign.pp assign);
              (* rest being empty means that all theories have
              stamped the assignment consset as being consistent with them,
              so we can finish, closing all pipes *)

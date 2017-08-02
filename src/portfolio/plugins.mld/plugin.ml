@@ -3,7 +3,7 @@ open PluginsTh.PluginTh
 module type Input = sig
   include  Kernel.Export.APIext
   open WB.DS
-  val pluginsTh : (Term.datatype*Value.t*Assign.t) sslot_machine list
+  val pluginsTh : (Term.datatype*Value.t*Assign.t*TSet.t) sslot_machine list
   val clear : unit -> unit
 end
        

@@ -39,7 +39,7 @@ let run parser input =
 
            open Kernel.Theories.Register
                   
-           module Plugin = PluginsTh.Register.Make(WB)
+           module Plugin = PluginsTh.Register.Make(WB.DS)
 
            let add_plugin
                  (Modules.Module(tag,_) as plugin)

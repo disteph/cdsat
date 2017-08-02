@@ -17,17 +17,17 @@ open Tools.PluginsTh
        
 type sign = MyTheory.sign
               
-module Make(WB:WhiteBoard) = struct
+module Make(DS: GlobalImplem) = struct
 
-  open WB
   open DS
   module Make(K: API.API with type sign   = MyTheory.sign
                           and type assign = Assign.t
                           and type termdata= Term.datatype
-                          and type value  = Value.t)
+                          and type value  = Value.t
+                          and type tset   = TSet.t )
     = struct
 
-    type datatypes = Term.datatype*Value.t*Assign.t
+    type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
 
     (* We are implementing VSIDS heuristics for choosing decisions:
        we need to keep a score of each assignment, we need to update the scores,
@@ -178,134 +178,134 @@ module Make(WB:WhiteBoard) = struct
     
     (* This is the main loop. *)                   
     let rec machine state =
-      SlotMachine {
-          add =
-            ((* If we have already sent an unsat message, we shut up. *)
-             if state.silent then fun _ -> Silence, machine state
-             else function
-               | None -> (* We haven't been given any new information.
+
+      let add =
+        ((* If we have already sent an unsat message, we shut up. *)
+         if state.silent then fun _ -> Silence, machine state
+         else function
+           | None -> (* We haven't been given any new information.
                             Let's see if we have something to say *)
-                  Print.print ["bool",2] (fun p -> p "bool receiving useless stuff");
-                  speak machine state
+              Print.print ["bool",2] (fun p -> p "bool receiving useless stuff");
+              speak machine state
 
-               | Some a ->
-                  Print.print ["bool",2] (fun p ->
-                      p "bool receiving Some(%a)" pp_sassign a);
-                  (* We ask the kernel to record the new assignment *)
-                  let recorded,kernel = K.add a state.kernel in
-                  match a with
+           | Some a ->
+              Print.print ["bool",2] (fun p ->
+                  p "bool receiving Some(%a)" pp_sassign a);
+              (* We ask the kernel to record the new assignment *)
+              let recorded,kernel = K.add a state.kernel in
+              match a with
 
-                  | SAssign(_,Top.Values.NonBoolean _) ->
-                     Print.print ["bool",4] (fun p ->
-                         p "bool ignores nonBoolean assignment");
-                     (* Assignment is non-Boolean.
+              | SAssign(_,Top.Values.NonBoolean _) ->
+                 Print.print ["bool",4] (fun p ->
+                     p "bool ignores nonBoolean assignment");
+                 (* Assignment is non-Boolean.
                         We don't care about it and see if we have something to say *)
-                     speak machine { state with kernel = kernel }
+                 speak machine { state with kernel = kernel }
 
-                  | SAssign((t,Top.Values.Boolean b) as bassign) ->
-                     let undetermined =
-                       (* If the term was undetermined, we now have a value *)
-                       if Assign.mem a state.undetermined
-                       then
-                         (Print.print ["bool",4] (fun p ->
-                              p "bool: was wondering about %a" Term.pp t);
-                          let sassign = boolassign ~b:(not b) t in
-                          Assign.remove a (Assign.remove sassign state.undetermined))
-                       else state.undetermined
-                     in
-                     (* We extend our Boolean model with the assignment *)
-                     match K.Model.add bassign state.fixed with
-                     | Case2 msg ->
-                        (* Model is inconsistent; kernel gives us unsat message *)
-                        Print.print ["bool",4] (fun p ->
-                            p "Model says this is inconsistent!");
-                        Msg msg, machine { state with silent = true }
+              | SAssign((t,Top.Values.Boolean b) as bassign) ->
+                 let undetermined =
+                   (* If the term was undetermined, we now have a value *)
+                   if Assign.mem a state.undetermined
+                   then
+                     (Print.print ["bool",4] (fun p ->
+                          p "bool: was wondering about %a" Term.pp t);
+                      let sassign = boolassign ~b:(not b) t in
+                      Assign.remove a (Assign.remove sassign state.undetermined))
+                   else state.undetermined
+                 in
+                 (* We extend our Boolean model with the assignment *)
+                 match K.Model.add bassign state.fixed with
+                 | Case2 msg ->
+                    (* Model is inconsistent; kernel gives us unsat message *)
+                    Print.print ["bool",4] (fun p ->
+                        p "Model says this is inconsistent!");
+                    Msg msg, machine { state with silent = true }
 
-                     | Case1(l,fixed) ->
-                        (* Model is consistent. We declare to the watched literals
+                 | Case1(l,fixed) ->
+                    (* Model is consistent. We declare to the watched literals
                         that 2 literals have been fixed *)
-                        let watched = WL.fix l (WL.fix (LitF.negation l) state.watched) in
-                        (* Let's look at what the kernel said. *)
-                        match recorded with
-                        | Some propas ->
-                           (* Assignment was of a conjunctive kind,
+                    let watched = WL.fix l (WL.fix (LitF.negation l) state.watched) in
+                    (* Let's look at what the kernel said. *)
+                    match recorded with
+                    | Some propas ->
+                       (* Assignment was of a conjunctive kind,
                            kernel has given us the propagation messages
                            saying that a bunch of conjuncts are implied *)
-                           let propas = List.fold Pqueue.push propas state.propas in
-                           speak machine { state with kernel  = kernel;
-                                                      watched = watched;
-                                                      fixed   = fixed;
-                                                      propas  = propas;
-                                                      undetermined = undetermined }
-                        | None ->
-                           (* Asignment was of a disjunctive kind.
+                       let propas = List.fold Pqueue.push propas state.propas in
+                       speak machine { state with kernel  = kernel;
+                                                  watched = watched;
+                                                  fixed   = fixed;
+                                                  propas  = propas;
+                                                  undetermined = undetermined }
+                    | None ->
+                       (* Asignment was of a disjunctive kind.
                            We create the constraint we need to satisfy,
                            simplify it according to our current model,
                            and give it to the watched literals *)
-                           let constr = Config.Constraint.make bassign in
-                           let constr = Config.Constraint.simplify fixed constr in
-                           let watched = WL.addconstraintNflag constr watched in
-                           (* By the way, the constraint's literals that are undetermined
+                       let constr = Config.Constraint.make bassign in
+                       let constr = Config.Constraint.simplify fixed constr in
+                       let watched = WL.addconstraintNflag constr watched in
+                       (* By the way, the constraint's literals that are undetermined
                            need to be recorded, so we can pick one when we do a split *)
-                           let newlits =
-                             match Config.Constraint.simpl constr with
-                             | Some(newlits,_) -> newlits
-                             | _ -> LSet.empty
-                           in
-                             (* Getting a constraint literals (and negations)
+                       let newlits =
+                         match Config.Constraint.simpl constr with
+                         | Some(newlits,_) -> newlits
+                         | _ -> LSet.empty
+                       in
+                       (* Getting a constraint literals (and negations)
                               into an Assign.t *)
-                              let aux lit sofar =
-                                let _,i = LitF.reveal lit in
-                                let t = Term.term_of_id i in
-                                let sassign  = boolassign t in
-                                let sassign' = boolassign ~b:(not b) t in
-                                Assign.add sassign (Assign.add sassign' sofar)
-                              in
-                              let newlits = LSet.fold aux newlits Assign.empty in
-                              let undetermined = Assign.union newlits undetermined in
-                              (* Constraint's literals that we have never seen before
+                       let aux lit sofar =
+                         let _,i = LitF.reveal lit in
+                         let t = Term.term_of_id i in
+                         let sassign  = boolassign t in
+                         let sassign' = boolassign ~b:(not b) t in
+                         Assign.add sassign (Assign.add sassign' sofar)
+                       in
+                       let newlits = LSet.fold aux newlits Assign.empty in
+                       let undetermined = Assign.union newlits undetermined in
+                       (* Constraint's literals that we have never seen before
                                  are given score !bump_value. *)
-                              scores := BaMap.union_poly
-                                          (fun _ () score -> score)
-                                          (BaMap.map (fun _ () -> !bump_value))
-                                          (fun scores -> scores)
-                                          newlits
-                                          !scores;
-                              Dump.print ["bool",5] (fun p ->
-                                  p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-                              Dump.print ["bool",6] (fun p ->
-                                  p "All scored lits\n%a" BaMap.pp !scores);
-                              Dump.print ["bool",5] (fun p ->
-                                  p "Just put scores for %a" Assign.pp newlits);
-                              (* The undetermined ones are recorded as undetermined *)
-                              let watched =
-                                WL.addconstraintNflag (* ~watched:watchable *) constr watched
-                              in
-                              (* And now we look at what we have to say *)
-                              speak machine { state with kernel = kernel;
-                                                         fixed  = fixed;
-                                                         watched= watched;
-                                                         undetermined = undetermined } );
-          
-          clone   = (fun () -> machine state);
+                       scores := BaMap.union_poly
+                                   (fun _ () score -> score)
+                                   (BaMap.map (fun _ () -> !bump_value))
+                                   (fun scores -> scores)
+                                   newlits
+                                   !scores;
+                       Dump.print ["bool",5] (fun p ->
+                           p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+                       Dump.print ["bool",6] (fun p ->
+                           p "All scored lits\n%a" BaMap.pp !scores);
+                       Dump.print ["bool",5] (fun p ->
+                           p "Just put scores for %a" Assign.pp newlits);
+                       (* The undetermined ones are recorded as undetermined *)
+                       let watched =
+                         WL.addconstraintNflag (* ~watched:watchable *) constr watched
+                       in
+                       (* And now we look at what we have to say *)
+                       speak machine { state with kernel = kernel;
+                                                  fixed  = fixed;
+                                                  watched= watched;
+                                                  undetermined = undetermined } );
+      in
+      
+      let clone () = machine state in
 
-          suicide =
-            (fun baset ->
-              scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
-                          (fun _ -> BaMap.empty)
-                          (fun scores -> scores)
-                          baset !scores;
-              Dump.print ["bool",2] (fun p ->
-                  p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-              incr since_last;
-              bump_value := !bump_value *. decay;
-              if !since_last > 1000
-              then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
-                    bump_value := !bump_value /. factor;
-                    since_last := 1)
-            )
+      let suicide baset =
+        scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
+                    (fun _ -> BaMap.empty)
+                    (fun scores -> scores)
+                    baset !scores;
+        Dump.print ["bool",2] (fun p ->
+            p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+        incr since_last;
+        bump_value := !bump_value *. decay;
+        if !since_last > 1000
+        then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
+              bump_value := !bump_value /. factor;
+              since_last := 1)
 
-        }
+      in SlotMachine { add; clone; suicide }
+
                   
     let init = machine { kernel = K.init;
                          fixed  = K.Model.empty;
@@ -322,7 +322,7 @@ module Make(WB:WhiteBoard) = struct
 
   end
 
-  let make (k: (Term.datatype,Value.t,Assign.t) MyTheory.api)
+  let make (k: (Term.datatype,Value.t,Assign.t,TSet.t) MyTheory.api)
     = let (module K) = k in
       let module Made = Make(K) in
       { PluginTh.init = Made.init;
