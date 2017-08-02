@@ -1,5 +1,7 @@
-open Top.Specs
-open Top.Messages
+open Top
+open Specs
+open Messages
+open Sassigns
        
 type sign
 
@@ -18,14 +20,16 @@ module type API = sig
   type termdata
   type assign
   type state
+  type tset
   val init: state
   val term_eval : (int -> V.t) -> termdata termF -> V.t
   val form_eval : (int -> V.t) -> termdata termF -> bool
   val eval : state -> termdata termF
-             -> (sign, assign * (termdata termF * bool), straight) message
+             -> (sign, assign * (termdata termF, _)bassign*tset, straight) message
 end
 
 
 include Theory.Type
-        with type ('t,'v,'a) api = (module API with type termdata = 't
-                                                and type assign = 'a)
+        with type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                                   and type assign = 'a
+                                                   and type tset   = 's)

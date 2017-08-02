@@ -9,22 +9,23 @@ module type API = sig
   type termdata
   type value
   type assign
-  module TSet : Set.S with type elt = termdata termF
+  type tset
   type state
   type output = 
-    | Sat   of (sign, assign*(TSet.elt,value)bassign,sat) message
-    | Propa of (sign, assign*(TSet.elt,value)bassign,straight) message
+    | Sat   of (sign, assign*(termdata termF,value)bassign*tset,sat) message
+    | Propa of (sign, assign*(termdata termF,value)bassign*tset,straight) message
 
   val add: (termdata termF, value) sassign -> state -> state
   val what_now: state -> output option * state
-  val wondering: state -> TSet.t
+  val wondering: state -> tset
   val init: state
 end
 
 
 include Theory.Type with type ts = unit
                      and type values = has_no_values
-                     and type ('t,'v,'a) api = (module API with type termdata = 't
-                                                            and type value = 'v
-                                                            and type assign = 'a)
-
+                     and type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                                               and type value = 'v
+                                                               and type assign = 'a
+                                                               and type tset = 's)
+                                                    

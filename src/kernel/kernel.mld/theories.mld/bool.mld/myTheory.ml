@@ -33,18 +33,23 @@ module Make(DS: DSproj with type ts = ts) = struct
   type nonrec assign = Assign.t
   type nonrec bassign = bassign
   type nonrec sassign = sassign
-
+  type tset = TSet.t
+                
   include Basis.Make(DS)
 
   (* state type:
      in order to produce the message Sat(seen),
      one must satisfy each constraint in todo. *)
   type state = { seen : Assign.t;
-                 todo : Assign.t; }
+                 todo : Assign.t;
+                 sharing : TSet.t;
+                 myvars : TSet.t }
 
   (* Initial state. Note: can produce Sat(init). *)
   let init = { seen = Assign.empty;
-               todo = Assign.empty; }
+               todo = Assign.empty;
+               sharing = TSet.empty;
+               myvars  = TSet.empty }
 
   type interesting =
     | Falsified of (sign,unsat) Msg.t
@@ -90,7 +95,7 @@ module Make(DS: DSproj with type ts = ts) = struct
            
   let sat state =
     if Assign.is_empty state.todo
-    then Some(sat () state.seen)
+    then Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
     else
       (Print.print ["kernel.bool",2] (fun p ->
            p "kernel.bool: not sat, still waiting to satisfy %a" Assign.pp state.todo);
@@ -118,16 +123,17 @@ module Make(DS: DSproj with type ts = ts) = struct
             Some propas, todo
          | _ -> None, Assign.add sassign state.todo
        in
-       propas, { seen = seen; todo = todo }
+       propas, { state with seen; todo }
                             
 end
 
-type ('t,'v,'a) api = (module API with type sign = sign
-                                   and type assign  = 'a
-                                   and type termdata = 't
-                                   and type value = 'v )
+type ('t,'v,'a,'s) api = (module API with type sign   = sign
+                                      and type assign = 'a
+                                      and type termdata = 't
+                                      and type value  = 'v
+                                      and type tset   = 's)
 
-let make (type t v a)
-      ((module DS): (ts,values,t,v,a) dsProj)
-    : (t,v,a) api =
+let make (type t v a s)
+      ((module DS): (ts,values,t,v,a,s) dsProj)
+    : (t,v,a,s) api =
   (module Make(DS))

@@ -17,6 +17,7 @@ module type API = sig
   type assign
   type termdata
   type value
+  type tset
   type nonrec bassign = (termdata termF,value) bassign
   type nonrec sassign = (termdata termF,value) sassign
 
@@ -26,7 +27,7 @@ module type API = sig
   module Model : sig
     type t
     val empty : t
-    val add : bassign -> t -> (LitF.t*t, (sign,assign*bassign,unsat) message) sum
+    val add : bassign -> t -> (LitF.t*t, (sign,assign*bassign*tset,unsat) message) sum
     val map : t -> LMap.t (* The model as an LMap from true lits to bassign *)
   end
 
@@ -48,8 +49,8 @@ module type API = sig
   val init : state
 
   type interesting =
-    | Falsified of (sign,assign * bassign, unsat) message
-    | Unit of (sign, assign * bassign, straight) message
+    | Falsified of (sign,assign*bassign*tset, unsat) message
+    | Unit of (sign, assign*bassign*tset, straight) message
     | Satisfied of (state -> state)
     | ToWatch   of LSet.t * LitF.t list
 
@@ -64,7 +65,7 @@ module type API = sig
   val infer : Constraint.t -> interesting
 
   (* Outputs sat message if all terms to satisfy in state have been satisfied *)
-  val sat   : state -> (sign, assign * bassign, sat) message option
+  val sat   : state -> (sign, assign*bassign*tset, sat) message option
 
   (* Adds new assignment to the state. Outputs the new state, together with
      - either None if the Boolean assignment has been recorded as needing to be satisfied
@@ -74,7 +75,7 @@ module type API = sig
       e.g. if the assignment is not Boolean) *)
   val add   : sassign ->
               state ->
-              (sign,assign*bassign,straight) message list option
+              (sign,assign*bassign*tset,straight) message list option
               * state
   val clear: unit -> unit
 end

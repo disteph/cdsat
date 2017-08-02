@@ -152,8 +152,8 @@ module type State = sig
   val modules : ('termdata -> DT.t)
                 -> (VV.Value.t -> 'gv)
                 -> ('cv -> VV.CValue.t)
-                -> ('termdata,'gv,'cv cval,'assign) globalDS
-                -> ('termdata*'gv*'assign) Register.Modules.t list
+                -> ('termdata,'gv,'cv cval,'assign,'tset) globalDS
+                -> ('termdata*'gv*'assign*'tset) Register.Modules.t list
                    * (module Proj with type cvalue = 'cv cval)
 end
 
@@ -195,11 +195,11 @@ let theory_add (type tva sign ts values api)
        module VV = Vplus
                      
        let tsHandlers  = tsHandlers
-       let modules (type gts gv cv a)
+       let modules (type gts gv cv a s)
              proj
              f
              g
-             ((module DS) : (gts,gv,cv cval,a) globalDS)
+             ((module DS) : (gts,gv,cv cval,a,s) globalDS)
          =
          let inj_old,proj_old,conv,proj_make = Vplus.trans f g in
          let module NewDS =
@@ -212,7 +212,8 @@ let theory_add (type tva sign ts values api)
            end :  DSproj with type Term.datatype = gts
                           and type Value.t  = gv
                           and type Assign.t = a
-                          and type ts = ts
+                          and type TSet.t   = s
+                          and type ts     = ts
                           and type values = values)
          in
          let tm = Modules.make hdl (module NewDS) in
@@ -339,6 +340,8 @@ module Make(State:State) = struct
     open Patricia
     open Patricia_tools
 
+    module TSet = MakePATCollection(Term)
+
     module SAssign = struct
       module Param = struct
         type 'a t = sassign [@@deriving eq, hash, show]
@@ -383,8 +386,8 @@ module Make(State:State) = struct
     let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
 
     module Msg = struct
-      type ('sign,'b) t = ('sign,Assign.t*bassign,'b) message
-      let pp fmt = print_msg_in_fmt Assign.pp pp_bassign fmt
+      type ('sign,'b) t = ('sign,Assign.t*bassign*TSet.t,'b) message
+      let pp fmt = print_msg_in_fmt Assign.pp pp_bassign TSet.pp fmt
     end
 
   end
@@ -422,15 +425,19 @@ let make theories : (module API) =
          | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
                         HandlersMap.pp hdls
                         Msg.pp msg
-         | Sat assign -> Format.fprintf fmt "%a is/are fine with %a"
+         | Sat assign -> Format.fprintf fmt "%a declares %a"
                         HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
-                        Assign.pp assign
+                        Msg.pp msg
 
-       let sat_init assign = WB(theoriesWeq, Messages.sat () assign)
+       let sat_init assign =
+         WB(theoriesWeq, Messages.sat () assign ~sharing:TSet.empty ~myvars:TSet.empty)
                                
-       let sat (WB(rest1, Sat assign1)) (WB(rest2, Sat assign2)) =
+       let sat
+             (WB(rest1, Sat{assign=assign1; sharing=sharing1; myvars=myvars1}))
+             (WB(rest2, Sat{assign=assign2; sharing=sharing2; myvars=myvars2})) =
          if Assign.equal assign1 assign2
-         then WB(HandlersMap.inter rest1 rest2, sat () assign1)
+         then WB(HandlersMap.inter rest1 rest2,
+                 sat () assign1 ~sharing:sharing1 ~myvars:myvars1)
          else failwith "Theories disagree on model"
 
        let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theoriesWeq then ()
@@ -441,17 +448,17 @@ let make theories : (module API) =
             check hdl;
             WB(HandlersMap.singleton (Handlers.Handler hdl) (),
                Messages.propa () assign o)
-         | Sat assign ->
+         | Sat{ assign; sharing; myvars } ->
             WB(HandlersMap.remove (Handlers.Handler hdl) theoriesWeq,
-               Messages.sat () assign)
+               Messages.sat () assign ~sharing ~myvars)
 
        let stamp_Eq (type b) : (Eq.MyTheory.sign,b) Msg.t -> b t = function
          | Propa(assign,o) ->
             WB(HandlersMap.singleton Handlers.Eq (),
                Messages.propa () assign o)
-         | Sat assign ->
+         | Sat{ assign; sharing; myvars } ->
             WB(HandlersMap.remove Handlers.Eq theoriesWeq,
-               Messages.sat () assign)
+               Messages.sat () assign ~sharing ~myvars)
 
        let resolve
              (WB(hdls1,Propa(oldset,Straight bassign)))

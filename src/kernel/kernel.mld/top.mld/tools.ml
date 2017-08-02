@@ -9,11 +9,10 @@ module FVSubst = struct
 end
                    
 let fail_state =
-  Specs.SlotMachine {
-      add     = (fun _ -> failwith "Are you dumb? I already told you it was provable");
-      clone   = (fun _ -> failwith "Are you dumb? I already told you it was provable");
-      suicide = (fun _ -> failwith "Are you dumb? I already told you it was provable")
-    }
+  let add _ = failwith "Are you dumb? I already told you it was provable" in
+  let clone = add in
+  let suicide = add in
+  Specs.SlotMachine { add; clone; suicide }
                    
 module Pairing(B1: DataType)(B2: DataType)
        : (DataType with type t = B1.t*B2.t) =

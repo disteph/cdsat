@@ -12,8 +12,8 @@ module Make(DS: GlobalDS) : sig
   open DS
 
   (* Abbreviation for single assignments *)
-  type straight = (unit,Assign.t*bassign,Messages.straight) message
-  type stop = straight list * ((unit,Assign.t*bassign,unsat) message)
+  type nonrec straight = (unit,straight) Msg.t
+  type stop = straight list * (unit,unsat) Msg.t
 
   (* The information we want to keep about each component *)
   type info              

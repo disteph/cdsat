@@ -53,20 +53,20 @@ module type Type = sig
                                                            and type value = 'value
                                                            and type assign = 'assign)
    *)
-  type ('term,'value,'assign) api
+  type ('term,'value,'assign,'tset) api
 
   (* How to build an API *)
-  val make : (ts,values,'termdata,'value,'assign) dsProj
-             -> ('termdata,'value,'assign) api
+  val make : (ts,values,'termdata,'value,'assign,'tset) dsProj
+             -> ('termdata,'value,'assign,'tset) api
                     
 end
 
 module type Signature = sig
   type sign
   include Type
-  type ('termdata,'value,'assign) signature
-    = ('termdata*'value*'assign)
-      *(sign*ts*values*('termdata,'value,'assign) api)
+  type ('termdata,'value,'assign,'tset) signature
+    = ('termdata*'value*'assign*'tset)
+      *(sign*ts*values*('termdata,'value,'assign,'tset) api)
 end
 
 module Make(T : sig
@@ -76,4 +76,4 @@ module Make(T : sig
            end) : Signature with type sign = T.sign
                              and type ts = T.ts
                              and type values = T.values
-                             and type ('t,'v,'a) api = ('t,'v,'a) T.api
+                             and type ('t,'v,'a,'s) api = ('t,'v,'a,'s) T.api

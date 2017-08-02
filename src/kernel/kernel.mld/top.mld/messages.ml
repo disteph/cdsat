@@ -23,29 +23,31 @@ type (_,_) propagated =
   | Straight : 'b -> ('b,straight_l) propagated
                                                  
 type (_,_,_) message =
-  | Sat   : 'j -> (_,'j*_,sat) message
-  | Propa : 'j * ('b,'l) propagated -> (_,'j*'b,'l propa) message
+  | Sat   : { assign : 'j; sharing:'tset; myvars:'tset } -> (_,'j*_*'tset,sat) message
+  | Propa : 'j * ('b,'l) propagated -> (_,'j*'b*_,'l propa) message
 
 (* Message construction functions *)
-                                                                  
-let sat _ justif              = Sat justif
-let propa _ justif p          = Propa(justif,p)
-let unsat _ justif            = Propa(justif,Unsat)
-let straight _ justif b       = Propa(justif,Straight b)
+
+let sat _ assign ~sharing ~myvars = Sat{ assign; sharing; myvars }
+let propa _ justif p     = Propa(justif,p)
+let unsat _ justif       = Propa(justif,Unsat)
+let straight _ justif b  = Propa(justif,Straight b)
 
 (* Printing messages *)
 
-let print_msg_in_fmt_latex j_pp b_pp fmt (type a): (_,_,a)message -> unit = function
-  | Sat justif
-    -> fprintf fmt "Sat(%a)" j_pp justif
+let print_msg_in_fmt_latex j_pp b_pp tset_pp fmt (type a): (_,_,a)message -> unit = function
+  | Sat { assign; sharing; myvars }
+    -> fprintf fmt "Sat(%a) sharing %a (my vars are %a)"
+         j_pp assign tset_pp sharing tset_pp myvars
   | Propa(justif,Unsat)
     -> fprintf fmt "%a\\vdash\\bot" j_pp justif
   | Propa(justif,Straight b)
     -> fprintf fmt "%a\\vdash %a" j_pp justif b_pp b
 
-let print_msg_in_fmt_utf8 j_pp b_pp fmt (type a): (_,_,a)message -> unit = function
-  | Sat justif
-    -> fprintf fmt "Sat(%a)" j_pp justif
+let print_msg_in_fmt_utf8 j_pp b_pp tset_pp fmt (type a): (_,_,a)message -> unit = function
+  | Sat { assign; sharing; myvars }
+    -> fprintf fmt "Sat(%a) sharing %a (my vars are %a)"
+         j_pp assign tset_pp sharing tset_pp myvars
   | Propa(justif,Unsat)
     -> fprintf fmt "%a ⊢ ⊥" j_pp justif
   | Propa(justif,Straight b)

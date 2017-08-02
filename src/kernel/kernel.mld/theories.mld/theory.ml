@@ -24,19 +24,19 @@ module type Type = sig
   type values
   val values : values values_opt
 
-  type ('term,'value,'assign) api
+  type ('term,'value,'assign,'tset) api
 
-  val make : (ts,values,'termdata,'value,'assign) dsProj
-             -> ('termdata,'value,'assign) api
+  val make : (ts,values,'termdata,'value,'assign,'tset) dsProj
+             -> ('termdata,'value,'assign,'tset) api
                     
 end
 
 module type Signature = sig
   type sign
   include Type
-  type ('termdata,'value,'assign) signature
-    = ('termdata*'value*'assign)
-      *(sign*ts*values*('termdata,'value,'assign) api)
+  type ('termdata,'value,'assign,'tset) signature
+    = ('termdata*'value*'assign*'tset)
+      *(sign*ts*values*('termdata,'value,'assign,'tset) api)
 end
                      
 module Make(T : sig
@@ -44,7 +44,7 @@ module Make(T : sig
              include Type
            end) = struct
   include T
-  type ('termdata,'value,'assign) signature
-    = ('termdata*'value*'assign)
-      *(T.sign*T.ts*T.values*('termdata,'value,'assign) T.api)
+  type ('termdata,'value,'assign,'tset) signature
+    = ('termdata*'value*'assign*'tset)
+      *(T.sign*T.ts*T.values*('termdata,'value,'assign,'tset) T.api)
 end

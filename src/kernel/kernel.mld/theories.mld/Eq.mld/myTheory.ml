@@ -38,7 +38,8 @@ module Make(DS: GlobalDS) = struct
   type cval   = CValue.t
   type sassign = DS.sassign
   type bassign = DS.bassign
-
+  type tset    = DS.TSet.t
+                   
   module TMap = struct
     include Map.Make(Term)
     let pp x fmt tmap =
@@ -55,73 +56,77 @@ module Make(DS: GlobalDS) = struct
 
   type output =
     | UNSAT of stop
-    | SAT of (sign, assign * bassign, sat) message * self
+    | SAT of (sign, sat) Msg.t * self
 
    and self = {
-       treated : assign;
-       add     : sassign -> output;
-       ask     : ?subscribe:bool
-                 -> (termdata termF, value Sassigns.values) sum
-                 -> (termdata termF)
-                    * cval
-                    * (unit -> cval list)
-                    * self
+       add : sassign -> output;
+       ask : ?subscribe:bool
+             -> (termdata termF, value Sassigns.values) sum
+             -> (termdata termF)
+                * cval
+                * (unit -> cval list)
+                * self
      }
-                   
-  type state = {
-      egraph : EG.t;
-      treated: Assign.t
-    }
+                
+  type state = { egraph : EG.t;
+                 treated: Assign.t;
+                 sharing : TSet.t;
+                 myvars  : TSet.t }
 
-  let rec machine state = {
+  let rec machine state =
 
-      treated = state.treated;
-                  
-      add =
-        (function
-           sassign ->
-           Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph adds %a" pp_sassign sassign);
-           let SAssign(term,value) = sassign in
-           let treated = Assign.add sassign state.treated in
-           try
-             let eg,info,tvset = EG.eq term (Case2(Values value)) (Case2 sassign) state.egraph in
-             let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
-             let aux t1 t2 value =
-               let eg,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,value)) eg in
-               let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
-               eg, tvmap
-             in
-             let eg, tvmap =
-               match Terms.reveal term, value with
-               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
-               | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
-               | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
-                 -> EG.diseq t1 t2 (term,value) eg, tvmap
-               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
-                 -> EG.diseq t1 t2 (term,value) eg, tvmap
-               | _ -> eg, tvmap
-             in
-             Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph is fine with %a" Assign.pp treated);
-             SAT(sat () treated, machine { egraph = eg ; treated = treated })
-           with
-             EG.Conflict(propa,conflict) ->
-             Print.print ["kernel.egraph",1] (fun p->
-                 p "kernel.egraph detected conflict:\n %a\n leads to %a"
-                   (List.pp Msg.pp) propa
-                   Msg.pp conflict);
-             UNSAT(propa,conflict)
-        );
+    let add sassign =       
+      Print.print ["kernel.egraph",1] (fun p->
+          p "kernel.egraph adds %a" pp_sassign sassign);
+      let SAssign(term,value) = sassign in
+      let treated = Assign.add sassign state.treated in
+      try
+        let egraph,info,tvset =
+          EG.eq term (Case2(Values value)) (Case2 sassign) state.egraph
+        in
+        let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
+        let aux t1 t2 value =
+          let egraph,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,value)) egraph in
+          let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
+          egraph, tvmap
+        in
+        let egraph, tvmap =
+          match Terms.reveal term, value with
+          | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
+          | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
+          | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
+            -> EG.diseq t1 t2 (term,value) egraph, tvmap
+          | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
+            -> EG.diseq t1 t2 (term,value) egraph, tvmap
+          | _ -> egraph, tvmap
+        in
+        Print.print ["kernel.egraph",1] (fun p->
+            p "kernel.egraph is fine with %a" Assign.pp treated);
+        SAT(sat () treated ~sharing:state.sharing ~myvars:state.myvars,
+            machine { state with egraph; treated })
+      with
+        EG.Conflict(propa,conflict) ->
+        Print.print ["kernel.egraph",1] (fun p->
+            p "kernel.egraph detected conflict:\n %a\n leads to %a"
+              (List.pp Msg.pp) propa
+              Msg.pp conflict);
+        UNSAT(propa,conflict)
+    in
 
-      ask =
-        let ask ?subscribe tv =
-          let info,eg = EG.ask ?subscribe tv state.egraph in
-          EG.nf info,
-          EG.cval info,
-          (fun () -> EG.distinct eg info),
-          machine { state with egraph = eg }
-        in ask
-    }
+    let ask =
+      let ask ?subscribe tv =
+        let info,egraph = EG.ask ?subscribe tv state.egraph in
+        EG.nf info,
+        EG.cval info,
+        (fun () -> EG.distinct egraph info),
+        machine { state with egraph }
+      in ask
 
-  let init = machine { egraph = EG.init; treated = Assign.empty }
+    in { add; ask }
+
+  let init = machine { egraph  = EG.init;
+                       treated = Assign.empty;
+                       sharing = TSet.empty;
+                       myvars  = TSet.empty }
 
 end

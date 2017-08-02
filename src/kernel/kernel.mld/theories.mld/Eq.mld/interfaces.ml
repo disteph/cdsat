@@ -88,28 +88,26 @@ module type API = sig
   type termdata
   type value
   type assign
+  type tset
   type cval
 
   type nonrec sassign = (termdata termF,value) sassign
   type nonrec bassign = (termdata termF,value) bassign
-  type straight = (sign, assign * bassign, Top.Messages.straight) message
+  type straight = (sign, assign*bassign*tset, Top.Messages.straight) message
         
   type output =
     | UNSAT of (straight list
-               * (sign, assign * bassign, unsat) message)
-    | SAT of (sign, assign * bassign, sat) message
+               * (sign, assign*bassign*tset, unsat) message)
+    | SAT of (sign, assign*bassign*tset, sat) message
              * self
 
-   and self = {
-       treated : assign;
-       add     : sassign -> output;
-       ask     : ?subscribe:bool
-                 -> (termdata termF,value values) sum
-                 -> (termdata termF)
-                    * cval
-                    * (unit -> cval list)
-                    * self
-     }
+   and self = { add : sassign -> output;
+                ask : ?subscribe:bool
+                      -> (termdata termF,value values) sum
+                      -> (termdata termF)
+                         * cval
+                         * (unit -> cval list)
+                         * self }
                 
   val init : self
 

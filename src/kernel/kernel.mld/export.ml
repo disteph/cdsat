@@ -52,8 +52,9 @@ module type API = sig
                                      and type value  = Value.t
                                      and type cval   = CValue.t
                                      and type assign = Assign.t
+                                     and type tset   = TSet.t
 
-  val th_modules : (Term.datatype*Value.t*Assign.t) Modules.t list
+  val th_modules : (Term.datatype*Value.t*Assign.t*TSet.t) Modules.t list
   val vproj      : (_ * (_ * _ * 'd * _)) Theories.Register.Tags.t
                    -> (CValue.t, 'd) proj
   val parse : Parsers.Register.t -> string -> Term.t list

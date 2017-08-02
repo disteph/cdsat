@@ -8,10 +8,10 @@ module IfThenElse = Theory.Make(IfThenElse.MyTheory)
 module Tags = struct
 
   type _ t = 
-    | Bool  : (_,_,_) Bool.signature t
-    | Arrays: (_,_,_) Arrays.signature t
-    | LRA   : (_,_,_) LRA.signature t
-    | IfThenElse: (_,_,_) IfThenElse.signature t
+    | Bool  : (_,_,_,_) Bool.signature t
+    | Arrays: (_,_,_,_) Arrays.signature t
+    | LRA   : (_,_,_,_) LRA.signature t
+    | IfThenElse: (_,_,_,_) IfThenElse.signature t
 
   let id (type a) : a t -> int = function
     | Bool -> 2
@@ -70,7 +70,7 @@ module Modules = struct
 
   let make(type tva sign ts v api)
         (tag : (tva*(sign*ts*v*api)) Tags.t)
-        (ds  : (ts,v,_,_,_) Top.Specs.dsProj)
+        (ds  : (ts,v,_,_,_,_) Top.Specs.dsProj)
     =
     let open Tags in
     match tag with 

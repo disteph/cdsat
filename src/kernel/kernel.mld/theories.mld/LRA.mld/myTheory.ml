@@ -15,29 +15,30 @@ let ts = Termstructures.Register.NoRep
 module Make(DS: GlobalDS) = struct
 
   open DS
-  type datatypes = Term.datatype*Value.t*Assign.t
-                                  
-  let rec machine state =
-    Specs.SlotMachine {
-        add =
-          (function
-           | None ->
-              Print.print ["kernel.LRA",2] (fun p ->
-                  p "kernel.LRA receiving None");
-              Silence, machine state
-           | Some a ->
-              Print.print ["kernel.LRA",2] (fun p ->
-                  p "kernel.LRA receiving Some(%a)"
-                    pp_sassign a
-                );
-              let state = Assign.add a state in
-              Msg(sat () state), machine state);
-        
-        clone   = (fun () -> machine state);
-        suicide = (fun _ -> ())
-      }
+  type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
 
-  let init = machine Assign.empty
+  type state = { assign : Assign.t;
+                 sharing: TSet.t;
+                 myvars : TSet.t }
+                                           
+  let rec machine state =
+    let add = function
+      | None ->
+         Print.print ["kernel.LRA",2] (fun p ->
+             p "kernel.LRA receiving None");
+         Silence, machine state
+      | Some a ->
+         Print.print ["kernel.LRA",2] (fun p ->
+             p "kernel.LRA receiving Some(%a)" pp_sassign a);
+         let state = { state with assign = Assign.add a state.assign } in
+         Msg(sat () state.assign ~sharing:state.sharing ~myvars:state.myvars ),
+         machine state
+    in
+    let clone () = machine state in
+    let suicide _ = () in
+    Specs.SlotMachine { add; clone; suicide }
+
+  let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=TSet.empty }
   let clear () = ()
                    
 end
@@ -48,9 +49,9 @@ module type API = sig
   val clear: unit -> unit
 end
 
-type ('t,'v,'a) api = (module API with type datatypes = 't*'v*'a)
+type ('t,'v,'a,'s) api = (module API with type datatypes = 't*'v*'a*'s)
 
-let make (type t v a)
-      ((module DS): (ts,values,t,v,a) dsProj)
-    : (t,v,a) api =
+let make (type t v a s)
+      ((module DS): (ts,values,t,v,a,s) dsProj)
+    : (t,v,a,s) api =
   (module Make(DS))

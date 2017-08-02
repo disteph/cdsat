@@ -50,18 +50,18 @@ module type ForParsing = sig
 end
 
 
-(* Module of constraints that meta-variables may be subject
-   to. Constraints are produced when closing a branch, and are
-   propagated through the other open branches of the proof.
- *)
+(* (\* Module of constraints that meta-variables may be subject *)
+(*    to. Constraints are produced when closing a branch, and are *)
+(*    propagated through the other open branches of the proof. *)
+(*  *\) *)
 
-module type Constraint = sig
-  type t [@@deriving ord,show]
-  val topconstraint:t
-  val proj : t -> t
-  val lift : World.t -> t -> t
-  val meet : t -> t -> t option
-end
+(* module type Constraint = sig *)
+(*   type t [@@deriving ord,show] *)
+(*   val topconstraint:t *)
+(*   val proj : t -> t *)
+(*   val lift : World.t -> t -> t *)
+(*   val meet : t -> t -> t option *)
+(* end *)
 
 (* This module type is for implementations of the global datastructures
    for the combination of theory modules *)
@@ -81,19 +81,21 @@ module type GlobalDS = sig
   type nonrec bassign = (Term.t,Value.t) bassign [@@deriving eq, ord, hash, show]
   type nonrec sassign = (Term.t,Value.t) sassign [@@deriving eq, ord, hash, show]
   module Assign : Collection with type e = sassign
+  module TSet   : Collection with type e = Term.t
   module Msg : sig
-    type ('sign,'b) t = ('sign,Assign.t*bassign,'b) Messages.message
+    type ('sign,'b) t = ('sign,Assign.t*bassign*TSet.t,'b) Messages.message
     val pp : formatter -> _ t -> unit
   end
 end
 
 (* type version of the above *)
 
-type ('gts,'gv,'cv,'assign) globalDS
+type ('gts,'gv,'cv,'assign,'tset) globalDS
   = (module GlobalDS with type Term.datatype = 'gts
                       and type Value.t   = 'gv
                       and type CValue.t  = 'cv
-                      and type Assign.t  = 'assign)
+                      and type Assign.t  = 'assign
+                      and type TSet.t    = 'tset)
   
 (* Extension thereof,
    that adds interfacing functions with theory-specific types for terms and values.
@@ -119,30 +121,29 @@ module type DSproj = sig
 end
 
 (* type version of the above *)
-type ('ts,'v,'gts,'gv,'assign) dsProj
+type ('ts,'v,'gts,'gv,'assign,'tset) dsProj
   = (module DSproj with type ts       = 'ts
                     and type values   = 'v
                     and type Term.datatype = 'gts
                     and type Value.t  = 'gv
-                    and type Assign.t = 'assign)
+                    and type Assign.t = 'assign
+                    and type TSet.t   = 'tset)
 
 
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
 
 type (_,_) output =
    | Silence
-   | Msg: ('s,'a*('t termF, 'v) bassign,_) Messages.message
-          -> ('s,'t*'v*'a) output
+   | Msg: ('s,'a*('t termF, 'v) bassign*'tset,_) Messages.message
+          -> ('s,'t*'v*'a*'tset) output
    | Try: ('t termF, 'v) sassign
-          -> (_,'t*'v*_) output
+          -> (_,'t*'v*_*_) output
 
-type ('s,'t,'v,'a) slot_machine_rec = {
-    add      : ('t termF, 'v) sassign option
-               -> ('s,'t*'v*'a) output * ('s,'t*'v*'a) slot_machine;
-    clone    : unit -> ('s,'t*'v*'a) slot_machine;
-    suicide  : 'a -> unit
-  }
-
- and (_,_) slot_machine =
-   SlotMachine : ('s,'t,'v,'a) slot_machine_rec
-                 -> ('s,'t*'v*'a) slot_machine [@@unboxed]
+type (_,_) slot_machine =
+  SlotMachine : {
+      add     : ('t termF, 'v) sassign option
+                -> ('s,'t*'v*'a*'tset) output
+                   * ('s,'t*'v*'a*'tset) slot_machine;
+      clone   : unit -> ('s,'t*'v*'a*'tset) slot_machine;
+      suicide : 'a -> unit
+    } -> ('s,'t*'v*'a*'tset) slot_machine

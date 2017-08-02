@@ -43,6 +43,7 @@ module Make(DS: DSproj with type values = values
   open DS
   type termdata = Term.datatype
   type assign = Assign.t
+  type tset = TSet.t
 
   let HasVconv(vinj, vproj) = conv
                 
@@ -84,26 +85,21 @@ module Make(DS: DSproj with type values = values
        not(V.equal a b), by.uni a' b'
     | _ -> raise(CannotEval(Print.stringOf Term.pp form))
 
-  let noby = {
-      cst = ();
-      sgl = (fun _ _ -> ());
-      uni = fun () () -> ()
-    }
+  let noby = { cst = ();
+               sgl = (fun _ _ -> ());
+               uni = fun () () -> () }
 
   let term_eval f term = fst(term_eval_by f noby term)
   let form_eval f term = fst(form_eval_by f noby term)
 
-  let by = {
-      cst = Assign.empty;
-      sgl = (fun term v -> Assign.singleton(SAssign(term, Values.NonBoolean(vinj v))));
-      uni = Assign.union
-    }      
+  let by = { cst = Assign.empty;
+             sgl = (fun term v ->
+               Assign.singleton(SAssign(term, Values.NonBoolean(vinj v))));
+             uni = Assign.union }
 
-  type state = {
-      seen : Assign.t;
-      valuation : V.t IntMap.t;
-      constraints : Term.t list
-    }
+  type state = { seen : Assign.t;
+                 valuation : V.t IntMap.t;
+                 constraints : Term.t list }
 
   let eval state term =
     let f i = 
@@ -113,36 +109,36 @@ module Make(DS: DSproj with type values = values
     match Term.get_sort term with
     | Sorts.Prop ->
        let b,assign = form_eval_by f by term
-       in straight () assign (term,b)
+       in straight () assign (term,Values.Boolean b)
     (* | Sorts.BV _ -> *)
     (*    let v,assign = term_eval_by f by term *)
     (*    in Values.NonBoolean v, assign  *)
     | s -> raise (CannotEval(Print.toString(fun p ->
                                  p "I do not know sort %a" Sorts.pp s)))
 
-  let init = {
-      seen = Assign.empty;
-      valuation = IntMap.empty;
-      constraints = []
-    }
+  let init = { seen = Assign.empty;
+               valuation = IntMap.empty;
+               constraints = [] }
     
 end
 
 module type API = sig
   type termdata
   type assign
+  type tset
   type state
   val init: state
   val term_eval : (int -> V.t) -> termdata termF -> V.t
   val form_eval : (int -> V.t) -> termdata termF -> bool
   val eval : state -> termdata termF
-             -> (sign, assign * (termdata termF * bool), straight) message
+             -> (sign, assign * (termdata termF, _)bassign*tset, straight) message
 end
 
-type ('t,'v,'a) api = (module API with type termdata = 't
-                                   and type assign = 'a)
+type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                      and type assign = 'a
+                                      and type tset   = 's)
 
-let make (type t v a)
-      ((module DS): (ts,values,t,v,a) dsProj)
-    : (t,v,a) api =
+let make (type t v a s)
+      ((module DS): (ts,values,t,v,a,s) dsProj)
+    : (t,v,a,s) api =
   (module Make(DS))

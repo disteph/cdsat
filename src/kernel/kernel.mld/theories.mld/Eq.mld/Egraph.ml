@@ -16,8 +16,8 @@ module Make(DS: GlobalDS) = struct
   
   open DS
 
-  type straight = (unit,Assign.t*bassign,Messages.straight) message
-  type stop     = straight list * ((sign,Assign.t*bassign,unsat) message)
+  type nonrec straight = (unit,straight) Msg.t
+  type stop = straight list * (unit,unsat) Msg.t
 
   (* Sum type for terms+values *)
 
