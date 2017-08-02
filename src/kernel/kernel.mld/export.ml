@@ -9,20 +9,23 @@ open Messages
 open Theories
 open Register
 open Specs
+open Sassigns
+       
+module type GlobalImplem = sig
+  type sassign_hconsed
+  include GlobalDS with type Assign.t = (sassign_hconsed,unit,int,int,EmptyInfo.infos) poly
+  module SAssign : sig
+    include PHCons with type t = sassign_hconsed
+    val reveal : t -> sassign
+    val build  : sassign -> t
+  end
+end
+
        
 module type WhiteBoard = sig
 
-  module DS : sig
-    type sassign_hashconsed
-    include GlobalDS
-            with type Assign.t
-                      = (sassign_hashconsed, unit, int, int, EmptyInfo.infos) poly
-    module SAssign : sig
-      include PHCons with type t = sassign_hashconsed
-      val reveal : t -> Term.t*(Value.t Values.t)
-      val build  : Term.t*(Value.t Values.t) -> t
-    end
-  end
+  module DS : GlobalImplem
+
   open DS
 
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
@@ -33,11 +36,11 @@ module type WhiteBoard = sig
   val sat      : sat t -> sat t -> sat t
   val unsat    : straight t -> unsat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
-  val curryfy  : ?assign:Assign.t -> ?flip:Term.t*bool -> unsat t -> straight t
+  val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
 end
 
 type (_,_) proj =
-  | Proj : ('cv -> 'v Values.t option) -> ('cv,'v has_values) proj
+  | Proj : ('cv -> 'v values option) -> ('cv,'v has_values) proj
   | NoProj : ('cv,has_no_values) proj
 
 module type API = sig

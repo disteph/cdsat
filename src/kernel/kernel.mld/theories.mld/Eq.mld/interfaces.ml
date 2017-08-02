@@ -1,6 +1,7 @@
 open General.Sums       
 open Top
 open Specs
+open Sassigns
 open Messages
        
 (* The is the interface for the raw implementation of the egraph, i.e. the union-find structure.
@@ -59,19 +60,19 @@ module type Egraph = sig
   exception Conflict of stop
 
   type term
-  type termValue
-  type sassign
+  type value
   type info
   type cval
          
   type t
   val init : t
-  val eq : term -> termValue -> (term*bool,sassign)sum -> t -> t*info*(termValue list)
-  val diseq : term -> term -> (term*bool) -> t -> t
+  val eq : term -> (term,value values)sum -> ((term,value)bassign,(term,value)sassign)sum
+           -> t -> t*info*((term,value values)sum list)
+  val diseq : term -> term -> (term,value)bassign -> t -> t
   (* Ask information about the termvalue,
        possibly subscribe (subscribe=true) or unsubscribe (subscribe=false)
        to notifications when the termvalue sees its combined value affected *)
-  val ask : ?subscribe:bool -> termValue -> t -> info*t
+  val ask : ?subscribe:bool -> (term,value values)sum -> t -> info*t
 
   val nf : info -> term
   val cval : info -> cval
@@ -89,8 +90,8 @@ module type API = sig
   type assign
   type cval
 
-  type nonrec sassign = (termdata,value) sassign
-  type bassign = termdata termF * bool
+  type nonrec sassign = (termdata termF,value) sassign
+  type nonrec bassign = (termdata termF,value) bassign
   type straight = (sign, assign * bassign, Top.Messages.straight) message
         
   type output =
@@ -103,7 +104,7 @@ module type API = sig
        treated : assign;
        add     : sassign -> output;
        ask     : ?subscribe:bool
-                 -> (termdata termF,value Values.t) sum
+                 -> (termdata termF,value values) sum
                  -> (termdata termF)
                     * cval
                     * (unit -> cval list)

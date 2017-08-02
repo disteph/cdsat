@@ -4,7 +4,10 @@ open Patricia_interfaces
 open Patricia_tools
 open Sums       
 
-open Top.Messages
+open Top
+open Messages
+open Specs
+open Sassigns
 open Termstructures.Literals
 open Termstructures.Clauses
 
@@ -12,8 +15,10 @@ open Termstructures.Clauses
 module type API = sig
   type sign
   type assign
-  type bassign
-  type sassign
+  type termdata
+  type value
+  type nonrec bassign = (termdata termF,value) bassign
+  type nonrec sassign = (termdata termF,value) sassign
 
   module LMap : PatMap with type keys = LitF.t
                        and  type values = bassign

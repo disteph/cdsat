@@ -7,6 +7,7 @@ open Sums
 open Top
 open Messages
 open Specs
+open Sassigns
 open Termstructures.Literals
 open Termstructures.Clauses
 
@@ -27,6 +28,8 @@ module Make(DS: DSproj with type ts = ts) = struct
 
   open DS
   type nonrec sign = sign
+  type nonrec termdata = Term.datatype
+  type nonrec value = Value.t
   type nonrec assign = Assign.t
   type nonrec bassign = bassign
   type nonrec sassign = sassign
@@ -50,18 +53,18 @@ module Make(DS: DSproj with type ts = ts) = struct
     | ToWatch   of LSet.t * LitF.t list
               
   let prune justif bassign state =
-    let sassign = Values.boolassign bassign in
+    let sassign = SAssign bassign in
     if Assign.mem sassign state.todo && Assign.subset justif state.seen
     then { state with todo = Assign.remove sassign state.todo }
     else state
 
   let infer c =
-    let (t,b) as bassign = Constraint.bassign c in
+    let (t,Values.Boolean b) as bassign = Constraint.bassign c in
     match Constraint.simpl c with
     | Some(_,[])  ->
        Print.print ["kernel.bool",4] (fun p ->
            p "kernel.bool: %a is falsified" Constraint.pp c);
-       let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
+       let justif = Assign.add (SAssign bassign) (Constraint.justif c) in
        Falsified(unsat () justif)
     | Some(_,[l]) ->
        let b',id = LitF.reveal l in
@@ -76,8 +79,8 @@ module Make(DS: DSproj with type ts = ts) = struct
          (Print.print ["kernel.bool",4] (fun p ->
               p "kernel.bool: Detected UP for constraint %a (justif %a)"
                 Constraint.pp c Assign.pp (Constraint.justif c));
-         let justif = Assign.add (Values.boolassign bassign) (Constraint.justif c) in
-         Unit(straight () justif (term,not([%eq:bool] b b'))))
+         let justif = Assign.add (SAssign bassign) (Constraint.justif c) in
+         Unit(straight () justif (term,Values.Boolean(not([%eq:bool] b b')))))
     | Some(lset,watchable) -> ToWatch(lset,watchable)
     | None   ->
        Print.print ["kernel.bool",4] (fun p ->
@@ -97,19 +100,19 @@ module Make(DS: DSproj with type ts = ts) = struct
     Print.print ["kernel.bool",2] (fun p ->
         p "kernel.bool receiving %a" pp_sassign sassign);
     let seen = Assign.add sassign state.seen in
-    let term,v = sassign in
+    let SAssign((term,v) as bassign) = sassign in
     match v with
     | Values.NonBoolean _ -> Some [], { state with seen = seen }
     | Values.Boolean b ->
        let propas,todo =
-         match cube (term,b) with
+         match cube bassign with
          | Some set when LSet.cardinal set > 1 ->
             let aux lit (sofar,todo) =
               let b',id = LitF.reveal lit in
-              let derived = Term.term_of_id id,([%eq:bool] b b') in
+              let derived = Term.term_of_id id,Values.Boolean([%eq:bool] b b') in
               let msg     = straight () (Assign.singleton sassign) derived in
               msg::sofar,
-              Assign.add (Values.boolassign derived) todo
+              Assign.add (SAssign derived) todo
             in
             let propas, todo = LSet.fold aux set ([],state.todo) in
             Some propas, todo
@@ -121,8 +124,8 @@ end
 
 type ('t,'v,'a) api = (module API with type sign = sign
                                    and type assign  = 'a
-                                   and type bassign = 't termF * bool
-                                   and type sassign = 't termF * 'v Values.t)
+                                   and type termdata = 't
+                                   and type value = 'v )
 
 let make (type t v a)
       ((module DS): (ts,values,t,v,a) dsProj)

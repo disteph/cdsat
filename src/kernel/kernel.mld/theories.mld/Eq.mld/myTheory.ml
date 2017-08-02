@@ -3,6 +3,7 @@ open Sums
 
 open Top
 open Specs
+open Sassigns
 open Messages
 
 open Interfaces
@@ -60,7 +61,7 @@ module Make(DS: GlobalDS) = struct
        treated : assign;
        add     : sassign -> output;
        ask     : ?subscribe:bool
-                 -> (termdata termF,value Values.t) sum
+                 -> (termdata termF, value Sassigns.values) sum
                  -> (termdata termF)
                     * cval
                     * (unit -> cval list)
@@ -80,22 +81,24 @@ module Make(DS: GlobalDS) = struct
         (function
            sassign ->
            Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph adds %a" pp_sassign sassign);
-           let term,value = sassign in
+           let SAssign(term,value) = sassign in
            let treated = Assign.add sassign state.treated in
            try
-             let eg,info,tvset = EG.eq term (Case2 value) (Case2 sassign) state.egraph in
+             let eg,info,tvset = EG.eq term (Case2(Values value)) (Case2 sassign) state.egraph in
              let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
+             let aux t1 t2 value =
+               let eg,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,value)) eg in
+               let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
+               eg, tvmap
+             in
              let eg, tvmap =
                match Terms.reveal term, value with
-               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean (true as b)
-                 | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean (false as b)
-                 -> let eg,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,b)) eg in
-                    let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
-                    eg, tvmap
+               | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
+               | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
                | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
-                 -> EG.diseq t1 t2 (term,true) eg, tvmap
+                 -> EG.diseq t1 t2 (term,value) eg, tvmap
                | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
-                 -> EG.diseq t1 t2 (term,false) eg, tvmap
+                 -> EG.diseq t1 t2 (term,value) eg, tvmap
                | _ -> eg, tvmap
              in
              Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph is fine with %a" Assign.pp treated);

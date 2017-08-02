@@ -2,6 +2,7 @@ open General.Sums
 
 open Top
 open Specs
+open Sassigns
 open Messages
 
 open Interfaces
@@ -19,7 +20,7 @@ module Make(DS: GlobalDS) : sig
 
   (* Sum type for terms+values *)
   module TermValue : sig
-    type t = (Term.t,Value.t Values.t) sum
+    type t = (Term.t,Value.t values) sum
                [@@deriving eq,ord,show,hash]                               
   end
 
@@ -30,8 +31,7 @@ module Make(DS: GlobalDS) : sig
                                  and type cval := CValue.t
                                               and type stop := stop
                                                            and type term := Term.t
-                                                                        and type sassign := sassign
-                                                                                        and type termValue := TermValue.t)
+                                                                        and type value := Value.t)
 end
 
 

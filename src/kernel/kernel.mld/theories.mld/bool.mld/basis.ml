@@ -6,6 +6,7 @@ open Sums
        
 open Top
 open Specs
+open Sassigns
 open Messages
        
 open Termstructures.Literals
@@ -49,7 +50,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
 
     let empty = LMap.empty
 
-    let add ((term,b) as bassign) m =
+    let add ((term,Values.Boolean b) as bassign) m =
       Dump.print ["kernel.bool",2]
         (fun p->p "kernel.bool records Boolean assignment %a in Boolean model %a "
                   pp_bassign bassign pp m);
@@ -60,8 +61,8 @@ module Make(DS: DSproj with type ts = TS.t) = struct
         begin
           Dump.print ["kernel.bool",5]
             (fun p->p "Lit %a already set to true!" Arg.pp nl);
-          let sassign1 = Values.boolassign bassign in
-          let sassign2 = Values.boolassign(LMap.find nl m) in
+          let sassign1 = SAssign bassign in
+          let sassign2 = SAssign (LMap.find nl m) in
           Case2(unsat () (Assign.add sassign1 (Assign.singleton sassign2)))
         end
       else
@@ -77,11 +78,11 @@ module Make(DS: DSproj with type ts = TS.t) = struct
 
   end
 
-  let clause (t,b) =
+  let clause (t,Values.Boolean b) =
     let data = proj (Terms.data t) in
     if b then data.asclause else data.ascube
 
-  let cube (t,b) =
+  let cube (t,Values.Boolean b) =
     let data = proj (Terms.data t) in
     if b then data.ascube else data.asclause
 
@@ -130,12 +131,12 @@ module Make(DS: DSproj with type ts = TS.t) = struct
         (fun lit watched ->
           let l = LitF.negation lit in
           if LMap.mem l model
-          then None,Assign.singleton(Values.boolassign(LMap.find l model))
+          then None,Assign.singleton(SAssign(LMap.find l model))
           else Some(c,lit::watched),Assign.empty)
         c
         watched
         
-    let make ((t,b) as bassign) =
+    let make ((t,Values.Boolean b) as bassign) =
       let simpl,justif =
         match clause bassign with
         | Some c -> pick2 LMap.empty c []
@@ -146,7 +147,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
         justif = justif }
 
     let id c =
-      let t,b = c.bassign in
+      let t,Values.Boolean b = c.bassign in
       2*(Term.id t)+(if b then 1 else 0)
 
     let bassign c = c.bassign
@@ -166,7 +167,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
           sameleaf = (fun lit () bassign watched ->
             (* Literal lit is set to false in the model, can't pick it to watch *)
             Some(LSet.empty,watched),
-            Assign.singleton(Values.boolassign bassign));
+            Assign.singleton(SAssign bassign));
 
           (* No literals in this part of the exploration *)
           emptyfull= (fun _ watched -> Some(LSet.empty,watched), Assign.empty);

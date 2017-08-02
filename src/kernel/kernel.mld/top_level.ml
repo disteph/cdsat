@@ -5,6 +5,7 @@
 open General.Sums
 open Top
 open Messages
+open Sassigns
 
 let init
       ?(withtheories=Some[]) (* List of added theories *)
@@ -36,7 +37,7 @@ let init
      open WB
      let problem = List.fold
                      (fun formula
-                      -> DS.Assign.add (Values.bassign(DS.Term.lift [] formula)))
+                      -> DS.Assign.add (boolassign(DS.Term.lift [] formula)))
                      termB
                      DS.Assign.empty
 

@@ -10,6 +10,7 @@ open Interfaces_basic
 open Basic
 open Variables
 open Specs
+open Sassigns
 open Messages
        
 open Theories
@@ -93,11 +94,11 @@ module Value_add(V : PH)(Vold : VValue) =
       =
       let pr = function
         | Case1 None    -> None
-        | Case1(Some b) -> Some(Values.Boolean b)
+        | Case1(Some b) -> Some(Values(Values.Boolean b))
         | Case2 v ->
            match fst(g v) with
            | None    -> None
-           | Some v' -> Some(Values.NonBoolean v')
+           | Some v' -> Some(Values(Values.NonBoolean v'))
       in
       (fun ov -> f(Case2 ov)),
       (fun cv -> snd(g cv)),
@@ -306,24 +307,25 @@ module Make(State:State) = struct
         | Sorts.Prop -> Case1 None
         | _ -> Case2 CV.none
 
-      let inj = function
+      let inj (Values v) =
+        match v with
         | Values.Boolean b -> Case1(Some b)
         | Values.NonBoolean v -> Case2(CV.inj v)
 
-      let merge (v1:t) (v2:t): (Value.t Values.t*Value.t Values.t,t) sum =
+      let merge (v1:t) (v2:t): (Value.t values*Value.t values,t) sum =
         match v1, v2 with
         | Case1 None, Case1 b
           | Case1 b, Case1 None
           -> Case2(Case1 b)
         | Case1(Some b1), Case1(Some b2) when not([%eq:bool] b1 b2)
-          -> Case1(Values.Boolean b1, Values.Boolean b2)
+          -> Case1(Values(Values.Boolean b1), Values(Values.Boolean b2))
         | Case1(Some _), Case1(Some _)
           -> Case2 v1
         | Case2 v1, Case2 v2 ->
            begin
              match CV.merge v1 v2 with
              | Case1(v1,v2)
-               -> Case1(Values.NonBoolean v1,Values.NonBoolean v2)
+               -> Case1(Values(Values.NonBoolean v1),Values(Values.NonBoolean v2))
              | Case2 v -> Case2(Case2 v)
            end
         | Case1 _, Case2 _
@@ -331,17 +333,8 @@ module Make(State:State) = struct
           -> failwith "Comparing Booleans with non-booleans"
     end
 
-    type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
-    let pp_bassign fmt (t,b) =
-      if b then Format.fprintf fmt "%a" Term.pp t
-      else Format.fprintf fmt "!(%a)" Term.pp t
-
-    type sassign = Term.t * Value.t Values.t [@@deriving eq, hash]
-    let pp_sassign fmt (t,v) =
-      match v with
-      | Values.Boolean b    -> pp_bassign fmt (t,b)
-      | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" Term.pp t Value.pp v
-    let show_sassign = Dump.stringOf pp_sassign
+    type sassign = (Term.t, Value.t) Sassigns.sassign [@@deriving eq,ord,hash,show]
+    type bassign = (Term.t, Value.t) Sassigns.bassign [@@deriving eq,ord,hash,show]
                                     
     open Patricia
     open Patricia_tools
@@ -359,7 +352,7 @@ module Make(State:State) = struct
       let treeHCons = Some id
     end
 
-    type sassign_hashconsed = SAssign.t
+    type sassign_hconsed = SAssign.t
 
     module Assign = struct
       type e = sassign [@@deriving eq, hash, show]
@@ -464,24 +457,23 @@ let make theories : (module API) =
              (WB(hdls1,Propa(oldset,Straight bassign)))
              (WB(hdls2,Propa(thset,o)))
          =
-         let res = Assign.remove (Values.boolassign bassign) thset in
+         let res = Assign.remove (SAssign bassign) thset in
          WB(HandlersMap.union hdls1 hdls2,
             propa () (Assign.union res oldset) o)
            
        let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
-         WB(hdls,Propa(Assign.add (Values.boolassign(t,not b)) thset,Unsat))
+         WB(hdls,Propa(Assign.add (SAssign(negation(t, b))) thset,Unsat))
 
        let curryfy
              ?(assign = Assign.empty)
              ?flip
              (WB(hdls,Propa(thset,Unsat))) =
-         let thset,(t,b) =
+         let thset,(t,Values.Boolean b) =
            match flip with
-           | None -> thset, (Term.bC Symbols.False [],false)
-           | Some bassign -> Assign.remove (Values.boolassign bassign) thset,
-                             bassign
+           | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
+           | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
          in
-         let aux ((term,value) as a) ((thset,clause,b) as sofar) =
+         let aux (SAssign(term,value) as a) ((thset,clause,b) as sofar) =
            match value with
            | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
               -> Assign.remove a thset,
@@ -494,7 +486,7 @@ let make theories : (module API) =
            | _ -> sofar
          in
          let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
-         WB(hdls,Propa(thset, Straight(rhs,b)))
+         WB(hdls,Propa(thset, Straight(rhs,Values.Boolean b)))
 
      end
 

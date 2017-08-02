@@ -1,7 +1,8 @@
 open Top
 open Messages
 open Specs
-
+open Sassigns
+       
 open Termstructures.Literals
 
 type sign = unit
@@ -30,7 +31,7 @@ module Make(DS: DSproj) = struct
       wondering: TSet.t
     }
 
-  let add ((t,v) as nl) state =
+  let add ((SAssign(t,v)) as nl) state =
     {
       state with
       treated = Assign.add nl state.treated;
@@ -60,7 +61,7 @@ module Make(DS: DSproj) = struct
                        else b2
               in
               let eq = Term.bC (Symbols.Eq so) [t;br] in
-              Some(Propa(straight () (Assign.singleton(Values.bassign c)) (eq,true))),
+              Some(Propa(straight () (Assign.singleton(boolassign c)) (eq,true))),
               { state with todo = l; solved = TSet.add t state.solved }
             else
               None,
@@ -100,7 +101,7 @@ module type API = sig
     | Sat   of (sign, assign*(termdata termF*bool),sat) message
     | Propa of (sign, assign*(termdata termF*bool),straight) message
 
-  val add: (termdata termF * value Values.t) -> state -> state
+  val add: (termdata termF, value) sassign -> state -> state
   val what_now: state -> output option * state
   val wondering: state -> TSet.t
   val init: state

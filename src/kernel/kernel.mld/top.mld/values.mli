@@ -2,10 +2,16 @@
 (* Values *)
 (**********)
 
-type 'v t =
-  | NonBoolean of 'v
-  | Boolean    of bool
-                    [@@deriving eq, ord, show, hash]
+type nbool = private NBool
+       
+type ('v,_) t =
+  | NonBoolean : 'v -> ('v,nbool) t
+  | Boolean    : bool -> ('v,bool) t
+                           [@@deriving eq,ord,show]
 
-val boolassign : ('term*bool) -> 'term*(_ t)
-val bassign : ?b:bool -> 'term -> 'term*(_ t)
+val hash_fold_t : ('v Ppx_hash_lib.Std.Hash.folder) ->
+                (('v, _) t) Ppx_hash_lib.Std.Hash.folder
+
+val hash_fold : ('b Ppx_hash_lib.Std.Hash.folder) ->
+                ('c Ppx_hash_lib.Std.Hash.folder) ->
+                ('b * ('c, _) t) Ppx_hash_lib.Std.Hash.folder

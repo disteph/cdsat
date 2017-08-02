@@ -10,15 +10,14 @@ open Sums
 open Interfaces_basic
 open Basic
 open Variables
-
+open Sassigns
+       
 (* Abbreviations *)
 
 module type Term = Terms.S with type leaf = FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
-
-type ('t,'v) sassign = 't termF * 'v Values.t
-
+                           
 module type DataType = Terms.DataType with type leaf := FreeVar.t
 
 
@@ -71,16 +70,16 @@ module type CValue = sig
   type value
   type t [@@deriving eq,ord,show,hash]
   val none: Sorts.t -> t
-  val inj : value Values.t -> t
-  val merge : t -> t -> (value Values.t*value Values.t,t) Sums.sum
+  val inj : value values -> t
+  val merge : t -> t -> (value values*value values,t) Sums.sum
 end
                        
 module type GlobalDS = sig
   module Term   : Term
   module Value  : PH
   module CValue : CValue with type value := Value.t
-  type bassign = Term.t * bool [@@deriving eq, ord, hash, show]
-  type sassign = Term.t * Value.t Values.t [@@deriving eq, hash, show]
+  type nonrec bassign = (Term.t,Value.t) bassign [@@deriving eq, ord, hash, show]
+  type nonrec sassign = (Term.t,Value.t) sassign [@@deriving eq, ord, hash, show]
   module Assign : Collection with type e = sassign
   module Msg : sig
     type ('sign,'b) t = ('sign,Assign.t*bassign,'b) Messages.message
@@ -95,8 +94,7 @@ type ('gts,'gv,'cv,'assign) globalDS
                       and type Value.t   = 'gv
                       and type CValue.t  = 'cv
                       and type Assign.t  = 'assign)
-
-                         
+  
 (* Extension thereof,
    that adds interfacing functions with theory-specific types for terms and values.
      proj can project the global term datatype into the theory-specific one ts
@@ -109,7 +107,7 @@ type _ has_values  = private HV
 type has_no_values = private HNV
        
 type (_,_,_) conv =
-  | HasVconv   : ('v -> 'gv) * ('cv -> 'v Values.t option) -> ('v has_values,'gv,'cv) conv
+  | HasVconv   : ('v -> 'gv) * ('cv -> 'v values option) -> ('v has_values,'gv,'cv) conv
   | HasNoVconv : (has_no_values,_,_) conv
 
 module type DSproj = sig
@@ -128,15 +126,17 @@ type ('ts,'v,'gts,'gv,'assign) dsProj
                     and type Value.t  = 'gv
                     and type Assign.t = 'assign)
 
+
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
 
 type (_,_) output =
    | Silence
    | Msg: ('s,'a*('t termF*bool),_) Messages.message -> ('s,'t*_*'a) output
-   | Try: ('t termF * 'v Values.t)                   -> (_,'t*'v*_) output
+   | Try: ('t termF, 'v) sassign              -> (_,'t*'v*_) output
 
 type ('s,'t,'v,'a) slot_machine_rec = {
-    add      : ('t termF * 'v Values.t) option -> ('s,'t*'v*'a) output * ('s,'t*'v*'a) slot_machine;
+    add      : ('t termF, 'v) sassign option
+               -> ('s,'t*'v*'a) output * ('s,'t*'v*'a) slot_machine;
     clone    : unit -> ('s,'t*'v*'a) slot_machine;
     suicide  : 'a -> unit
   }

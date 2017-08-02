@@ -5,6 +5,7 @@ open Top
 open Basic
 open Messages
 open Specs
+open Sassigns
 
 type sign = unit
 
@@ -94,7 +95,7 @@ module Make(DS: DSproj with type values = values
 
   let by = {
       cst = Assign.empty;
-      sgl = (fun term v -> Assign.singleton (term, Values.NonBoolean(vinj v)));
+      sgl = (fun term v -> Assign.singleton(SAssign(term, Values.NonBoolean(vinj v))));
       uni = Assign.union
     }      
 

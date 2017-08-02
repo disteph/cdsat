@@ -1,7 +1,8 @@
 open Top
 open Messages
 open Specs
-
+open Sassigns
+       
 type sign
 
 module type API = sig
@@ -14,7 +15,7 @@ module type API = sig
     | Sat   of (sign, assign*(termdata termF*bool),sat) message
     | Propa of (sign, assign*(termdata termF*bool),straight) message
 
-  val add: (termdata termF * value Values.t) -> state -> state
+  val add: (termdata termF, value) sassign -> state -> state
   val what_now: state -> output option * state
   val wondering: state -> TSet.t
   val init: state

@@ -5,6 +5,7 @@ open Patricia_tools
 
 open Top
 open Specs
+open Sassigns
 open Messages
 
 open Interfaces
@@ -21,7 +22,7 @@ module Make(DS: GlobalDS) = struct
   (* Sum type for terms+values *)
 
   module TermValue = struct
-    type t = (Term.t,Value.t Values.t) sum
+    type t = (Term.t,Value.t values) sum
                [@@deriving eq,ord,show,hash]                               
   end
                                            
@@ -45,7 +46,7 @@ module Make(DS: GlobalDS) = struct
                    end)
   module BCons = TypesFromHConsed(struct
                      type t = bassign
-                     let id (_,b) = if b then 0 else 1
+                     let id (_,Values.Boolean b) = if b then 0 else 1
                    end)
   module I = LexProduct(TCons)(BCons)
   module BMap = struct
@@ -104,12 +105,12 @@ module Make(DS: GlobalDS) = struct
 
     (* Generates equality inference *)
     let eq_inf j1 j2 =
-      let t1,v1 = j1 in
-      let t2,v2 = j2 in
+      let SAssign(t1,v1) = j1 in
+      let SAssign(t2,v2) = j2 in
       let justif = Assign.add j1 (Assign.singleton j2) in
       let eqterm = Term.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
-      let eqassign = eqterm,(Values.equal Value.equal v1 v2) in
-      Values.boolassign eqassign,
+      let eqassign = eqterm, Values.Boolean (Values.equal Value.equal v1 v2) in
+      eqassign,
       straight () justif eqassign
 
     let pp_path = List.pp (pp_sum pp_bassign pp_sassign)
@@ -121,14 +122,14 @@ module Make(DS: GlobalDS) = struct
         | j::tail ->
            match j, last with
            | Case1 bassign, None ->
-              aux propas (Assign.add (Values.boolassign bassign) assigns) tail
+              aux propas (Assign.add (SAssign bassign) assigns) tail
            | Case1 _, Some _ ->
               failwith(Dump.toString (fun p-> p "Path %a is ill-formed" pp_path path))
            | Case2 sassign, None ->
               aux ~last:sassign propas assigns tail
            | Case2 sassign1, Some sassign2 ->
               let j_eq, p = eq_inf sassign1 sassign2 in
-              aux (p::propas) (Assign.add j_eq assigns) tail
+              aux (p::propas) (Assign.add (SAssign j_eq) assigns) tail
       in
       aux [] Assign.empty path
 
@@ -183,7 +184,7 @@ module Make(DS: GlobalDS) = struct
            let path2 = path (Case1 t4) pc2 eg in
            let path  = List.rev_append path1 (j::path2) in
            let _,propa,assign = treatpath path in
-           let unsat_core = Assign.add (Values.boolassign j_neq) assign in
+           let unsat_core = Assign.add (SAssign j_neq) assign in
            raise(Conflict(propa, unsat () unsat_core))
         | None ->
            (* They were not declared different. Check whether their values can be merged *)
@@ -201,7 +202,7 @@ module Make(DS: GlobalDS) = struct
                  begin match j2 with
                  | Some j2 ->
                     let j_neq,p = eq_inf j1 j2 in
-                    let unsat_core = Assign.add j_neq assign in
+                    let unsat_core = Assign.add (SAssign j_neq) assign in
                     raise(Conflict(p::propa, unsat () unsat_core))
                  | _ -> failwith "Path does not finish on v2"
                  end
@@ -235,7 +236,7 @@ module Make(DS: GlobalDS) = struct
       let eg,pc2 = PC.get eg tv2 in
       if PC.equal pc1 pc2 then
         let _,propas,assigns = treatpath(path tv1 pc2 eg) in
-        let unsat_core = Assign.add (Values.boolassign j) assigns in
+        let unsat_core = Assign.add (SAssign j) assigns in
         raise(Conflict(propas, unsat () unsat_core))
       else
         let info1 = PC.get_info pc1 in
