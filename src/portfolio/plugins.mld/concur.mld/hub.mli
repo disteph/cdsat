@@ -12,6 +12,8 @@ module Make(WB: WhiteBoardExt) : sig
   val kill      : t -> unit
   (* Sending a message to all slaves *)
   val broadcast : t -> sassign -> chrono:int -> unit Deferred.t
+  (* Sending new shared terms to all slaves *)
+  val share     : t -> DS.TSet.t -> chrono:int -> unit Deferred.t
   (* Telling all slaves to kill themselves *)
   val suicide   : t -> Kernel.Top.Messages.unsat WB.t -> sassign -> unit Deferred.t
   (* The pipe reader on which the master thread must read *)

@@ -34,9 +34,14 @@ module Make(DS: GlobalDS) = struct
          Msg(sat () state.assign ~sharing:state.sharing ~myvars:state.myvars ),
          machine state
     in
+    let share tset = 
+      Print.print ["kernel.LRA",2] (fun p ->
+          p "kernel.LRA notified than %a are shared" TSet.pp tset);
+      Silence, machine state
+    in
     let clone () = machine state in
     let suicide _ = () in
-    Specs.SlotMachine { add; clone; suicide }
+    Specs.SlotMachine { add; share; clone; suicide }
 
   let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=TSet.empty }
   let clear () = ()

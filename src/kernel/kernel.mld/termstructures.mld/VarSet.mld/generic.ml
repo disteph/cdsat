@@ -12,8 +12,6 @@ end
              
 module IntSortSet = PatSet.Make(D)(TypesFromHConsed(IntSort))
 
-type t = IntSortSet.t
-
 (* module SortSet = Set.Make(Sorts) *)
 (* module SymbSet = Set.Make(Symbols) *)
            
@@ -23,10 +21,10 @@ module Make(S: sig
               end) =
   struct
 
-    type nonrec t = t
+    type t = IntSortSet.t
 
     let aux i so = IntSortSet.singleton(IntSort.build(i,so))
-    
+                                       
     let bV tag fv = aux tag (Variables.FreeVar.get_sort fv)
 
     let bC tag symb l =
@@ -34,7 +32,7 @@ module Make(S: sig
       then List.fold IntSortSet.union l IntSortSet.empty
       else let so,_ = Symbols.arity symb in
            aux tag so
-                            
+               
     let bB tag (_,termB,_) = aux tag (Top.Terms.TermB.get_sort termB)
 
   end

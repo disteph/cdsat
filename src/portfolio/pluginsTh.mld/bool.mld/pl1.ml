@@ -287,7 +287,12 @@ module Make(DS: GlobalImplem) = struct
                                                   watched= watched;
                                                   undetermined = undetermined } );
       in
-      
+
+      let share tset =
+        let kernel = K.share tset state.kernel in
+        speak machine { state with kernel }
+      in
+                                  
       let clone () = machine state in
 
       let suicide baset =
@@ -304,7 +309,7 @@ module Make(DS: GlobalImplem) = struct
               bump_value := !bump_value /. factor;
               since_last := 1)
 
-      in SlotMachine { add; clone; suicide }
+      in SlotMachine { add; share; clone; suicide }
 
                   
     let init = machine { kernel = K.init;

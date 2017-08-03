@@ -16,13 +16,14 @@ module type API = sig
     | Propa of (sign, assign*(termdata termF,value)bassign*tset,straight) message
 
   val add: (termdata termF, value) sassign -> state -> state
+  val share: tset -> state -> state
   val what_now: state -> output option * state
   val wondering: state -> tset
   val init: state
 end
 
 
-include Theory.Type with type ts = unit
+include Theory.Type with type ts = Termstructures.VarSet.Generic.IntSortSet.t
                      and type values = has_no_values
                      and type ('t,'v,'a,'s) api = (module API with type termdata = 't
                                                                and type value = 'v

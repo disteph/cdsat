@@ -5,12 +5,14 @@ open Patricia_tools
 open Sums       
 
 open Top
+open Basic
 open Messages
 open Specs
 open Sassigns
 open Termstructures.Literals
 open Termstructures.Clauses
-
+open Termstructures.VarSet.Generic
+       
 open API
        
 type sign = unit
@@ -50,6 +52,10 @@ module Make(DS: DSproj with type ts = ts) = struct
                todo = Assign.empty;
                sharing = TSet.empty;
                myvars  = TSet.empty }
+
+  let add_myvars term myvars =
+    let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
+    IntSortSet.fold aux (DS.proj(Terms.data term)).freevar myvars
 
   type interesting =
     | Falsified of (sign,unsat) Msg.t
@@ -106,8 +112,9 @@ module Make(DS: DSproj with type ts = ts) = struct
         p "kernel.bool receiving %a" pp_sassign sassign);
     let seen = Assign.add sassign state.seen in
     let SAssign((term,v) as bassign) = sassign in
+    let myvars = add_myvars term state.myvars in
     match v with
-    | Values.NonBoolean _ -> Some [], { state with seen = seen }
+    | Values.NonBoolean _ -> Some [], { state with seen; myvars }
     | Values.Boolean b ->
        let propas,todo =
          match cube bassign with
@@ -123,8 +130,13 @@ module Make(DS: DSproj with type ts = ts) = struct
             Some propas, todo
          | _ -> None, Assign.add sassign state.todo
        in
-       propas, { state with seen; todo }
-                            
+       propas, { state with seen; todo; myvars }
+
+  let share tset state = 
+    let sharing = TSet.union tset state.sharing in
+    let myvars = TSet.fold add_myvars tset state.myvars in
+    { state with sharing; myvars }
+    
 end
 
 type ('t,'v,'a,'s) api = (module API with type sign   = sign

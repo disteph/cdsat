@@ -32,7 +32,7 @@ module Make(WB: WhiteBoardExt)
   let rec flush ports unsat_msg l =
     let aux (incoming : egraph msg2th) =
       match incoming with
-      | MsgStraight _ | TheoryAsk _ -> flush ports unsat_msg l
+      | MsgStraight _ | MsgSharing _ | TheoryAsk _ -> flush ports unsat_msg l
 
       | MsgBranch(ports1,ports2) -> 
          Deferred.all_unit
@@ -53,6 +53,8 @@ module Make(WB: WhiteBoardExt)
       match msg with
       | MsgStraight(sassign,chrono)
         -> loop_write (egraph.add sassign) chrono ports
+      | MsgSharing(tset,chrono)
+        -> loop_read (egraph.share tset) ports
       | TheoryAsk(address,tv)
         -> let nf,cval,distinct,egraph = egraph.ask tv in
            Deferred.all_unit
@@ -71,7 +73,7 @@ module Make(WB: WhiteBoardExt)
   and loop_write output chrono ports =
 
     let hhdl = Some Handlers.Eq in
-    let msg_make msg = Msg(hhdl,Say(WB.stamp_Eq msg),chrono) in
+    let msg_make msg = Msg(hhdl,Say(WB.sign_Eq msg),chrono) in
 
     Dump.print ["egraph",1] (fun p-> p "E-graph looks at its output_msg");
 

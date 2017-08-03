@@ -14,13 +14,14 @@ module Make(WB: WhiteBoardExt) = struct
   open WB
   open DS
 
-  let add     (SlotMachine{add}) = add
-  let clone   (SlotMachine{clone}) = clone()
+  let add     (SlotMachine{add})     = add
+  let sharing (SlotMachine{share})   = share
+  let clone   (SlotMachine{clone})   = clone()
   let suicide (SlotMachine{suicide}) = suicide
 
   let rec flush ports msg =
     let aux = function
-      | MsgStraight _ | Infos _ -> flush ports msg
+      | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
       | MsgBranch(ports1,ports2) -> 
          Deferred.all_unit
            [
@@ -38,8 +39,10 @@ module Make(WB: WhiteBoardExt) = struct
     let aux msg =
       Dump.print ["worker",1] (fun p-> p "%a reads %a" Tags.pp hdl pp_msg2th msg);
       match msg with
-      | MsgStraight(tset,chrono)
-        -> loop_write hdl (add cont (Some tset)) chrono ports
+      | MsgStraight(sassign,chrono)
+        -> loop_write hdl (add cont (Some sassign)) chrono ports
+      | MsgSharing(tset,chrono)
+        -> loop_write hdl (sharing cont tset) chrono ports
       | Infos _
         -> loop_read hdl cont ports
       | MsgBranch(ports1,ports2)
@@ -70,7 +73,7 @@ module Make(WB: WhiteBoardExt) = struct
 
     | Msg msg ->
        Dump.print ["worker",1] (fun p-> p "%a: Message %a" Tags.pp hdl Msg.pp msg);
-       let msg2pl = Msg(hhdl,Say(WB.stamp hdl msg),chrono) in
+       let msg2pl = Msg(hhdl,Say(WB.sign hdl msg),chrono) in
        Deferred.all_unit
          [
            Lib.write ports.writer msg2pl ;

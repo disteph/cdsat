@@ -77,5 +77,6 @@ module type API = sig
               state ->
               (sign,assign*bassign*tset,straight) message list option
               * state
+  val share : tset -> state -> state
   val clear: unit -> unit
 end

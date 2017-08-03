@@ -29,6 +29,7 @@ module type Collection = sig
   val union: t -> t -> t
   val inter: t -> t -> t
   val diff: t -> t -> t
+  val filter: (e -> bool) -> t -> t
   val is_empty : t -> bool
   val mem      : e -> t -> bool
   val equal    : t -> t -> bool

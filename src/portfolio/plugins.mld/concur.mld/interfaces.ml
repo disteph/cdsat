@@ -17,7 +17,7 @@ module type Extra = sig
   type assign
   type tset
   type cval
-  type _ t (* WB messages *)
+  type _ t      (* WB's main type *)
 
   (* Useful type abbreviations *)
   type datatypes = termdata*value*assign*tset
@@ -48,6 +48,7 @@ module type Extra = sig
      | RegularPorts: (term,vvalue) sum Pipe.Writer.t -> regular eports
    and _ msg2th =
      | MsgStraight : sassign*int         ->  _ msg2th
+     | MsgSharing  : tset*int            ->  _ msg2th
      | MsgBranch   : 'a ports * 'a ports -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
@@ -85,6 +86,8 @@ module type WhiteBoard4Master = sig
     val kill      : t -> unit
     (* Sending a message to all slaves *)
     val broadcast : t -> WBE.sassign -> chrono:int -> unit Deferred.t
+    (* Sending new shared terms to all slaves *)
+    val share     : t -> WBE.DS.TSet.t -> chrono:int -> unit Deferred.t
     (* Telling all slaves to kill themselves *)
     val suicide   : t -> unsat WBE.t -> WBE.sassign -> unit Deferred.t
     (* The pipe reader on which the master thread must read *)

@@ -62,7 +62,7 @@ let init
                        Assign.pp (Assign.diff assign problem)));
              NotAnsweringProblem)    
                     
-       | Case2(WB.WB(_,Sat { assign }) as msg) ->
+       | Case2(WB.(Checked(WB(_,Sat { assign }) as msg))) ->
           if Assign.subset problem assign then SAT msg
           else
             (print_endline(

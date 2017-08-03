@@ -73,7 +73,7 @@ module MakePATCollection(M: PHCons) = struct
   module Arg = struct
     include M
     include EmptyInfo
-    let treeHCons  = Some M.id
+    let treeHCons = Some M.id
   end
 
   module I = TypesFromHConsed(M)

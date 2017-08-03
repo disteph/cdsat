@@ -27,12 +27,14 @@ module Make(DS: GlobalImplem) = struct
           | None -> get state
           | Some sassign -> get(K.add sassign state)
         in
+
+        let share tset = Silence, machine(K.share tset state) in
         
         let clone () = machine state in
 
         let suicide _ = () in
 
-        SlotMachine {add; clone; suicide }
+        SlotMachine {add; share; clone; suicide }
 
       in
       { PluginTh.init = machine K.init;

@@ -10,9 +10,10 @@ end
                    
 let fail_state =
   let add _ = failwith "Are you dumb? I already told you it was provable" in
-  let clone = add in
+  let share   = add in
+  let clone   = add in
   let suicide = add in
-  Specs.SlotMachine { add; clone; suicide }
+  Specs.SlotMachine { add; share; clone; suicide }
                    
 module Pairing(B1: DataType)(B2: DataType)
        : (DataType with type t = B1.t*B2.t) =

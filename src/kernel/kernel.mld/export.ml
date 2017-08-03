@@ -30,13 +30,18 @@ module type WhiteBoard = sig
 
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
   val pp       : Format.formatter -> 'a t -> unit
-  val stamp    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
-  val stamp_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
-  val sat_init : Assign.t -> sat t
-  val sat      : sat t -> sat t -> sat t
+
+  val sign    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
+  val sign_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
+
   val unsat    : straight t -> unsat t
   val resolve  : straight t -> 'b propa t -> 'b propa t
   val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
+
+  type sat4all = private Checked of sat t [@@unboxed]
+
+  val sat_init : Assign.t -> sharing:TSet.t -> sat4all
+  val sat      : sat t -> sat4all -> (sat4all,TSet.t)sum
 end
 
 type (_,_) proj =
@@ -68,5 +73,5 @@ module type APIext = sig
               | UNSAT of unsat WB.t
               | SAT of sat WB.t
               | NotAnsweringProblem
-  val answer : (unsat WB.t, sat WB.t) sum -> answer
+  val answer : (unsat WB.t, WB.sat4all) sum -> answer
 end

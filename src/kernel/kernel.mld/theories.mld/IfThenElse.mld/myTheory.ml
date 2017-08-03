@@ -1,18 +1,21 @@
 open Top
+open Basic
 open Messages
 open Specs
 open Sassigns
        
-open Termstructures.Literals
+open Termstructures
+open Literals
 
 type sign = unit
 
-type ts = unit
-let ts  = Termstructures.Register.NoRep
+(* We are using VarSets as alternative term representations *)
+type ts = VarSet.Generic.IntSortSet.t
+let ts = Termstructures.Register.VarSetBV
 
 include Theory.HasNoValues
 
-module Make(DS: DSproj) = struct
+module Make(DS: DSproj with type ts = ts) = struct
 
   open DS
 
@@ -24,23 +27,26 @@ module Make(DS: DSproj) = struct
   module TMap = Map.Make(Term)
 
   type state = { treated: Assign.t;
-                 known: bool TMap.t;
-                 todo: Term.t list;
-                 solved: TSet.t;
+                 known  : bool TMap.t;
+                 todo   : Term.t list;
+                 solved : TSet.t;
                  wondering: TSet.t;
-                 sharing : TSet.t;
+                 sharing: TSet.t;
                  myvars : TSet.t }
 
+  let add_myvars term myvars =
+    let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
+    VarSet.Generic.IntSortSet.fold aux (DS.proj(Terms.data term)) myvars
+
   let add ((SAssign(t,v)) as nl) state =
-    {
-      state with
+    { state with
       treated = Assign.add nl state.treated;
       known   =
         (match v with
          | Values.Boolean b -> TMap.add t b state.known
          | Values.NonBoolean _ -> state.known);
       todo    = t::state.todo;
-    }
+      myvars  = add_myvars t state.myvars }
 
   type output =
     | Sat   of (sign,sat) Msg.t
@@ -84,6 +90,11 @@ module Make(DS: DSproj) = struct
 
   let wondering state = state.wondering
 
+  let share tset state =
+    let sharing = TSet.union tset state.sharing in
+    let myvars = TSet.fold add_myvars tset state.myvars in
+    { state with sharing; myvars }
+
   let init = { treated = Assign.empty;
                known = TMap.empty;
                todo = [];
@@ -105,6 +116,7 @@ module type API = sig
     | Propa of (sign, assign*(termdata termF,value)bassign*tset,straight) message
 
   val add: (termdata termF, value) sassign -> state -> state
+  val share: tset -> state -> state
   val what_now: state -> output option * state
   val wondering: state -> tset
   val init: state

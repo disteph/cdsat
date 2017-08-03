@@ -2,6 +2,7 @@ open General
 open Sums
 
 open Top
+open Basic
 open Specs
 open Sassigns
 open Messages
@@ -10,15 +11,10 @@ open Interfaces
        
 type sign = unit
 
-(* The EGraph doesn't add its own kind of values, it uses the other theories' *)
-include Theory.HasNoValues
-
-(* The EGraph does not need alterative term representations *)
-type ts = unit
-let ts = Termstructures.Register.NoRep
-
+(* As alternative term representation, we only use the free vars *)
+type ts = Termstructures.VarSet.Generic.IntSortSet.t
                     
-module Make(DS: GlobalDS) = struct
+module Make(DS: sig include GlobalDS val proj : Term.datatype -> ts end) = struct
 
   open DS
   include Egraph.Make(DS)
@@ -58,27 +54,31 @@ module Make(DS: GlobalDS) = struct
     | UNSAT of stop
     | SAT of (sign, sat) Msg.t * self
 
-   and self = {
-       add : sassign -> output;
-       ask : ?subscribe:bool
-             -> (termdata termF, value Sassigns.values) sum
-             -> (termdata termF)
-                * cval
-                * (unit -> cval list)
-                * self
-     }
+   and self = { add : sassign -> output;
+                share : tset -> self;
+                ask : ?subscribe:bool
+                      -> (termdata termF, value Sassigns.values) sum
+                      -> (termdata termF)
+                         * cval
+                         * (unit -> cval list)
+                         * self }
                 
   type state = { egraph : EG.t;
                  treated: Assign.t;
                  sharing : TSet.t;
                  myvars  : TSet.t }
 
+  let add_myvars term myvars =
+    let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
+    Termstructures.VarSet.Generic.IntSortSet.fold aux (DS.proj(Terms.data term)) myvars
+                 
   let rec machine state =
 
     let add sassign =       
       Print.print ["kernel.egraph",1] (fun p->
           p "kernel.egraph adds %a" pp_sassign sassign);
       let SAssign(term,value) = sassign in
+      let myvars = add_myvars term state.myvars in
       let treated = Assign.add sassign state.treated in
       try
         let egraph,info,tvset =
@@ -103,7 +103,7 @@ module Make(DS: GlobalDS) = struct
         Print.print ["kernel.egraph",1] (fun p->
             p "kernel.egraph is fine with %a" Assign.pp treated);
         SAT(sat () treated ~sharing:state.sharing ~myvars:state.myvars,
-            machine { state with egraph; treated })
+            machine { state with egraph; treated; myvars })
       with
         EG.Conflict(propa,conflict) ->
         Print.print ["kernel.egraph",1] (fun p->
@@ -113,6 +113,12 @@ module Make(DS: GlobalDS) = struct
         UNSAT(propa,conflict)
     in
 
+    let share tset =
+      let sharing = TSet.union tset state.sharing in
+      let myvars = TSet.fold add_myvars tset state.myvars in
+      machine { state with sharing; myvars }
+    in
+      
     let ask =
       let ask ?subscribe tv =
         let info,egraph = EG.ask ?subscribe tv state.egraph in
@@ -122,7 +128,7 @@ module Make(DS: GlobalDS) = struct
         machine { state with egraph }
       in ask
 
-    in { add; ask }
+    in { add; share; ask }
 
   let init = machine { egraph  = EG.init;
                        treated = Assign.empty;

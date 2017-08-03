@@ -103,8 +103,7 @@ module Value_add(V : PH)(Vold : VValue) =
       (fun ov -> f(Case2 ov)),
       (fun cv -> snd(g cv)),
       HasVconv((fun nv -> f(Case1 nv)),pr),
-      fun hdl
-          (module Proj : Proj with type cvalue = cv cval)
+      fun hdl (module Proj : Proj with type cvalue = cv cval)
       ->
       (module struct
          type cvalue = cv cval
@@ -194,7 +193,7 @@ let theory_add (type tva sign ts values api)
 
        module VV = Vplus
                      
-       let tsHandlers  = tsHandlers
+       let tsHandlers = tsHandlers
        let modules (type gts gv cv a s)
              proj
              f
@@ -290,7 +289,7 @@ end
 
 module Make(State:State) = struct
 
-  module DT = State.DT
+  module DT = Tools.Pairing(Termstructures.VarSet.Eq)(State.DT)
 
   module DS = struct
 
@@ -372,6 +371,7 @@ module Make(State:State) = struct
       let union = M.union
       let inter = M.inter
       let diff  = M.diff
+      let filter p = M.filter (fun e -> p(SAssign.reveal e))
       let is_empty = M.is_empty
       let mem e t = M.mem (SAssign.build e) t
       let equal = M.equal
@@ -383,8 +383,6 @@ module Make(State:State) = struct
       let id = M.id
     end
 
-    let makes_sense t = MakesSense.check(snd(fst(Terms.data t)))
-
     module Msg = struct
       type ('sign,'b) t = ('sign,Assign.t*bassign*TSet.t,'b) message
       let pp fmt = print_msg_in_fmt Assign.pp pp_bassign TSet.pp fmt
@@ -392,7 +390,7 @@ module Make(State:State) = struct
 
   end
 
-  module EGraph = Eq.MyTheory.Make(DS)
+  module EGraph = Eq.MyTheory.Make(struct include DS let proj = fst end)
 end
 
   
@@ -426,33 +424,22 @@ let make theories : (module API) =
                         HandlersMap.pp hdls
                         Msg.pp msg
          | Sat assign -> Format.fprintf fmt "%a declares %a"
-                        HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
-                        Msg.pp msg
+                           HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
+                           Msg.pp msg
 
-       let sat_init assign =
-         WB(theoriesWeq, Messages.sat () assign ~sharing:TSet.empty ~myvars:TSet.empty)
-                               
-       let sat
-             (WB(rest1, Sat{assign=assign1; sharing=sharing1; myvars=myvars1}))
-             (WB(rest2, Sat{assign=assign2; sharing=sharing2; myvars=myvars2})) =
-         if Assign.equal assign1 assign2
-         then WB(HandlersMap.inter rest1 rest2,
-                 sat () assign1 ~sharing:sharing1 ~myvars:myvars1)
-         else failwith "Theories disagree on model"
-
-       let check hdl = if HandlersMap.mem (Handlers.Handler hdl) theoriesWeq then ()
-                       else failwith "Using a theory that is not allowed"
-
-       let stamp (type b) (hdl: (_*('a*_*_*_)) Tags.t) : ('a,b) Msg.t -> b t = function
+       let sign hdl (type a) : (_,a) Msg.t -> a t =
+         let hdl = Handlers.Handler hdl in
+         function
          | Propa(assign,o) ->
-            check hdl;
-            WB(HandlersMap.singleton (Handlers.Handler hdl) (),
-               Messages.propa () assign o)
+            if HandlersMap.mem hdl theories
+            then WB(HandlersMap.singleton hdl (),
+                    Messages.propa () assign o)
+            else failwith "Using a theory that is not allowed"
          | Sat{ assign; sharing; myvars } ->
-            WB(HandlersMap.remove (Handlers.Handler hdl) theoriesWeq,
+            WB(HandlersMap.remove hdl theoriesWeq,
                Messages.sat () assign ~sharing ~myvars)
-
-       let stamp_Eq (type b) : (Eq.MyTheory.sign,b) Msg.t -> b t = function
+            
+       let sign_Eq (type a) : (_,a) Msg.t -> a t = function
          | Propa(assign,o) ->
             WB(HandlersMap.singleton Handlers.Eq (),
                Messages.propa () assign o)
@@ -460,13 +447,14 @@ let make theories : (module API) =
             WB(HandlersMap.remove Handlers.Eq theoriesWeq,
                Messages.sat () assign ~sharing ~myvars)
 
+
        let resolve
              (WB(hdls1,Propa(oldset,Straight bassign)))
              (WB(hdls2,Propa(thset,o)))
          =
          let res = Assign.remove (SAssign bassign) thset in
          WB(HandlersMap.union hdls1 hdls2,
-            propa () (Assign.union res oldset) o)
+            Messages.propa () (Assign.union res oldset) o)
            
        let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
          WB(hdls,Propa(Assign.add (SAssign(negation(t, b))) thset,Unsat))
@@ -494,10 +482,38 @@ let make theories : (module API) =
          in
          let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
          WB(hdls,Propa(thset, Straight(rhs,Values.Boolean b)))
+              
+
+       type sat4all = Checked of sat t [@@unboxed]
+
+       let sat_init assign ~sharing =
+         Checked(WB(theoriesWeq, Messages.sat () assign ~sharing ~myvars:TSet.empty))
+
+       let isnt_var t = match Terms.reveal t with
+         | Terms.V _ -> false
+         | _ -> true
+                  
+       let sat
+             (WB(rest',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
+             (Checked(WB(rest, Sat{assign; sharing; myvars}))) =
+         if Assign.equal assign assign' && TSet.equal sharing sharing'
+         then
+           let newvars   = TSet.diff myvars' sharing in
+           let novars    = TSet.filter isnt_var newvars in
+           let newshared = TSet.union novars (TSet.inter newvars myvars) in
+           if TSet.is_empty newshared
+           then
+             let myvars = TSet.union newvars myvars in
+             Case1(Checked(WB(HandlersMap.inter rest rest',
+                              sat () assign ~sharing ~myvars)))
+           else Case2 newshared
+         else failwith "Theories disagree on model"
+
+
 
      end
 
-     let th_modules,vproj = State.modules (fun x->x) (fun x->x) (fun x->x) (module DS)
+     let th_modules,vproj = State.modules snd (fun x->x) (fun x->x) (module DS)
 
      module VProj = (val vproj)
      let vproj = VProj.proj

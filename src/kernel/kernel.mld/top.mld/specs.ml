@@ -29,39 +29,13 @@ module type DataType = Terms.DataType with type leaf := FreeVar.t
    support set of a model structure)
 
    Every symbol is interpreted as a function taking a certain number
-   of arguments in t, and producing an object in t.
-
-   Type leaf is the type of objects implementing "variables"; the type
-   will be imposed at some point as the type of bound variables, or
-   the type of eigen-variables + meta-variables. Should be castable in
-   type t with function leaf.
-
-   Like any other objects, propositions are implemented as inhabitants
-   of type t, but there is a type form to which they can be exported;
-   the type will be imposed as the type of formulae (see later).
-   Function toForm is expected to raise a ModelError if called on an
-   inhabitant of t that is not representing a proposition.
-*)
+   of arguments in t, and producing an object in t. *)
 
 module type ForParsing = sig
   type t
   val bC: Symbols.t -> t list -> t
   val bV: BoundVar.t -> t
 end
-
-
-(* (\* Module of constraints that meta-variables may be subject *)
-(*    to. Constraints are produced when closing a branch, and are *)
-(*    propagated through the other open branches of the proof. *)
-(*  *\) *)
-
-(* module type Constraint = sig *)
-(*   type t [@@deriving ord,show] *)
-(*   val topconstraint:t *)
-(*   val proj : t -> t *)
-(*   val lift : World.t -> t -> t *)
-(*   val meet : t -> t -> t option *)
-(* end *)
 
 (* This module type is for implementations of the global datastructures
    for the combination of theory modules *)
@@ -73,7 +47,7 @@ module type CValue = sig
   val inj : value values -> t
   val merge : t -> t -> (value values*value values,t) Sums.sum
 end
-                       
+
 module type GlobalDS = sig
   module Term   : Term
   module Value  : PH
@@ -142,6 +116,9 @@ type (_,_) output =
 type (_,_) slot_machine =
   SlotMachine : {
       add     : ('t termF, 'v) sassign option
+                -> ('s,'t*'v*'a*'tset) output
+                   * ('s,'t*'v*'a*'tset) slot_machine;
+      share   : 'tset
                 -> ('s,'t*'v*'a*'tset) output
                    * ('s,'t*'v*'a*'tset) slot_machine;
       clone   : unit -> ('s,'t*'v*'a*'tset) slot_machine;

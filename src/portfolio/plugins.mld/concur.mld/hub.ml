@@ -108,6 +108,10 @@ module Make(WB: WhiteBoardExt) = struct
     let msg = MsgStraight(sassign,chrono) in
     send hub msg msg
 
+  let share hub tset ~chrono =
+    let msg = MsgSharing(tset,chrono) in
+    send hub msg msg
+
   let suicide hub msg a =
     let msg = KillYourself(msg,a) in
     send hub msg msg

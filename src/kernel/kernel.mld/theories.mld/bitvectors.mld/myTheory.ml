@@ -35,7 +35,7 @@ include Theory.HasValues(V)
 
 (* We are using VarSets as alternative term representations *)
 type ts = Termstructures.VarSet.Generic.IntSortSet.t
-let ts = Termstructures.Register.BV
+let ts = Termstructures.Register.VarSetBV
 
 module Make(DS: DSproj with type values = values
                         and type ts = ts) = struct
