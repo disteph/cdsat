@@ -35,6 +35,7 @@ The reason it was added to it was either:
 
   val level : t -> int
   val chrono: t -> int
+  val chrono_incr: t -> t
   val init  : t
   val add   : nature:nature -> sassign -> t -> t option
   val analyse : t             (* the trail *)

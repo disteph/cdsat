@@ -22,5 +22,5 @@ open General.Sums
 module Make(WBEH: WhiteBoard4Master) : sig
   open WBEH
   open WBE
-  val master : H.t -> DS.Assign.t -> (unsat t, sat4all) sum Deferred.t
+  val master : H.t -> DS.Assign.t -> (unsat t, sat_ans) sum Deferred.t
 end

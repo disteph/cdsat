@@ -102,7 +102,7 @@ module type API = sig
              * self
 
    and self = { add : sassign -> output;
-                share : tset -> self;
+                share :  tset -> output;
                 ask : ?subscribe:bool
                       -> (termdata termF,value values) sum
                       -> (termdata termF)

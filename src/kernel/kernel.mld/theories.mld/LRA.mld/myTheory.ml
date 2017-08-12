@@ -19,7 +19,7 @@ module Make(DS: GlobalDS) = struct
 
   type state = { assign : Assign.t;
                  sharing: TSet.t;
-                 myvars : TSet.t }
+                 myvars : TSet.t Lazy.t }
                                            
   let rec machine state =
     let add = function
@@ -43,7 +43,7 @@ module Make(DS: GlobalDS) = struct
     let suicide _ = () in
     Specs.SlotMachine { add; share; clone; suicide }
 
-  let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=TSet.empty }
+  let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
   let clear () = ()
                    
 end

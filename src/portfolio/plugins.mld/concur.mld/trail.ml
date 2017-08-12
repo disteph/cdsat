@@ -60,13 +60,11 @@ The reason it was added to the trail was either:
 - is_uip: is true iff this assignment is a UIP
  *)
 
-  type max = {
-      level : int;
-      chrono : int;
-      sassign: unit -> sassign;
-      nature : unit -> nature;
-      is_uip : unit -> bool;
-    }
+  type max = { level : int;
+               chrono : int;
+               sassign: unit -> sassign;
+               nature : unit -> nature;
+               is_uip : unit -> bool; }
 
   module DestWInfo = struct
     include SAssign
@@ -75,22 +73,18 @@ The reason it was added to the trail was either:
 
     let info_build = {
 
-        empty_info  = {
-          level = -1;
-          chrono = -1;
-          sassign=  (fun()->failwith "Empty Trail");
-          nature = (fun()->failwith "Empty Trail");
-          is_uip = (fun()->failwith "Empty Trail");
-        };
+        empty_info  = { level = -1;
+                        chrono = -1;
+                        sassign=  (fun()->failwith "Empty Trail");
+                        nature = (fun()->failwith "Empty Trail");
+                        is_uip = (fun()->failwith "Empty Trail"); };
 
         leaf_info = (fun x (i,j,v) ->
-          {
-            level = i;
+          { level = i;
             chrono = j;
             sassign= (fun()-> SAssign.reveal x);
             nature = (fun()-> v);
-            is_uip = (fun()-> true);
-          }
+            is_uip = (fun()-> true); }
         );
 
         branch_info = (fun a b ->
@@ -131,7 +125,8 @@ The reason it was added to the trail was either:
   (* Now we define the type for trails *)
                         
   type t = {
-      map : TrailMap.t; (* It contains a trail map *)
+      map : TrailMap.t;  (* It contains a trail map *)
+      last_chrono : int;
       late : (straight WB.t * int * int) list
       (* List of late propagations (head is the latest one),
          each represented as (msg,level,actual_level),
@@ -144,7 +139,10 @@ The reason it was added to the trail was either:
   let level trail = (TrailMap.info trail.map).level
 
   (* Extracts the latest timestamp of the trail *)
-  let chrono trail = (TrailMap.info trail.map).chrono
+  let chrono trail = trail.last_chrono
+
+  (* Increment next timestamp *)
+  let chrono_incr trail = { trail with last_chrono = trail.last_chrono+1 }
 
   (* Constructs the list of propagations A1::...::An::msg
      where A1,...,An are the propagations of level <= i
@@ -159,10 +157,9 @@ The reason it was added to the trail was either:
     aux seed trail.late
 
   (* Empty trail *)
-  let init = {
-      map = TrailMap.empty;
-      late = []
-    }
+  let init = { map = TrailMap.empty;
+               last_chrono = 0;
+               late = [] }
 
   let is_contradicting (SAssign pair) trail =
     match pair with
@@ -182,21 +179,23 @@ The reason it was added to the trail was either:
           p "Trail adding %a at level %i and chrono %i as %a"
             pp_sassign sassign
             level
-            (infos.chrono+1)
+            (trail.last_chrono+1)
             pp_nature nature);
       TrailMap.add
         (SAssign.build sassign)
         (function
-         | None -> level,infos.chrono+1,nature
+         | None -> level,trail.last_chrono,nature
          | Some triple -> triple)
         trail.map
     in
     match nature with
-    | Input -> Some { trail with map = map 0 }
+    | Input -> Some { trail with map = map 0;
+                                 last_chrono = trail.last_chrono+1 }
     | Decision ->
        begin match is_contradicting sassign trail with
        | Some sassign_neg -> None
-       | None -> Some { trail with map = map (infos.level+1) }
+       | None -> Some { trail with map = map (infos.level+1);
+                                   last_chrono = trail.last_chrono+1 }
        end
     | Deduction msg ->
        begin match is_contradicting sassign trail with
@@ -206,9 +205,11 @@ The reason it was added to the trail was either:
           if level < infos.level (* Late propagation ! *)
           then 
             Some { map  = map level;
-                   late = (msg,infos.level,level)::trail.late }
+                   late = (msg,infos.level,level)::trail.late;
+                   last_chrono = trail.last_chrono+1 }
           else
-            Some { trail with map = map level }
+            Some { trail with map = map level;
+                              last_chrono = trail.last_chrono+1  }
        end
            
                                                              

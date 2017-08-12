@@ -32,7 +32,7 @@ module Make(DS: DSproj with type ts = ts) = struct
                  solved : TSet.t;
                  wondering: TSet.t;
                  sharing: TSet.t;
-                 myvars : TSet.t }
+                 myvars : TSet.t Lazy.t }
 
   let add_myvars term myvars =
     let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
@@ -46,7 +46,7 @@ module Make(DS: DSproj with type ts = ts) = struct
          | Values.Boolean b -> TMap.add t b state.known
          | Values.NonBoolean _ -> state.known);
       todo    = t::state.todo;
-      myvars  = add_myvars t state.myvars }
+      myvars  = lazy(add_myvars t (Lazy.force state.myvars)) }
 
   type output =
     | Sat   of (sign,sat) Msg.t
@@ -92,16 +92,16 @@ module Make(DS: DSproj with type ts = ts) = struct
 
   let share tset state =
     let sharing = TSet.union tset state.sharing in
-    let myvars = TSet.fold add_myvars tset state.myvars in
+    let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
     { state with sharing; myvars }
 
   let init = { treated = Assign.empty;
-               known = TMap.empty;
-               todo = [];
-               solved = TSet.empty;
+               known   = TMap.empty;
+               todo    = [];
+               solved  = TSet.empty;
                wondering = TSet.empty;
                sharing = TSet.empty;
-               myvars  = TSet.empty }
+               myvars  = lazy TSet.empty }
                
 end
 

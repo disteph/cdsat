@@ -65,7 +65,7 @@ let run parser input =
        (* RUNNING PSYCHE *)
        
        let answer = P.solve() in
-       P.clear();
+       if !clear4each then P.clear();
        print_endline(
            match K.expected, answer with
 	   |None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
@@ -94,7 +94,7 @@ let run parser input =
      let ans =
        match r with
        | K.UNSAT assign -> Some(Dump.toString (fun p->p "%a" K.WB.pp assign))
-       | K.SAT assign   -> Some(Dump.toString (fun p->p "%a" K.WB.pp assign))
+       | K.SAT assign -> Some(Dump.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
        | K.NotAnsweringProblem -> None
      in
      Dump.display := display;

@@ -45,7 +45,7 @@ let init
 
      type answer =
        | UNSAT of unsat WB.t
-       | SAT of sat WB.t
+       | SAT of WB.DS.Assign.t
        | NotAnsweringProblem
 
      let answer =
@@ -62,14 +62,19 @@ let init
                        Assign.pp (Assign.diff assign problem)));
              NotAnsweringProblem)    
                     
-       | Case2(WB.(Checked(WB(_,Sat { assign }) as msg))) ->
-          if Assign.subset problem assign then SAT msg
+       | Case2(WB.Done(assign,sharing)) ->
+          if Assign.subset problem assign then SAT assign
           else
             (print_endline(
                  Dump.toString (fun p->
                      p "You said %a but this ignores hypotheses %a"
-                       pp msg
+                       Assign.pp assign
                        Assign.pp (Assign.diff problem assign)));
              NotAnsweringProblem)
+
+       | Case2 _ ->
+          print_endline(Dump.toString (fun p->
+                            p "Errr... not all theories agree on model"));
+          NotAnsweringProblem
 
    end : Export.APIext)

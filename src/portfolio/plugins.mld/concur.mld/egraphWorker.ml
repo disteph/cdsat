@@ -54,7 +54,7 @@ module Make(WB: WhiteBoardExt)
       | MsgStraight(sassign,chrono)
         -> loop_write (egraph.add sassign) chrono ports
       | MsgSharing(tset,chrono)
-        -> loop_read (egraph.share tset) ports
+        -> loop_write (egraph.share tset) chrono ports
       | TheoryAsk(address,tv)
         -> let nf,cval,distinct,egraph = egraph.ask tv in
            Deferred.all_unit

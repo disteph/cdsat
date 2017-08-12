@@ -64,7 +64,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     | None ->
        Print.print ["concur",2]
-         (fun p-> p "Want to hear from %a" AS.pp state.waiting4);
+         (fun p-> p "Want to hear from %a at chrono %i"
+                    AS.pp state.waiting4 (T.chrono state.trail));
        match state.decision with
        | Some thmsg when AS.is_empty state.waiting4 ->
           return(thmsg, { state with decision = None } )
@@ -88,7 +89,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
                 select_msg { state with decision = Some msg }
              | Say m ->
                 Print.print ["concur",2] (fun p->
-                    p "Hearing from %a, and buffering:\n %a" Agents.pp agent WBE.pp m);
+                    p "Hearing from %a at chrono %i, and buffering:\n %a"
+                      Agents.pp agent chrono WBE.pp m);
                 select_msg { state with messages = Pqueue.push msg state.messages }
 
   (* Main loop of the master thread *)
@@ -110,29 +112,29 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* This is a branching point where we tell all slave workers:
               "Please, clone yourself; here are the new pipes to be used
               for your clone to communicate with me." *)
-
           H.clone state.hub >>= fun (hub1,hub2) ->
-
           H.kill state.hub;
-          (* Once all slave workers have cloned themselves,
-              we add sassign to treat the first branch.
-              When that finishes with answer ans, we output ans and a thunk to
-              trigger the exploration of the second branch. *)
-
+          (* Once all slave workers have cloned themselves, we treat the first branch. *)
           Print.print ["concur",1] (fun p ->
               p "Everybody cloned themselves; now starting first branch");
 
+          let assign1   = DS.Assign.add sassign current.assign in
+          let current1  = sat_init assign1 ~sharing:current.sharing in
           let newstate1 = { state with
                             hub      = hub1;
                             waiting4 = AS.all;
                             trail }
           in
+          (* In the first branch, we broadcast the guess *)
           H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
-          master_loop current newstate1 >>= fun ans1 ->
+          (* First recursive call *)
+          master_loop current1 newstate1 >>= fun ans ->
+          (* Killing the pipes used in the first recursive call *)
           H.kill hub1;
-          begin match ans1 with
-          | Case1(Case2(level,msg_list)) when level=T.level state.trail
-            ->
+          (* We analyse the answer ans of the recursive call,
+             and decide whether to treat the second branch or to backjump further. *)
+          begin match ans with
+          | Case1(Case2(level,msg_list)) when level=T.level state.trail ->
              Print.print ["concur",0] (fun p -> 
                  p "Backtrack level: %i, Propagations:\n %a"
                    (T.level state.trail)
@@ -147,7 +149,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              in
              master_loop current newstate2
                          
-          | _ -> H.kill hub2; return ans1
+          | _ -> H.kill hub2; return ans
           end
        end         
 
@@ -156,50 +158,6 @@ module Make(WB4M: WhiteBoard4Master) = struct
        Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
        match msg with
          
-       | Sat{ assign; sharing } -> 
-          (* A theory found a counter-model newtset. If it is the
-                same as the current one, then it means the theory has stamped the
-                model for which we were collecting stamps. If not, now
-                all other theories need to stamp newtset. *)
-
-          let Checked(WB(_,Sat{assign=assign_ref; sharing=sharing_ref })) = current in
-          let combi =
-            if DS.Assign.equal assign_ref assign && DS.TSet.equal sharing_ref sharing
-            then 
-              (Print.print ["concur",3] (fun p -> p "Matches previous model");
-               sat thmsg current)
-            else if DS.Assign.subset assign_ref assign && DS.TSet.subset sharing_ref sharing
-            then
-              ( Print.print ["concur",3] (fun p -> p "Fuller model");
-                sat thmsg (sat_init assign ~sharing))
-            else
-              (Print.print ["concur",3] (fun p -> p "Strange model");
-               Case1 current)                   
-          in
-          begin match combi with
-          | Case1(Checked(WB(rest, Sat{ assign })) as current) ->
-             if HandlersMap.is_empty rest
-             then
-               (Print.print ["concur",2] (fun p ->
-                    p "All theories were fine with model %a" DS.Assign.pp assign);
-                (* rest being empty means that all theories have
-             stamped the assignment consset as being consistent with them,
-             so we can finish, closing all pipes *)
-                H.kill state.hub;
-                return(Case2 current))
-             else
-               (Print.print ["concur",2] (fun p ->
-                    p " still waiting for %a" HandlersMap.pp rest);
-                (* some theories still haven't stamped that assignment
-             as being consistent with them,
-             so we read what the theories have to tell us *)
-                master_loop current state)
-
-          | Case2 newshared ->
-             H.share state.hub newshared (T.chrono state.trail) >>= fun () ->
-             master_loop current state
-          end
-                         
        | Propa(tset,Unsat) -> 
           (* A theory found a proof. We stop and close all pipes. *)
           let finalise conflict uip =
@@ -212,19 +170,74 @@ module Make(WB4M: WhiteBoard4Master) = struct
        | Propa(old,Straight bassign) ->
           (* A theory deduced a boolean assignment bassign from assignment old. *)
           let sassign = SAssign bassign in
-          match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
+          begin match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
           | None -> (* The flip of bassign is in the trail, we have a conflict *)
              let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
              master_loop current { state with messages }
           | Some trail ->
              (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
-             let state = { state with
-                           decision = None; (* we cancel remaining decision proposal *)
-                           waiting4 = AS.all;
-                           trail }
+             let assign  = DS.Assign.add sassign current.assign in
+             let current = sat_init assign ~sharing:current.sharing in
+             let state   = { state with
+                             decision = None; (* we cancel remaining decision proposal *)
+                             waiting4 = AS.all;
+                             trail }
              in
              H.broadcast state.hub sassign (T.chrono state.trail) >>= fun () ->
+             master_loop current state
+          end
+
+       | Sat {assign; sharing} -> 
+          (* A theory found a counter-model newtset. If it is the
+                same as the current one, then it means the theory has stamped the
+                model for which we were collecting stamps. If not, now
+                all other theories need to stamp newtset. *)
+
+          match sat thmsg current with
+          | (Done(assign,sharing)) as sat_ans ->
+             Print.print ["concur",2] (fun p ->
+                 p "All theories were fine with model %a sharing %a"
+                   DS.Assign.pp assign
+                   DS.TSet.pp sharing);
+             (* rest being empty means that all theories have
+             stamped the assignment consset as being consistent with them,
+             so we can finish, closing all pipes *)
+             H.kill state.hub;
+             return(Case2 sat_ans)
+
+          | Share toshare ->
+             Print.print ["concur",2] (fun p ->
+                 p "New variables to share: %a" DS.TSet.pp toshare);
+             let sharing = DS.TSet.union toshare current.sharing in
+             let current = sat_init current.assign ~sharing in
+             let state   = { state with
+                             decision = None; (* we cancel remaining decision proposal *)
+                             waiting4 = AS.all;
+                             trail    = T.chrono_incr state.trail }
+             in
+             H.share state.hub toshare (T.chrono state.trail) >>= fun () ->
+             master_loop current state
+
+          | GoOn current ->
+             Print.print ["concur",2] (fun p ->
+                 p " still waiting for %a" HandlersMap.pp current.left);
+             (* some theories still haven't stamped that assignment
+             as being consistent with them,
+             so we read what the theories have to tell us *)
+             master_loop current state
+
+          | NoModelMatch assign_ref ->
+             Print.print ["concur",3] (fun p ->
+                 p "Outdated model? saw unexpected %a,\n didn't see expected %a"
+                   DS.Assign.pp (DS.Assign.diff assign assign_ref)
+                   DS.Assign.pp (DS.Assign.diff assign_ref assign));
+             master_loop current state
+
+          | NoSharingMatch sharing_ref ->
+             Print.print ["concur",3] (fun p ->
+                 p "Outdated sharing? got %a,\n but expected %a"
+                   DS.TSet.pp sharing DS.TSet.pp sharing_ref);
              master_loop current state
 
 

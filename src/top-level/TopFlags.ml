@@ -1,9 +1,10 @@
 (* This module is the control panel to run the program with different options *)
 (* Psyche flags *)
 
-let sizesort  = ref true   (* Sorts input files by size *)
-let fname                  (* List of files or directories to treat *)
-    = ref ([]:string list)
+let sizesort  = ref true         (* Sorts input files by size *)
+let fname = ref ([]:string list) (* List of files or directories to treat *)
+let clear4each = ref true    (* Clears structures, including table of learned lemmas,
+                                between each problem *)    
 
 let skipsat     = ref false  (* Skips instances expected to be sat *)
 let skipunsat   = ref false  (* Skips instances expected to be unsat *)

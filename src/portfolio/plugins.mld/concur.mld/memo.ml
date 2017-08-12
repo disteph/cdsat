@@ -116,7 +116,7 @@ module Make(WB : WhiteBoardExt) = struct
       include SAssign
       type values = unit
       include EmptyInfo
-      let treeHCons  = None
+      let treeHCons = None
     end
     module Patricia = PatMap.Make(Arg)(TypesFromHConsed(SAssign))
 
@@ -153,6 +153,7 @@ module Make(WB : WhiteBoardExt) = struct
   module WR : sig
     val add : Constraint.t -> Var.t -> unit
     val treat : Config.fixed -> Var.t -> (Config.Constraint.t*Var.t list) option
+    val clear : unit -> unit
   end = struct
     
     let watchref = ref P.init
@@ -181,6 +182,10 @@ module Make(WB : WhiteBoardExt) = struct
       watchref := watch;
       msg
         
+    let clear() =
+      watchref := P.init;
+      watchcount := 0
+
   end
 
   let suicide msg term =
@@ -279,5 +284,6 @@ module Make(WB : WhiteBoardExt) = struct
                  loop_read fixed ports ])
 
   let make = loop_read Fixed.init
-                       
+
+  let clear () = WR.clear(); H'.clear()
 end

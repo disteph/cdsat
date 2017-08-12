@@ -45,13 +45,13 @@ module Make(DS: DSproj with type ts = ts) = struct
   type state = { seen : Assign.t;
                  todo : Assign.t;
                  sharing : TSet.t;
-                 myvars : TSet.t }
+                 myvars : TSet.t Lazy.t }
 
   (* Initial state. Note: can produce Sat(init). *)
   let init = { seen = Assign.empty;
                todo = Assign.empty;
                sharing = TSet.empty;
-               myvars  = TSet.empty }
+               myvars  = lazy TSet.empty }
 
   let add_myvars term myvars =
     let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
@@ -112,7 +112,7 @@ module Make(DS: DSproj with type ts = ts) = struct
         p "kernel.bool receiving %a" pp_sassign sassign);
     let seen = Assign.add sassign state.seen in
     let SAssign((term,v) as bassign) = sassign in
-    let myvars = add_myvars term state.myvars in
+    let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
     match v with
     | Values.NonBoolean _ -> Some [], { state with seen; myvars }
     | Values.Boolean b ->
@@ -132,9 +132,9 @@ module Make(DS: DSproj with type ts = ts) = struct
        in
        propas, { state with seen; todo; myvars }
 
-  let share tset state = 
+  let share tset state =
     let sharing = TSet.union tset state.sharing in
-    let myvars = TSet.fold add_myvars tset state.myvars in
+    let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
     { state with sharing; myvars }
     
 end

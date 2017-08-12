@@ -457,7 +457,7 @@ let make theories : (module API) =
             Messages.propa () (Assign.union res oldset) o)
            
        let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
-         WB(hdls,Propa(Assign.add (SAssign(negation(t, b))) thset,Unsat))
+         WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
 
        let curryfy
              ?(assign = Assign.empty)
@@ -481,35 +481,56 @@ let make theories : (module API) =
            | _ -> sofar
          in
          let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
-         WB(hdls,Propa(thset, Straight(rhs,Values.Boolean b)))
+         WB(hdls,straight () thset (rhs,Values.Boolean b))
               
+       type sat_tmp = { assign  : Assign.t;
+                        sharing : TSet.t;
+                        left    : unit HandlersMap.t;
+                        varlist : TSet.t Lazy.t list }
 
-       type sat4all = Checked of sat t [@@unboxed]
+       let sat_init assign ~sharing = { assign; sharing; left = theoriesWeq; varlist = [] }
 
-       let sat_init assign ~sharing =
-         Checked(WB(theoriesWeq, Messages.sat () assign ~sharing ~myvars:TSet.empty))
+       type sat_ans =
+         | GoOn of sat_tmp
+         | Share of TSet.t
+         | Done of Assign.t * TSet.t
+         | NoModelMatch of Assign.t
+         | NoSharingMatch of TSet.t
 
        let isnt_var t = match Terms.reveal t with
          | Terms.V _ -> false
          | _ -> true
-                  
+
+       (* disjoint_check assign sharing myvars list
+          list is a list of (lazy) sets of terms.
+          Checks whether those sets are pairwise disjoint,
+          ignoring elements that are already in sharing. *)
+       let rec disjoint_check assign sharing myvars = function
+         | [] -> Done(assign, sharing)
+         | myvars'::tail ->
+            let newvars   = TSet.diff (Lazy.force myvars') sharing in
+            let novars    = TSet.filter isnt_var newvars in
+            let newshared = TSet.union novars (TSet.inter newvars myvars) in
+            if TSet.is_empty newshared
+            then
+              let myvars = TSet.union newvars myvars in
+              disjoint_check assign sharing myvars tail
+            else Share newshared
+            
        let sat
-             (WB(rest',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
-             (Checked(WB(rest, Sat{assign; sharing; myvars}))) =
-         if Assign.equal assign assign' && TSet.equal sharing sharing'
+             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
+             { left; assign; sharing; varlist } =
+         if Assign.equal assign assign'
          then
-           let newvars   = TSet.diff myvars' sharing in
-           let novars    = TSet.filter isnt_var newvars in
-           let newshared = TSet.union novars (TSet.inter newvars myvars) in
-           if TSet.is_empty newshared
+           if TSet.equal sharing sharing'
            then
-             let myvars = TSet.union newvars myvars in
-             Case1(Checked(WB(HandlersMap.inter rest rest',
-                              sat () assign ~sharing ~myvars)))
-           else Case2 newshared
-         else failwith "Theories disagree on model"
-
-
+             let left = HandlersMap.inter left left' in
+             if HandlersMap.is_empty left
+             then disjoint_check assign sharing TSet.empty varlist
+             else
+               GoOn { assign; sharing; left; varlist = myvars'::varlist }
+           else NoSharingMatch sharing
+         else NoModelMatch assign
 
      end
 

@@ -41,6 +41,7 @@ let options =
                          | Some l -> parser:= Some(s::l)),    "XXX authorises XXX among the parsers to try (among dimacs, smtlib2)");
     ("-latex",       Unit(fun()->latex:=true),        "allows latex output");
     ("-alphasort",   Clear sizesort,                  "treats input files in alphabetical order (default is from smaller to bigger)");
+    ("-remember",    Clear clear4each,                "remembers tables (hash-consing & learnt lemmas) between each problem (default is no)");
     ("-skipsat",     Set skipsat,                     "skips instances expected to be sat");
     ("-skipunsat",   Set skipunsat,                   "skips instances expected to be unsat");
     ("-skipunprovable",Set skipsat,                   "skips instances expected to be unprovable");

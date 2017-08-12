@@ -15,7 +15,7 @@ module Make(WB: WhiteBoardExt) = struct
   open DS
 
   let add     (SlotMachine{add})     = add
-  let sharing (SlotMachine{share})   = share
+  let share   (SlotMachine{share})   = share
   let clone   (SlotMachine{clone})   = clone()
   let suicide (SlotMachine{suicide}) = suicide
 
@@ -42,7 +42,7 @@ module Make(WB: WhiteBoardExt) = struct
       | MsgStraight(sassign,chrono)
         -> loop_write hdl (add cont (Some sassign)) chrono ports
       | MsgSharing(tset,chrono)
-        -> loop_write hdl (sharing cont tset) chrono ports
+        -> loop_write hdl (share cont tset) chrono ports
       | Infos _
         -> loop_read hdl cont ports
       | MsgBranch(ports1,ports2)

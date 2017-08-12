@@ -72,5 +72,5 @@ module Make(K:Plugin.Input) = struct
 
   let solve () = answer(solve_th problem)
                                                      
-  let clear () = ()
+  let clear () = K.clear(); Mm.clear()
 end
