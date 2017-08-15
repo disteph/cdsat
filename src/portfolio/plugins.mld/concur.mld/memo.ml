@@ -61,31 +61,31 @@ module Make(WB : WhiteBoardExt) = struct
     val extend : Assign.t -> t -> t
     val notfixed : t -> Assign.t -> Assign.t
     val is_fixed : sassign -> t -> bool
-    val are_fixed : Assign.t -> t -> bool
   end = struct
-    type t = Assign.t
-    let init = Assign.empty
-    let extend = Assign.union
-    let notfixed fixed set = Assign.diff set fixed
-    let is_fixed = Assign.mem
-    let are_fixed = Assign.subset
+    type t        = Assign.t
+    let init      = Assign.empty
+    let extend    = Assign.union
+    let notfixed fixed assign = Assign.diff assign fixed
+    let is_fixed  = Assign.mem
   end
 
   module Constraint : sig
-    type t
-    val id : t -> int
-    val msg : t -> unsat WB.t
-    val make : unsat WB.t -> t
+    type t [@@deriving show]
+    val id     : t -> int
+    val msg    : t -> unsat WB.t
+    val make   : unsat WB.t -> t
     val assign : t -> Assign.t
     val simplify : Fixed.t -> t -> t
   end = struct
-    type t = H'.t
-    let id = H.id
-    let msg = H.reveal
+    type t   = H'.t
+    let id   = H.id
+    let msg  = H.reveal
+    let pp fmt t = WB.pp fmt (msg t)
+    let show = Print.stringOf pp
     let make = H'.build
     let assign c =
-      let WB(_,Propa(tset,Unsat)) = msg c in
-      tset
+      let WB(_,Propa(assign,Unsat)) = msg c in
+      assign
     let simplify _ msg = msg
   end
 
@@ -138,7 +138,10 @@ module Make(WB : WhiteBoardExt) = struct
             make_combine Assign.empty Assign.empty aux
       }
 
-    let pick_another fixed c i _ : Var.t list =
+    let pick_another fixed c i previous : Var.t list =
+      Print.print ["memo",2] (fun p ->
+          p  "Memo: pick_another: was watching %a"
+            (List.pp Var.pp) previous);
       let assign = Constraint.assign c in
       let newlist = Patricia.fold2 (action i) assign fixed [] in
       Print.print ["memo",2] (fun p ->
@@ -174,6 +177,9 @@ module Make(WB : WhiteBoardExt) = struct
       then
         (watchref := P.addconstraintNflag c ~ifpossible:[sassign] !watchref;
          incr watchcount;
+         Dump.print ["memo",3] (fun p->
+             p "Constraint %a watching %a"
+               Constraint.pp c DS.pp_sassign sassign);
          Dump.print ["watch",1] (fun p-> p "%i" !watchcount))
 
     let treat fixed sassign =

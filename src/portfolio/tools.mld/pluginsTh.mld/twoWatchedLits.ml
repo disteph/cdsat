@@ -123,9 +123,11 @@ module Make (C : Config) = struct
 
   let rec next fixed ?howmany t = 
     match Pqueue.pop t.todo with
-    | None -> None, t
-    | Some(cset,cont) -> 
-       match treat fixed ?howmany cset { t with todo = cont } with
+    | None ->
+       Dump.print ["watch",1] (fun p-> p "watch: todo is done");
+       None, t
+    | Some(cset,todo) -> 
+       match treat fixed ?howmany cset { t with todo } with
        | None, t -> next fixed ?howmany t
        | ans  -> ans
 

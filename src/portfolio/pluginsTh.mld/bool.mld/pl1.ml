@@ -100,8 +100,8 @@ module Make(DS: GlobalImplem) = struct
     let rec speak machine state =
       (* First, we look at whether there are some propagation messages to send *)
       match Pqueue.pop state.propas with
-      | Some(msg,q) -> (* ...in which case we send a propagation message *)
-         Msg msg, machine { state with propas = q }
+      | Some(msg,propas) -> (* ...in which case we send a propagation message *)
+         Msg msg, machine { state with propas }
       | None -> 
          (* With no propagation message we ask the watched literals
             if a clause is weird *)
@@ -121,10 +121,7 @@ module Make(DS: GlobalImplem) = struct
                  | _ -> aux (Pqueue.push c accu) kernel willbefine
             in
             let willbefine, kernel = aux (Pqueue.empty()) state.kernel state.willbefine in
-            let state = { state with watched = watched;
-                                     willbefine = willbefine;
-                                     kernel = kernel }
-            in
+            let state = { state with watched; willbefine; kernel } in
             (* Now we ask the kernel whether it still has any constraints to satisfy *)
             begin match K.sat kernel with
             | Some msg ->
@@ -158,22 +155,19 @@ module Make(DS: GlobalImplem) = struct
             | Falsified msg ->
                (* Clause is false and kernel gave us the unsat message to send. *)
                Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
-               Msg msg, machine { state with watched = watched;
-                                             silent = true }
+               Msg msg, machine { state with watched; silent = true }
             | Unit msg ->
                (* Clause is unit and kernel gave us the propagation message to send. *)
                Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
                let willbefine = Pqueue.push c state.willbefine in
-               Msg msg, machine { state with watched = watched;
-                                             willbefine = willbefine }
+               Msg msg, machine { state with watched; willbefine }
             | Satisfied f ->
                (* Clause is satisfied. We tell the kernel to update its state
                   and look for something else to say*)
                Print.print ["bool",4] (fun p ->
                    p "bool: kernel says %a is satisfied" Constraint.pp c);
-               speak machine { state with watched = watched;
-                                          kernel = f state.kernel }
-            | ToWatch(newlits,watchable) -> failwith "Watched Literals got it wrong"
+               speak machine { state with watched; kernel = f state.kernel }
+            | ToWatch _ -> failwith "Watched Literals got it wrong"
 
     
     (* This is the main loop. *)                   
@@ -200,7 +194,7 @@ module Make(DS: GlobalImplem) = struct
                      p "bool ignores nonBoolean assignment");
                  (* Assignment is non-Boolean.
                         We don't care about it and see if we have something to say *)
-                 speak machine { state with kernel = kernel }
+                 speak machine { state with kernel }
 
               | SAssign((t,Top.Values.Boolean b) as bassign) ->
                  let undetermined =
@@ -232,11 +226,8 @@ module Make(DS: GlobalImplem) = struct
                            kernel has given us the propagation messages
                            saying that a bunch of conjuncts are implied *)
                        let propas = List.fold Pqueue.push propas state.propas in
-                       speak machine { state with kernel  = kernel;
-                                                  watched = watched;
-                                                  fixed   = fixed;
-                                                  propas  = propas;
-                                                  undetermined = undetermined }
+                       speak machine
+                         { state with kernel; watched; fixed; propas; undetermined}
                     | None ->
                        (* Asignment was of a disjunctive kind.
                            We create the constraint we need to satisfy,
@@ -244,6 +235,8 @@ module Make(DS: GlobalImplem) = struct
                            and give it to the watched literals *)
                        let constr = Config.Constraint.make bassign in
                        let constr = Config.Constraint.simplify fixed constr in
+                       Dump.print ["bool",0] (fun p ->
+                           p "Watching clause %a" pp_bassign bassign);
                        let watched = WL.addconstraintNflag constr watched in
                        (* By the way, the constraint's literals that are undetermined
                            need to be recorded, so we can pick one when we do a split *)
@@ -278,14 +271,8 @@ module Make(DS: GlobalImplem) = struct
                        Dump.print ["bool",5] (fun p ->
                            p "Just put scores for %a" Assign.pp newlits);
                        (* The undetermined ones are recorded as undetermined *)
-                       let watched =
-                         WL.addconstraintNflag (* ~watched:watchable *) constr watched
-                       in
                        (* And now we look at what we have to say *)
-                       speak machine { state with kernel = kernel;
-                                                  fixed  = fixed;
-                                                  watched= watched;
-                                                  undetermined = undetermined } );
+                       speak machine { state with kernel; fixed; watched; undetermined });
       in
 
       let share tset =
