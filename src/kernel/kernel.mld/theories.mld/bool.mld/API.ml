@@ -74,10 +74,8 @@ module type API = sig
        that have been recorded as needing to be satisfied
      (If there is nothing to do, it will be (Some []),
       e.g. if the assignment is not Boolean) *)
-  val add   : sassign ->
-              state ->
-              (sign,assign*bassign*tset,straight) message list option
-              * state
+  val add   : sassign -> state -> state
+              * ((sign,assign*bassign*tset,straight) message list,Constraint.t) sum
   val share : tset -> state -> state
   val clear: unit -> unit
 end

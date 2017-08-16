@@ -110,7 +110,7 @@ module Make(DS: DSproj with type ts = ts) = struct
             Print.print ["kernel.bool",2] (fun p ->
                 p "kernel.bool: not sat, still waiting to satisfy %a"
                   (List.pp Constraint.pp) todo);
-            { state with todo }, None
+            { state with todo = c::rest }, None
     in
     aux state.todo
         
@@ -121,7 +121,7 @@ module Make(DS: DSproj with type ts = ts) = struct
     let SAssign((term,v) as bassign) = sassign in
     let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
     match v with
-    | Values.NonBoolean _ -> Some [], { state with seen; myvars }
+    | Values.NonBoolean _ -> { state with seen; myvars }, Case1 []
     | Values.Boolean b ->
        let propas,todo =
          match cube bassign with
@@ -134,12 +134,12 @@ module Make(DS: DSproj with type ts = ts) = struct
               msg::sofar, c::todo
             in
             let propas, todo = LSet.fold aux set ([],state.todo) in
-            Some propas, todo
+            Case1 propas, todo
          | _ ->
             let c = Constraint.make bassign in
-            None, c::state.todo
+            Case2 c, c::state.todo
        in
-       propas, { state with seen; todo; myvars }
+       { state with seen; todo; myvars }, propas
 
   let share tset state =
     let sharing = TSet.union tset state.sharing in

@@ -176,7 +176,7 @@ module Make(WB : WhiteBoardExt) = struct
       let tset = Constraint.assign c in
       if not(prove tset)
       then
-        (watchref := P.addconstraintNflag c ~ifpossible:[sassign;sassign'] !watchref;
+        (watchref := P.addconstraint c ~watched:[sassign;sassign'] !watchref;
          incr watchcount;
          Dump.print ["memo",3] (fun p->
              p "Constraint %a watching %a and %a"

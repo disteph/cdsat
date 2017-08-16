@@ -178,7 +178,7 @@ module Make(DS: GlobalImplem) = struct
               Print.print ["bool",2] (fun p ->
                   p "bool receiving Some(%a)" pp_sassign a);
               (* We ask the kernel to record the new assignment *)
-              let recorded,kernel = K.add a state.kernel in
+              let kernel, recorded = K.add a state.kernel in
               match a with
 
               | SAssign(_,Top.Values.NonBoolean _) ->
@@ -216,19 +216,18 @@ module Make(DS: GlobalImplem) = struct
                     let watched = WL.fix l state.watched in
                     (* Let's look at what the kernel said. *)
                     match recorded with
-                    | Some propas ->
+                    | Case1 propas ->
                        (* Assignment was of a conjunctive kind,
                            kernel has given us the propagation messages
                            saying that a bunch of conjuncts are implied *)
                        let propas = List.fold Pqueue.push propas state.propas in
                        speak machine
                          { state with kernel; fixed; watched; propas; undetermined }
-                    | None ->
+                    | Case2 c ->
                        (* Asignment was of a disjunctive kind.
                            We create the constraint we need to satisfy,
                            simplify it according to our current model,
                            and give it to the watched literals *)
-                       let c = Config.Constraint.make bassign in
                        let c = Config.Constraint.simplify fixed c in
                        let open K in
                        match infer c with
