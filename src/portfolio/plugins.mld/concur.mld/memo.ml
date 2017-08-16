@@ -155,7 +155,12 @@ module Make(WB : WhiteBoardExt) = struct
 
   module WR : sig
     val add : Constraint.t -> Var.t -> Var.t -> unit
-    val treat : Config.fixed -> Var.t -> (Config.Constraint.t*Var.t list) option
+    val fix : Var.t -> unit
+    type t =
+      | Nothing
+      | Conflict of unsat WB.t
+      | UP of straight WB.t
+    val speak : Config.fixed -> t
     val clear : unit -> unit
   end = struct
     
@@ -183,11 +188,67 @@ module Make(WB : WhiteBoardExt) = struct
                Constraint.pp c DS.pp_sassign sassign DS.pp_sassign sassign');
          Dump.print ["watch",1] (fun p-> p "%i" !watchcount))
 
-    let treat fixed sassign =
-      let watch = P.fix sassign !watchref in
-      let msg, watch = P.next ~howmany:2 fixed watch in
-      watchref := watch;
-      msg
+    let fix sassign = watchref := P.fix sassign !watchref
+
+    type t =
+      | Nothing
+      | Conflict of unsat WB.t
+      | UP of straight WB.t
+
+    let speak fixed =
+      let rec aux watch =
+        let msg, watch = P.next ~howmany:2 fixed watch in
+        match msg with
+        | None ->
+           watchref := watch;
+           Nothing
+        | Some(constr,termlist) ->
+           let msg = Constraint.msg constr in
+           Dump.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
+           let prune sassign sofar =
+             if Fixed.is_fixed sassign fixed then sofar else sassign::sofar
+           in
+           Dump.print ["memo",0] (fun p->
+               p "Memo: Pruned List is %a" (List.pp Var.pp) (List.fold prune termlist []));
+           match List.fold prune termlist [] with
+
+           | [] ->
+              Dump.print ["memo",1] (fun p->
+                  p "Memo: found memoised conflict %a" WB.pp msg);
+              Dump.print ["memo",2] (fun p->
+                  let WB(_,Propa(justif,_)) = msg in
+                  p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+              watchref := watch;
+              Conflict msg
+                   
+           | (SAssign(_,Top.Values.NonBoolean _) as last)::_ ->
+              Dump.print ["memo",2] (fun p->
+                  p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
+                    WB.pp msg Var.pp last);
+              aux watch
+                  
+           | SAssign((_,Top.Values.Boolean _) as bassign)::_ ->
+              let newmsg = WB.curryfy ~flip:bassign msg in
+              let WB(_,Propa(justif,Straight flipped)) = newmsg in
+              Dump.print ["memo",1] (fun p->
+                  p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
+                    WB.pp msg pp_bassign flipped);
+              Dump.print ["memo",2] (fun p->
+                  p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+              (* assert (Assign.subset justif fixed); *)
+              (* assert (not(Assign.mem (SAssign flipped) justif)); *)
+              if Fixed.is_fixed (SAssign flipped) fixed
+              then
+                (Dump.print ["memo",2] (fun p->
+                     p "Memo: %a already known" pp_bassign flipped);
+                 aux watch)
+              else
+                (Dump.print ["memo",1] (fun p-> p "Memo: useful prop");
+                 watchref := watch;
+                 UP newmsg)
+
+      in
+      aux !watchref
         
     let clear() =
       watchref := P.init;
@@ -223,11 +284,12 @@ module Make(WB : WhiteBoardExt) = struct
     let aux (incoming : regular msg2th) =
       match incoming with
       | MsgStraight(sassign,chrono) ->
-         let fixed = Fixed.extend (Assign.singleton sassign) fixed in
          Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Var.pp sassign);
-         loop_write (WR.treat fixed sassign) fixed chrono ports
+         let fixed = Fixed.extend (Assign.singleton sassign) fixed in
+         WR.fix sassign;
+         loop_write fixed chrono ports (WR.speak fixed)
       | MsgSharing(tset,chrono) ->
-         loop_write None fixed chrono ports
+         loop_write fixed chrono ports (WR.speak fixed)
       | MsgBranch(ports1,ports2) ->
          Deferred.all_unit
            [ loop_read fixed ports1 ;
@@ -238,58 +300,22 @@ module Make(WB : WhiteBoardExt) = struct
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
       ports.reader aux
 
-  and loop_write outmsg fixed chrono ports =
+  and loop_write fixed chrono ports = function
 
-    match outmsg with
-    | None -> 
+    | WR.Nothing -> 
        Dump.print ["memo",2] (fun p-> p "Memo: no output msg");
        Deferred.all_unit
          [ Lib.write ports.writer (Msg(None,Ack,chrono));
            loop_read fixed ports ]
-    | Some(constr,termlist) ->
-       let msg = Constraint.msg constr in
-       Dump.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
-       let prune sassign sofar =
-         if Fixed.is_fixed sassign fixed then sofar else sassign::sofar in
-       Dump.print ["memo",0] (fun p-> p "Memo: Pruned List is %a" (List.pp Var.pp) (List.fold prune termlist []));
-       match List.fold prune termlist [] with
-       | [] ->
-          Dump.print ["memo",0] (fun p-> p "Memo: found memoised conflict %a" WB.pp msg);
-          let WB(_,Propa(justif,_)) = msg in
-          let msg = Msg(None,Say msg,chrono) in
-          Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
-          (* assert (Assign.subset justif fixed); *)
-          Deferred.all_unit
-            [ Lib.write ports.writer msg;
-              flush ports msg ]
-       | (SAssign(_,Top.Values.NonBoolean _) as last)::_ ->
-          Dump.print ["memo",0] (fun p->
-              p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
-                WB.pp msg Var.pp last);
-          Deferred.all_unit
-            [ Lib.write ports.writer (Msg(None,Ack,chrono));
-              loop_read fixed ports ]
-       | SAssign((t,Top.Values.Boolean b) as bassign)::_ ->
-          let newmsg = WB.curryfy ~flip:bassign msg in
-          let WB(_,Propa(justif,Straight flipped)) = newmsg in
-          Dump.print ["memo",1] (fun p->
-              p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
-                WB.pp msg pp_bassign flipped);
-          Dump.print ["memo",0] (fun p-> p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
-          (* assert (Assign.subset justif fixed); *)
-          (* assert (not(Assign.mem (SAssign flipped) justif)); *)
-          if Fixed.is_fixed (SAssign flipped) fixed
-          then
-            (Dump.print ["memo",0] (fun p->
-                 p "Memo: %a already known" pp_bassign flipped);
-             Deferred.all_unit
-               [ Lib.write ports.writer (Msg(None,Ack,chrono));
-                 loop_read fixed ports ])
-          else
-            (Dump.print ["memo",0] (fun p-> p "Memo: useful prop");
-             Deferred.all_unit
-               [ Lib.write ports.writer (Msg(None,Say newmsg,chrono));
-                 loop_read fixed ports ])
+    | WR.Conflict msg ->
+       let msg = Msg(None,Say msg,chrono) in
+       Deferred.all_unit
+         [ Lib.write ports.writer msg;
+           flush ports msg ]
+    | WR.UP msg ->
+       Deferred.all_unit
+         [ Lib.write ports.writer (Msg(None,Say msg,chrono));
+           loop_read fixed ports ]
 
   let make = loop_read Fixed.init
 
