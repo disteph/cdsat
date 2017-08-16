@@ -64,7 +64,7 @@ module Make(WB: WhiteBoardExt)
         -> Deferred.all_unit
              [loop_read egraph ports1 ;
               loop_read egraph ports2 ]
-      | KillYourself(WB(_,Propa(assign,Unsat)),_) -> return()
+      | KillYourself _ -> return()
     in
     Lib.read
       ~onkill:(fun ()->return(Dump.print ["egraph",2] (fun p-> p "E-graph dies")))

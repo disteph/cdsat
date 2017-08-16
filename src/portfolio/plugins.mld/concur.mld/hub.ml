@@ -112,8 +112,8 @@ module Make(WB: WhiteBoardExt) = struct
     let msg = MsgSharing(tset,chrono) in
     send hub msg msg
 
-  let suicide hub msg a =
-    let msg = KillYourself(msg,a) in
+  let suicide hub msg a a' =
+    let msg = KillYourself(msg,a,a') in
     send hub msg msg
 
 end

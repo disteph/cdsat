@@ -51,7 +51,7 @@ module type API = sig
   type interesting =
     | Falsified of (sign,assign*bassign*tset, unsat) message
     | Unit of (sign, assign*bassign*tset, straight) message
-    | Satisfied of (state -> state)
+    | Satisfied
     | ToWatch   of LSet.t * LitF.t list
 
   (* Looks at simplified form of constraint and outputs
@@ -65,7 +65,8 @@ module type API = sig
   val infer : Constraint.t -> interesting
 
   (* Outputs sat message if all terms to satisfy in state have been satisfied *)
-  val sat   : state -> (sign, assign*bassign*tset, sat) message option
+  val sat   : Model.t -> state -> state
+              * (sign, assign*bassign*tset, sat) message option
 
   (* Adds new assignment to the state. Outputs the new state, together with
      - either None if the Boolean assignment has been recorded as needing to be satisfied

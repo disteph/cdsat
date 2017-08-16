@@ -55,6 +55,8 @@ module Make (C : Config) = struct
     todo = Pqueue.empty()
   }
 
+  let flush state = { state with todo = Pqueue.empty() }
+               
   (* Adding or updating a constraint once we know the variables it will watch *)
 
   let addconstraint c ?(oldwatched=VarSet.empty) newwatchedlist t =

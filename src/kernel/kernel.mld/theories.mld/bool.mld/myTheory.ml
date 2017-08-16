@@ -43,13 +43,13 @@ module Make(DS: DSproj with type ts = ts) = struct
      in order to produce the message Sat(seen),
      one must satisfy each constraint in todo. *)
   type state = { seen : Assign.t;
-                 todo : Assign.t;
+                 todo : Constraint.t list;
                  sharing : TSet.t;
                  myvars : TSet.t Lazy.t }
 
   (* Initial state. Note: can produce Sat(init). *)
   let init = { seen = Assign.empty;
-               todo = Assign.empty;
+               todo = [];
                sharing = TSet.empty;
                myvars  = lazy TSet.empty }
 
@@ -60,15 +60,9 @@ module Make(DS: DSproj with type ts = ts) = struct
   type interesting =
     | Falsified of (sign,unsat) Msg.t
     | Unit      of (sign,straight) Msg.t
-    | Satisfied of (state -> state)
+    | Satisfied
     | ToWatch   of LSet.t * LitF.t list
               
-  let prune justif bassign state =
-    let sassign = SAssign bassign in
-    if Assign.mem sassign state.todo && Assign.subset justif state.seen
-    then { state with todo = Assign.remove sassign state.todo }
-    else state
-
   let infer c =
     let (t,Values.Boolean b) as bassign = Constraint.bassign c in
     match Constraint.simpl c with
@@ -85,7 +79,7 @@ module Make(DS: DSproj with type ts = ts) = struct
          (Print.print ["kernel.bool",4] (fun p ->
               p "kernel.bool: Detected UP, but %a is satisfied by %a"
                 Constraint.pp c Assign.pp (Constraint.justif c));
-          Satisfied(prune (Constraint.justif c) bassign))
+          Satisfied)
        else
          (Print.print ["kernel.bool",4] (fun p ->
               p "kernel.bool: Detected UP for constraint %a (justif %a)"
@@ -97,16 +91,29 @@ module Make(DS: DSproj with type ts = ts) = struct
        Print.print ["kernel.bool",4] (fun p ->
            p "kernel.bool: Detected true lit, so %a is satisfied by %a"
              Constraint.pp c Assign.pp (Constraint.justif c));
-       Satisfied(prune (Constraint.justif c) bassign)
-           
-  let sat state =
-    if Assign.is_empty state.todo
-    then Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
-    else
-      (Print.print ["kernel.bool",2] (fun p ->
-           p "kernel.bool: not sat, still waiting to satisfy %a" Assign.pp state.todo);
-       None)
-               
+       Satisfied
+
+  exception WeirdModel
+
+  let sat model state =
+    let rec aux = function
+      | [] -> { state with todo=[] },
+              Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
+      | (c::rest) as todo ->
+         let c = Constraint.simplify model c in
+         match Constraint.simpl c with
+         | None ->
+            if Assign.subset (Constraint.justif c) state.seen
+            then aux rest
+            else raise WeirdModel
+         | Some _ ->
+            Print.print ["kernel.bool",2] (fun p ->
+                p "kernel.bool: not sat, still waiting to satisfy %a"
+                  (List.pp Constraint.pp) todo);
+            { state with todo }, None
+    in
+    aux state.todo
+        
   let add sassign state =
     Print.print ["kernel.bool",2] (fun p ->
         p "kernel.bool receiving %a" pp_sassign sassign);
@@ -123,12 +130,14 @@ module Make(DS: DSproj with type ts = ts) = struct
               let b',id = LitF.reveal lit in
               let derived = Term.term_of_id id,Values.Boolean([%eq:bool] b b') in
               let msg     = straight () (Assign.singleton sassign) derived in
-              msg::sofar,
-              Assign.add (SAssign derived) todo
+              let c       = Constraint.make derived in
+              msg::sofar, c::todo
             in
             let propas, todo = LSet.fold aux set ([],state.todo) in
             Some propas, todo
-         | _ -> None, Assign.add sassign state.todo
+         | _ ->
+            let c = Constraint.make bassign in
+            None, c::state.todo
        in
        propas, { state with seen; todo; myvars }
 

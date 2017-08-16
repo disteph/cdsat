@@ -154,7 +154,7 @@ module Make(WB : WhiteBoardExt) = struct
   module P = TwoWatchedLits.Make(Config)
 
   module WR : sig
-    val add : Constraint.t -> Var.t -> unit
+    val add : Constraint.t -> Var.t -> Var.t -> unit
     val treat : Config.fixed -> Var.t -> (Config.Constraint.t*Var.t list) option
     val clear : unit -> unit
   end = struct
@@ -163,7 +163,8 @@ module Make(WB : WhiteBoardExt) = struct
     let watchcount = ref 0
 
     let prove tset =
-      let watch = Assign.fold P.fix tset !watchref in
+      let watch = P.flush !watchref in
+      let watch = Assign.fold P.fix tset watch in
       let fixed = Fixed.extend tset Fixed.init in
       match P.next fixed ~howmany:1 watch with
       | None,_ -> false
@@ -171,15 +172,15 @@ module Make(WB : WhiteBoardExt) = struct
          Dump.print ["watch",1] (fun p-> p "Already know");
          true
           
-    let add c sassign =
+    let add c sassign sassign' =
       let tset = Constraint.assign c in
       if not(prove tset)
       then
-        (watchref := P.addconstraintNflag c ~ifpossible:[sassign] !watchref;
+        (watchref := P.addconstraintNflag c ~ifpossible:[sassign;sassign'] !watchref;
          incr watchcount;
          Dump.print ["memo",3] (fun p->
-             p "Constraint %a watching %a"
-               Constraint.pp c DS.pp_sassign sassign);
+             p "Constraint %a watching %a and %a"
+               Constraint.pp c DS.pp_sassign sassign DS.pp_sassign sassign');
          Dump.print ["watch",1] (fun p-> p "%i" !watchcount))
 
     let treat fixed sassign =
@@ -194,10 +195,11 @@ module Make(WB : WhiteBoardExt) = struct
 
   end
 
-  let suicide msg term =
-    if !Flags.memo
-    then (Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
-          WR.add (Constraint.make msg) term)
+  let suicide msg term = function
+    | Some term' when !Flags.memo ->
+       Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
+       WR.add (Constraint.make msg) term term'
+    | _ -> ()
 
   let rec flush ports msg =
     Dump.print ["memo",2] (fun p-> p "Memo enters flush");
@@ -212,7 +214,7 @@ module Make(WB : WhiteBoardExt) = struct
              flush ports1 msg;
              flush ports2 msg
            ]
-      | KillYourself(conflict,t) -> return(suicide conflict t)
+      | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       ports.reader aux
@@ -231,7 +233,7 @@ module Make(WB : WhiteBoardExt) = struct
            [ loop_read fixed ports1 ;
              loop_read fixed ports2 ]
       | Infos _ -> loop_read fixed ports
-      | KillYourself(conflict,t) -> return(suicide conflict t)
+      | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in
     Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
       ports.reader aux

@@ -235,8 +235,9 @@ The reason it was added to the trail was either:
           the split.  We want to learn the conflict as a clause, so we
           pick 2 formulae to watch. *)
         
-        let t = Assign.choose semsplit in
-        learn conflict t >>| fun ()->
+        let t,rest = Assign.next semsplit in
+        let t'     = Assign.choose rest in
+        learn conflict t (Some t') >>| fun ()->
         (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
         Case2(level-1, late (level-1) trail [WB.curryfy ~assign:semsplit conflict])
@@ -265,17 +266,19 @@ The reason it was added to the trail was either:
 
            let msg = WB.curryfy ~flip:bassign conflict in
            (* First computing the assignments we need for the branch we backjump to *)
-           let next = get_data map msg in
+           let highest  = data.sassign() in
+           let next     = get_data map msg in
+           let highest2 = if next.level > -1 then Some(next.sassign()) else None in
            Print.print ["trail",1] (fun p ->
                p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
                  data.level
-                 pp_sassign (data.sassign())
+                 pp_sassign highest
                  next.level
                  WB.pp msg
              );
 
-           (* We learn the conflict, watching first and second formulae *)
-           learn conflict (data.sassign()) >>| fun ()->
+           (* We learn the conflict, watching first and second highest assignment *)
+           learn conflict highest highest2 >>| fun ()->
 
            (* Now jumping to level of second formula contributing to conflict *)
            Case2(next.level, late next.level trail [msg])

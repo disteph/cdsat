@@ -46,7 +46,7 @@ module Make(WB: Export.WhiteBoard) = struct
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
                      * ((term,vvalue) sum)
                      -> egraph msg2th
-     | KillYourself: unsat t * sassign -> _ msg2th
+     | KillYourself: unsat t * sassign * sassign option -> _ msg2th
 
   let pp_tv = General.Sums.pp_sum Term.pp (pp_values Value.pp)
                                                              
@@ -62,7 +62,7 @@ module Make(WB: Export.WhiteBoard) = struct
            pp_tv tv Term.pp nf CValue.pp cval (List.pp CValue.pp) (distinct())
     | TheoryAsk(_,tv)
       -> Format.fprintf fmt "Asking about %a" pp_tv tv
-    | KillYourself(_,_)
+    | KillYourself(_,_,_)
       -> Format.fprintf fmt "KillYourself"
 
   type 'a ioutput       = ('a, datatypes) output

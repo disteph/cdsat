@@ -77,6 +77,9 @@ module Make(C : Config) : sig
   (* Initial datatstructure where nobody whatches nobody *)
   val init : t
 
+  (* Flushing the queue of constraints whose watch list must be updated *)
+  val flush : t -> t
+
   (* fix var whowatcheswhat
 
      declares in whowatcheswhat that var should no longer be watched.

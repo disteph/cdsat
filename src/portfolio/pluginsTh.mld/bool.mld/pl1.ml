@@ -28,7 +28,7 @@ module Make(DS: GlobalImplem) = struct
     = struct
 
     type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
-
+                                                      
     (* We are implementing VSIDS heuristics for choosing decisions:
        we need to keep a score of each assignment, we need to update the scores,
        and we need to pick the lit with highest score.
@@ -91,12 +91,11 @@ module Make(DS: GlobalImplem) = struct
         watched: WL.t;         (* The state of our watched literals *)
         propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
         undetermined : Assign.t; (* The set of assignments we could fix *)
-        (* Constraints that will be satisfied by propagations sent to master *)
-        willbefine : K.Constraint.t Pqueue.t;
         silent : bool          (* Whether we have already sent an unsat message *)
       }
+                   
 
-    (* We are asked whther we have something to say *)
+    (* We are asked whether we have something to say *)
     let rec speak machine state =
       (* First, we look at whether there are some propagation messages to send *)
       match Pqueue.pop state.propas with
@@ -110,20 +109,10 @@ module Make(DS: GlobalImplem) = struct
          | None ->
             (* All clauses seem fine. Maybe the problem is sat ? *)
             Print.print ["bool",4] (fun p -> p "bool: Watched literals are done");
-            (* We first force kernel to forget the constraints that are already true *)
-            let rec aux accu kernel willbefine = 
-              match Pqueue.pop willbefine with
-              | None -> accu, kernel
-              | Some(c,willbefine) ->
-                 let c = K.Constraint.simplify state.fixed c in
-                 match K.infer c with
-                 | K.Satisfied f -> aux accu (f kernel) willbefine
-                 | _ -> aux (Pqueue.push c accu) kernel willbefine
-            in
-            let willbefine, kernel = aux (Pqueue.empty()) state.kernel state.willbefine in
-            let state = { state with watched; willbefine; kernel } in
             (* Now we ask the kernel whether it still has any constraints to satisfy *)
-            begin match K.sat kernel with
+            let kernel,todo = K.sat state.fixed state.kernel in
+            let state = { state with watched; kernel } in
+            begin match todo with
             | Some msg ->
                (* Kernel says all clauses are satisfied and gave us the message to send *)
                Msg msg, machine state
@@ -133,24 +122,29 @@ module Make(DS: GlobalImplem) = struct
                let remaining =
                  BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
                in
-               Dump.print ["bool",4] (fun p ->
+               Dump.print ["bool",6] (fun p ->
                    p "bool: All scored assignments\n %a" BaMap.pp !scores);
-               Dump.print ["bool",3] (fun p ->
+               Dump.print ["bool",5] (fun p ->
                    p "bool: Choosing among %a" BaMap.pp remaining);
-               let sassign =
-                 match BaMap.info remaining with
-                 | Some(sassignh,_) -> SAssign.reveal sassignh
-                 | None -> assert false (* Assign.choose state.undetermined *)
-               in
-               Print.print ["bool",2] (fun p ->
-                   p "bool: kernel is not fine yet, proposing %a" pp_sassign sassign);
-               Try sassign, machine state
+               match BaMap.info remaining with
+               | Some(sassignh,_) ->
+                  let sassign = SAssign.reveal sassignh in
+                  Print.print ["bool",2] (fun p ->
+                      p "bool: kernel is not fine yet, proposing %a"
+                        pp_sassign sassign);
+                  Try sassign, machine state
+               | None ->
+                  Print.print ["bool",0] (fun p ->
+                      p "bool: waiting for master to catch up");
+                  Silence, machine state
             end
 
          | Some(c,_) ->
             (* Watched literals have found a weird clause.
                Let's see what the kernel can make of it. *)
             let open K in
+            Print.print ["bool",4] (fun p ->
+                p "bool: Watched lits have found weird clause %a" Constraint.pp c);
             match infer c with
             | Falsified msg ->
                (* Clause is false and kernel gave us the unsat message to send. *)
@@ -159,14 +153,12 @@ module Make(DS: GlobalImplem) = struct
             | Unit msg ->
                (* Clause is unit and kernel gave us the propagation message to send. *)
                Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
-               let willbefine = Pqueue.push c state.willbefine in
-               Msg msg, machine { state with watched; willbefine }
-            | Satisfied f ->
-               (* Clause is satisfied. We tell the kernel to update its state
-                  and look for something else to say*)
+               Msg msg, machine { state with watched }
+            | Satisfied ->
+               (* Clause is satisfied. We look for something else to say *)
                Print.print ["bool",4] (fun p ->
                    p "bool: kernel says %a is satisfied" Constraint.pp c);
-               speak machine { state with watched; kernel = f state.kernel }
+               speak machine { state with watched }
             | ToWatch _ -> failwith "Watched Literals got it wrong"
 
     
@@ -197,16 +189,6 @@ module Make(DS: GlobalImplem) = struct
                  speak machine { state with kernel }
 
               | SAssign((t,Top.Values.Boolean b) as bassign) ->
-                 let undetermined =
-                   (* If the term was undetermined, we now have a value *)
-                   if Assign.mem a state.undetermined
-                   then
-                     (Print.print ["bool",4] (fun p ->
-                          p "bool: was wondering about %a" Term.pp t);
-                      let sassign = boolassign ~b:(not b) t in
-                      Assign.remove a (Assign.remove sassign state.undetermined))
-                   else state.undetermined
-                 in
                  (* We extend our Boolean model with the assignment *)
                  match K.Model.add bassign state.fixed with
                  | Case2 msg ->
@@ -216,9 +198,22 @@ module Make(DS: GlobalImplem) = struct
                     Msg msg, machine { state with silent = true }
 
                  | Case1(l,fixed) ->
-                    (* Model is consistent. We declare to the watched literals
-                        that 2 literals have been fixed *)
-                    let watched = WL.fix l (WL.fix (LitF.negation l) state.watched) in
+                    (* Model is consistent. We update the undetermined variables. *)
+                    let undetermined =
+                      (* If the term was undetermined, we now have a value *)
+                      if Assign.mem a state.undetermined
+                      then
+                        (Print.print ["bool",4] (fun p ->
+                             p "bool: was wondering about %a" Term.pp t);
+                         let sassign = boolassign ~b:(not b) t in
+                         Assign.remove a (Assign.remove sassign state.undetermined))
+                      else state.undetermined
+                    in
+                    (* We declare to the watched literals 
+                       that clauses watching l must be checked
+                       - remember that clauses are watching 
+                       the negations of the literals they contain *)
+                    let watched = WL.fix l state.watched in
                     (* Let's look at what the kernel said. *)
                     match recorded with
                     | Some propas ->
@@ -227,52 +222,77 @@ module Make(DS: GlobalImplem) = struct
                            saying that a bunch of conjuncts are implied *)
                        let propas = List.fold Pqueue.push propas state.propas in
                        speak machine
-                         { state with kernel; watched; fixed; propas; undetermined}
+                         { state with kernel; fixed; watched; propas; undetermined }
                     | None ->
                        (* Asignment was of a disjunctive kind.
                            We create the constraint we need to satisfy,
                            simplify it according to our current model,
                            and give it to the watched literals *)
-                       let constr = Config.Constraint.make bassign in
-                       let constr = Config.Constraint.simplify fixed constr in
-                       Dump.print ["bool",0] (fun p ->
-                           p "Watching clause %a" pp_bassign bassign);
-                       let watched = WL.addconstraintNflag constr watched in
-                       (* By the way, the constraint's literals that are undetermined
+                       let c = Config.Constraint.make bassign in
+                       let c = Config.Constraint.simplify fixed c in
+                       let open K in
+                       match infer c with
+
+                       | Falsified msg ->
+                          Print.print ["bool",4] (fun p ->
+                              p "bool: new constraint - kernel says %a" Msg.pp msg);
+                          Msg msg, machine { state with silent = true }
+
+                       | Unit msg ->
+                          Print.print ["bool",4] (fun p ->
+                              p "bool: new constraint - kernel says %a" Msg.pp msg);
+                          let propas = Pqueue.push msg state.propas in
+                          speak machine { state with kernel; fixed; watched;
+                                                     undetermined; propas }
+                       | Satisfied ->
+                          Print.print ["bool",4] (fun p ->
+                              p "bool: new constraint - kernel says %a is satisfied"
+                                Constraint.pp c);
+                          speak machine { state with kernel; fixed; watched;
+                                                     undetermined }
+
+                       | ToWatch(_,watchable) ->
+
+                          Dump.print ["bool",4] (fun p ->
+                              p "bool: new constraint - Watching clause %a"
+                                pp_bassign bassign);
+                          let watched = WL.addconstraint ~watched:watchable c watched in
+                          (* By the way, the constraint's literals that are undetermined
                            need to be recorded, so we can pick one when we do a split *)
-                       let newlits =
-                         match Config.Constraint.simpl constr with
-                         | Some(newlits,_) -> newlits
-                         | _ -> LSet.empty
-                       in
-                       (* Getting a constraint literals (and negations)
-                              into an Assign.t *)
-                       let aux lit sofar =
-                         let _,i = LitF.reveal lit in
-                         let t = Term.term_of_id i in
-                         let sassign  = boolassign t in
-                         let sassign' = boolassign ~b:(not b) t in
-                         Assign.add sassign (Assign.add sassign' sofar)
-                       in
-                       let newlits = LSet.fold aux newlits Assign.empty in
-                       let undetermined = Assign.union newlits undetermined in
-                       (* Constraint's literals that we have never seen before
+                          let newlits =
+                            match Config.Constraint.simpl c with
+                            | Some(newlits,_) -> newlits
+                            | _ -> LSet.empty
+                          in
+                          (* Getting a constraint literals (and negations)
+                             into an Assign.t*)
+                          let aux lit sofar =
+                            let _,i = LitF.reveal lit in
+                            let t = Term.term_of_id i in
+                            let sassign  = boolassign t in
+                            let sassign' = boolassign ~b:(not b) t in
+                            Assign.add sassign (Assign.add sassign' sofar)
+                          in
+                          let newlits = LSet.fold aux newlits Assign.empty in
+                          let undetermined = Assign.union newlits undetermined in
+                          (* Constraint's literals that we have never seen before
                                  are given score !bump_value. *)
-                       scores := BaMap.union_poly
-                                   (fun _ () score -> score)
-                                   (BaMap.map (fun _ () -> !bump_value))
-                                   (fun scores -> scores)
-                                   newlits
-                                   !scores;
-                       Dump.print ["bool",5] (fun p ->
-                           p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-                       Dump.print ["bool",6] (fun p ->
-                           p "All scored lits\n%a" BaMap.pp !scores);
-                       Dump.print ["bool",5] (fun p ->
-                           p "Just put scores for %a" Assign.pp newlits);
-                       (* The undetermined ones are recorded as undetermined *)
-                       (* And now we look at what we have to say *)
-                       speak machine { state with kernel; fixed; watched; undetermined });
+                          scores := BaMap.union_poly
+                                      (fun _ () score -> score)
+                                      (BaMap.map (fun _ () -> !bump_value))
+                                      (fun scores -> scores)
+                                      newlits
+                                      !scores;
+                          Dump.print ["bool",5] (fun p ->
+                              p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
+                          Dump.print ["bool",6] (fun p ->
+                              p "All scored lits\n%a" BaMap.pp !scores);
+                          Dump.print ["bool",5] (fun p ->
+                              p "Just put scores for %a" Assign.pp newlits);
+                          (* The undetermined ones are recorded as undetermined *)
+                          (* And now we look at what we have to say *)
+                          speak machine { state with kernel; fixed; watched;
+                                                     undetermined });
       in
 
       let share tset =
@@ -304,7 +324,6 @@ module Make(DS: GlobalImplem) = struct
                          watched= WL.init;
                          propas = Pqueue.empty();
                          undetermined = Assign.empty;
-                         willbefine = Pqueue.empty();
                          silent = false }
 
     let clear () =
