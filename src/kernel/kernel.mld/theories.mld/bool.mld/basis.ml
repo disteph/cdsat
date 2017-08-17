@@ -32,12 +32,8 @@ module Make(DS: DSproj with type ts = TS.t) = struct
   end
 
   (* Module for Boolean models. 
-     We keep a bit more information than just "which lits are true/false",
-     as we record 2 maps:
-     - first map: maps a literal to the Boolean assignment that made it true
-     - second map: maps a literal to the Boolean assignment that made it false
-     If l is mapped to bassign in one map, (not l) is mapped to bassign in the other map.
-   *)
+     We keep a bit more information than just "which lits are true":
+     we map a true literal to the Boolean assignment that made it true *)
                            
   module Model : sig
     type t
