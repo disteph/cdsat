@@ -3,6 +3,7 @@ type _ t =
   | VarSetEq: VarSet.Eq.t t
   | VarSetBV: VarSet.BV.t t
   | VarSetITE: VarSet.ITE.t t
+  | VarSetArrays: VarSet.Arrays.t t
   | LitF    : Literals.TS.t t
   | Clauses : Clauses.TS.t t
   | Rationals : Rationals.TS.t t

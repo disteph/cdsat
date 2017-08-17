@@ -209,7 +209,8 @@ module Make(WB : WhiteBoardExt) = struct
              if Fixed.is_fixed sassign fixed then sofar else sassign::sofar
            in
            Dump.print ["memo",0] (fun p->
-               p "Memo: Pruned List is %a" (List.pp Var.pp) (List.fold prune termlist []));
+               p "Memo: Pruned List is %a"
+                 (List.pp Var.pp) (List.fold prune termlist []));
            match List.fold prune termlist [] with
 
            | [] ->

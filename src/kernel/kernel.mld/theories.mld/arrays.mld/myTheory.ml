@@ -1,21 +1,28 @@
 open General
 open Top
+open Basic
 open Messages
 open Specs
+open Sassigns
+open Termstructures.VarSet.Generic
 
 type sign = unit
 
 (* We are not using values *)
 include Theory.HasNoValues
 
-(* We are not using alternative term representation *)
-type ts = unit
-let ts = Termstructures.Register.NoRep
+(* Our alternative term representation is the set of free variables *)
+type ts = IntSortSet.t
+let ts = Termstructures.Register.VarSetArrays
 
-module Make(DS: GlobalDS) = struct
+module Make(DS: DSproj with type ts = ts) = struct
 
   open DS
   type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
+
+  let add_myvars term myvars =
+    let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
+    IntSortSet.fold aux (DS.proj(Terms.data term)) myvars
 
   type state = { assign : Assign.t;
                  sharing: TSet.t;
@@ -27,23 +34,30 @@ module Make(DS: GlobalDS) = struct
          Print.print ["kernel.arrays",2] (fun p ->
              p "kernel.arrays receiving None");
          Silence, machine state
-      | Some a ->
+      | Some sassign ->
          Print.print ["kernel.arrays",2] (fun p ->
-             p "kernel.arrays receiving Some(%a)" pp_sassign a);
-         let state = { state with assign = Assign.add a state.assign } in
-         Msg(sat () state.assign ~sharing:state.sharing ~myvars:state.myvars ),
+             p "kernel.arrays receiving Some(%a)" pp_sassign sassign);
+         let assign = Assign.add sassign state.assign in
+         let SAssign(term,_) = sassign in
+         let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
+         let state = { state with assign; myvars } in
+         Msg(sat () state.assign ~sharing:state.sharing ~myvars ),
          machine state
     in
     let share tset = 
       Print.print ["kernel.arrays",2] (fun p ->
           p "kernel.arrays notified than %a are shared" TSet.pp tset);
-      Silence, machine state
+      let sharing = TSet.union tset state.sharing in
+      let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
+      let state = { state with sharing; myvars } in
+      Msg(sat () state.assign ~sharing ~myvars),
+      machine state
     in
     let clone () = machine state in
     let suicide _ = () in
     Specs.SlotMachine { add; share; clone; suicide }
 
-  let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars= lazy TSet.empty }
+  let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
   let clear () = ()
                    
 end

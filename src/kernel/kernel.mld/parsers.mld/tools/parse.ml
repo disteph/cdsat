@@ -61,4 +61,4 @@ let symbol ~decsorts =
                   in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
     | "store"  -> let aux ind = List.map (fun so -> Store(ind,so)) allsorts
                   in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
-    | s    -> try [CstRat(Num.num_of_string s)] with _ -> []
+    | s    -> try [CstRat(Q.of_string s)] with _ -> []

@@ -5,6 +5,7 @@ type _ t =
   | VarSetEq: VarSet.Eq.t t
   | VarSetBV: VarSet.BV.t t
   | VarSetITE: VarSet.ITE.t t
+  | VarSetArrays: VarSet.Arrays.t t
   | LitF    : Literals.TS.t t
   | Clauses : Clauses.TS.t t
   | Rationals : Rationals.TS.t t
@@ -17,6 +18,7 @@ let equal (type a b) : a t -> b t -> (a -> b) option =
   | VarSetEq, VarSetEq -> Some(fun x->x)
   | VarSetBV, VarSetBV -> Some(fun x->x)
   | VarSetITE, VarSetITE -> Some(fun x->x)
+  | VarSetArrays, VarSetArrays -> Some(fun x->x)
   | LitF, LitF      -> Some(fun x->x)
   | Clauses,Clauses -> Some(fun x->x)
   | Rationals, Rationals -> Some(fun x->x)
@@ -30,8 +32,9 @@ type _ get =
 let get (type a) : a t -> a get = function
   | NoRep     -> NoRepModule
   | VarSetEq  -> RepModule(module VarSet.Eq)
-  | VarSetITE -> RepModule(module VarSet.ITE)
   | VarSetBV  -> RepModule(module VarSet.BV)
+  | VarSetITE -> RepModule(module VarSet.ITE)
+  | VarSetArrays -> RepModule(module VarSet.Arrays)
   | LitF      -> RepModule(module Literals.TS)
   | Clauses   -> RepModule(module Clauses.TS)
   | Rationals -> RepModule(module Rationals.TS)

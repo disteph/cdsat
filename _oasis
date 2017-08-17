@@ -46,7 +46,7 @@ Library kernel
   Install$:    flag(kernel)
   Modules:     Kernel, Dump, Flags
   XMETADescription: Psyche's kernel
-  XMETAExtraLines: requires = "psyche_kernel_lib hardcaml mlbdd"
+  XMETAExtraLines: requires = "psyche_kernel_lib hardcaml mlbdd zarith"
 
 Flag portfolio
   Description: Target is Psyche's portfolio of plugins
@@ -60,7 +60,7 @@ Library portfolio
   Modules:     Plugins, PluginsTh, PFlags
   InternalModules : Tools
   XMETADescription: Psyche's portfolio of plugins
-  XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std str"
+  XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std zarith"
 
 Flag exec
   Description: Target is Psyche's executable
