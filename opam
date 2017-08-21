@@ -14,6 +14,7 @@ remove: [
   ["make" "uninstall_libs"]
 ]
 depends: [
+  "oasis"
   "zarith"
   "mld"
   "hardcaml"
