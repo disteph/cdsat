@@ -82,16 +82,18 @@ type ('gts,'gv,'cv,'assign,'tset) globalDS
 type _ has_values  = private HV
 type has_no_values = private HNV
        
-type (_,_,_) conv =
-  | HasVconv   : ('v -> 'gv) * ('cv -> 'v values option) -> ('v has_values,'gv,'cv) conv
-  | HasNoVconv : (has_no_values,_,_) conv
+type (_,_) conv =
+  | HasVconv   : { vinj  : 'v -> 'gv ;
+                   vproj : 'gv -> 'v option }
+                 -> ('v has_values,'gv) conv
+  | HasNoVconv : (has_no_values,_) conv
 
 module type DSproj = sig
   include GlobalDS
   type ts
   val proj: Term.datatype -> ts
   type values
-  val conv: (values,Value.t,CValue.t) conv
+  val conv: (values,Value.t) conv
 end
 
 (* type version of the above *)

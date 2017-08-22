@@ -1,8 +1,12 @@
+open General
+open Patricia
+open Patricia_interfaces
 open Top.Basic
        
-module VarMap : General.Patricia_interfaces.PatMap
+module VarMap : PatMap
        with type keys = IntSort.t
         and type values = Q.t
+        and type ('v,'i) param = (IntSort.t,'v,int,int,'i) poly 
 
 type nature = Lt | Le | Eq | NEq | Term | Other
 

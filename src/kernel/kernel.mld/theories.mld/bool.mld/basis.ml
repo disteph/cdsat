@@ -206,8 +206,8 @@ module Make(DS: DSproj with type ts = TS.t) = struct
                   (List.pp Arg.pp) watched
                   Assign.pp justif
                   Assign.pp constr.justif );
-            { constr with simpl = simpl; justif = Assign.union constr.justif justif }
-         | None -> { constr with simpl = simpl; justif = justif }
+            { constr with simpl; justif = Assign.union constr.justif justif }
+         | None -> { constr with simpl; justif }
 
     let pp fmt t = Format.fprintf fmt "%a" pp_bassign t.bassign
   end

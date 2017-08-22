@@ -42,11 +42,10 @@ module type Vplus = sig
   type old_value
   type old_cvalue
   type vopt
-  val trans : (Value.t -> 'gv)
+  val trans : (Value.t has_values,'gv) conv
               -> ('cv -> CValue.t)
-              -> (old_value -> 'gv)
+              -> (old_value has_values,'gv) conv * (vopt,'gv) conv
                  * ('cv -> old_cvalue)
-                 * (vopt,'gv,'cv cval) conv
                  *( (_*(_*_*vopt*_)) Tags.t
                     -> (module Proj with type cvalue = 'cv cval)
                     -> (module Proj with type cvalue = 'cv cval) )
@@ -89,9 +88,18 @@ module Value_add(V : PH)(Vold : VValue) =
     type vopt = V.t has_values
 
     let trans (type gv cv)
-          (f : Value.t -> gv)
+          (HasVconv{vinj; vproj} : (Value.t has_values,'gv) conv)
           (g : cv -> CValue.t)
       =
+      HasVconv{ vinj  = (fun ov -> vinj(Case2 ov));
+                vproj = (fun gv -> match vproj gv with
+                                   | None | Some(Case1 _) -> None
+                                   | Some(Case2 d) -> Some d) },
+      HasVconv{ vinj  = (fun nv -> vinj(Case1 nv));
+                vproj = (fun gv -> match vproj gv with
+                                   | None | Some(Case2 _) -> None
+                                   | Some(Case1 d) -> Some d) },
+      (fun cv -> snd(g cv)),
       let pr = function
         | Case1 None    -> None
         | Case1(Some b) -> Some(Values(Values.Boolean b))
@@ -100,9 +108,6 @@ module Value_add(V : PH)(Vold : VValue) =
            | None    -> None
            | Some v' -> Some(Values(Values.NonBoolean v'))
       in
-      (fun ov -> f(Case2 ov)),
-      (fun cv -> snd(g cv)),
-      HasVconv((fun nv -> f(Case1 nv)),pr),
       fun hdl (module Proj : Proj with type cvalue = cv cval)
       ->
       (module struct
@@ -128,7 +133,7 @@ module Value_keep(Vold : VValue) =
     type old_cvalue = CValue.t
     type vopt = has_no_values
 
-    let trans f g = f,g,HasNoVconv,fun _ proj -> proj
+    let trans conv g = conv,HasNoVconv,g,fun _ proj -> proj
               
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
@@ -149,7 +154,7 @@ module type State = sig
   val tsHandlers : DT.t typedList
                         
   val modules : ('termdata -> DT.t)
-                -> (VV.Value.t -> 'gv)
+                -> (VV.Value.t has_values,'gv) conv
                 -> ('cv -> VV.CValue.t)
                 -> ('termdata,'gv,'cv cval,'assign,'tset) globalDS
                 -> ('termdata*'gv*'assign*'tset) Register.Modules.t list
@@ -196,18 +201,18 @@ let theory_add (type tva sign ts values api)
        let tsHandlers = tsHandlers
        let modules (type gts gv cv a s)
              proj
-             f
+             conv
              g
              ((module DS) : (gts,gv,cv cval,a,s) globalDS)
          =
-         let inj_old,proj_old,conv,proj_make = Vplus.trans f g in
+         let conv_old,conv_new,proj_old,proj_make = Vplus.trans conv g in
          let module NewDS =
            (struct
              include DS
              type nonrec ts = ts
              let proj x = proj1(proj x)
              type nonrec values = values
-             let conv = conv
+             let conv = conv_new
            end :  DSproj with type Term.datatype = gts
                           and type Value.t  = gv
                           and type Assign.t = a
@@ -217,7 +222,7 @@ let theory_add (type tva sign ts values api)
          in
          let tm = Modules.make hdl (module NewDS) in
          let reclist, proj_mod =
-           S.modules (fun x -> proj2(proj x)) inj_old proj_old (module DS)
+           S.modules (fun x -> proj2(proj x)) conv_old proj_old (module DS)
          in
          tm::reclist,
          proj_make hdl proj_mod
@@ -527,14 +532,16 @@ let make theories : (module API) =
              let left = HandlersMap.inter left left' in
              if HandlersMap.is_empty left
              then disjoint_check assign sharing TSet.empty varlist
-             else
-               GoOn { assign; sharing; left; varlist = myvars'::varlist }
+             else GoOn { assign; sharing; left; varlist = myvars'::varlist }
            else NoSharingMatch sharing
          else NoModelMatch assign
 
      end
 
-     let th_modules,vproj = State.modules snd (fun x->x) (fun x->x) (module DS)
+     let th_modules,vproj = State.modules snd
+                              (HasVconv{vinj=(fun x->x);vproj=(fun x -> Some x)})
+                              (fun x->x)
+                              (module DS)
 
      module VProj = (val vproj)
      let vproj = VProj.proj

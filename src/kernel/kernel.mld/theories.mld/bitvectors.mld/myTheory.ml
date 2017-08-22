@@ -45,7 +45,7 @@ module Make(DS: DSproj with type values = values
   type assign = Assign.t
   type tset = TSet.t
 
-  let HasVconv(vinj, vproj) = conv
+  let HasVconv{ vinj; vproj } = conv
                 
   exception CannotEval of string
 
