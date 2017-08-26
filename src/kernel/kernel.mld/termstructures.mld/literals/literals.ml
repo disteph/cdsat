@@ -51,7 +51,7 @@ module LitB = struct
     | Dump.Latex -> fprintf fmt "%s{%a}" (if b then "" else "\\overline") Terms.TermB.pp a
     | _ -> fprintf fmt "%s%a" (if b then "" else "¬") Terms.TermB.pp a
 
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 
   let negation l = 
     let b,a = reveal l in build(not b,a)

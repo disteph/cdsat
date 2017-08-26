@@ -29,7 +29,7 @@ module type VValue = sig
   end
 end
 
-type 'v cval = (bool option,'v) sum  [@@deriving eq,ord,show,hash]        
+type 'v cval = (Boolhashed.t option,'v) sum  [@@deriving eq,ord,show,hash]
 
 module type Proj = sig
   type cvalue
@@ -59,7 +59,7 @@ module Value_add(V : PH)(Vold : VValue) =
       let pp fmt = function
         | Case1 v -> V.pp fmt v
         | Case2 v -> Vold.Value.pp fmt v
-      let show  = Dump.stringOf pp
+      let show  = Print.stringOf pp
     end
 
     module CValue = struct
@@ -174,7 +174,7 @@ let theory_add (type tva sign ts values api)
        let module V = struct
            type t = V.t [@@deriving eq,ord,hash]
            let pp fmt v = Format.printf "%a<%a>" Tags.pp hdl V.pp v
-           let show  = Dump.stringOf pp
+           let show  = Print.stringOf pp
          end
        in
        (module Value_add(V)(S.VV) : Vplus with type old_value = S.VV.Value.t
@@ -306,7 +306,7 @@ module Make(State:State) = struct
 
       module CV = State.VV.CValue
 
-      type t = (bool option,CV.t) sum  [@@deriving eq,ord,show,hash]
+      type t = (Boolhashed.t option,CV.t) sum  [@@deriving eq,ord,show,hash]
 
       let none = function
         | Sorts.Prop -> Case1 None
@@ -354,7 +354,7 @@ module Make(State:State) = struct
       include HCons.Make(Param)
       include Init(HCons.NoBackIndex)
       let pp fmt t = pp_sassign fmt (reveal t)
-      let show  = Dump.stringOf pp
+      let show  = Print.stringOf pp
       include EmptyInfo
       let treeHCons = Some id
     end
@@ -366,7 +366,7 @@ module Make(State:State) = struct
       module M = PatSet.Make(SAssign)(TypesFromHConsed(SAssign))
       type t = M.t
       let pp    = M.print_in_fmt SAssign.pp
-      let show  = Dump.stringOf pp
+      let show  = Print.stringOf pp
       let hash  = M.hash
       let hash_fold_t = Hash.hash2fold M.hash
       let empty = M.empty
@@ -550,7 +550,7 @@ let make theories : (module API) =
        let ths,termB,_ = Parsers.Register.parse parser input in
        begin match ths with
        | Some l when not(HandlersMap.equal (fun ()()->true) theories (Register.get l)) ->
-          print_endline(Dump.toString(fun p ->
+          print_endline(Print.toString(fun p ->
                             p
                               "Warning: using theories %a but just parsed %a"
                               HandlersMap.pp theories

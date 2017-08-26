@@ -16,6 +16,9 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
   open DS
   let HasVconv{vinj;vproj} = conv
 
+  (* We first define a notion of LRA model, as a map from LRA variables to (value,sassign),
+     where value is a rational value,
+     and sassign is the single assignment that gave that variable that value. *)
   module Arg = struct
     include IntSort
     let pp fmt is =
@@ -26,14 +29,16 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
     let treeHCons = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
 
+  module VarMap = PatMap.Make(Arg)(TypesFromHConsed(IntSort))
+
   module Model = struct
-    include PatMap.Make(Arg)(TypesFromHConsed(IntSort))
+    include VarMap
     type binding = Arg.t*sassign [@@deriving show]
     let pp fmt t = print_in_fmt pp_binding fmt t
     let map t = t
     let add sassign model =
       match sassign with
-      | SAssign(t,Values.Boolean v) -> model
+      | SAssign(_,Values.Boolean _) -> model
       | SAssign(t,Values.NonBoolean v) ->
          match vproj v with
          | None -> model
@@ -46,22 +51,28 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
             add var aux model
   end
 
+  module Simpl = struct
 
+    type simpl = { coeffs    : TS.VarMap.t;
+                   constant  : Q.t;
+                   watchable : IntSort.t list;
+                   justif    : Assign.t; }
 
-  module Constraint = struct
-
-    type simpl = { coeffs : TS.VarMap.t;
-                   constant: Q.t;
-                   watchable  : IntSort.t list;
-                   justif   : Assign.t; }
-                   
-    type t = { bassign : bassign;
+    type t = { term : Term.t;
                scaling : Q.t;
                nature  : TS.nature;
                simpl   : simpl }
 
+    let term t      = t.term
+    let scaling t   = t.scaling
+    let nature t    = t.nature
+    let coeffs t    = t.simpl.coeffs
+    let constant t  = t.simpl.constant
+    let watchable t = t.simpl.watchable
+    let justif t    = t.simpl.justif
+
     (* Picking 2 vars in a sum, or the maximum thereof *)
-    let pick2 c watchable =
+    let pick2 =
       TS.VarMap.fold_monad
         ~return:(fun watchable -> watchable)
         ~bind:(fun reccall todo watchable ->
@@ -69,43 +80,7 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
           then reccall todo watchable
           else watchable)
         (fun var _ watchable -> var::watchable)
-        c
-        watchable
 
-    exception IdontUnderstand
-        
-    let make ((t,Values.Boolean b) as bassign) =
-      let data = proj(Terms.data t) in
-      let scaling, nature =
-        let open TS in
-        match data.nature,b with
-        | Lt,true -> data.scaling, Lt
-        | Le,true -> data.scaling, Le
-        | Lt,false -> Q.(minus_one * data.scaling), Le
-        | Le,false -> Q.(minus_one * data.scaling), Lt
-        | Eq,true  | NEq,false -> data.scaling, Eq
-        | NEq,true | Eq,false  -> data.scaling, NEq
-        | _ -> raise IdontUnderstand
-      in
-      let simpl = { coeffs    = data.TS.coeffs;
-                    constant  = data.TS.constant;
-                    watchable = pick2 data.TS.coeffs [];
-                    justif    = Assign.empty }
-      in
-      { bassign; scaling; nature; simpl }
-          
-
-    let id c =
-      let t,Values.Boolean b = c.bassign in
-      2*(Term.id t)+(if b then 1 else 0)
-
-    let bassign t   = t.bassign
-    let scaling t   = t.scaling
-    let nature t    = t.nature
-    let coeffs t    = t.simpl.coeffs
-    let constant t  = t.simpl.constant
-    let watchable t = t.simpl.watchable
-    let justif t    = t.simpl.justif
 
     (* simplify model c
        simplifies constraint c according to the currently fixed vars, given as model.
@@ -126,15 +101,15 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
         { coeffs   = TS.VarMap.empty;
           constant = Q.zero;
           watchable;
-          justif = Assign.empty }
+          justif   = Assign.empty }
       in
       (* All vars in this part of the constraint are unassigned.
              we try to complete watchable to 2: *)
       let fullempty coeffs watchable =
         { coeffs;
-          constant = Q.zero;
+          constant  = Q.zero;
           watchable = pick2 coeffs watchable;
-          justif = Assign.empty }
+          justif    = Assign.empty }
       in
       (* Constraint is split in two, ans1 is the result from the left exploration.
                (treat rset rmap) is the job to do for the right exploration. *)
@@ -143,10 +118,10 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
         if List.length ans1.watchable < 2
         then
           let ans2 = treat rconstraint rmodel ans1.watchable in
-          { coeffs   = TS.VarMap.union snh ans1.coeffs ans2.coeffs;
-            constant = Q.(ans1.constant + ans2.constant);
+          { coeffs    = TS.VarMap.union snh ans1.coeffs ans2.coeffs;
+            constant  = Q.(ans1.constant + ans2.constant);
             watchable = ans2.watchable;
-            justif = Assign.union ans1.justif ans2.justif }
+            justif    = Assign.union ans1.justif ans2.justif }
         else
           { ans1 with coeffs = TS.VarMap.union snh ans1.coeffs rconstraint }
       in
@@ -159,8 +134,37 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
                          constant = Q.(c.simpl.constant + simpl.constant);
                          justif = Assign.union c.simpl.justif simpl.justif } }
 
-    let pp fmt c = Format.fprintf fmt "%a" pp_bassign c.bassign
+    let make term =
+      let data = proj(Terms.data term) in
+      let simpl = { coeffs    = data.TS.coeffs;
+                    constant  = data.TS.constant;
+                    watchable = pick2 data.TS.coeffs [];
+                    justif    = Assign.empty }
+      in
+      { term; scaling=data.TS.scaling; nature=data.TS.nature; simpl }
+
+    let pp fmt c = Format.fprintf fmt "%a" Term.pp c.term
+    let show = Print.stringOf pp
   end
+
+  (* let scaling, nature = *)
+  (*   let open TS in *)
+  (*   match data.nature,b with *)
+  (*   | Lt,true -> data.scaling, Lt *)
+  (*   | Le,true -> data.scaling, Le *)
+  (*   | Lt,false -> Q.(minus_one * data.scaling), Le *)
+  (*   | Le,false -> Q.(minus_one * data.scaling), Lt *)
+  (*   | Eq,true  | NEq,false -> data.scaling, Eq *)
+  (*   | NEq,true | Eq,false  -> data.scaling, NEq *)
+  (*   | _ -> raise IdontUnderstand *)
+                   
+  (* module Constraint = struct *)
+
+  (*   let id c = *)
+  (*     let t,Values.Boolean b = c.term in *)
+  (*     2*(Term.id t)+(if b then 1 else 0) *)
+
+  (* end *)
 
                    
 end

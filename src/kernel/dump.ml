@@ -15,8 +15,6 @@ let display = ref Utf8
 (* Printing *)
 (************)
 
-include General.Print
-         
 let every
     = [|(* local success *)
       0;
@@ -172,7 +170,7 @@ module Kernel = struct
 
   (* Print Kernel's timely report *)
   let print_time() =
-    if [%ord:float] (Timer.watch ltimer) (float_of_int Flags.every.(8)) > 0 then
+    if [%ord:Floathashed.t] (Timer.watch ltimer) (float_of_int Flags.every.(8)) > 0 then
       (Timer.reset ltimer;
        print_endline(string_of_int (int_of_float(Timer.watch gtimer))^" seconds");
        print_endline(print_state 1))

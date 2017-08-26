@@ -3,17 +3,18 @@
 (***********************************************)
 
 open Format
+open General
        
 type arity = Sorts.t*(Sorts.t list) [@@deriving eq, hash, ord]
-                                    
+
+
 type t =
 
-  | User of string*arity
+  | User of Stringhashed.t*arity
 
   (* Prop *)
   | True | False | Neg | And | Or | Imp | Xor
   | Forall of Sorts.t | Exists of Sorts.t
-  | IsTrue
 
   (* General *)
   | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t
@@ -29,7 +30,7 @@ type t =
   (* BitVectors *)
   | Extract of int*int*int
   | Conc of int*int
-  | CstBV of string
+  | CstBV of Stringhashed.t
                [@@deriving eq, hash, ord]
 
 let arity = function
@@ -37,7 +38,6 @@ let arity = function
   | True | False                      -> Sorts.Prop, []
   | Neg | Forall _ | Exists _         -> Sorts.Prop, [Sorts.Prop]
   | And | Or | Imp | Xor              -> Sorts.Prop, [Sorts.Prop;Sorts.Prop]
-  | IsTrue                            -> Sorts.Prop, [Sorts.Prop]
   | ITE so                            -> so, [Sorts.Prop;so;so]
   | Eq so | NEq so                    -> Sorts.Prop, [so;so]
   | CstRat i                          -> Sorts.Rat, []
@@ -63,7 +63,6 @@ let print_in_fmt_latex fmt = function
   | Or          -> fprintf fmt "\\vee"
   | Imp         -> fprintf fmt "\\Rightarrow"
   | Xor         -> fprintf fmt "\\oplus"
-  | IsTrue      -> fprintf fmt "\\mbox{\\small isT}"                           
   | ITE so      -> fprintf fmt "\\mbox{if}"
   | Eq so       -> fprintf fmt "=_{%a}" Sorts.pp so
   | NEq so      -> fprintf fmt "\\neq_{%a}" Sorts.pp so
@@ -96,7 +95,6 @@ let print_in_fmt_utf8 fmt = function
   | Or          -> fprintf fmt "∨"
   | Imp         -> fprintf fmt "⇒"
   | Xor         -> fprintf fmt "⊻"
-  | IsTrue      -> fprintf fmt "isT"
   | ITE so      -> fprintf fmt "if"
   | Eq so       -> fprintf fmt "="
   | NEq so      -> fprintf fmt "≠"
@@ -122,4 +120,4 @@ let pp fmt = match !Dump.display with
   | Dump.Latex -> print_in_fmt_latex fmt
   | _ -> print_in_fmt_utf8 fmt
 
-let show = Dump.stringOf pp
+let show = Print.stringOf pp

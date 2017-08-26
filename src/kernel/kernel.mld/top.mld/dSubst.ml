@@ -1,7 +1,7 @@
 (*************************)
 (* Delayed Substitutions *)
 (*************************)
-
+open General
 open Variables
 
 exception DSubst of string
@@ -14,7 +14,7 @@ let get_arity = function
 
 let rec get ppl j d = match d with
   | [] -> raise (DSubst 
-                   (Dump.toString
+                   (Print.toString
                       (fun f -> f "Attempting to access bound variable %i in esubstitution %a" j (pp ppl) d)))
   | a::d'
     -> if j=0 then a else get ppl (j-1) d'

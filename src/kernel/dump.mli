@@ -4,8 +4,6 @@
 (* printed.                                             *)
 (********************************************************)
 
-val init : (string * int * bool) list -> unit
-
 (**********************)
 (* Printing functions *)
 (**********************)
@@ -15,13 +13,7 @@ type display =
   | Utf8
 
 val display : display ref
-
-val toString : ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> string
-val stringOf : (Format.formatter -> 'a -> unit) -> 'a -> string
-val print : (string * int) list -> ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> unit
                       
-val wait : unit -> unit
-                
 val every : int array
         
 (**********)

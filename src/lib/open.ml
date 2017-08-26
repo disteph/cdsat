@@ -13,7 +13,20 @@ module Hash = struct
 end
 
 module Pervasives = Pervasives
+
 include Pervasives
+
+module Boolhashed = struct
+  type t = bool [@@deriving eq,ord,hash,show]
+end
+
+module Stringhashed = struct
+  type t = string [@@deriving eq,ord,hash,show]
+end
+
+module Floathashed = struct
+  type t = float [@@deriving eq,ord,hash,show]
+end
 
 let id2compare id a b = compare (id a) (id b)
 let id2equal   id a b = (id a)=(id b)

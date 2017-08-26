@@ -5,7 +5,7 @@
 module type OptionValue = sig
   type t
   type index
-  val value: (t,index) Opt.t
+  val value: (t,index) Opt.gadt
 end
 
 module BackIndex: OptionValue with type index = Opt.some
@@ -44,7 +44,7 @@ module MakePoly(M: sig
     type revealed = (Par.t,Data.t) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
-    val backindex: (int -> t,B.index) Opt.t
+    val backindex: (int -> t,B.index) Opt.gadt
   end
 
   module Init(B:OptionValue)(Par: sig type t [@@deriving eq, hash] end)
@@ -53,7 +53,7 @@ module MakePoly(M: sig
     type revealed = (Par.t,unit) g_revealed
     val build : revealed -> t
     val clear : unit -> unit
-    val backindex: (int -> t,B.index) Opt.t
+    val backindex: (int -> t,B.index) Opt.gadt
   end
 
 end
@@ -85,7 +85,7 @@ module Make(M: sig
     type revealed = Data.t g_revealed
     val build : revealed -> t
     val clear : unit -> unit
-    val backindex: (int -> t,B.index) Opt.t
+    val backindex: (int -> t,B.index) Opt.gadt
   end
              
   module Init(B:OptionValue) : sig
@@ -93,7 +93,7 @@ module Make(M: sig
     type revealed = unit g_revealed
     val build : revealed -> t
     val clear : unit -> unit
-    val backindex: (int -> t,B.index) Opt.t
+    val backindex: (int -> t,B.index) Opt.gadt
   end
 
 end

@@ -5,7 +5,7 @@
 module type OptionValue = sig
   type t
   type index
-  val value: (t,index) Opt.t
+  val value: (t,index) Opt.gadt
 end
 
 module EmptyData = struct 
@@ -90,7 +90,7 @@ module MakePoly(M: sig
                          end)
                                    
     let record, backindex =
-      let aux : type a index. (a,index)Opt.t -> (int->t->unit)*((int->t,index)Opt.t)
+      let aux : type a index. (a,index)Opt.gadt -> (int->t->unit)*((int->t,index)Opt.gadt)
       = function
       | Opt.Some _ ->
          let backtable = BackIndex.create 5003 in

@@ -47,7 +47,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
     let empty = LMap.empty
 
     let add ((term,Values.Boolean b) as bassign) m =
-      Dump.print ["kernel.bool",2]
+      Print.print ["kernel.bool",2]
         (fun p->p "kernel.bool records Boolean assignment %a in Boolean model %a "
                   pp_bassign bassign pp m);
       let l  = LitF.build (b,Term.id term) in
@@ -55,7 +55,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
       if LMap.mem nl m
       then
         begin
-          Dump.print ["kernel.bool",5]
+          Print.print ["kernel.bool",5]
             (fun p->p "Lit %a already set to true!" Arg.pp nl);
           let sassign1 = SAssign bassign in
           let sassign2 = SAssign (LMap.find nl m) in
@@ -63,7 +63,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
         end
       else
         begin
-          Dump.print ["kernel.bool",5]
+          Print.print ["kernel.bool",5]
             (fun p->p "Lit %a was not already set to true" Arg.pp nl);
           let dejavu _ = bassign in
           let m = LMap.add l dejavu m in

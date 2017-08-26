@@ -1,3 +1,4 @@
+open General
 open Top
 open Basic
 open Parser
@@ -65,7 +66,7 @@ let forParser (type a)
 	     with MultiaryError msg
                 | TypingError msg
                   -> 
-                   Dump.print ["typing",1] (fun p->
+                   Print.print ["typing",1] (fun p->
                        p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
 	           aux k l expsort)
          | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
@@ -78,8 +79,8 @@ let forParser (type a)
      let boundsymb db decsort expsort =
        let pdecsort = parseSort decsort in
        if Sorts.equal expsort pdecsort then I.bV (Variables.BoundVar.build(db,expsort))
-       else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Dump.stringOf Sorts.pp pdecsort
-                                ^" but expecting sort"^Dump.stringOf Sorts.pp expsort))
+       else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Print.stringOf Sorts.pp pdecsort
+                                ^" but expecting sort"^Print.stringOf Sorts.pp expsort))
 
      let quantif b l sf =
        let sfc = sf Sorts.Prop in
@@ -92,6 +93,6 @@ let forParser (type a)
        function expsort ->
                 if Sorts.equal expsort Sorts.Prop then aux l
                 else raise (TypingError ("TypingError: quantifier produces inhabitant of sort `Prop but expecting sort "
-                                         ^Dump.stringOf Sorts.pp expsort))
+                                         ^Print.stringOf Sorts.pp expsort))
                            
    end : InterpretType with type t = Sorts.t -> a)

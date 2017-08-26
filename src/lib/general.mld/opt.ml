@@ -3,13 +3,11 @@
 open Format
 
 let pp_print_option ?pp_none print_in_fmt fmt = function
-  | None ->
-     begin
-       match pp_none with
-       | None -> fprintf fmt "None"
-       | Some s -> s fmt ()
-     end
   | Some a -> print_in_fmt fmt a
+  | None ->
+     match pp_none with
+     | None -> fprintf fmt "None"
+     | Some s -> s fmt ()
 
 let map f = function
   | None -> None
@@ -18,7 +16,7 @@ let map f = function
 type some = private S
 type none = private N
 
-type (_,_) t = 
-  | Some: 'a -> ('a,some) t
-  | None: ('a,none) t
+type (_,_) gadt =
+  | Some: 'a -> ('a,some) gadt
+  | None: ('a,none) gadt
 

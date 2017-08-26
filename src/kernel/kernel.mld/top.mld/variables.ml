@@ -34,7 +34,7 @@ module FreeVar = struct
     | Meta mv  -> fprintf fmt "?%a" Meta.pp mv
     | Eigen ei -> fprintf fmt "%a" Eigen.pp ei
 
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 end
 
 module World = struct
@@ -159,7 +159,7 @@ module World = struct
     Format.fprintf fmt "%i; %t" ar.next_eigen aux 
 
   let pp = ppEM
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 
   let fold w ei f =
     let ar = data w in

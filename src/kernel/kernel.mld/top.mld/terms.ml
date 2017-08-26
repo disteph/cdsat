@@ -97,7 +97,7 @@ module TermB = struct
   let pp =
     let rec aux fmt t = pp BoundVar.pp BoundFunc aux reveal fmt t
     in aux
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 
   let get_sort =
     let rec aux t = get_sort BoundVar.get_sort BoundFunc aux reveal t
@@ -192,7 +192,7 @@ module Make(Leaf: Leaf)
           aux reveal fmt t
       in aux fmt t
 
-    let show = Dump.stringOf pp
+    let show = Print.stringOf pp
 
     let pp_tl = List.pp pp
                         

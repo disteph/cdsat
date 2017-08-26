@@ -24,6 +24,18 @@ module Pervasives : sig
   val exit : int -> 'a
 end
 
+module Boolhashed : sig
+  type t = bool [@@deriving eq,ord,hash,show]
+end
+
+module Stringhashed : sig
+  type t = string [@@deriving eq,ord,hash,show]
+end
+
+module Floathashed : sig
+  type t = float [@@deriving eq,ord,hash,show]
+end
+
 val lex_compare : ('a->'a->int) -> ('b->'b->int) -> ('a*'b) -> ('a*'b) ->int
                       
 module List : sig

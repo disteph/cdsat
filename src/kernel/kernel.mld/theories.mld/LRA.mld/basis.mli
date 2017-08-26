@@ -18,26 +18,29 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) : s
 
   val vinj: Q.t -> Value.t
   val vproj: Value.t -> Q.t option
-                                    
+
+  module VarMap : PatMap with type keys = IntSort.t
+                          and type values = Q.t*sassign
+                          and type ('v,'i) param = (IntSort.t,'v,int,int,'i) poly
+
   module Model : sig
       type t
       val empty : t
       val add : sassign -> t -> t
-      val map : t -> (IntSort.t,Q.t*sassign,int,int,EmptyInfo.infos) poly
+      val map : t -> VarMap.t
   end
 
-  module Constraint : sig
-    include FromHConsed
-    val make : bassign -> t
-    val bassign : t -> bassign
+  module Simpl : sig
+    type t [@@deriving show]
+    val term    : t -> Term.t
     val scaling : t -> Q.t
-    val nature : t -> TS.nature
-    val coeffs : t -> TS.VarMap.t
-    val constant : t -> Q.t
-    val watchable  : t -> IntSort.t list
+    val nature  : t -> TS.nature
+    val coeffs  : t -> TS.VarMap.t
+    val constant  : t -> Q.t
+    val watchable : t -> IntSort.t list
     val justif  : t -> Assign.t
-    val simplify: Model.t->t->t
-    val pp : Format.formatter -> t -> unit
+    val simplify: Model.t-> t-> t
+    val make    : Term.t -> t
   end
 
 end

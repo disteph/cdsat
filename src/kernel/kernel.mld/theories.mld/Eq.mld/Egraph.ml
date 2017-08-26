@@ -124,7 +124,7 @@ module Make(DS: GlobalDS) = struct
            | Case1 bassign, None ->
               aux propas (Assign.add (SAssign bassign) assigns) tail
            | Case1 _, Some _ ->
-              failwith(Dump.toString (fun p-> p "Path %a is ill-formed" pp_path path))
+              failwith(Print.toString (fun p-> p "Path %a is ill-formed" pp_path path))
            | Case2 sassign, None ->
               aux ~last:sassign propas assigns tail
            | Case2 sassign1, Some sassign2 ->

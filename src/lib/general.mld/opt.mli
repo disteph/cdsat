@@ -14,8 +14,8 @@ val map : ('a -> 'b) -> 'a option -> 'b option
 type some = private S
 type none = private N
 
-type (_,_) t = 
-  | Some: 'a -> ('a,some) t
-  | None: ('a,none) t
+type (_,_) gadt = 
+  | Some: 'a -> ('a,some) gadt
+  | None: ('a,none) gadt
 
 

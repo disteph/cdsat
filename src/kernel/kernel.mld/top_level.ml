@@ -2,7 +2,8 @@
 (* Main entry point for Kernel *)
 (*******************************)
 
-open General.Sums
+open General
+open Sums
 open Top
 open Messages
 open Sassigns
@@ -27,7 +28,7 @@ let init
     | Some l, None,_  
       | None,None,Some l -> get l
   in
-  print_endline(Dump.toString (fun p->
+  print_endline(Print.toString (fun p->
                     p "Using theories: %a" HandlersMap.pp theories));
 
   (* Now that we know the theories, we build the combined datastructures *)
@@ -56,7 +57,7 @@ let init
           then UNSAT msg
           else
             (print_endline(
-                 Dump.toString (fun p->
+                 Print.toString (fun p->
                      p "You said %a but this involves new hypotheses %a"
                        pp msg
                        Assign.pp (Assign.diff assign problem)));
@@ -66,14 +67,14 @@ let init
           if Assign.subset problem assign then SAT assign
           else
             (print_endline(
-                 Dump.toString (fun p->
+                 Print.toString (fun p->
                      p "You said %a but this ignores hypotheses %a"
                        Assign.pp assign
                        Assign.pp (Assign.diff problem assign)));
              NotAnsweringProblem)
 
        | Case2 _ ->
-          print_endline(Dump.toString (fun p->
+          print_endline(Print.toString (fun p->
                             p "Errr... not all theories agree on model"));
           NotAnsweringProblem
 

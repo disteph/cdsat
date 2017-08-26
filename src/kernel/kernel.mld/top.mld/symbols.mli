@@ -11,7 +11,6 @@ type t =
   (* Prop *)
   | True | False | Neg | And | Or | Imp | Xor
   | Forall of Sorts.t | Exists of Sorts.t
-  | IsTrue
 
   (* General *)
   | Eq of Sorts.t | NEq of Sorts.t | ITE of Sorts.t

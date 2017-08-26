@@ -17,8 +17,8 @@ module Make(DS: DSproj with type ts = TS.t) : sig
   open DS
          
   module LMap : PatMap with type keys = LitF.t
-                       and  type values = bassign
-                       and  type ('v,'i) param = (LitF.t,'v,I.common,I.branching,'i) poly
+                        and type values = bassign
+                        and type ('v,'i) param = (LitF.t,'v,I.common,I.branching,'i) poly
 
   (* Module for Boolean models. 
      We keep a bit more information than just "which lits are true/false",

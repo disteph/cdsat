@@ -38,7 +38,7 @@ module IntSort = struct
        if fv>=0 then Format.fprintf fmt "%s%i" (* "%s{%i}^{%a}" *) (if b then "" else "_") fv (* Sorts.print_in_fmt so *)
        else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
 
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 
   let isDefined fv = let _,b,_ = H.reveal fv in not b
   let isNeg fv = let i,_,_ = H.reveal fv in i<0
@@ -65,7 +65,7 @@ module MakeCollection
   let hash t = List.hash OT.hash (elements t)
   let hash_fold_t s t = List.hash_fold_t OT.hash_fold_t s (elements t)
   let pp fmt s = List.pp OT.pp fmt (elements s)
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 end
 
 module MakePATCollection(M: PHCons) = struct
@@ -82,6 +82,6 @@ module MakePATCollection(M: PHCons) = struct
   let hash_fold_t = Hash.hash2fold hash
   let next t = let e = choose t in (e,remove e t)
   let pp fmt s = print_in_fmt M.pp fmt s
-  let show = Dump.stringOf pp
+  let show = Print.stringOf pp
 end
 

@@ -3,14 +3,15 @@
 (*****************************************)
 
 open Format
+open General
 
 type t =
-  Prop
-| Rat
-| Array of t*t
-| Fun  of t*(t list)
-| User of string
-| BV of int
+  | Prop
+  | Rat
+  | Array of t*t
+  | Fun  of t*(t list)
+  | User of Stringhashed.t
+  | BV of int
             [@@deriving eq, hash, ord]
 
 let rec pp fmt = function
@@ -18,9 +19,9 @@ let rec pp fmt = function
   | Rat  -> fprintf fmt "{\\mathbb Q}"
   | Array(indices,values) -> fprintf fmt "{\\mathbb Ar}(%a,%a)" pp indices pp values
   | Fun(o,i) ->
-    fprintf fmt "(%a\rightarrow %a)"
-      pp o
-      pp_list i
+     fprintf fmt "(%a\rightarrow %a)"
+       pp o
+       pp_list i
   | User s -> fprintf fmt "\"%s\"" s
   | BV i -> fprintf fmt "\"BV_{%i}\"" i
 and pp_list fmt = function
@@ -28,6 +29,6 @@ and pp_list fmt = function
   | [so] -> fprintf fmt "%a" pp so
   | so::l-> fprintf fmt "%a,%a" pp so pp_list l
 
-let show = Dump.stringOf pp
+let show = Print.stringOf pp
 
 let allsorts declared = Prop :: Rat :: List.map (fun s-> User s) declared
