@@ -34,13 +34,10 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
 
   include Basis.Make(DS)
                                                     
-  let add_myvars term myvars =
-    let aux var _ = TSet.add (Term.term_of_id var) in
-    TS.(VarMap.fold aux (DS.proj(Terms.data term)).coeffs myvars)
-
   (* state type:
-     in order to produce the message Sat(seen),
-     one must satisfy each constraint in todo. *)
+     in order to produce the message Sat(seen,sharing,myvars),
+     one must satisfy each constraint in tosatisfy,
+     and give a value to each term in toevaluate. *)
   type state = { seen      : Assign.t;
                  sharing   : TSet.t;
                  myvars    : TSet.t Lazy.t;
@@ -53,17 +50,20 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
                tosatisfy = [];
                toevaluate= [] }
 
+  (* Output type for the evaluation function below *)
   type eval =
     | Beval   of (sign,straight) Msg.t
     | Qeval   of Term.t * Q.t
     | Unit    of { var         : int;
                    nature      : TS.nature;
                    is_coeff_pos: bool;
-                   rhs_cst     : Q.t }
+                   bound       : Q.t }
     | ToWatch of int list
 
   exception IdontUnderstand
-                
+
+  (* Evaluates a simplified term c,
+     special cases if all variables are assigned or ony one is missing *)
   let eval c =
     match Simpl.watchable c with
     | [] -> let value = Q.(Simpl.constant c * Simpl.scaling c) in
@@ -87,50 +87,152 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
        Unit{ var;
              nature       = Simpl.nature c;
              is_coeff_pos = Q.sign coeff > 0;
-             rhs_cst      = Q.(neg constant / coeff) }
+             bound        = Q.(neg constant / coeff) }
     | watchable -> ToWatch watchable
 
-  let take_sides term b =
-    match Terms.reveal term with
-    | Terms.C(Symbols.Lt,[lhs;rhs]) ->
-       if b then lhs,rhs,true else lhs,rhs,false
-    | Terms.C(Symbols.Le,[lhs;rhs]) ->
-       if b then lhs,rhs,false else lhs,rhs,true
-    | Terms.C(Symbols.Eq Sorts.Rat,[lhs;rhs]) when b ->
-       lhs,rhs,false
-    | _ -> failwith "Should not try Fourier-Motzkin with this"
-
+  (* Creates a term for coeff*term, special case if coeff is 1 *)
   let times coeff term =
     if Q.equal coeff Q.one then term
     else Term.bC Symbols.Times [Term.bC (Symbols.CstRat coeff) []; term]
 
+  (* Creates a term for a+b, special cases when a or b is 0 *)
   let plus a b =
     match Terms.reveal a, Terms.reveal b with
     | Terms.C(Symbols.CstRat q,[]),_ when Q.equal q Q.zero -> b
     | _,Terms.C(Symbols.CstRat q,[]) when Q.equal q Q.zero -> a
     | _ -> Term.bC Symbols.Plus [a; b]
-        
+
+  let get_coeff t var =
+    let data = proj(Terms.data t) in
+    Q.(data.TS.scaling * TS.VarMap.find var data.TS.coeffs)
+
+  (* Takes boolean assignment equivalent to a<b, a≤b, a>b, a≥b, a=b, a≠b.
+     Outputs: the smaller side, the bigger side,
+     Some(whether it is strict) or None if of the form a≠b. *)
+  let take_sides term b =
+    match Terms.reveal term with
+    | Terms.C(Symbols.Lt,[lhs;rhs]) ->
+       if b then lhs,rhs,Some true else lhs,rhs,Some false
+    | Terms.C(Symbols.Le,[lhs;rhs]) ->
+       if b then lhs,rhs,Some false else lhs,rhs,Some true
+    | Terms.C(Symbols.Gt,[lhs;rhs]) ->
+       if b then rhs,lhs,Some true else rhs,lhs,Some false
+    | Terms.C(Symbols.Ge,[lhs;rhs]) ->
+       if b then rhs,lhs,Some false else rhs,lhs,Some true
+    | Terms.C(Symbols.Eq Sorts.Rat,[lhs;rhs]) when not b ->
+       lhs,rhs,None
+    | Terms.C(Symbols.NEq Sorts.Rat,[lhs;rhs]) when b ->
+       lhs,rhs,None
+    | _ -> failwith "Should not try inference with equality"
+
+  (* projects equalities as ≤,
+     which indicates whether we want an upper (true) or lower (false) bound for var *)
+  let eq_as_le e b which var = 
+    match Terms.reveal e,b with
+    | Terms.C(Symbols.Eq Sorts.Rat,[a;b]),true
+      | Terms.C(Symbols.NEq Sorts.Rat,[a;b]),false
+      -> if which && (Q.sign(get_coeff e var)>0)
+         then Term.bC Symbols.Le [a;b],true
+         else Term.bC Symbols.Ge [a;b],true
+    | _ -> e,b
+     
+  (* Fourier-Motzkin resolution of ba1 and ba2 over variable var
+     Creates message ba1,ba2 ⊢ FM_resolvant(ba1,ba2) *)
   let fm ba1 ba2 var =
     let e1,Values.Boolean b1 = ba1 in
     let e2,Values.Boolean b2 = ba2 in
+    let e1,b1 = eq_as_le e1 b1 false var in
+    let e2,b2 = eq_as_le e2 b2 true var in
     let lhs1,rhs1,strict1 = take_sides e1 b1 in
     let lhs2,rhs2,strict2 = take_sides e2 b2 in
-    let data1 = proj(Terms.data e1) in
-    let data2 = proj(Terms.data e2) in
-    let coeff1 = Q.(abs(data1.TS.scaling * TS.VarMap.find var data1.TS.coeffs)) in
-    let coeff2 = Q.(abs(data2.TS.scaling * TS.VarMap.find var data2.TS.coeffs)) in
+    let strict = match strict1, strict2 with
+      | Some strict1, Some strict2 -> strict1 || strict2
+      | None,_ | _,None -> failwith "Should not try Fourier-Motzkin with a disequality"
+    in
+    let coeff1 = Q.abs(get_coeff e1 var) in
+    let coeff2 = Q.abs(get_coeff e2 var) in
     let lhs1,rhs1 = times coeff2 lhs1, times coeff2 rhs1 in
     let lhs2,rhs2 = times coeff1 lhs2, times coeff1 rhs2 in
     let lhs,rhs = plus lhs1 lhs2, plus rhs1 rhs2 in
-    let symb = if (strict1 || strict2) then Symbols.Lt else Symbols.Le in
+    let symb = if strict then Symbols.Lt else Symbols.Le in
     let sum = Term.bC symb [lhs; rhs] in
     let justif = Assign.add(SAssign ba2)(Assign.singleton(SAssign ba1)) in
     straight () justif (sum,Values.Boolean true)
 
-                           
+  let disequal lower diseq upper var =
+    let e1,Values.Boolean b1 = lower in
+    let e2,Values.Boolean b2 = diseq in
+    let e3,Values.Boolean b3 = upper in
+    let e1,b1 = eq_as_le e1 b1 false var in
+    let e3,b3 = eq_as_le e3 b3 true var in
+    Print.print ["kernel.LRA",2] (fun p ->
+        p "kernel.LRA: lower bound is (%a,%b), upper bound is (%a,%b)"
+          Term.pp e1 b1 Term.pp e3 b3);
+    let l1,r1,strict1 = take_sides e1 b1 in
+    let l2,r2,strict2 = take_sides e2 b2 in
+    let l3,r3,strict3 = take_sides e3 b3 in
+    let lower_coeff = get_coeff e1 var (* should be negative *) in
+    let diseq_coeff = get_coeff e2 var (* should be positive *) in
+    let upper_coeff = get_coeff e3 var in
+    match strict1,strict2,strict3 with
+    | Some false, None, Some false
+         when (Q.sign lower_coeff<0)&&(Q.sign upper_coeff>0)&&(Q.sign diseq_coeff<>0)
+      ->
+       let lower_bound = (* lower_bound ≤ |lower_coeff| var *)
+         plus l1 (times Q.minus_one (plus r1 (times lower_coeff (Term.term_of_id var))))
+       in
+       let upper_bound = (* |upper_coeff| var ≤ upper_bound *)
+         plus r3 (plus (times Q.minus_one l3) (times upper_coeff (Term.term_of_id var)))
+       in
+       let diseq_bound = (* diseq_bound ≠ |diseq_coeff| var *)
+         if Q.sign diseq_coeff<0
+         then (* diseq_bound ≠ - diseq_coeff var *)
+           plus l2 (times Q.minus_one (plus r2 (times diseq_coeff (Term.term_of_id var))))
+         else (* diseq_coeff var ≠ diseq_bound *)
+           plus r2 (plus (times Q.minus_one l2) (times diseq_coeff (Term.term_of_id var)))
+       in
+       let assumption1 = Term.bC (Symbols.Eq Sorts.Rat)
+                            [times (Q.abs diseq_coeff) lower_bound;
+                             times (Q.abs lower_coeff) diseq_bound]
+       in
+       let assumption2 = Term.bC (Symbols.Eq Sorts.Rat)
+                            [times (Q.abs diseq_coeff) upper_bound;
+                             times (Q.abs upper_coeff) diseq_bound]
+       in
+       let justif = Assign.add (SAssign lower)
+                      (Assign.add (SAssign diseq)
+                         (Assign.add (SAssign upper)
+                            (Assign.add (boolassign assumption1)
+                               (Assign.singleton (boolassign assumption2)))))
+       in
+       assumption1, assumption2, unsat () justif
+             
+    | _,Some b,_ ->
+       Print.print ["kernel.LRA",2] (fun p ->
+           p "kernel.LRA: strictness of %a gave Some(%b)"
+             pp_bassign diseq b);
+       failwith "Should not try Disequal with this"
+    | None,_,_ ->
+       Print.print ["kernel.LRA",2] (fun p ->
+           p "kernel.LRA: strictness of %a gave None" pp_bassign lower);
+       failwith "Should not try Disequal with this"
+    | _,_,None ->
+       Print.print ["kernel.LRA",2] (fun p ->
+           p "kernel.LRA: strictness of %a gave None" pp_bassign upper);
+       failwith "Should not try Disequal with this"
+    | _ ->
+       Print.print ["kernel.LRA",2] (fun p ->
+           p "kernel.LRA: signs of coeffs are %i, %i, %i"
+             (Q.sign lower_coeff) (Q.sign upper_coeff) (Q.sign diseq_coeff));
+       failwith "Should not try Disequal with this"
+
+             
   let pp_tosat fmt (Sassigns.SAssign(c,v)) =
     Sassigns.pp_sassign Term.pp Qhashed.pp fmt (Sassigns.SAssign(Simpl.term c,v))
 
+  (* Scans the constraints to satisfy and the terms to evaluate
+     and removes those that are satisfied/evaluated:
+     if nothing is left, creates the Sat(seen,sharing,myvars) message *)
   let sat model state =
     let rec aux = function
       | [],[] ->
@@ -172,6 +274,10 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     in
     aux (state.tosatisfy, state.toevaluate)
         
+  let add_myvars term myvars =
+    let aux var _ = TSet.add (Term.term_of_id var) in
+    TS.(VarMap.fold aux (DS.proj(Terms.data term)).coeffs myvars)
+
 
   let add sassign state =
     Print.print ["kernel.bool",2] (fun p ->
@@ -206,7 +312,7 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     in
     let new2evaluate = TSet.fold aux tset [] in
     let toevaluate = List.rev_append new2evaluate state.toevaluate in
-    new2evaluate, { state with sharing; myvars; toevaluate }
+    { state with sharing; myvars; toevaluate }, new2evaluate
 
   let clear = VarMap.clear
                    

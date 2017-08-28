@@ -293,9 +293,13 @@ module Make(DS: GlobalImplem) = struct
                                                      undetermined });
       in
 
-      let share tset =
-        let kernel = K.share tset state.kernel in
-        speak machine { state with kernel }
+      let share =
+        (* If we have already sent an unsat message, we shut up. *)
+        if state.silent then fun _ -> Silence, machine state
+        else
+          fun tset ->
+          let kernel = K.share tset state.kernel in
+          speak machine { state with kernel }
       in
                                   
       let clone () = machine state in
