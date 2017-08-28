@@ -48,7 +48,7 @@ module Make(DS: GlobalImplem) = struct
               | None,_ -> failwith "Bad1"
               | _,None -> failwith "Bad2"
               | Some(_,s1),Some(_,s2)->
-                 if [%ord:float] s1 s2 < 0 then x2 else x1
+                 if [%ord:Floathashed.t] s1 s2 < 0 then x2 else x1
             )
         }
       let treeHCons = None
@@ -122,9 +122,9 @@ module Make(DS: GlobalImplem) = struct
                let remaining =
                  BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
                in
-               Dump.print ["bool",6] (fun p ->
+               Print.print ["bool",6] (fun p ->
                    p "bool: All scored assignments\n %a" BaMap.pp !scores);
-               Dump.print ["bool",5] (fun p ->
+               Print.print ["bool",5] (fun p ->
                    p "bool: Choosing among %a" BaMap.pp remaining);
                match BaMap.info remaining with
                | Some(sassignh,_) ->
@@ -225,8 +225,7 @@ module Make(DS: GlobalImplem) = struct
                          { state with kernel; fixed; watched; propas; undetermined }
                     | Case2 c ->
                        (* Asignment was of a disjunctive kind.
-                           We create the constraint we need to satisfy,
-                           simplify it according to our current model,
+                           We simplify the constraint according to our current model,
                            and give it to the watched literals *)
                        let c = Config.Constraint.simplify fixed c in
                        let open K in
@@ -252,7 +251,7 @@ module Make(DS: GlobalImplem) = struct
 
                        | ToWatch(_,watchable) ->
 
-                          Dump.print ["bool",4] (fun p ->
+                          Print.print ["bool",4] (fun p ->
                               p "bool: new constraint - Watching clause %a"
                                 pp_bassign bassign);
                           let watched = WL.addconstraint ~watched:watchable c watched in
@@ -282,11 +281,11 @@ module Make(DS: GlobalImplem) = struct
                                       (fun scores -> scores)
                                       newlits
                                       !scores;
-                          Dump.print ["bool",5] (fun p ->
+                          Print.print ["bool",5] (fun p ->
                               p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
-                          Dump.print ["bool",6] (fun p ->
+                          Print.print ["bool",6] (fun p ->
                               p "All scored lits\n%a" BaMap.pp !scores);
-                          Dump.print ["bool",5] (fun p ->
+                          Print.print ["bool",5] (fun p ->
                               p "Just put scores for %a" Assign.pp newlits);
                           (* The undetermined ones are recorded as undetermined *)
                           (* And now we look at what we have to say *)
@@ -306,7 +305,7 @@ module Make(DS: GlobalImplem) = struct
                     (fun _ -> BaMap.empty)
                     (fun scores -> scores)
                     baset !scores;
-        Dump.print ["bool",2] (fun p ->
+        Print.print ["bool",2] (fun p ->
             p "Cardinal of !scores: %i" (BaMap.cardinal !scores));
         incr since_last;
         bump_value := !bump_value *. decay;
@@ -326,7 +325,7 @@ module Make(DS: GlobalImplem) = struct
                          silent = false }
 
     let clear () =
-      Dump.print ["bool",3] (fun p -> p "bool: clearing (including scores)");
+      Print.print ["bool",3] (fun p -> p "bool: clearing (including scores)");
       scores := BaMap.empty;
       K.clear ()
 

@@ -2,6 +2,7 @@
 (* Main entry point for CDSAT runs *)
 (***********************************)
 
+open General
 open TopFlags
        
 type _ stringOrunit =
@@ -93,8 +94,8 @@ let run parser input =
        Dump.display := Dump.Latex;
      let ans =
        match r with
-       | K.UNSAT assign -> Some(Dump.toString (fun p->p "%a" K.WB.pp assign))
-       | K.SAT assign -> Some(Dump.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
+       | K.UNSAT assign -> Some(Print.toString (fun p->p "%a" K.WB.pp assign))
+       | K.SAT assign -> Some(Print.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
        | K.NotAnsweringProblem -> None
      in
      Dump.display := display;
@@ -114,7 +115,7 @@ let parseNrun input =
           run parser input
 	with Kernel.Parsers.Parser.ParsingError s
            | Kernel.Parsers.Typing.TypingError s ->
-              print_endline(Dump.toString (fun p->
+              print_endline(Print.toString (fun p->
                                 p "Parser %a could not parse input, because \n%s"
                                   Kernel.Parsers.Register.pp parser s));
               trying other_parsers
@@ -180,7 +181,7 @@ let collect_sort s =
 	let l = List.map (fun filename -> (filename,size_of filename)) s in
 	let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
 	  List.map (fun (filename,size) -> filename) l'
-    | _ -> List.sort [%ord:string] s
+    | _ -> List.sort Stringhashed.compare s
 
 let treatdir pack dirname =
   print_endline("Treating directory "^dirname);

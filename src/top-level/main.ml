@@ -15,6 +15,7 @@
 
 open Arg
 
+open General
 open Flags
 open PFlags
 open TopFlags
@@ -77,7 +78,7 @@ Available options are:";;
 
 
 Arg.parse options (fun a->fname:= a::!fname) description;
-Dump.init !dtags;
+Print.init !dtags;
 let trname, trstdin = treatprimitives() in
 let rec treat = function
   | []      -> ()

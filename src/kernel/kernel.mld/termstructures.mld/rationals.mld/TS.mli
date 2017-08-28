@@ -4,9 +4,9 @@ open Patricia_interfaces
 open Top.Basic
        
 module VarMap : PatMap
-       with type keys = IntSort.t
+       with type keys   = int
         and type values = Q.t
-        and type ('v,'i) param = (IntSort.t,'v,int,int,'i) poly 
+        and type ('v,'i) param = (int,'v,int,int,'i) poly 
 
 type nature = Lt | Le | Eq | NEq | Term | Other
 
@@ -18,4 +18,4 @@ type t' = { scaling : Q.t; (* A scaling factor, so that multiplication by a cons
             
 include Top.Specs.DataType with type t = t'
 
-val pp : (Format.formatter -> IntSort.t -> unit) -> Format.formatter -> t -> unit
+val pp : (Format.formatter -> int -> unit) -> Format.formatter -> t -> unit

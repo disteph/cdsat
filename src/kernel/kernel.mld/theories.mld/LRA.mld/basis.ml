@@ -20,16 +20,15 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
      where value is a rational value,
      and sassign is the single assignment that gave that variable that value. *)
   module Arg = struct
-    include IntSort
-    let pp fmt is =
-      let i,_ = IntSort.reveal is in
-      Format.fprintf fmt "<%a>" Term.pp (Term.term_of_id i)
+    type t = int [@@deriving ord]
+    let id i = i
+    let pp fmt i = Format.fprintf fmt "<%a>" Term.pp (Term.term_of_id i)
     type values = Q.t * sassign
     include EmptyInfo
     let treeHCons = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
 
-  module VarMap = PatMap.Make(Arg)(TypesFromHConsed(IntSort))
+  module VarMap = PatMap.Make(Arg)(TypesFromHConsed(Arg))
 
   module Model = struct
     include VarMap
@@ -43,19 +42,18 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
          match vproj v with
          | None -> model
          | Some q ->
-            let var = IntSort.build (Term.id t,Term.get_sort t) in
             let aux = function
               | None -> q,sassign
               | Some _ -> failwith "Already have a value"
             in
-            add var aux model
+            add (Term.id t) aux model
   end
 
   module Simpl = struct
 
     type simpl = { coeffs    : TS.VarMap.t;
                    constant  : Q.t;
-                   watchable : IntSort.t list;
+                   watchable : int list;
                    justif    : Assign.t; }
 
     type t = { term : Term.t;
@@ -147,24 +145,4 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
     let show = Print.stringOf pp
   end
 
-  (* let scaling, nature = *)
-  (*   let open TS in *)
-  (*   match data.nature,b with *)
-  (*   | Lt,true -> data.scaling, Lt *)
-  (*   | Le,true -> data.scaling, Le *)
-  (*   | Lt,false -> Q.(minus_one * data.scaling), Le *)
-  (*   | Le,false -> Q.(minus_one * data.scaling), Lt *)
-  (*   | Eq,true  | NEq,false -> data.scaling, Eq *)
-  (*   | NEq,true | Eq,false  -> data.scaling, NEq *)
-  (*   | _ -> raise IdontUnderstand *)
-                   
-  (* module Constraint = struct *)
-
-  (*   let id c = *)
-  (*     let t,Values.Boolean b = c.term in *)
-  (*     2*(Term.id t)+(if b then 1 else 0) *)
-
-  (* end *)
-
-                   
 end

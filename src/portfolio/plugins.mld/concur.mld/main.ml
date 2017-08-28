@@ -11,7 +11,8 @@ with concurrency, as provided by Jane Street's Async library.
 
 open Async
 
-open General.Sums
+open General
+open Sums
 
 open Kernel
 open Theories.Register
@@ -62,7 +63,7 @@ module Make(K:Plugin.Input) = struct
     (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)
     Deferred.both workers (master hub tset) >>| fun ((),a) ->
-    Dump.print ["concur",1] (fun p-> p "Finished computation");
+    Print.print ["concur",1] (fun p-> p "Finished computation");
     a
 
   (* Finally, we launch the scheduler on mysolve tset, waiting for

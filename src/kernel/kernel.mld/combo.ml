@@ -173,7 +173,7 @@ let theory_add (type tva sign ts values api)
     | Theory.HasValues(module V) ->
        let module V = struct
            type t = V.t [@@deriving eq,ord,hash]
-           let pp fmt v = Format.printf "%a<%a>" Tags.pp hdl V.pp v
+           let pp fmt v = Format.fprintf fmt "%a<%a>" Tags.pp hdl V.pp v
            let show  = Print.stringOf pp
          end
        in

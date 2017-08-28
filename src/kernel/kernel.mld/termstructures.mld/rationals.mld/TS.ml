@@ -6,13 +6,14 @@ open Top
 open Basic
        
 module Arg = struct
-  include IntSort
+  type t = int [@@deriving ord]
+  let id i = i
   type values = Q.t
   include EmptyInfo
   let treeHCons = None
 end
 
-module VarMap = PatMap.Make(Arg)(TypesFromHConsed(IntSort))
+module VarMap = PatMap.Make(Arg)(TypesFromHConsed(Arg))
 
 type nature = Lt | Le | Eq | NEq | Term | Other
                            
@@ -40,7 +41,7 @@ let pp pp_intsort fmt t =
   | Eq -> pp_expr "= 0"
   | NEq -> pp_expr "≠ 0"
            
-let other = { scaling = Q.zero; coeffs = VarMap.empty; constant = Q.zero; nature = Other }
+let other = { scaling = Q.one; coeffs = VarMap.empty; constant = Q.zero; nature = Other }
 
 let mult factor t =
   match t.nature with
@@ -77,8 +78,7 @@ let add t1 t2 =
 let minus t1 t2 = add t1 (mult Q.minus_one t2)
 
 let make_var tag =
-  let var = IntSort.build(tag,Sorts.Rat) in 
-  let coeffs = VarMap.singleton var Q.one in
+  let coeffs = VarMap.singleton tag Q.one in
   { scaling = Q.one; coeffs; constant=Q.zero; nature = Term }
     
 let bV tag fv = match Variables.FreeVar.get_sort fv with
@@ -87,7 +87,7 @@ let bV tag fv = match Variables.FreeVar.get_sort fv with
 
 let bC tag symb l = match symb, l with
   | Symbols.CstRat n, []
-    -> { scaling = Q.zero; coeffs=VarMap.empty; constant=n; nature=Term }
+    -> { scaling = Q.one; coeffs=VarMap.empty; constant=n; nature=Term }
   | Symbols.Eq Sorts.Rat, [a;b]           -> { (minus a b) with nature = Eq }
   | Symbols.NEq Sorts.Rat, [a;b]          -> { (minus a b) with nature = NEq }
   | Symbols.Le, [a;b] | Symbols.Ge, [b;a] -> { (minus a b) with nature = Le }

@@ -39,7 +39,7 @@ let boolassign ?(b=true) t = SAssign(t, Values.Boolean b)
 let pp_sassign pp_t pp_v fmt (SAssign((t,v) as poly)) =
   match v with
   | Values.Boolean _    -> pp_bassign pp_t pp_v fmt poly
-  | Values.NonBoolean v -> Format.fprintf fmt "(%a↦%a)" pp_t t pp_v v
+  | Values.NonBoolean v -> Format.fprintf fmt "(%a↦ %a)" pp_t t pp_v v
 
 let show_sassign pp_t pp_v = Print.stringOf (pp_sassign pp_t pp_v)
 

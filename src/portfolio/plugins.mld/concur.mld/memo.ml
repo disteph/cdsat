@@ -174,7 +174,7 @@ module Make(WB : WhiteBoardExt) = struct
       match P.next fixed ~howmany:1 watch with
       | None,_ -> false
       | Some(c,_),_ ->
-         Dump.print ["watch",1] (fun p-> p "Already know");
+         Print.print ["watch",1] (fun p-> p "Already know");
          true
           
     let add c sassign sassign' =
@@ -183,10 +183,10 @@ module Make(WB : WhiteBoardExt) = struct
       then
         (watchref := P.addconstraint c ~watched:[sassign;sassign'] !watchref;
          incr watchcount;
-         Dump.print ["memo",3] (fun p->
+         Print.print ["memo",3] (fun p->
              p "Constraint %a watching %a and %a"
                Constraint.pp c DS.pp_sassign sassign DS.pp_sassign sassign');
-         Dump.print ["watch",1] (fun p-> p "%i" !watchcount))
+         Print.print ["watch",1] (fun p-> p "%i" !watchcount))
 
     let fix sassign = watchref := P.fix sassign !watchref
 
@@ -204,26 +204,26 @@ module Make(WB : WhiteBoardExt) = struct
            Nothing
         | Some(constr,termlist) ->
            let msg = Constraint.msg constr in
-           Dump.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
+           Print.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
            let prune sassign sofar =
              if Fixed.is_fixed sassign fixed then sofar else sassign::sofar
            in
-           Dump.print ["memo",0] (fun p->
+           Print.print ["memo",0] (fun p->
                p "Memo: Pruned List is %a"
                  (List.pp Var.pp) (List.fold prune termlist []));
            match List.fold prune termlist [] with
 
            | [] ->
-              Dump.print ["memo",1] (fun p->
+              Print.print ["memo",1] (fun p->
                   p "Memo: found memoised conflict %a" WB.pp msg);
-              Dump.print ["memo",2] (fun p->
+              Print.print ["memo",2] (fun p->
                   let WB(_,Propa(justif,_)) = msg in
                   p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
               watchref := watch;
               Conflict msg
                    
            | (SAssign(_,Top.Values.NonBoolean _) as last)::_ ->
-              Dump.print ["memo",2] (fun p->
+              Print.print ["memo",2] (fun p->
                   p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
                     WB.pp msg Var.pp last);
               aux watch
@@ -231,20 +231,20 @@ module Make(WB : WhiteBoardExt) = struct
            | SAssign((_,Top.Values.Boolean _) as bassign)::_ ->
               let newmsg = WB.curryfy ~flip:bassign msg in
               let WB(_,Propa(justif,Straight flipped)) = newmsg in
-              Dump.print ["memo",1] (fun p->
+              Print.print ["memo",1] (fun p->
                   p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
                     WB.pp msg pp_bassign flipped);
-              Dump.print ["memo",2] (fun p->
+              Print.print ["memo",2] (fun p->
                   p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
               (* assert (Assign.subset justif fixed); *)
               (* assert (not(Assign.mem (SAssign flipped) justif)); *)
               if Fixed.is_fixed (SAssign flipped) fixed
               then
-                (Dump.print ["memo",2] (fun p->
+                (Print.print ["memo",2] (fun p->
                      p "Memo: %a already known" pp_bassign flipped);
                  aux watch)
               else
-                (Dump.print ["memo",1] (fun p-> p "Memo: useful prop");
+                (Print.print ["memo",1] (fun p-> p "Memo: useful prop");
                  watchref := watch;
                  UP newmsg)
 
@@ -259,12 +259,12 @@ module Make(WB : WhiteBoardExt) = struct
 
   let suicide msg term = function
     | Some term' when !Flags.memo ->
-       Dump.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
+       Print.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
        WR.add (Constraint.make msg) term term'
     | _ -> ()
 
   let rec flush ports msg =
-    Dump.print ["memo",2] (fun p-> p "Memo enters flush");
+    Print.print ["memo",2] (fun p-> p "Memo enters flush");
     let aux (incoming : regular msg2th) =
       match incoming with
       | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
@@ -278,14 +278,14 @@ module Make(WB : WhiteBoardExt) = struct
            ]
       | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in
-    Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
+    Lib.read ~onkill:(fun ()->return(Print.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
       ports.reader aux
 
   let rec loop_read fixed ports =
     let aux (incoming : regular msg2th) =
       match incoming with
       | MsgStraight(sassign,chrono) ->
-         Dump.print ["memo",1] (fun p-> p "Memo: adding %a" Var.pp sassign);
+         Print.print ["memo",1] (fun p-> p "Memo: adding %a" Var.pp sassign);
          let fixed = Fixed.extend (Assign.singleton sassign) fixed in
          WR.fix sassign;
          loop_write fixed chrono ports (WR.speak fixed)
@@ -298,13 +298,13 @@ module Make(WB : WhiteBoardExt) = struct
       | Infos _ -> loop_read fixed ports
       | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in
-    Lib.read ~onkill:(fun ()->return(Dump.print ["memo",2] (fun p-> p "Memo thread dies")))
+    Lib.read ~onkill:(fun ()->return(Print.print ["memo",2] (fun p-> p "Memo thread dies")))
       ports.reader aux
 
   and loop_write fixed chrono ports = function
 
     | WR.Nothing -> 
-       Dump.print ["memo",2] (fun p-> p "Memo: no output msg");
+       Print.print ["memo",2] (fun p-> p "Memo: no output msg");
        Deferred.all_unit
          [ Lib.write ports.writer (Msg(None,Ack,chrono));
            loop_read fixed ports ]

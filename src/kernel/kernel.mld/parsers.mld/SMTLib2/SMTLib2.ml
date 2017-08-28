@@ -165,10 +165,10 @@ let guessThDecProc aft =
     | None   -> None
     | Some "QF_BOOL"-> Some ["bool"]
     | Some "QF_UF"  -> Some ["CC"; "bool"; "IfThenElse"]
-    | Some "QF_LRA" -> Some ["LRA"; "CC"; "bool"; "IfThenElse"]
-    | Some "QF_LIA" -> Some ["LIA"; "CC"; "bool"; "IfThenElse"]
-    | Some "QF_AX"  -> Some ["Arrays"; "CC"; "bool"; "IfThenElse"]
-    | Some a -> Some [a; "CC"; "bool"; "IfThenElse"]
+    | Some "QF_LRA" -> Some ["LRA"; "bool"; "IfThenElse"]
+    | Some "QF_LIA" -> Some ["LIA"; "bool"; "IfThenElse"]
+    | Some "QF_AX"  -> Some ["Arrays"; "bool"; "IfThenElse"]
+    | Some a -> Some [a; "bool"; "IfThenElse"]
 
 let rec list_index a accu = function
   | [] -> None

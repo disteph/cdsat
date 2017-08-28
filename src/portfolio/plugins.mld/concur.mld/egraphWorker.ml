@@ -1,6 +1,8 @@
 open Async
 open Lib
 
+open General
+
 open Kernel
 open Top.Messages
 open Top.Specs
@@ -49,7 +51,7 @@ module Make(WB: WhiteBoardExt)
 
   let rec loop_read egraph ports = 
     let aux msg =
-      Dump.print ["egraph",1] (fun p-> p "The E-graph reads %a" pp_msg2th msg);
+      Print.print ["egraph",1] (fun p-> p "The E-graph reads %a" pp_msg2th msg);
       match msg with
       | MsgStraight(sassign,chrono)
         -> loop_write (egraph.add sassign) chrono ports
@@ -67,7 +69,7 @@ module Make(WB: WhiteBoardExt)
       | KillYourself _ -> return()
     in
     Lib.read
-      ~onkill:(fun ()->return(Dump.print ["egraph",2] (fun p-> p "E-graph dies")))
+      ~onkill:(fun ()->return(Print.print ["egraph",2] (fun p-> p "E-graph dies")))
       ports.reader aux
 
   and loop_write output chrono ports =
@@ -75,11 +77,11 @@ module Make(WB: WhiteBoardExt)
     let hhdl = Some Handlers.Eq in
     let msg_make msg = Msg(hhdl,Say(WB.sign_Eq msg),chrono) in
 
-    Dump.print ["egraph",1] (fun p-> p "E-graph looks at its output_msg");
+    Print.print ["egraph",1] (fun p-> p "E-graph looks at its output_msg");
 
     match output with
     | UNSAT(propas,conflict) -> 
-       Dump.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
+       Print.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
        
        let unsat_msg = msg_make conflict in
        let l = List.map msg_make propas in
@@ -90,7 +92,7 @@ module Make(WB: WhiteBoardExt)
          ]
 
     | SAT(msg,egraph) ->
-       Dump.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
+       Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
        Deferred.all_unit
          [
            Lib.write ports.writer (msg_make msg) ;
