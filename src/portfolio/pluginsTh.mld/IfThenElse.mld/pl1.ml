@@ -28,7 +28,7 @@ module Make(DS: GlobalImplem) = struct
           | Some sassign -> get(K.add sassign state)
         in
 
-        let share tset = Silence, machine(K.share tset state) in
+        let share tset = get(K.share tset state) in
         
         let clone () = machine state in
 

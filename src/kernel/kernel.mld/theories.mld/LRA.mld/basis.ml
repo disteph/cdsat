@@ -141,7 +141,9 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
       in
       { term; scaling=data.TS.scaling; nature=data.TS.nature; simpl }
 
-    let pp fmt c = Format.fprintf fmt "%a" Term.pp c.term
+    let pp fmt c =
+      let pp_var fmt i = Term.pp fmt (Term.term_of_id i) in
+      TS.pp pp_var fmt (proj(Terms.data(term c)))
     let show = Print.stringOf pp
   end
 

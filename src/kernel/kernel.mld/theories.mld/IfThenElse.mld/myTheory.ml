@@ -58,17 +58,15 @@ module Make(DS: DSproj with type ts = ts) = struct
                 { state with todo = [] }
       | t::l when TSet.mem t state.solved -> aux l
       | t::l ->
-         begin match Terms.reveal t with
+         match Terms.reveal t with
          | Terms.C(Symbols.ITE so,[c;b1;b2]) 
            ->
             if TMap.mem c state.known
             then
-              let br = if TMap.find c state.known
-                       then b1
-                       else b2
-              in
+              let b = TMap.find c state.known in
+              let br = if b then b1 else b2 in
               let eq = Term.bC (Symbols.Eq so) [t;br], Values.Boolean true in
-              Some(Propa(straight () (Assign.singleton(boolassign c)) eq)),
+              Some(Propa(straight () (Assign.singleton(boolassign ~b c)) eq)),
               { state with todo = l; solved = TSet.add t state.solved }
             else
               None,
@@ -81,7 +79,6 @@ module Make(DS: DSproj with type ts = ts) = struct
 
          | _ -> aux l
 
-         end
     in
     (* Dump.print ["IfThenElse",1] (fun p -> p "treated=%a" Assign.pp state.treated); *)
     (* Dump.print ["IfThenElse",1] (fun p -> p "known=%a" ppL state.known); *)

@@ -262,13 +262,13 @@ module Make(DS: GlobalImplem) = struct
                             | Some(newlits,_) -> newlits
                             | _ -> LSet.empty
                           in
-                          (* Getting a constraint literals (and negations)
+                          (* Getting a constraint's literals (and negations)
                              into an Assign.t*)
                           let aux lit sofar =
                             let _,i = LitF.reveal lit in
                             let t = Term.term_of_id i in
-                            let sassign  = boolassign t in
-                            let sassign' = boolassign ~b:(not b) t in
+                            let sassign  = boolassign ~b:true t in
+                            let sassign' = boolassign ~b:false t in
                             Assign.add sassign (Assign.add sassign' sofar)
                           in
                           let newlits = LSet.fold aux newlits Assign.empty in

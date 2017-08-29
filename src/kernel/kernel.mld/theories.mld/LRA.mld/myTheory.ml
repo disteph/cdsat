@@ -207,19 +207,6 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
        in
        assumption1, assumption2, unsat () justif
              
-    | _,Some b,_ ->
-       Print.print ["kernel.LRA",2] (fun p ->
-           p "kernel.LRA: strictness of %a gave Some(%b)"
-             pp_bassign diseq b);
-       failwith "Should not try Disequal with this"
-    | None,_,_ ->
-       Print.print ["kernel.LRA",2] (fun p ->
-           p "kernel.LRA: strictness of %a gave None" pp_bassign lower);
-       failwith "Should not try Disequal with this"
-    | _,_,None ->
-       Print.print ["kernel.LRA",2] (fun p ->
-           p "kernel.LRA: strictness of %a gave None" pp_bassign upper);
-       failwith "Should not try Disequal with this"
     | _ ->
        Print.print ["kernel.LRA",2] (fun p ->
            p "kernel.LRA: signs of coeffs are %i, %i, %i"
@@ -227,8 +214,9 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
        failwith "Should not try Disequal with this"
 
              
-  let pp_tosat fmt (Sassigns.SAssign(c,v)) =
-    Sassigns.pp_sassign Term.pp Qhashed.pp fmt (Sassigns.SAssign(Simpl.term c,v))
+  (* let pp_tosat fmt (Sassigns.SAssign(c,v)) = *)
+  (*   Sassigns.pp_sassign Term.pp Qhashed.pp fmt (Sassigns.SAssign(Simpl.term c,v)) *)
+  let pp_tosat = Sassigns.pp_sassign Simpl.pp Qhashed.pp
 
   (* Scans the constraints to satisfy and the terms to evaluate
      and removes those that are satisfied/evaluated:

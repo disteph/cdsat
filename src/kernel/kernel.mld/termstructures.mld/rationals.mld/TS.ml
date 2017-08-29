@@ -24,22 +24,38 @@ type t' = { scaling : Q.t; (* A scaling factor, so that multiplication by a cons
             nature : nature }   (* The predicate *)
 type t = t'
            
-let pp pp_intsort fmt t =
+let pp pp_var fmt t =
   let open Format in
   let pp_monome fmt (var,coeff) =
-    fprintf fmt "%a·(%a)" Q.pp_print Q.(coeff * t.scaling) pp_intsort var
+    let coeff = Q.(coeff * t.scaling) in
+    if Q.equal coeff Q.one
+    then fprintf fmt "(%a)" pp_var var
+    else if Q.equal coeff Q.minus_one
+    then fprintf fmt "-(%a)" pp_var var
+    else fprintf fmt "%a·(%a)" Q.pp_print coeff pp_var var
   in
-  let pp_expr s = fprintf fmt "%a + %a%s"
-                     (VarMap.print_in_fmt pp_monome) t.coeffs
-                     Q.pp_print Q.(t.constant * t.scaling) s
+  let cst = Q.(t.constant * t.scaling) in
+  let pp_cst s fmt cst = fprintf fmt "%s%a" s Q.pp_print cst in
+  let rec pp_map fmt = function
+    | []             -> pp_cst "" fmt cst
+    | [monome]       -> fprintf fmt "%a%a"
+                          pp_monome monome
+                          (if Q.sign cst>0 then pp_cst "+"
+                           else if Q.sign cst<0 then pp_cst ""
+                           else (fun _ _ -> ()))
+                          cst
+    | monome::(((_,coeff)::_) as coeffs) ->
+       fprintf fmt "%a%s%a"
+         pp_monome monome (if Q.sign coeff>0 then "+" else "") pp_map coeffs
   in
+  let pp_expr s = fprintf fmt "%a%s" pp_map (VarMap.elements t.coeffs) s in
   match t.nature with
   | Other -> fprintf fmt "Not understandable"
   | Term -> pp_expr ""
-  | Lt -> pp_expr "< 0"
-  | Le -> pp_expr "< 0"
-  | Eq -> pp_expr "= 0"
-  | NEq -> pp_expr "≠ 0"
+  | Lt -> pp_expr " < 0"
+  | Le -> pp_expr " < 0"
+  | Eq -> pp_expr " = 0"
+  | NEq -> pp_expr " ≠ 0"
            
 let other = { scaling = Q.one; coeffs = VarMap.empty; constant = Q.zero; nature = Other }
 

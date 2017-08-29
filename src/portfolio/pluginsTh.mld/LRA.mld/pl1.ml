@@ -53,7 +53,7 @@ module Make(DS: GlobalImplem) = struct
       let pick_another _ (c,_) i _ =
         Print.print ["LRA",2] (fun p ->
             p "LRA: WLB picks variables for %a, gets %a"
-              Term.pp (K.Simpl.term c)
+              K.Simpl.pp c
               (List.pp Term.pp)
               (List.map Term.term_of_id (K.Simpl.watchable c)));
         K.Simpl.watchable c
@@ -74,7 +74,7 @@ module Make(DS: GlobalImplem) = struct
       let pick_another _ (c,_,_) i _ =
         Print.print ["LRA",2] (fun p ->
             p "LRA: WLQ picks variables for %a, gets %a"
-              Term.pp (K.Simpl.term c)
+              K.Simpl.pp c
               (List.pp Term.pp)
               (List.map Term.term_of_id (K.Simpl.watchable c)));
         K.Simpl.watchable c
@@ -84,7 +84,7 @@ module Make(DS: GlobalImplem) = struct
 
     type state = {
         kernel : K.state;  (* The state of the kernel *)
-        fixed  : fixed;    (* Our Boolean model *)
+        fixed  : fixed;    (* Our LRA valuation *)
         watchedB: WLB.t;   (* Watched literals for constraints *)
         watchedQ: WLQ.t;   (* Watched literals for terms to evaluate *)
         domains: Domain.t; (* The set of variables we could fix, with their domains *)
@@ -92,7 +92,16 @@ module Make(DS: GlobalImplem) = struct
         umsg   : (K.sign,unsat) Msg.t option;      (* The unsat message to be send*)
         silent : bool      (* Whether we have already sent an unsat message *)
       }
+
+    (* pretty printing an evaluation inference *)
+    let pp_beval fmt msg =
+      let Propa(justif,Straight(t,Top.Values.Boolean b)) = msg in
+      Format.fprintf fmt "%a ⊢ %a"
+        Assign.pp justif
+        (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+        (SAssign(K.Simpl.make t,Top.Values.Boolean b))
                    
+
     (* We are asked whether we have something to say *)
     let rec speak machine state =
 
@@ -145,12 +154,12 @@ module Make(DS: GlobalImplem) = struct
                let open K in
                Print.print ["LRA",4] (fun p ->
                    p "LRA: Watched lits have found determined term %a"
-                     Term.pp (K.Simpl.term c));
+                     K.Simpl.pp c);
                match eval c with
 
                | Beval msg ->
                   (* c of sort Bool does evaluate - we send the propagation message *)
-                  Print.print ["LRA",4] (fun p -> p "LRA: kernel says %a" Msg.pp msg);
+                  Print.print ["LRA",4] (fun p -> p "LRA: kernel says %a" pp_beval msg);
                   Msg msg, machine { state with watchedB; watchedQ }
 
                | Qeval(term,q') ->
@@ -158,9 +167,13 @@ module Make(DS: GlobalImplem) = struct
                   | None ->
                      let v = Top.Values.NonBoolean(K.vinj q') in
                      let sassign = SAssign(term,v) in
-                     Print.print ["LRA",2] (fun p ->
-                         p "LRA: %a must be the case" pp_sassign sassign);
-                     Try sassign, machine { state with watchedB; watchedQ }
+                     let i = Term.id term in
+                     if K.VarMap.mem i (K.Model.map state.fixed)
+                     then speak machine { state with watchedB; watchedQ }
+                     else
+                       (Print.print ["LRA",2] (fun p ->
+                            p "LRA: new value! %a" pp_sassign sassign);
+                        Try sassign, machine { state with watchedB; watchedQ })
                   | Some q when Q.equal q q' ->
                      speak machine { state with watchedB; watchedQ }
                   | Some q -> failwith "TODO"
@@ -176,13 +189,14 @@ module Make(DS: GlobalImplem) = struct
             Print.print ["LRA",4] (fun p ->
                 p "LRA: Watched lits have found weird constraint %s(%a)"
                   (if b then "" else "~")
-                  Term.pp (K.Simpl.term c));
+                  K.Simpl.pp c);
             match eval c with
             | Beval msg ->
-               (* c of sort Bool actually evaluates
-                  - we send the propagation message *)
-               Print.print ["LRA",4] (fun p -> p "LRA: kernel says %a" Msg.pp msg);
-               Msg msg, machine { state with watchedB }
+               let Propa(_,Straight(_,Top.Values.Boolean b')) = msg in
+               Print.print ["LRA",4] (fun p -> p "LRA: kernel says %a" pp_beval msg);
+               if [%eq : bool] b b'
+               then speak machine { state with watchedB }
+               else Msg msg, machine { state with watchedB }
             | Qeval _   -> failwith "Should be of sort Prop"
             | ToWatch _ -> failwith "Watched Literals got it wrong"
             | Unit{ var; nature; is_coeff_pos; bound } ->
@@ -205,19 +219,17 @@ module Make(DS: GlobalImplem) = struct
                                 else Range.lower_update
                    in update bound ~is_strict:(is_strict original) bassign oldrange
                  in
-                 let open Kernel.Termstructures.Rationals.TS in
+                 let open TS in
                  match nature,b with
                  | Lt,_ -> update true
                  | Le,_ -> update false
-                 | Eq,true | NEq,false ->
-                    begin
-                      match Range.lower_update bound ~is_strict:false bassign oldrange with
-                      | Range.Range range ->
-                         Range.upper_update bound ~is_strict:false bassign range
-                      | ans -> ans
-                    end
                  | NEq,true | Eq,false -> Range.diseq_update bound bassign oldrange
                  | Term,_ | Other,_ -> raise K.IdontUnderstand
+                 | Eq,true | NEq,false ->
+                    match Range.lower_update bound ~is_strict:false bassign oldrange with
+                    | Range.Range range ->
+                       Range.upper_update bound ~is_strict:false bassign range
+                    | ans -> ans
                in
                match range with
                | Range.Range range ->
@@ -229,25 +241,38 @@ module Make(DS: GlobalImplem) = struct
                | Range.FourierMotzkin(ba1,ba2) ->
                   let msg = fm ba1 ba2 var in
                   Print.print ["LRA",4] (fun p ->
-                      p "LRA: Found Fourier-Motzkin inference to make: %a"
-                        Msg.pp msg);
+                      let t1, Top.Values.Boolean b1 = ba1 in
+                      let t2, Top.Values.Boolean b2 = ba2 in
+                      let Propa(_,Straight(t,_)) = msg in
+                      p "LRA: Found Fourier-Motzkin inference to make: %a, %a ⊢ %a"
+                        (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
+                        (SAssign(Simpl.make t1,Top.Values.Boolean b1))
+                        (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
+                        (SAssign(Simpl.make t2,Top.Values.Boolean b2))
+                        Simpl.pp(Simpl.make t));
                   Msg msg, machine { state with watchedB }
                | Range.DisEqual(ba1,ba2,ba3) ->
-                  Print.print ["LRA",4] (fun p ->
-                      p "LRA: Found Disequal with %a, %a, %a"
-                        pp_bassign ba1 pp_bassign ba2 pp_bassign ba3);
                   let a1, a2, msg = disequal ba1 ba2 ba3 var in
-                  Print.print ["LRA",4] (fun p ->
-                      p "LRA: Found Disequal inference to make: %a"
-                        Msg.pp msg);
-                  let a1 = Simpl.simplify state.fixed (Simpl.make a1) in
-                  let a2 = Simpl.simplify state.fixed (Simpl.make a2) in
-                  match eval a1, eval a2 with
+                  let a1' = Simpl.simplify state.fixed (Simpl.make a1) in
+                  let a2' = Simpl.simplify state.fixed (Simpl.make a2) in
+                  match eval a1', eval a2' with
                   | Beval msg1, Beval msg2 ->
-                     let propas = state.propas
-                                  |> Pqueue.push msg1
-                                  |> Pqueue.push msg2
-                     in
+                     Print.print ["LRA",4] (fun p ->
+                         let t1, Top.Values.Boolean b1 = ba1 in
+                         let t2, Top.Values.Boolean b2 = ba2 in
+                         let t3, Top.Values.Boolean b3 = ba3 in
+                         p "LRA: Found Disequal inference to make:\n %a\n %a\n %a, %a, %a, %a, %a ⊢ ⊥"
+                           pp_beval msg1
+                           pp_beval msg2
+                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
+                           (SAssign(Simpl.make t1,Top.Values.Boolean b1))
+                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
+                           (SAssign(Simpl.make t2,Top.Values.Boolean b2))
+                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
+                           (SAssign(Simpl.make t3,Top.Values.Boolean b3))
+                           Simpl.pp(Simpl.make a1)
+                           Simpl.pp(Simpl.make a2));
+                     let propas = state.propas |> Pqueue.push msg1 |> Pqueue.push msg2 in
                      speak machine { state with watchedB; propas; umsg = Some msg }
                   | _ -> failwith "Diseq got it wrong"
                                   
@@ -273,30 +298,44 @@ module Make(DS: GlobalImplem) = struct
                 Print.print ["LRA",2] (fun p -> p "LRA receiving useless stuff");
                 speak machine { state with kernel }
              | Some(SAssign(c,v)) ->
-                let c = K.Simpl.simplify state.fixed c in
+                let fixed = K.Model.add sassign state.fixed in
                 let i = Term.id(K.Simpl.term c) in
-                let watchedB = WLB.fix i state.watchedB in
-                let watchedQ = WLQ.fix i state.watchedQ in
-                let fixed,domains =
-                  if Domain.mem i state.domains
-                  then K.Model.add sassign state.fixed,
-                       Domain.remove i state.domains
-                  else state.fixed,
-                       Domain.union_poly
-                         (fun _ old _ -> old)
-                         (fun old -> old)
-                         (Domain.map (fun _ _ -> Range.init))
-                         state.domains
-                         (K.Simpl.coeffs c)
-                in
-                match v with
-                | Top.Values.Boolean b ->
-                   let watchedB = WLB.addconstraintNflag (c,b) watchedB in
-                   speak machine { state with kernel; watchedB; watchedQ; domains }
+                if TS.VarMap.mem i (K.Simpl.coeffs c)
+                then
+                  begin
+                    Print.print ["LRA",2] (fun p ->
+                        p "LRA fixes variable %a" Term.pp (K.Simpl.term c));
+                    let domains = 
+                      if Domain.mem i state.domains
+                      then Domain.remove i state.domains
+                      else state.domains
+                    in
+                    let watchedB = WLB.fix i state.watchedB in
+                    let watchedQ = WLQ.fix i state.watchedQ in
+                    speak machine
+                      { state with kernel; fixed; watchedB; watchedQ; domains }
+                  end
+                else
+                  begin
+                    let c = K.Simpl.simplify state.fixed c in
+                    Print.print ["LRA",2] (fun p ->
+                        p "LRA watches %a" Term.pp (K.Simpl.term c));
+                    let domains = Domain.union_poly
+                                    (fun _ old _ -> old)
+                                    (fun old -> old)
+                                    (Domain.map (fun _ _ -> Range.init))
+                                    state.domains
+                                    (K.Simpl.coeffs c)
+                    in
+                    match v with
+                    | Top.Values.NonBoolean q ->
+                       let watchedQ = WLQ.addconstraintNflag (c,Some q,i) state.watchedQ in
+                       speak machine { state with kernel; fixed; watchedQ; domains }
 
-                | Top.Values.NonBoolean q ->
-                   let watchedQ = WLQ.addconstraintNflag (c,Some q,i) watchedQ in
-                   speak machine { state with kernel; fixed; watchedB; watchedQ; domains }
+                    | Top.Values.Boolean b ->
+                       let watchedB = WLB.addconstraintNflag (c,b) state.watchedB in
+                       speak machine { state with kernel; fixed; watchedB; domains }
+                  end
       in
 
       let share =
@@ -306,6 +345,7 @@ module Make(DS: GlobalImplem) = struct
           fun tset ->
           let kernel, new2evaluate = K.share tset state.kernel in
           let aux c (watchedQ,domains) =
+            let c = K.Simpl.simplify state.fixed c in
             WLQ.addconstraintNflag (c,None,Term.id(K.Simpl.term c)) watchedQ,
             Domain.union_poly
               (fun _ old _ -> old)
