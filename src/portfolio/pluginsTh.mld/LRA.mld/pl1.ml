@@ -104,6 +104,8 @@ module Make(DS: GlobalImplem) = struct
 
     (* We are asked whether we have something to say *)
     let rec speak machine state =
+      Print.print ["LRA",5] (fun p ->
+          p "LRA: We are asked whether we have something to say");
 
       match Pqueue.pop state.propas, state.umsg with
       | _ when state.silent -> Silence, machine state
@@ -138,13 +140,11 @@ module Make(DS: GlobalImplem) = struct
 
                   | Some var ->
                      let range = Domain.find var state.domains in
-                     Print.print ["LRA",2] (fun p ->
-                         p "LRA: range: %a" Range.pp range);
                      let v = Top.Values.NonBoolean(K.vinj(Range.pick range)) in
                      let sassign = SAssign(Term.term_of_id var,v) in
                      Print.print ["LRA",2] (fun p ->
-                         p "LRA: kernel is not fine yet, proposing %a"
-                           pp_sassign sassign);
+                         p "LRA: kernel is not fine yet, proposing %a from range %a"
+                           pp_sassign sassign Range.pp range);
                      Try sassign, machine state
                end
 
@@ -203,14 +203,8 @@ module Make(DS: GlobalImplem) = struct
                let bassign  = K.Simpl.term c, Top.Values.Boolean b in
                let oldrange = Domain.find var state.domains in
                Print.print ["LRA",4] (fun p ->
-                   p "LRA: old range for %a is %a
-                      is_coeff_pos is %a
-                      bound is %a"
-                     Term.pp (Term.term_of_id var)
-                     Range.pp oldrange
-                     Boolhashed.pp is_coeff_pos
-                     Top.Qhashed.pp bound
-                 );
+                   p "LRA: old range for %a is %a"
+                     Term.pp (Term.term_of_id var) Range.pp oldrange);
                let range =
                  let is_strict = [%eq: bool] b in
                  let update original =

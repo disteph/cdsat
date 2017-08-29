@@ -180,6 +180,8 @@ module Make(DS: GlobalDS) = struct
         | Some(j_neq,(t3,t4)) ->
            (* They were declared different by an assignment j_neq - a disequality
               between t3 and t4. Get the path from t1 to t3 and the one from t2 to t4. *)
+           Print.print ["kernel.egraph",1] (fun p->
+               p "kernel.egraph: violates %a" pp_bassign j_neq);
            let path1 = path (Case1 t3) pc1 eg in
            let path2 = path (Case1 t4) pc2 eg in
            let path  = List.rev_append path1 (j::path2) in
@@ -193,6 +195,9 @@ module Make(DS: GlobalDS) = struct
               (* Values couldn't be merged: they clash on v1 against v2.
                  v1 (resp. v2) must be in t1's component (resp t2's component).
                  We get the two paths. *)
+              Print.print ["kernel.egraph",1] (fun p->
+                  p "kernel.egraph: violation: get 2 values %a and %a"
+                    (pp_values Value.pp) v1 (pp_values Value.pp) v2);
               let path1 = path (Case2 v1) pc1 eg in
               let path2 = path (Case2 v2) pc2 eg in
               let path = List.rev_append path1 (j::path2) in

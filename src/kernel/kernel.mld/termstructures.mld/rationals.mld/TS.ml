@@ -53,7 +53,7 @@ let pp pp_var fmt t =
   | Other -> fprintf fmt "Not understandable"
   | Term -> pp_expr ""
   | Lt -> pp_expr " < 0"
-  | Le -> pp_expr " < 0"
+  | Le -> pp_expr " ≤ 0"
   | Eq -> pp_expr " = 0"
   | NEq -> pp_expr " ≠ 0"
            

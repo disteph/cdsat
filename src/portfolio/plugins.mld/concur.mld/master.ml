@@ -88,9 +88,19 @@ module Make(WB4M: WhiteBoard4Master) = struct
                     p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
                 select_msg { state with decision = Some msg }
              | Say m ->
-                Print.print ["concur",2] (fun p->
-                    p "Hearing from %a at chrono %i, and buffering:\n %a"
-                      Agents.pp agent chrono WBE.pp m);
+                let () =
+                  match m with
+                  | WB(_,Sat _) ->
+                     Print.print ["concur",2] (fun p->
+                         p "Hearing Sat from %a at chrono %i, and buffering"
+                           Agents.pp agent chrono);
+                     Print.print ["concur",6] (fun p->
+                         p " %a" WBE.pp m);
+                  | _ ->
+                     Print.print ["concur",2] (fun p->
+                         p "Hearing from %a at chrono %i, and buffering:\n %a"
+                           Agents.pp agent chrono WBE.pp m);
+                in
                 select_msg { state with messages = Pqueue.push msg state.messages }
 
   (* Main loop of the master thread *)
@@ -155,10 +165,10 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     | Say(WB(_,msg) as thmsg), state ->
 
-       Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
        match msg with
          
        | Propa(tset,Unsat) -> 
+          Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory found a proof. We stop and close all pipes. *)
           let finalise conflict uip =
             H.suicide state.hub conflict uip
@@ -168,6 +178,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           Case1 ans
 
        | Propa(old,Straight bassign) ->
+          Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory deduced a boolean assignment bassign from assignment old. *)
           let sassign = SAssign bassign in
           begin match T.add ~nature:(T.Deduction thmsg) sassign state.trail with

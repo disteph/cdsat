@@ -34,21 +34,12 @@ let id2equal   id a b = (id a)=(id b)
 let lex_compare compare1 compare2 (a1,a2) (b1,b2)
   = let c = compare1 a1 b1 in
     if c = 0 then compare2 a2 b2 else c
-                                 
-type _ compare =
-  | Compare : ('a->'a->int)-> 'a compare
-  | IntCompare : int compare
 
-let min (type a) ?(using: a compare option) a1 a2 =
-  match using with
-  | Some(Compare compare) -> if compare a1 a2 <= 0 then a1 else a2
-  | _ -> if a1 <= a2 then a1 else a2
+let min compare a1 a2 =
+  if compare a1 a2 <= 0 then a1 else a2
 
-let max (type a) ?(using: a compare option) a1 a2 =
-  match using with
-  | Some(Compare compare) -> if compare a1 a2 >= 0 then a1 else a2
-  | _ -> if a1 >= a2 then a1 else a2
-
+let max compare a1 a2 =
+  if compare a1 a2 >= 0 then a1 else a2
           
 module List = struct
 

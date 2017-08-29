@@ -3,6 +3,7 @@ latex/
 .merlin
 *.native
 *.byte
+setup.ml
 setup.data
 setup.log
 makefile.data

@@ -67,10 +67,14 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
   let eval c =
     match Simpl.watchable c with
     | [] -> let value = Q.(Simpl.constant c * Simpl.scaling c) in
-            let beval b = Beval(straight ()
-                                  (Simpl.justif c)
-                                  (Simpl.term c,Values.Boolean b))
+            let beval b =
+              Beval(straight ()
+                      (Simpl.justif c)
+                      (Simpl.term c,Values.Boolean b))
             in
+            Print.print ["kernel.LRA",2] (fun p ->
+                p "kernel.LRA: evaluating term in %a gave value %a"
+                  Simpl.pp c Q.pp_print value);
             let open TS in
             begin match Simpl.nature c with
             | Term                      -> Qeval(Simpl.term c, value)
@@ -131,7 +135,7 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     match Terms.reveal e,b with
     | Terms.C(Symbols.Eq Sorts.Rat,[a;b]),true
       | Terms.C(Symbols.NEq Sorts.Rat,[a;b]),false
-      -> if which && (Q.sign(get_coeff e var)>0)
+      -> if [%eq:bool] which (Q.sign(get_coeff e var)>0)
          then Term.bC Symbols.Le [a;b],true
          else Term.bC Symbols.Ge [a;b],true
     | _ -> e,b
@@ -143,6 +147,10 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     let e2,Values.Boolean b2 = ba2 in
     let e1,b1 = eq_as_le e1 b1 false var in
     let e2,b2 = eq_as_le e2 b2 true var in
+    Print.print ["kernel.LRA",2] (fun p ->
+        p "kernel.LRA: lower bound is (%a,%b), upper bound is (%a,%b)"
+          Term.pp e1 b1 Term.pp e2 b2 
+      );
     let lhs1,rhs1,strict1 = take_sides e1 b1 in
     let lhs2,rhs2,strict2 = take_sides e2 b2 in
     let strict = match strict1, strict2 with
@@ -165,9 +173,6 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     let e3,Values.Boolean b3 = upper in
     let e1,b1 = eq_as_le e1 b1 false var in
     let e3,b3 = eq_as_le e3 b3 true var in
-    Print.print ["kernel.LRA",2] (fun p ->
-        p "kernel.LRA: lower bound is (%a,%b), upper bound is (%a,%b)"
-          Term.pp e1 b1 Term.pp e3 b3);
     let l1,r1,strict1 = take_sides e1 b1 in
     let l2,r2,strict2 = take_sides e2 b2 in
     let l3,r3,strict3 = take_sides e3 b3 in

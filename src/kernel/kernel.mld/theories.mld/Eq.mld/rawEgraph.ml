@@ -1,3 +1,4 @@
+open Format
 open General
 open Sums       
 open Interfaces
@@ -12,9 +13,11 @@ module Make(P : Parameters) = struct
 
   type _ egraph = {
       (* Number of components *)
-      count  : int;
+      count : int;
+      (* First available component id *)
+      available : int;
       (* Parent element in e-graph, compressing paths.
-         Root epresentative is mapped to the component information, to which we add:
+         Root representative is mapped to the component information, to which we add:
          the id of the component and its size *)
       parentWcomp : (Node.t,int*int*info) sum NodeMap.t;
       (* Parent element, without path compression. Root is mapped to None.
@@ -25,6 +28,7 @@ module Make(P : Parameters) = struct
   type t = EGraph : _ egraph -> t
 
   let init = EGraph { count = 0;
+                      available = 0;
                       parentWcomp = NodeMap.empty;
                       parent = NodeMap.empty }
 
@@ -45,12 +49,16 @@ module Make(P : Parameters) = struct
         info : info; (* information of component *)
         root : Node.t; (* Current representative of component *)
       }
+
+    let pp fmt pc =
+      fprintf fmt "Component of %a, id=%i, size=%i, root=%a"
+        Node.pp pc.pointed pc.id pc.size Node.pp pc.root
                  
     let equal : 'a t -> 'a t -> bool
       = fun t t' -> (t.id = t'.id)
 
     let get : 'a egraph -> Node.t -> 'a egraph * 'a t =
-      fun eg tv ->
+      fun eg pointed ->
       let rec aux tv' intermediates =
         match NodeMap.find tv' eg.parentWcomp with
         | Case1 tv'' -> aux tv'' (tv'::intermediates)
@@ -59,13 +67,9 @@ module Make(P : Parameters) = struct
              List.fold (fun tv -> NodeMap.add tv (Case1 tv')) intermediates eg.parentWcomp
            in
            { eg with parentWcomp = parentWcomp },
-           { pointed = tv;
-             id   = id;
-             size = size;
-             info = info;
-             root = tv' }
+           { pointed; id; size; info; root = tv' }
            
-      in aux tv []
+      in aux pointed []
              
     let get_info x = x.info
 
@@ -78,7 +82,8 @@ module Make(P : Parameters) = struct
     else
       EGraph {
           count = eg.count+1;
-          parentWcomp = NodeMap.add tv (Case2(eg.count+1,1,info)) eg.parentWcomp;
+          available = eg.available+1;
+          parentWcomp = NodeMap.add tv (Case2(eg.available,1,info)) eg.parentWcomp;
           parent = NodeMap.add tv None eg.parent;
         }
              
@@ -94,43 +99,52 @@ module Make(P : Parameters) = struct
 
   let merge : 'a PC.t -> 'a PC.t -> info -> edge -> 'a egraph -> t
     = fun pc1 pc2 info j eg ->
+    Print.print ["kernel.egraph",5] (fun p ->
+        p "Merging (%a) with (%a)" PC.pp pc1 PC.pp pc2);
     if PC.equal pc1 pc2
     then
-      update pc1 info eg
+      (Print.print ["kernel.egraph",5] (fun p -> p "Same component");
+       update pc1 info eg)
     else
-      let open PC in
-      let pcsmall,pcbig =
-        if pc1.size < pc2.size
-        then pc1,pc2
-        else pc2,pc1
-      in
-      let parentWcomp =
-        NodeMap.add pcbig.root (Case2(pcbig.id,pc1.size+pc2.size,info)) eg.parentWcomp
-      in
-      let parentWcomp =
-        NodeMap.add pcsmall.root (Case1 pcbig.root) parentWcomp
-      in
-      let rec aux tv parent = function
-        | [] -> NodeMap.add tv (Some(pcbig.pointed,j)) parent
-        | (tv',e)::l -> NodeMap.add tv (Some(tv',e))  parent
-      in
-      let intermediate,root = edges eg pcsmall.pointed in
-      EGraph { count = eg.count-1;
-               parentWcomp = parentWcomp;
-               parent = aux root eg.parent intermediate }
-          
+      begin
+        Print.print ["kernel.egraph",5] (fun p -> p "Distinct components");
+        let open PC in
+        let pcsmall,pcbig =
+          if pc1.size < pc2.size
+          then pc1,pc2
+          else pc2,pc1
+        in
+        let parentWcomp =
+          NodeMap.add pcbig.root (Case2(pcbig.id,pc1.size+pc2.size,info)) eg.parentWcomp
+        in
+        let parentWcomp =
+          NodeMap.add pcsmall.root (Case1 pcbig.root) parentWcomp
+        in
+        let rec aux tv parent = function
+          | [] -> NodeMap.add tv (Some(pcbig.pointed,j)) parent
+          | (tv',e)::l -> aux tv' (NodeMap.add tv (Some(tv',e)) parent) l
+        in
+        let intermediate,root = edges eg pcsmall.pointed in
+        EGraph { eg with count = eg.count-1;
+                         parentWcomp;
+                         parent = aux root eg.parent intermediate }
+      end
+        
   module H = Hashtbl.Make(Node)
 
   exception DiffComp
     
   let path t pc eg =
-    Print.print ["kernel.egraph",3] (fun p -> p "Starting path search between %a and %a" Node.pp t Node.pp PC.(pc.pointed));
+    Print.print ["kernel.egraph",3] (fun p ->
+        p "Starting path search between %a and %a" Node.pp t Node.pp PC.(pc.pointed));
     let table = H.create (3*PC.(pc.size)) in
     let table_pc = H.create (3*PC.(pc.size)) in
     H.add table t [];
     H.add table_pc PC.(pc.pointed) [];
     
     let rec aux t1 accu1 taccu b =
+      Print.print ["kernel.egraph",5] (fun p ->
+          p "path_aux: t1=%a accu1=%a b=%b" Node.pp t1 (List.pp pp_edge) accu1 b);
       let table1,table2 = (if b then table,table_pc else table_pc,table) in
       if H.mem table2 t1
       then
@@ -140,7 +154,10 @@ module Make(P : Parameters) = struct
       else
         match NodeMap.find t1 eg.parent with
         | Some(t1',e)
-          -> let accu1 = e::accu1 in
+          ->
+           Print.print ["kernel.egraph",5] (fun p ->
+               p "path_aux: found parent for %a: it's %a" Node.pp t1 Node.pp t1');
+           let accu1 = e::accu1 in
              H.add table1 t1' accu1;
              begin match taccu with
              | Some(t2,accu2) -> aux t2 accu2 (Some(t1',accu1)) (not b)

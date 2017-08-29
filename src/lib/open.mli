@@ -12,11 +12,8 @@ val (>=) : int -> int -> bool
 val compare : int -> int -> int
 val id2compare : ('a -> int) -> 'a -> 'a -> int
 val id2equal   : ('a -> int) -> 'a -> 'a -> bool
-type _ compare =
-  | Compare : ('a->'a->int)-> 'a compare
-  | IntCompare : int compare
-val max: ?using:'a compare -> 'a -> 'a -> 'a
-val min: ?using:'a compare -> 'a -> 'a -> 'a
+val max: ('a->'a->int) -> 'a -> 'a -> 'a
+val min: ('a->'a->int) -> 'a -> 'a -> 'a
 
 module Pervasives : sig
   val compare : int -> int -> int

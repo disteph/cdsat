@@ -82,9 +82,13 @@ module Make(DS: sig include GlobalDS val proj : Term.datatype -> ts end) = struc
       let myvars  = lazy(add_myvars term (Lazy.force state.myvars)) in
       let treated = Assign.add sassign state.treated in
       try
+        Print.print ["kernel.egraph",1] (fun p->
+            p "kernel.egraph eq starting");
         let egraph,info,tvset =
           EG.eq term (Case2(Values value)) (Case2 sassign) state.egraph
         in
+        Print.print ["kernel.egraph",1] (fun p->
+            p "kernel.egraph eq finished");
         let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
         let aux t1 t2 value =
           let egraph,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,value)) egraph in

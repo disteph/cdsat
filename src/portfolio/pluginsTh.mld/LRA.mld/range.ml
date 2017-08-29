@@ -64,7 +64,14 @@ let newbound q bassign b original =
   else original
               
 let pick lower upper forbidden = match lower,upper with
-  | None, None -> Val Q.zero
+  | None, None ->
+     let lower =
+       try
+         let fmax,bassign = Forbidden.max_binding forbidden in
+         newbound fmax bassign false lower
+       with Not_found -> lower
+     in
+     pick_simpl (lower,upper)
 
   | Some(l,lb,lbassign),None ->
      let lower =

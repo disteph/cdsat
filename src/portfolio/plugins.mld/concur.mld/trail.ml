@@ -234,14 +234,17 @@ The reason it was added to the trail was either:
           of level >= level is a semsplit element.  It's time to do
           the split.  We want to learn the conflict as a clause, so we
           pick 2 formulae to watch. *)
-        
+        begin
+        Print.print ["trail",1] (fun p ->
+            p "Semsplit with level(conflict minus semsplit) = %i and level(conflict) = %i"
+              data.level level);
         let t,rest = Assign.next semsplit in
         let t'     = Assign.choose rest in
         learn conflict t (Some t') >>| fun ()->
         (* Now we output the level to backtrack to, and by curryfying the
           semsplit formulae we create a propagation message for second branch *)
         Case2(level-1, late (level-1) trail [WB.curryfy ~assign:semsplit conflict])
-
+        end
       else
 
         (* Otherwise we analyse the nature of the latest assignment
@@ -281,7 +284,7 @@ The reason it was added to the trail was either:
            learn conflict highest highest2 >>| fun ()->
 
            (* Now jumping to level of second formula contributing to conflict *)
-           Case2(next.level, late next.level trail [msg])
+           Case2(max [%ord:int] 0 next.level, late next.level trail [msg])
 
                 
         | Deduction msg, sassign ->

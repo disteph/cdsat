@@ -1,3 +1,4 @@
+open General
 open Top
 open Basic
 open Messages
@@ -45,6 +46,11 @@ module Make(DS: DSproj with type ts = ts) = struct
         (match v with
          | Values.Boolean b -> TMap.add t b state.known
          | Values.NonBoolean _ -> state.known);
+      wondering =
+        (match v with
+         | Values.Boolean _ when TSet.mem t state.wondering
+           -> TSet.remove t state.wondering
+         | _ -> state.wondering);
       todo    = t::state.todo;
       myvars  = lazy(add_myvars t (Lazy.force state.myvars)) }
 
@@ -53,7 +59,10 @@ module Make(DS: DSproj with type ts = ts) = struct
     | Propa of (sign,straight) Msg.t
       
   let what_now state =
-    let rec aux = function
+    let rec aux l =
+      Print.print ["kernel.ITE",2] (fun p ->
+        p "kernel.ITE: looping in what_now");
+      match l with
       | []   -> Some(Sat(sat () state.treated ~sharing:state.sharing ~myvars:state.myvars)),
                 { state with todo = [] }
       | t::l when TSet.mem t state.solved -> aux l
