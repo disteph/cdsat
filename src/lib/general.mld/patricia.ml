@@ -186,13 +186,13 @@ module Poly(I:Intern) = struct
 
       let remove_aux f k t =
         let rec rmv t = match reveal t with
-	  | Empty      -> failwith "Remove: Was not there -empty"
-	  | Leaf (j,x) -> if  K.compare k j = 0 then f k x else failwith "Remove: Was not there -leaf"
+	  | Empty      -> raise Not_found
+	  | Leaf (j,x) -> if  K.compare k j = 0 then f k x else raise Not_found
 	  | Branch (p,m,t0,t1) ->
 	     if match_prefix (tag k) p m then
 	       if check (tag k) m then branch (p, m, rmv t0, t1)
                else branch (p, m, t0, rmv t1)
-	     else failwith "Remove: Was not there -branch"
+	     else raise Not_found
         in rmv t
 
       (* remove function: argument f of remove_aux says "delete the key altogether" *)

@@ -32,7 +32,8 @@ module type API = sig
   end
 
   module Constraint : sig
-    include FromHConsed
+    type t [@@deriving show]
+    val id: t -> int
     val make    : bassign -> t
     val bassign : t -> bassign
     (* Get simplified form of a constraint:
@@ -42,7 +43,6 @@ module type API = sig
                                and watched are the first 2 of them (or 0, or 1) *)
     val simpl: t -> (LSet.t * LitF.t list) option
     val simplify : Model.t->t->t
-    val pp : Format.formatter -> t -> unit
   end
 
   type state

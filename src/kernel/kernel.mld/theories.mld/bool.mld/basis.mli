@@ -63,7 +63,8 @@ module Make(DS: DSproj with type ts = TS.t) : sig
       whose assumption in the trail makes the clause true *)
 
   module Constraint : sig
-    include FromHConsed
+    type t [@@deriving show]
+    val id: t -> int
     val make : bassign -> t
     val bassign : t -> bassign
     (* Get simplified form of a constraint:
@@ -79,7 +80,6 @@ module Make(DS: DSproj with type ts = TS.t) : sig
          as soon as 2 literals can be watched, the next literals are not even scanned,
          even if one of them would simplify it to True, for instance *)
     val simplify : Model.t->t->t
-    val pp : Format.formatter -> t -> unit
   end
                         
   (* This is a type abbreviation for those propoagation messages that

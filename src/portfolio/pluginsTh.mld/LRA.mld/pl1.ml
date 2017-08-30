@@ -40,13 +40,15 @@ module Make(DS: GlobalImplem) = struct
 
     module ConfigB = struct
       module Constraint = struct
-        type t = K.Simpl.t * bool
+        type t = K.Simpl.t * bool [@@deriving show]
         let id (c,b) =
           let t = K.Simpl.term c in
           2*(Term.id t)+(if b then 1 else 0)
       end
       module Var = struct
         type t = int [@@deriving ord]
+        let pp fmt i = Term.pp fmt (Term.term_of_id i)
+        let show = Print.stringOf pp
       end
       type nonrec fixed = fixed
       let simplify fixed (c,b) = K.Simpl.simplify fixed c, b
@@ -63,11 +65,13 @@ module Make(DS: GlobalImplem) = struct
 
     module ConfigQ = struct
       module Constraint = struct
-        type t = K.Simpl.t * (Q.t option) * int
+        type t = K.Simpl.t * (Top.Qhashed.t option) * int [@@deriving show]
         let id (_,_,i) = i
       end
       module Var = struct
         type t = int [@@deriving ord]
+        let pp fmt i = Term.pp fmt (Term.term_of_id i)
+        let show = Print.stringOf pp
       end
       type nonrec fixed = fixed
       let simplify fixed (c,v,i) = K.Simpl.simplify fixed c,v,i

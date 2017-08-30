@@ -103,13 +103,13 @@ module Make(DS: DSproj with type ts = TS.t) = struct
    *)
 
   module Constraint : sig
-      include FromHConsed
-      val make : bassign -> t
-      val bassign : t -> bassign
-      val simpl   : t -> (LSet.t * LitF.t list) option
-      val justif  : t -> Assign.t
-      val simplify: Model.t->t->t
-      val pp : Format.formatter -> t -> unit
+    type t [@@deriving show]
+    val id: t -> int
+    val make : bassign -> t
+    val bassign : t -> bassign
+    val simpl   : t -> (LSet.t * LitF.t list) option
+    val justif  : t -> Assign.t
+    val simplify: Model.t->t->t
   end = struct
 
     type t = { bassign : bassign;
@@ -210,6 +210,7 @@ module Make(DS: DSproj with type ts = TS.t) = struct
          | None -> { constr with simpl; justif }
 
     let pp fmt t = Format.fprintf fmt "%a" pp_bassign t.bassign
+    let show = Print.stringOf pp
   end
 
   let clear() = LSet.clear();LMap.clear()

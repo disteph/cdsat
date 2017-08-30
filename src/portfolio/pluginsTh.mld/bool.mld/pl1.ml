@@ -73,7 +73,12 @@ module Make(DS: GlobalImplem) = struct
     (* Configuration for the 2-watched literals module *)
     module Config = struct
       module Constraint = K.Constraint
-      module Var = LitF
+      module Var = struct
+        include LitF
+        let pp fmt lit =
+          let b,i = LitF.reveal lit in
+          Format.fprintf fmt "%s%a" (if b then "" else "¬") Term.pp (Term.term_of_id i)
+      end
       type nonrec fixed = fixed
       let simplify fixed = Constraint.simplify fixed
       let pick_another _ c i _ =
