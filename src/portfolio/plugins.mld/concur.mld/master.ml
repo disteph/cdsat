@@ -144,18 +144,24 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* We analyse the answer ans of the recursive call,
              and decide whether to treat the second branch or to backjump further. *)
           begin match ans with
-          | Case1(Case2(level,msg_list)) when level=T.level state.trail ->
+          | Case1(T.Backjump{ backjump_level;
+                              propagations;
+                              decision })
+               when backjump_level = T.level state.trail ->
              Print.print ["concur",0] (fun p -> 
                  p "Backtrack level: %i, Propagations:\n %a"
-                   (T.level state.trail)
-                   (List.pp WBE.pp) msg_list);
+                   (T.level state.trail) (List.pp WBE.pp) propagations);
              Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
              
              let newstate2 = { state with
                                hub      = hub2;
-                               waiting4 = AS.all;
+                               decision = Opt.map (fun x ->
+                                              Print.print ["concur",0] (fun p -> 
+                                                  p "with decision %a" DS.pp_sassign x);
+                                              Try x) decision;
                                messages = let enqueue msg = Pqueue.push(Say msg) in
-                                          List.fold enqueue msg_list state.messages }
+                                          List.fold enqueue propagations state.messages;
+                             }
              in
              master_loop current newstate2
                          
@@ -260,21 +266,19 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | None -> failwith "Trail should not fail on input"
     in
     let trail,tasks = DS.Assign.fold treat input (T.init,[]) in
-    let state = {
-        hub      = hub;
-        waiting4 = AS.all;
-        messages = Pqueue.empty();
-        decision = None;
-        trail    = trail
-      }
+    let state = { hub      = hub;
+                  waiting4 = AS.all;
+                  messages = Pqueue.empty();
+                  decision = None;
+                  trail    = trail }
     in
     Deferred.all_unit tasks >>= fun () ->
     master_loop (sat_init input ~sharing:DS.TSet.empty) state >>| function
-    | Case1(Case1 conflict) ->
+    | Case1(T.InputConflict conflict) ->
        Print.print ["concur",2] (fun p ->
            p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);
        Case1 conflict
-    | Case1(Case2 _) -> failwith "Should not come back to level -1 with a propagation"
+    | Case1(T.Backjump _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg
                          
 end

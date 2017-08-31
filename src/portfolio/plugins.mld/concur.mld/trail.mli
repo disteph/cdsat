@@ -38,13 +38,21 @@ The reason it was added to it was either:
   val chrono_incr: t -> t
   val init  : t
   val add   : nature:nature -> sassign -> t -> t option
+
+  (* Type for the result of the conflict analysis *)
+  type analysis =
+    | InputConflict of unsat WB.t (* Was a conflict of level 0 *)
+    | Backjump of { backjump_level : int; (* Which level to backjump to *)
+                    (* The propagations to perform in the new branch *)
+                    propagations   : straight WB.t list;
+                    (* Possible decision to make in new branch (for rule UndoDecide) *)
+                    decision       : sassign option }
+
+                                                 
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)
                 -> (unsat WB.t -> WB.sassign -> WB.sassign option -> unit Deferred.t)
                 (* a function to which we can pass stuff to learn *)
-                -> (unsat WB.t,  (* Either a subset of the original formulae are unsat *)
-                    int * straight WB.t list) (* Or there is a level to backjump to,
-                                              with propagation messages to use for the backjump branch *)
-                     sum Deferred.t
+                -> analysis Deferred.t
                            
 end
