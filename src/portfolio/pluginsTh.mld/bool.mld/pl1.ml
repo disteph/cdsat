@@ -274,11 +274,15 @@ module Make(DS: GlobalImplem) = struct
                           (* Getting a constraint's literals (and negations)
                              into an Assign.t*)
                           let aux lit sofar =
-                            let _,i = LitF.reveal lit in
-                            let t = Term.term_of_id i in
-                            let sassign  = boolassign ~b:true t in
-                            let sassign' = boolassign ~b:false t in
-                            Assign.add sassign (Assign.add sassign' sofar)
+                            if (K.LMap.mem lit (K.Model.map fixed))
+                               || (K.LMap.mem (LitF.negation lit) (K.Model.map fixed))
+                            then sofar
+                            else
+                              let _,i = LitF.reveal lit in
+                              let t = Term.term_of_id i in
+                              let sassign  = boolassign ~b:true t in
+                              let sassign' = boolassign ~b:false t in
+                              Assign.add sassign (Assign.add sassign' sofar)
                           in
                           let newlits = LSet.fold aux newlits Assign.empty in
                           let undetermined = Assign.union newlits undetermined in

@@ -116,13 +116,13 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
   let take_sides term b =
     match Terms.reveal term with
     | Terms.C(Symbols.Lt,[lhs;rhs]) ->
-       if b then lhs,rhs,Some true else lhs,rhs,Some false
+       if b then lhs,rhs,Some true else rhs,lhs,Some false
     | Terms.C(Symbols.Le,[lhs;rhs]) ->
-       if b then lhs,rhs,Some false else lhs,rhs,Some true
+       if b then lhs,rhs,Some false else rhs,lhs,Some true
     | Terms.C(Symbols.Gt,[lhs;rhs]) ->
-       if b then rhs,lhs,Some true else rhs,lhs,Some false
+       if b then rhs,lhs,Some true else lhs,rhs,Some false
     | Terms.C(Symbols.Ge,[lhs;rhs]) ->
-       if b then rhs,lhs,Some false else rhs,lhs,Some true
+       if b then rhs,lhs,Some false else lhs,rhs,Some true
     | Terms.C(Symbols.Eq Sorts.Rat,[lhs;rhs]) when not b ->
        lhs,rhs,None
     | Terms.C(Symbols.NEq Sorts.Rat,[lhs;rhs]) when b ->

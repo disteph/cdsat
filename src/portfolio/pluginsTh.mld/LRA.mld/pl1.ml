@@ -53,11 +53,11 @@ module Make(DS: GlobalImplem) = struct
 
          let output,watchedB = WLB.next state.fixed ~howmany:2 state.watchedB in
          match output with
-         | None ->
+         | Case1 _ ->
 
             let output,watchedQ = WLQ.next state.fixed ~howmany:1 state.watchedQ in
             begin match output with
-            | None ->
+            | Case1 _ ->
                Print.print ["LRA",4] (fun p -> p "LRA: Watched literals are done");
                (* We ask the kernel whether it still has any constraints to satisfy *)
                let kernel, msg = K.sat state.fixed state.kernel in
@@ -91,7 +91,7 @@ module Make(DS: GlobalImplem) = struct
                Let's see what the kernel can make of it. *)
                Print.print ["LRA",4] (fun p ->
                    p "LRA: Watched lits have found determined term %a" K.Simpl.pp c);
-               let state = { state with watchedB; watchedQ; domains } in
+               let state = { state with watchedB; watchedQ } in
                let open K in
                match eval c with
 
@@ -122,7 +122,6 @@ module Make(DS: GlobalImplem) = struct
          | Case2((c,b),_) ->
             (* Watched literals have found a weird constraint.
             Let's see what the kernel can make of it. *)
-            let open K in
             Print.print ["LRA",4] (fun p ->
                 p "LRA: Watched lits have found weird constraint %s(%a)"
                   (if b then "" else "~") K.Simpl.pp c);
@@ -251,12 +250,16 @@ module Make(DS: GlobalImplem) = struct
                     let c = K.Simpl.simplify state.fixed c in
                     Print.print ["LRA",2] (fun p ->
                         p "LRA watches %a" Term.pp (K.Simpl.term c));
+                    let newvariables =
+                      TS.VarMap.diff_poly (fun _ _ _ -> TS.VarMap.empty)
+                        (K.Simpl.coeffs c) (K.Model.map fixed)
+                    in
                     let domains = Domain.union_poly
                                     (fun _ old _ -> old)
                                     (fun old -> old)
                                     (Domain.map (fun _ _ -> Range.init))
                                     state.domains
-                                    (K.Simpl.coeffs c)
+                                    newvariables
                     in
                     match v with
                     | Top.Values.NonBoolean q ->
