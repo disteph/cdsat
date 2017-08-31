@@ -144,9 +144,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* We analyse the answer ans of the recursive call,
              and decide whether to treat the second branch or to backjump further. *)
           begin match ans with
-          | Case1(T.Backjump{ backjump_level;
-                              propagations;
-                              decision })
+          | Case1(T.Backjump{ backjump_level; propagations; decision })
                when backjump_level = T.level state.trail ->
              Print.print ["concur",0] (fun p -> 
                  p "Backtrack level: %i, Propagations:\n %a"
@@ -173,10 +171,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
        | Propa(tset,Unsat) -> 
           Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory found a proof. We stop and close all pipes. *)
-          let finalise conflict uip =
-            H.suicide state.hub conflict uip
-          in
-          T.analyse state.trail thmsg finalise >>| fun ans ->
+          T.analyse state.trail thmsg (H.suicide state.hub) >>| fun ans ->
           H.kill state.hub;
           Case1 ans
 
@@ -263,11 +258,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | None -> failwith "Trail should not fail on input"
     in
     let trail,tasks = DS.Assign.fold treat input (T.init,[]) in
-    let state = { hub      = hub;
+    let state = { hub;
                   waiting4 = AS.all;
                   messages = Pqueue.empty();
                   decision = None;
-                  trail    = trail }
+                  trail }
     in
     Deferred.all_unit tasks >>= fun () ->
     master_loop (sat_init input ~sharing:DS.TSet.empty) state >>| function

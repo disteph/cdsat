@@ -137,7 +137,7 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
       | Terms.C(Symbols.NEq Sorts.Rat,[a;b]),false
       -> if [%eq:bool] which (Q.sign(get_coeff e var)>0)
          then Term.bC Symbols.Le [a;b],true
-         else Term.bC Symbols.Ge [a;b],true
+         else Term.bC Symbols.Le [b;a],true
     | _ -> e,b
      
   (* Fourier-Motzkin resolution of ba1 and ba2 over variable var
@@ -176,9 +176,10 @@ module Make(DS: DSproj with type ts = ts and type values = values) = struct
     let l1,r1,strict1 = take_sides e1 b1 in
     let l2,r2,strict2 = take_sides e2 b2 in
     let l3,r3,strict3 = take_sides e3 b3 in
-    let lower_coeff = get_coeff e1 var (* should be negative *) in
-    let diseq_coeff = get_coeff e2 var (* should be positive *) in
-    let upper_coeff = get_coeff e3 var in
+    let bsign b q = if b then q else Q.neg q in
+    let lower_coeff = get_coeff e1 var |> bsign b1 (* should be negative *) in
+    let diseq_coeff = get_coeff e2 var (* should be non-zero *) in
+    let upper_coeff = get_coeff e3 var |> bsign b3 (* should be positive *) in
     match strict1,strict2,strict3 with
     | Some false, None, Some false
          when (Q.sign lower_coeff<0)&&(Q.sign upper_coeff>0)&&(Q.sign diseq_coeff<>0)
