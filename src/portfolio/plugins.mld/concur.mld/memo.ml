@@ -123,7 +123,9 @@ module Make(WB : WhiteBoardExt) = struct
 
     let action ideally =
       Patricia.Fold2.{
-          sameleaf = (fun sassign () () sofar -> sofar);
+          sameleaf = (fun sassign () () sofar ->
+            let sassign = SAssign.reveal sassign in
+            if Top.Sassigns.is_Boolean sassign then sofar else sassign::sofar);
           emptyfull= (fun _ sofar -> sofar);
           fullempty= (fun assign sofar ->
             let return x = x in
@@ -170,7 +172,10 @@ module Make(WB : WhiteBoardExt) = struct
 
     let prove tset =
       let watch = P.flush !watchref in
-      let watch = Assign.fold P.fix tset watch in
+      let fix sassign watch =
+        if Top.Sassigns.is_Boolean sassign then P.fix sassign watch else watch
+      in
+      let watch = Assign.fold fix tset watch in
       let fixed = Fixed.extend tset Fixed.init in
       match P.next fixed ~howmany:1 watch with
       | Case1 _,_ -> false
@@ -189,7 +194,8 @@ module Make(WB : WhiteBoardExt) = struct
                Constraint.pp c DS.pp_sassign sassign DS.pp_sassign sassign');
          Print.print ["watch",1] (fun p-> p "%i" !watchcount))
 
-    let fix sassign = watchref := P.fix sassign !watchref
+    let fix sassign =
+      if Top.Sassigns.is_Boolean sassign then watchref := P.fix sassign !watchref else ()
 
     type t =
       | Nothing

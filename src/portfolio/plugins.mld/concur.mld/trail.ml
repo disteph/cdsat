@@ -316,7 +316,10 @@ The reason it was added to the trail was either:
                            then None
                            else Some(Assign.choose rest)
               in
-              learn conflict t t' >>| fun ()-> Some t
+              (if data.level < level
+               then learn conflict t t'
+               else return ())
+              >>| fun ()-> Some t
          end >>| fun decision ->
          Backjump { backjump_level = level-1;
                     propagations   = late (level-1) trail [];

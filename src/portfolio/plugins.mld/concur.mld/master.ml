@@ -152,17 +152,14 @@ module Make(WB4M: WhiteBoard4Master) = struct
                  p "Backtrack level: %i, Propagations:\n %a"
                    (T.level state.trail) (List.pp WBE.pp) propagations);
              Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
-             
-             let newstate2 = { state with
-                               hub      = hub2;
-                               decision = Opt.map (fun x ->
-                                              Print.print ["concur",0] (fun p -> 
-                                                  p "with decision %a" DS.pp_sassign x);
-                                              Try x) decision;
-                               messages = let enqueue msg = Pqueue.push(Say msg) in
-                                          List.fold enqueue propagations state.messages;
-                             }
+             let messages = let enqueue msg = Pqueue.push(Say msg) in
+                            List.fold enqueue propagations state.messages
              in
+             let messages = match decision with
+               | Some dec -> Pqueue.push(Try dec) messages
+               | None -> messages
+             in
+             let newstate2 = { state with hub = hub2; decision = None; messages } in
              master_loop current newstate2
                          
           | _ -> H.kill hub2; return ans

@@ -112,9 +112,37 @@ module Make(DS: GlobalImplem)
   (* pretty printing an evaluation inference *)
   let pp_beval fmt msg =
     let Propa(justif,Straight(t,Top.Values.Boolean b)) = msg in
-    Format.fprintf fmt "%a ⊢ %a"
+    fprintf fmt "%a ⊢ %a"
       Assign.pp justif
       (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
       (SAssign(K.Simpl.make t,Top.Values.Boolean b))      
+
+  let pp_fm fmt (ba1,ba2,t) =
+    let t1, Top.Values.Boolean b1 = ba1 in
+    let t2, Top.Values.Boolean b2 = ba2 in
+    fprintf fmt "LRA: Found Fourier-Motzkin inference to make: %a, %a ⊢ %a"
+      (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+      (SAssign(K.Simpl.make t1,Top.Values.Boolean b1))
+      (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+      (SAssign(K.Simpl.make t2,Top.Values.Boolean b2))
+      K.Simpl.pp(K.Simpl.make t)
+      
+  let pp_diseq fmt (ba1,ba2,ba3,msg1,msg2) =
+    let t1, Top.Values.Boolean b1 = ba1 in
+    let t2, Top.Values.Boolean b2 = ba2 in
+    let t3, Top.Values.Boolean b3 = ba3 in
+    let (Propa(_,Straight(a1,_))) = msg1 in
+    let (Propa(_,Straight(a2,_))) = msg2 in
+    fprintf fmt "LRA: Found Disequal inference to make:\n %a\n %a\n %a, %a, %a, %a, %a ⊢ ⊥"
+      pp_beval msg1
+      pp_beval msg2
+      (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+      (SAssign(K.Simpl.make t1,Top.Values.Boolean b1))
+      (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+      (SAssign(K.Simpl.make t2,Top.Values.Boolean b2))
+      (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
+      (SAssign(K.Simpl.make t3,Top.Values.Boolean b3))
+      K.Simpl.pp(K.Simpl.make a1)
+      K.Simpl.pp(K.Simpl.make a2)
 
 end

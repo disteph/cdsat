@@ -136,7 +136,7 @@ module Make(DS: GlobalImplem) = struct
             | Qeval _   -> failwith "Should be of sort Prop"
             | ToWatch _ -> failwith "Watched Literals got it wrong"
             | Unit{ var; nature; is_coeff_pos; bound } ->
-               let bassign  = K.Simpl.term c, Top.Values.Boolean b in
+               let bassign  = Simpl.term c, Top.Values.Boolean b in
                let oldrange = Domain.find var state.domains in
                Print.print ["LRA",4] (fun p ->
                    p "LRA: old range for %a is %a"
@@ -154,7 +154,7 @@ module Make(DS: GlobalImplem) = struct
                  | Lt,_ -> update true
                  | Le,_ -> update false
                  | NEq,true | Eq,false -> Range.diseq_update bound bassign oldrange
-                 | Term,_ | Other,_ -> raise K.IdontUnderstand
+                 | Term,_ | Other,_ -> raise IdontUnderstand
                  | Eq,true | NEq,false ->
                     match Range.lower_update bound ~is_strict:false bassign oldrange with
                     | Range.Range range ->
@@ -168,19 +168,19 @@ module Make(DS: GlobalImplem) = struct
                         Term.pp (Term.term_of_id var) Range.pp range);
                   let domains = Domain.add var (fun _ -> range) state.domains in
                   speak machine { state with watchedB; domains }
+
                | Range.FourierMotzkin(ba1,ba2) ->
-                  let msg = fm ba1 ba2 var in
-                  Print.print ["LRA",4] (fun p ->
-                      let t1, Top.Values.Boolean b1 = ba1 in
-                      let t2, Top.Values.Boolean b2 = ba2 in
-                      let Propa(_,Straight(t,_)) = msg in
-                      p "LRA: Found Fourier-Motzkin inference to make: %a, %a ⊢ %a"
-                        (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
-                        (SAssign(Simpl.make t1,Top.Values.Boolean b1))
-                        (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
-                        (SAssign(Simpl.make t2,Top.Values.Boolean b2))
-                        Simpl.pp(Simpl.make t));
-                  Msg msg, machine { state with watchedB }
+                  let (Propa(_,Straight(t,_))) as msg = fm ba1 ba2 var in
+                  let c = Simpl.simplify state.fixed (Simpl.make t) in
+                  Print.print ["LRA",4] (fun p -> p "%a" pp_fm (ba1,ba2,t));
+                  (match eval c with
+                   | Beval msg_semantic ->
+                      let propas = state.propas
+                                   |> Pqueue.push msg_semantic
+                                   |> Pqueue.push msg
+                      in speak machine { state with watchedB; propas }
+                   | _ -> failwith "Fourier-Motzkin got it wrong")
+                  
                | Range.DisEqual(ba1,ba2,ba3) ->
                   let a1, a2, msg = disequal ba1 ba2 ba3 var in
                   let a1' = Simpl.simplify state.fixed (Simpl.make a1) in
@@ -188,22 +188,11 @@ module Make(DS: GlobalImplem) = struct
                   match eval a1', eval a2' with
                   | Beval msg1, Beval msg2 ->
                      Print.print ["LRA",4] (fun p ->
-                         let t1, Top.Values.Boolean b1 = ba1 in
-                         let t2, Top.Values.Boolean b2 = ba2 in
-                         let t3, Top.Values.Boolean b3 = ba3 in
-                         p "LRA: Found Disequal inference to make:\n %a\n %a\n %a, %a, %a, %a, %a ⊢ ⊥"
-                           pp_beval msg1
-                           pp_beval msg2
-                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
-                           (SAssign(Simpl.make t1,Top.Values.Boolean b1))
-                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
-                           (SAssign(Simpl.make t2,Top.Values.Boolean b2))
-                           (Top.Sassigns.pp_sassign Simpl.pp Q.pp_print)
-                           (SAssign(Simpl.make t3,Top.Values.Boolean b3))
-                           Simpl.pp(Simpl.make a1)
-                           Simpl.pp(Simpl.make a2));
-                     let propas = state.propas |> Pqueue.push msg1 |> Pqueue.push msg2 in
-                     speak machine { state with watchedB; propas; umsg = Some msg }
+                         p "%a" pp_diseq (ba1,ba2,ba3,msg1,msg2));
+                     let propas = state.propas
+                                  |> Pqueue.push msg1
+                                  |> Pqueue.push msg2
+                     in speak machine { state with watchedB; propas; umsg = Some msg }
                   | _ -> failwith "Diseq got it wrong"
                                   
     (* This is the main loop. *)                   
@@ -263,7 +252,9 @@ module Make(DS: GlobalImplem) = struct
                     in
                     match v with
                     | Top.Values.NonBoolean q ->
-                       let watchedQ = WLQ.addconstraintNflag (c,Some q,i) state.watchedQ in
+                       let watchedQ =
+                         WLQ.addconstraintNflag (c,Some q,i) state.watchedQ
+                       in
                        speak machine { state with kernel; fixed; watchedQ; domains }
 
                     | Top.Values.Boolean b ->
