@@ -26,6 +26,7 @@
 (******************************************************************)
 
 open General
+open Sums
 open Patricia_tools
 
 module type Config = sig
@@ -111,7 +112,8 @@ module Make(C : Config) : sig
      where watched is the (unchanged) list of variables that constraint 
      watched; if all constraints manage to do so we get None. 
      In both cases, the new state of whowatcheswhat is also output. *)
-  val next : fixed -> ?howmany:int -> t -> (Constraint.t*Var.t list) option * t
+  val next : fixed -> ?howmany:int -> t
+             -> (Var.t list,Constraint.t*Var.t list) sum * t
 
 end
 

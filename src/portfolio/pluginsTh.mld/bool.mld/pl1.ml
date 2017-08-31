@@ -63,12 +63,9 @@ module Make(DS: GlobalImplem) = struct
                      
     let decay = !PFlags.bool_decay
     let factor = decay**1000.
-
     let scores = ref BaMap.empty
     let bump_value = ref 1.
     let since_last = ref 1
-                                             
-    type fixed = K.Model.t
                        
     (* Configuration for the 2-watched literals module *)
     module Config = struct
@@ -79,7 +76,7 @@ module Make(DS: GlobalImplem) = struct
           let b,i = LitF.reveal lit in
           Format.fprintf fmt "%s%a" (if b then "" else "¬") Term.pp (Term.term_of_id i)
       end
-      type nonrec fixed = fixed
+      type fixed = K.Model.t
       let simplify fixed = Constraint.simplify fixed
       let pick_another _ c i _ =
         match Constraint.simpl c with
@@ -92,7 +89,7 @@ module Make(DS: GlobalImplem) = struct
 
     type state = {
         kernel : K.state;      (* The state of the kernel *)
-        fixed  : Config.fixed; (* Our Boolean model *)
+        fixed  : K.Model.t;    (* Our Boolean model *)
         watched: WL.t;         (* The state of our watched literals *)
         propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
         undetermined : Assign.t; (* The set of assignments we could fix *)
@@ -111,7 +108,7 @@ module Make(DS: GlobalImplem) = struct
             if a clause is weird *)
          let output,watched = WL.next state.fixed ~howmany:2 state.watched in
          match output with
-         | None ->
+         | Case1 newlits ->
             (* All clauses seem fine. Maybe the problem is sat ? *)
             Print.print ["bool",4] (fun p -> p "bool: Watched literals are done");
             (* Now we ask the kernel whether it still has any constraints to satisfy *)
@@ -144,7 +141,7 @@ module Make(DS: GlobalImplem) = struct
                   Silence, machine state
             end
 
-         | Some(c,_) ->
+         | Case2(c,_) ->
             (* Watched literals have found a weird clause.
                Let's see what the kernel can make of it. *)
             let open K in
@@ -207,12 +204,19 @@ module Make(DS: GlobalImplem) = struct
                     let undetermined =
                       (* If the term was undetermined, we now have a value *)
                       if Assign.mem a state.undetermined
+                      then (Print.print ["bool",4] (fun p ->
+                                p "bool: was wondering about %a" pp_sassign a);
+                            Assign.remove a state.undetermined)
+                      else state.undetermined
+                    in
+                    let undetermined = (* Same with negation *)
+                      let a = boolassign ~b:(not b) t in
+                      if Assign.mem a undetermined
                       then
                         (Print.print ["bool",4] (fun p ->
-                             p "bool: was wondering about %a" Term.pp t);
-                         let sassign = boolassign ~b:(not b) t in
-                         Assign.remove a (Assign.remove sassign state.undetermined))
-                      else state.undetermined
+                             p "bool: was also wondering about %a" pp_sassign a);
+                         Assign.remove a undetermined)
+                      else undetermined
                     in
                     (* We declare to the watched literals 
                        that clauses watching l must be checked

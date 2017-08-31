@@ -1,4 +1,5 @@
 open General
+open Sums
 open Patricia
 open Patricia_interfaces
 open Patricia_tools
@@ -43,29 +44,26 @@ module Make (C : Config) = struct
   module CSet = PatSet.Make(CSetD)(I)
   module CMap = PatMap.Make(CMapD)(I)
 
-  type t = {
-      var2cons: CSet.t VarMap.t;
-      cons2var: CMap.t;
-      todo: CSet.t Pqueue.t
-  }
+  type t = { var2cons: CSet.t VarMap.t;
+             cons2var: CMap.t;
+             todo: CSet.t Pqueue.t;
+             newly: VarSet.t Lazy.t }
 
-  let init = {
-    var2cons = VarMap.empty;
-    cons2var = CMap.empty;
-    todo = Pqueue.empty()
-  }
+  let init = { var2cons = VarMap.empty;
+               cons2var = CMap.empty;
+               todo = Pqueue.empty();
+               newly = lazy VarSet.empty }
 
   let flush state = { state with todo = Pqueue.empty() }
                
   (* Adding or updating a constraint once we know the variables it will watch *)
 
-  let addconstraint c ?(oldwatched=VarSet.empty) newwatchedlist t =
-    (* The newly watched variables, as a VarSet *)
-    let newwatched = VarSet.of_list newwatchedlist in
+  let addconstraint c ?(oldwatched=VarSet.empty) newwatched t =
     (* Those that are really old *)
     let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really new *)
     let reallynew = VarSet.diff newwatched oldwatched in
+    let newly = lazy (VarSet.union reallynew (Lazy.force t.newly)) in
     (* For each really old variable, we remove c from 
        the set of constraints that were watching it *)
     let aux var var2cons =
@@ -85,18 +83,17 @@ module Make (C : Config) = struct
       VarMap.add var varwatch var2cons
     in
     let var2cons = VarSet.fold aux reallynew var2cons in
-    { t with
-      var2cons = var2cons;
-      cons2var = CMap.add c (fun _ -> newwatched) t.cons2var }
+    { t with newly; var2cons;
+             cons2var = CMap.add c (fun _ -> newwatched) t.cons2var }
 
   (* Adding or updating a constraint before we know the variables to watch *)
       
   let treat_one fixed ?howmany c t =
     (* c is constraint for which we want to pick watched vars *)
     (* Here are the vars currently watched by c *)
-    let watched = CMap.find c t.cons2var in
+    let oldwatched = CMap.find c t.cons2var in
     (* Same thing as a list *)
-    let watchedlist = VarSet.elements watched in
+    let watchedlist = VarSet.elements oldwatched in
     (* How many do we need to watch outside fixed? *)
     let number = match howmany with
       | Some i -> i
@@ -107,8 +104,9 @@ module Make (C : Config) = struct
     let varlist = pick_another fixed c' number watchedlist in
     if List.length varlist < number then Some(c',varlist), t
     else
+      let varset = VarSet.of_list varlist in
       let t = { t with cons2var = CMap.remove c t.cons2var }
-      in None, addconstraint c' ~oldwatched:watched varlist t
+      in None, addconstraint c' ~oldwatched varset t
 
       
   (* Now we say what to do with a set cset of constraints
@@ -127,16 +125,18 @@ module Make (C : Config) = struct
     match Pqueue.pop t.todo with
     | None ->
        Print.print ["watch",1] (fun p-> p "watch: todo is done");
-       None, t
+       Case1(VarSet.elements(Lazy.force t.newly)),
+       { t with newly = lazy VarSet.empty }
     | Some(cset,todo) -> 
        match treat fixed ?howmany cset { t with todo } with
        | None, t -> next fixed ?howmany t
-       | ans  -> ans
+       | Some ans, t -> Case2 ans, t
 
-  let addconstraint constr ~watched t = addconstraint constr watched t
+  let addconstraint constr ~watched t =
+    addconstraint constr (VarSet.of_list watched) t
 
   let addconstraintNflag constr ?(ifpossible=[]) t =
-    let t = addconstraint constr ifpossible t in
+    let t = addconstraint constr ~watched:ifpossible t in
     let cset = CSet.singleton constr in
     { t with todo = Pqueue.push cset t.todo }
 

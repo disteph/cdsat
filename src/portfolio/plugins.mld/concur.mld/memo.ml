@@ -1,6 +1,7 @@
 open Async
 
 open General
+open Sums
 open HCons
 open Patricia
 open Patricia_tools
@@ -172,8 +173,8 @@ module Make(WB : WhiteBoardExt) = struct
       let watch = Assign.fold P.fix tset watch in
       let fixed = Fixed.extend tset Fixed.init in
       match P.next fixed ~howmany:1 watch with
-      | None,_ -> false
-      | Some(c,_),_ ->
+      | Case1 _,_ -> false
+      | Case2 _,_ ->
          Print.print ["watch",1] (fun p-> p "Already know");
          true
           
@@ -199,10 +200,10 @@ module Make(WB : WhiteBoardExt) = struct
       let rec aux watch =
         let msg, watch = P.next ~howmany:2 fixed watch in
         match msg with
-        | None ->
+        | Case1 _ ->
            watchref := watch;
            Nothing
-        | Some(constr,termlist) ->
+        | Case2(constr,termlist) ->
            let msg = Constraint.msg constr in
            Print.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
            let prune sassign sofar =

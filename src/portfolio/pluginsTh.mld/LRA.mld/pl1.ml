@@ -1,4 +1,5 @@
 open General
+open Sums
 open Patricia
 open Patricia_tools
 
@@ -24,71 +25,12 @@ module Make(DS: GlobalImplem) = struct
                           and type tset   = TSet.t )
     = struct
 
-    type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
-
-    module Arg = struct
-      type t = int [@@deriving ord]
-      let id i = i
-      type values = bassign Range.t
-      include MaxInfo(struct type t = int [@@deriving ord] end)
-      let treeHCons = None
-    end
-
-    module Domain = PatMap.Make(Arg)(TypesFromHConsed(Arg))
-                                                      
-    type fixed = K.Model.t
-
-    module ConfigB = struct
-      module Constraint = struct
-        type t = K.Simpl.t * bool [@@deriving show]
-        let id (c,b) =
-          let t = K.Simpl.term c in
-          2*(Term.id t)+(if b then 1 else 0)
-      end
-      module Var = struct
-        type t = int [@@deriving ord]
-        let pp fmt i = Term.pp fmt (Term.term_of_id i)
-        let show = Print.stringOf pp
-      end
-      type nonrec fixed = fixed
-      let simplify fixed (c,b) = K.Simpl.simplify fixed c, b
-      let pick_another _ (c,_) i _ =
-        Print.print ["LRA",2] (fun p ->
-            p "LRA: WLB picks variables for %a, gets %a"
-              K.Simpl.pp c
-              (List.pp Term.pp)
-              (List.map Term.term_of_id (K.Simpl.watchable c)));
-        K.Simpl.watchable c
-    end
-
-    module WLB = TwoWatchedLits.Make(ConfigB)
-
-    module ConfigQ = struct
-      module Constraint = struct
-        type t = K.Simpl.t * (Top.Qhashed.t option) * int [@@deriving show]
-        let id (_,_,i) = i
-      end
-      module Var = struct
-        type t = int [@@deriving ord]
-        let pp fmt i = Term.pp fmt (Term.term_of_id i)
-        let show = Print.stringOf pp
-      end
-      type nonrec fixed = fixed
-      let simplify fixed (c,v,i) = K.Simpl.simplify fixed c,v,i
-      let pick_another _ (c,_,_) i _ =
-        Print.print ["LRA",2] (fun p ->
-            p "LRA: WLQ picks variables for %a, gets %a"
-              K.Simpl.pp c
-              (List.pp Term.pp)
-              (List.map Term.term_of_id (K.Simpl.watchable c)));
-        K.Simpl.watchable c
-    end
-
-    module WLQ = TwoWatchedLits.Make(ConfigQ)
+    module DT = Datatypes.Make(DS)(K)
+    open DT
 
     type state = {
         kernel : K.state;  (* The state of the kernel *)
-        fixed  : fixed;    (* Our LRA valuation *)
+        fixed  : K.Model.t;(* Our LRA valuation *)
         watchedB: WLB.t;   (* Watched literals for constraints *)
         watchedQ: WLQ.t;   (* Watched literals for terms to evaluate *)
         domains: Domain.t; (* The set of variables we could fix, with their domains *)
@@ -97,14 +39,6 @@ module Make(DS: GlobalImplem) = struct
         silent : bool      (* Whether we have already sent an unsat message *)
       }
 
-    (* pretty printing an evaluation inference *)
-    let pp_beval fmt msg =
-      let Propa(justif,Straight(t,Top.Values.Boolean b)) = msg in
-      Format.fprintf fmt "%a ⊢ %a"
-        Assign.pp justif
-        (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
-        (SAssign(K.Simpl.make t,Top.Values.Boolean b))
-                   
 
     (* We are asked whether we have something to say *)
     let rec speak machine state =
@@ -131,7 +65,7 @@ module Make(DS: GlobalImplem) = struct
                begin match msg with
                | Some msg ->
                   (* Kernel says all is satisfied and gave us the message to send *)
-                  Msg msg, machine { state with watchedB; watchedQ; kernel }
+                  Msg msg, machine state
 
                | None ->
                   (* Some constraints still need to be satisfied somehow.
@@ -152,19 +86,19 @@ module Make(DS: GlobalImplem) = struct
                      Try sassign, machine state
                end
 
-            | Some((c,q,_),_) ->
+            | Case2((c,q,_),_) ->
                (* Watched literals have found a term whose value is entirely determined.
                Let's see what the kernel can make of it. *)
-               let open K in
                Print.print ["LRA",4] (fun p ->
-                   p "LRA: Watched lits have found determined term %a"
-                     K.Simpl.pp c);
+                   p "LRA: Watched lits have found determined term %a" K.Simpl.pp c);
+               let state = { state with watchedB; watchedQ; domains } in
+               let open K in
                match eval c with
 
                | Beval msg ->
                   (* c of sort Bool does evaluate - we send the propagation message *)
                   Print.print ["LRA",4] (fun p -> p "LRA: kernel says %a" pp_beval msg);
-                  Msg msg, machine { state with watchedB; watchedQ }
+                  Msg msg, machine state
 
                | Qeval(term,q') ->
                   begin match q with
@@ -173,27 +107,26 @@ module Make(DS: GlobalImplem) = struct
                      let sassign = SAssign(term,v) in
                      let i = Term.id term in
                      if K.VarMap.mem i (K.Model.map state.fixed)
-                     then speak machine { state with watchedB; watchedQ }
+                     then speak machine state
                      else
                        (Print.print ["LRA",2] (fun p ->
                             p "LRA: new value! %a" pp_sassign sassign);
-                        Try sassign, machine { state with watchedB; watchedQ })
-                  | Some q when Q.equal q q' ->
-                     speak machine { state with watchedB; watchedQ }
-                  | Some q -> failwith "TODO"
+                        Try sassign, machine state )
+                  | Some q when Q.equal q q' -> speak machine state
+                  | Some q                   -> failwith "SMA problem!"
                   end
                     
                | Unit _ | ToWatch _ -> failwith "Watched Literals got it wrong"
             end
 
-         | Some((c,b),_) ->
+         | Case2((c,b),_) ->
             (* Watched literals have found a weird constraint.
             Let's see what the kernel can make of it. *)
             let open K in
             Print.print ["LRA",4] (fun p ->
                 p "LRA: Watched lits have found weird constraint %s(%a)"
-                  (if b then "" else "~")
-                  K.Simpl.pp c);
+                  (if b then "" else "~") K.Simpl.pp c);
+            let open K in
             match eval c with
             | Beval msg ->
                let Propa(_,Straight(_,Top.Values.Boolean b')) = msg in
