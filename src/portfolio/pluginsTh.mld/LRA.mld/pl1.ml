@@ -72,7 +72,7 @@ module Make(DS: GlobalImplem) = struct
                      Time to decide. *)
                   match Domain.info state.domains with
                   | None ->
-                     Print.print ["LRA",0] (fun p ->
+                     Print.print ["LRA",2] (fun p ->
                          p "LRA: waiting for master to catch up");
                      Silence, machine state
 
@@ -172,7 +172,7 @@ module Make(DS: GlobalImplem) = struct
                | Range.FourierMotzkin(ba1,ba2) ->
                   let (Propa(_,Straight(t,_))) as msg = fm ba1 ba2 var in
                   let c = Simpl.simplify state.fixed (Simpl.make t) in
-                  Print.print ["LRA",4] (fun p -> p "%a" pp_fm (ba1,ba2,t));
+                  Print.print ["LRA",0] (fun p -> p "%a" pp_fm (ba1,ba2,t));
                   (match eval c with
                    | Beval msg_semantic ->
                       let propas = state.propas
@@ -187,7 +187,7 @@ module Make(DS: GlobalImplem) = struct
                   let a2' = Simpl.simplify state.fixed (Simpl.make a2) in
                   match eval a1', eval a2' with
                   | Beval msg1, Beval msg2 ->
-                     Print.print ["LRA",4] (fun p ->
+                     Print.print ["LRA",0] (fun p ->
                          p "%a" pp_diseq (ba1,ba2,ba3,msg1,msg2));
                      let propas = state.propas
                                   |> Pqueue.push msg1
