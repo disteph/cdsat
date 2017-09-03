@@ -37,6 +37,8 @@ module Make(DS: GlobalImplem) = struct
     module ArgMap = struct
       include SAssign
       type values    = float
+      let pp_binding fmt (l,f) =
+        Format.fprintf fmt "%a:%f" pp_sassign (SAssign.reveal l) f
       type infos     = (SAssign.t*float) option
       let info_build = {
           empty_info  = None;
@@ -56,9 +58,7 @@ module Make(DS: GlobalImplem) = struct
 
     module BaMap = struct
       include PatMap.Make(ArgMap)(TypesFromHConsed(ArgMap))
-      let pp = print_in_fmt (fun fmt (l,f) ->
-                   Format.fprintf fmt "%a:%f"
-                   pp_sassign (SAssign.reveal l) f)
+      let pp = print_in_fmt ArgMap.pp_binding
     end
                      
     let decay = !PFlags.bool_decay

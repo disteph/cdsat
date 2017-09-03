@@ -66,6 +66,8 @@ The reason it was added to the trail was either:
                nature : unit -> nature;
                is_uip : unit -> bool; }
 
+  exception Empty
+
   module DestWInfo = struct
     include SAssign
     type values  = int*int*nature
@@ -75,9 +77,9 @@ The reason it was added to the trail was either:
 
         empty_info  = { level = -1;
                         chrono = -1;
-                        sassign=  (fun()->failwith "Empty Trail");
-                        nature = (fun()->failwith "Empty Trail");
-                        is_uip = (fun()->failwith "Empty Trail"); };
+                        sassign= (fun()-> raise Empty);
+                        nature = (fun()-> raise Empty);
+                        is_uip = (fun()-> raise Empty); };
 
         leaf_info = (fun x (i,j,v) ->
           { level = i;
@@ -234,70 +236,75 @@ The reason it was added to the trail was either:
           p "Analysing level %i conflict:\n %a" level WB.pp conflict);
 
       (* We analyse the nature of the latest assignment contributing to the conflict *)
-      match data.nature(),data.sassign() with
+      try
+        match data.nature(),data.sassign() with
 
-      | Input,sassign when (Assign.is_empty semsplit) (* We are not in semsplit *) ->
-         (* It's an assignment of the original problem, and so is the whole conflict.
+        | Input,sassign when (Assign.is_empty semsplit) (* We are not in semsplit *) ->
+           (* It's an assignment of the original problem, and so is the whole conflict.
             We stop. *)
-         Print.print ["trail",1] (fun p ->
-             p "Assignment %a in the conflict is part of the original problem, and so are the others. We stop."
-               pp_sassign sassign);
-         return(InputConflict conflict)
+           Print.print ["trail",1] (fun p ->
+               p "Assignment %a in the conflict is part of the original problem, and so are the others. We stop."
+                 pp_sassign sassign);
+           return(InputConflict conflict)
 
-      | _,SAssign((_,Values.Boolean _) as bassign)
-           (* This is a Backjump situation if the following condition is true *)
-           when (Assign.is_empty semsplit) (* We are not in semsplit *)
-                && (data.is_uip())       (* and data.term() is a UIP *)
-                && level > 0             (* and conflict is not of level 0 *)
-        -> (* ...we use that UIP to switch branches *)
+        | _,SAssign((_,Values.Boolean _) as bassign)
+             (* This is a Backjump situation if the following condition is true *)
+             when (Assign.is_empty semsplit) (* We are not in semsplit *)
+                  && (data.is_uip())       (* and data.term() is a UIP *)
+                  && level > 0             (* and conflict is not of level 0 *)
+          -> (* ...we use that UIP to switch branches *)
 
-         let msg = WB.curryfy ~flip:bassign conflict in
-         (* First computing the assignments we need for the branch we backjump to *)
-         let highest  = data.sassign() in
-         let next     = get_data map msg in
-         let highest2 = if next.level > -1 then Some(next.sassign()) else None in
-         Print.print ["trail",1] (fun p ->
-             p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
-               data.level
-               pp_sassign highest
-               next.level
-               WB.pp msg
-           );
+           let msg = WB.curryfy ~flip:bassign conflict in
+           (* First computing the assignments we need for the branch we backjump to *)
+           let highest  = data.sassign() in
+           let next     = get_data map msg in
+           let highest2 = if next.level > -1 then Some(next.sassign()) else None in
+           Print.print ["trail",1] (fun p ->
+               p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
+                 data.level
+                 pp_sassign highest
+                 next.level
+                 WB.pp msg
+             );
 
-         (* We learn the conflict, watching first and second highest assignment *)
-         learn conflict highest highest2 >>| fun ()->
+           (* We learn the conflict, watching first and second highest assignment *)
+           learn conflict highest highest2 >>| fun ()->
 
-         (* Now jumping to level of second formula contributing to conflict *)
-         Backjump { backjump_level = max [%ord:int] 0 next.level;
-                    propagations   = late next.level trail [msg];
-                    decision       = None }
+           (* Now jumping to level of second formula contributing to conflict *)
+           Backjump { backjump_level = max [%ord:int] 0 next.level;
+                      propagations   = late next.level trail [msg];
+                      decision       = None }
 
-                  
-      | Deduction msg, sassign when data.level = level ->
-         (* The latest assignment in the conflict has been propagated *)
-         Print.print ["trail",1] (fun p ->
-             let level,chrono,_ = TrailMap.find (SAssign.build sassign) map in
-             p "Explaining %a of level %i and chrono %i, using message\n %a"
-               pp_sassign (data.sassign()) level chrono WB.pp msg);
+                    
+        | Deduction msg, sassign when data.level = level ->
+           (* The latest assignment in the conflict has been propagated *)
+           Print.print ["trail",1] (fun p ->
+               let level,chrono,_ = TrailMap.find (SAssign.build sassign) map in
+               p "Explaining %a of level %i and chrono %i, using message\n %a"
+                 pp_sassign (data.sassign()) level chrono WB.pp msg);
 
-         (* We compute the conflict and the semsplit for the recursive call *)
-         let conflict,semsplit =
-           (* It depends on whether resolve would introduce a Non-Boolean decision *)
-           let justif_data = get_data map msg in
-           if has_guess justif_data
-           then
-             (* The latest contributing decision is a guess,
+           (* We compute the conflict and the semsplit for the recursive call *)
+           let conflict,semsplit =
+             (* It depends on whether resolve would introduce a Non-Boolean decision *)
+             let justif_data = get_data map msg in
+             if has_guess justif_data
+             then
+               (* The latest contributing decision is a guess,
                  and is among the nodes we are about to add:
                  we refuse to resolve, keep the conflict 
                  and add the latest assignment to semsplit *)
-             conflict, (Assign.add sassign semsplit)
-           else
-             (* Otherwise we resolve *)
-             (WB.resolve msg conflict), semsplit
-         in
-         aux conflict semsplit (get_data map ~semsplit conflict)
+               conflict, (Assign.add sassign semsplit)
+             else
+               (* Otherwise we resolve *)
+               (WB.resolve msg conflict), semsplit
+           in
+           aux conflict semsplit (get_data map ~semsplit conflict)
 
-      | _,_ ->
+        | _ -> raise Empty
+
+      with
+
+      | Empty ->
          begin
            match Assign.is_empty semsplit with
            | true -> (* This is an Undo case *)

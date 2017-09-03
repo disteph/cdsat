@@ -5,8 +5,13 @@ open Patricia_interfaces
 open Patricia_tools
 
 module type Config = sig
-  module Constraint: FromHConsed
-  module Var: Map.OrderedType
+  module Constraint: sig
+    type t [@@deriving show]
+    val id : t -> int
+  end              
+  module Var: sig
+    type t [@@deriving ord,show]
+  end
   type fixed
   val simplify    : fixed -> Constraint.t -> Constraint.t
   val pick_another: fixed
@@ -22,21 +27,25 @@ module Make (C : Config) = struct
   open C
 
   module VarMap = Map.Make(Var)
-  module VarSet = Set.Make(Var)
+  module VarSet = struct
+    include Set.Make(Var)
+    let pp fmt vset = List.pp Var.pp fmt (elements vset)
+  end
 
   module I = TypesFromHConsed(Constraint)
                           
   module CSetD = struct
-    type t           = Constraint.t
+    include Constraint
     let compare      = id2compare Constraint.id
     include EmptyInfo
     let treeHCons    = None
   end
 
   module CMapD = struct
-    type t           = Constraint.t
+    include Constraint
     let compare      = id2compare Constraint.id
     type values      = VarSet.t
+    let pp_binding fmt (c,v) = Format.fprintf fmt "(%a->%a)" pp c VarSet.pp v
     include EmptyInfo
     let treeHCons    = None
   end

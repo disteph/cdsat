@@ -37,6 +37,8 @@ val lex_compare : ('a->'a->int) -> ('b->'b->int) -> ('a*'b) -> ('a*'b) ->int
                       
 module List : sig
   type 'a t = 'a list [@@deriving eq, hash, show]
+  val pp : ?sep:string -> ?wrap:string*string
+           -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
   val hash : ('a -> int) -> 'a list -> int
   val mem : ('a -> 'a -> bool) -> 'a -> 'a list -> bool
   val map : ('a -> 'b) -> 'a list -> 'b list

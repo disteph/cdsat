@@ -32,11 +32,11 @@ module IntSort = struct
     let (fv,b,so) = H.reveal t in
     match !Dump.display with
     | Dump.Latex ->
-       if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "\\underline") fv (* Sorts.print_in_fmt so *)
-       else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
+       if fv>=0 then Format.fprintf fmt "%s{%i}" (* "%s{%i}^{%a}" *) (if b then "" else "\\underline") fv (* Sorts.pp so *)
+       else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.pp so *)
     | _ ->
-       if fv>=0 then Format.fprintf fmt "%s%i" (* "%s{%i}^{%a}" *) (if b then "" else "_") fv (* Sorts.print_in_fmt so *)
-       else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.print_in_fmt so *)
+       if fv>=0 then Format.fprintf fmt "%s%i" (* "%s{%i}^{%a}" *) (if b then "" else "_") fv (* Sorts.pp so *)
+       else Format.fprintf fmt "?%i" (* "?%i^{%a}" *) (-fv) (* Sorts.pp so *)
 
   let show = Print.stringOf pp
 
@@ -81,7 +81,7 @@ module MakePATCollection(M: PHCons) = struct
   include PatSet.Make(Arg)(I)
   let hash_fold_t = Hash.hash2fold hash
   let next t = let e = choose t in (e,remove e t)
-  let pp fmt s = print_in_fmt M.pp fmt s
+  let pp = print_in_fmt ~wrap:("","") M.pp
   let show = Print.stringOf pp
 end
 

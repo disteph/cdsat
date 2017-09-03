@@ -178,14 +178,15 @@ module type PatMap = sig
   val print_tree_in_fmt:
     ?common      :(Format.formatter -> common -> unit)
     -> ?branching:(Format.formatter -> branching -> unit)
-    -> (Format.formatter -> (keys * 'v) -> unit)option
-    -> Format.formatter -> ('v,_) param -> unit
+    -> (Format.formatter -> (keys*values) -> unit)
+    -> Format.formatter -> t -> unit
 
   val print_in_fmt:
     ?tree:((Format.formatter -> common -> unit)
            *(Format.formatter -> branching -> unit))
-    -> (Format.formatter -> (keys * 'v) -> unit)
-    -> Format.formatter -> ('v,_) param -> unit
+    -> ?sep:string -> ?wrap:string*string
+    -> (Format.formatter -> (keys*values) -> unit)
+    -> Format.formatter -> t -> unit
 end
 
 
@@ -248,11 +249,12 @@ module type PatSet = sig
   val print_tree_in_fmt:
     ?common      :(Format.formatter -> common -> unit)
     -> ?branching:(Format.formatter -> branching -> unit)
-    -> (Format.formatter -> e -> unit)option
+    -> (Format.formatter -> e -> unit)
     -> Format.formatter -> t -> unit
   val print_in_fmt:
     ?tree:((Format.formatter -> common -> unit)
            *(Format.formatter -> branching -> unit))
+    -> ?sep:string -> ?wrap:string*string
     -> (Format.formatter -> e -> unit)
     -> Format.formatter -> t -> unit
   val make    : e list -> t

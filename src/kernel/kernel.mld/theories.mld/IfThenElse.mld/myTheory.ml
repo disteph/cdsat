@@ -25,7 +25,11 @@ module Make(DS: DSproj with type ts = ts) = struct
   type assign = Assign.t
   type tset = TSet.t
                 
-  module TMap = Map.Make(Term)
+  module TMap = struct
+    include Map.Make(Term)
+    let pp_binding fmt (t,b) = pp_bassign fmt (t,Values.Boolean b)
+    let pp fmt t = List.pp pp_binding fmt (bindings t)
+  end
 
   type state = { treated: Assign.t;
                  known  : bool TMap.t;
@@ -60,8 +64,7 @@ module Make(DS: DSproj with type ts = ts) = struct
       
   let what_now state =
     let rec aux l =
-      Print.print ["kernel.ITE",2] (fun p ->
-        p "kernel.ITE: looping in what_now");
+      Print.print ["kernel.ITE",2] (fun p -> p "kernel.ITE: looping in what_now");
       match l with
       | []   -> Some(Sat(sat () state.treated ~sharing:state.sharing ~myvars:state.myvars)),
                 { state with todo = [] }
@@ -75,7 +78,10 @@ module Make(DS: DSproj with type ts = ts) = struct
               let b = TMap.find c state.known in
               let br = if b then b1 else b2 in
               let eq = Term.bC (Symbols.Eq so) [t;br], Values.Boolean true in
-              Some(Propa(straight () (Assign.singleton(boolassign ~b c)) eq)),
+              let justif = Assign.singleton(boolassign ~b c) in
+              Print.print ["kernel.ITE",0] (fun p ->
+                  p "kernel.ITE: %a ⊢  %a = %a" Assign.pp justif Term.pp t Term.pp br);
+              Some(Propa(straight () justif eq)),
               { state with todo = l; solved = TSet.add t state.solved }
             else
               None,
@@ -89,9 +95,9 @@ module Make(DS: DSproj with type ts = ts) = struct
          | _ -> aux l
 
     in
-    (* Dump.print ["IfThenElse",1] (fun p -> p "treated=%a" Assign.pp state.treated); *)
-    (* Dump.print ["IfThenElse",1] (fun p -> p "known=%a" ppL state.known); *)
-    (* Dump.print ["IfThenElse",1] (fun p -> p "todo=%a" pp state.todo); *)
+    Print.print ["kernel.ITE",1] (fun p ->
+        p "kernel.ITE:\n treated=%a\n known=%a\n todo=%a"
+          Assign.pp state.treated TMap.pp state.known (List.pp Term.pp) state.todo);
     aux state.todo
 
   let wondering state = state.wondering

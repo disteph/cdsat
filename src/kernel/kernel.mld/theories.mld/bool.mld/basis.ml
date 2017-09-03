@@ -19,16 +19,16 @@ module Make(DS: DSproj with type ts = TS.t) = struct
   (* Module for maps from literals to Boolean assignments *)
   module Arg = struct
     include LitF
-    let pp_i fmt i = Format.fprintf fmt "<%a>" Term.pp (Term.term_of_id i)
-    let pp fmt t = print_in_fmt ~print_atom:pp_i fmt t
     type values   = bassign
+    let pp_i fmt i = Format.fprintf fmt "<%a>" Term.print_of_id i
+    let pp fmt t = print_in_fmt ~print_atom:pp_i fmt t
+    type binding = t*bassign [@@deriving show]
     include EmptyInfo
     let treeHCons = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
   module LMap = struct
     include PatMap.Make(Arg)(I)
-    type binding = Arg.t*bassign [@@deriving show]
-    let pp fmt t = print_in_fmt pp_binding fmt t
+    let pp = print_in_fmt Arg.pp_binding
   end
 
   (* Module for Boolean models. 

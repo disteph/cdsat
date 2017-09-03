@@ -22,8 +22,9 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
   module Arg = struct
     type t = int [@@deriving ord]
     let id i = i
-    let pp fmt i = Format.fprintf fmt "<%a>" Term.pp (Term.term_of_id i)
+    let pp fmt i = Format.fprintf fmt "<%a>" Term.print_of_id i
     type values = Q.t * sassign
+    let pp_binding fmt (i,_) = pp fmt i
     include EmptyInfo
     let treeHCons = None (* Some(LitF.id,Terms.id,Terms.equal) *)
   end
@@ -33,7 +34,6 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
   module Model = struct
     include VarMap
     type binding = Arg.t*sassign [@@deriving show]
-    let pp fmt t = print_in_fmt pp_binding fmt t
     let map t = t
     let add sassign model =
       match sassign with

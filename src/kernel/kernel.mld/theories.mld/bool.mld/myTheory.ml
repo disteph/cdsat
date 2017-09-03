@@ -122,14 +122,16 @@ module Make(DS: DSproj with type ts = ts) = struct
     let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
     match v with
     | Values.NonBoolean _ -> { state with seen; myvars }, Case1 []
-    | Values.Boolean b ->
+    | Values.Boolean _ ->
        let propas,todo =
          match cube bassign with
          | Some set when LSet.cardinal set > 1 ->
             let aux lit (sofar,todo) =
               let b',id = LitF.reveal lit in
-              let derived = Term.term_of_id id,Values.Boolean([%eq:bool] b b') in
+              let derived = Term.term_of_id id,Values.Boolean b' in
               let msg     = straight () (Assign.singleton sassign) derived in
+              Print.print ["kernel.bool",-1] (fun p ->
+                  p "kernel.bool: conjunction %a" Msg.pp msg);
               let c       = Constraint.make derived in
               msg::sofar, c::todo
             in

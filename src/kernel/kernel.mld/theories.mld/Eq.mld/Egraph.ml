@@ -22,40 +22,28 @@ module Make(DS: GlobalDS) = struct
   (* Sum type for terms+values *)
 
   module TermValue = struct
-    type t = (Term.t,Value.t values) sum
-               [@@deriving eq,ord,show,hash]                               
+    type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]                               
   end
                                            
   module TMap = struct
     include Map.Make(Term)
     let pp x fmt tmap =
-      let aux fmt (nf,j) = Format.fprintf fmt "(%a->%a)" Term.pp nf x j in
-      List.pp aux fmt (bindings tmap)
+      let ppb fmt (nf,j) = Format.fprintf fmt "(%a->%a)" Term.pp nf x j in
+      List.pp ppb fmt (bindings tmap)
   end
 
   module BDest = struct
     type t = bassign [@@deriving ord]
+    let id (t,Values.Boolean b) = 2*Term.id t + (if b then 0 else 1)
     type values = Term.t*Term.t
     include EmptyInfo
     let treeHCons = None
   end
                    
-  module TCons = TypesFromHConsed(struct
-                     type t = bassign
-                     let id (t,_) = Term.id t
-                   end)
-  module BCons = TypesFromHConsed(struct
-                     type t = bassign
-                     let id (_,Values.Boolean b) = if b then 0 else 1
-                   end)
-  module I = LexProduct(TCons)(BCons)
   module BMap = struct
-    include PatMap.Make(BDest)(I)
-    let pp fmt bmap =
-      let ppb fmt (bassign,term) =
-        Format.fprintf fmt "(%a->%a)" pp_bassign bassign Term.pp term
-      in
-      print_in_fmt ppb
+    include PatMap.Make(BDest)(TypesFromHConsed(BDest))
+    let pp_binding fmt (j_neq,_) = pp_bassign fmt j_neq
+    let pp = print_in_fmt pp_binding
   end
 
   module TVSet = struct
@@ -71,8 +59,7 @@ module Make(DS: GlobalDS) = struct
       (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
       diseq: BMap.t;
       listening: TVSet.t
-    }
-                [@@deriving eq,show] 
+    } [@@deriving eq,show] 
                 
   module Make(REG : RawEgraph with type node = TermValue.t
                                and type edge = (bassign,sassign)sum

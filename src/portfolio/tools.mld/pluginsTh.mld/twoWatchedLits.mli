@@ -31,9 +31,14 @@ open Patricia_tools
 
 module type Config = sig
   (* Provides the datastructure for constraints *)
-  module Constraint: FromHConsed
+  module Constraint: sig
+    type t [@@deriving show]
+    val id : t -> int
+  end              
   (* Provides the datastructure for variables *)
-  module Var: Map.OrderedType
+  module Var: sig
+    type t [@@deriving ord,show]
+  end
   (* Type of the data-structures recording which variables are determined *)
   type fixed
 

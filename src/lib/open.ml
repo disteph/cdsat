@@ -40,19 +40,21 @@ let min compare a1 a2 =
 
 let max compare a1 a2 =
   if compare a1 a2 >= 0 then a1 else a2
-          
+                                       
 module List = struct
 
   include List
             
   type 'a t = 'a list [@@deriving eq, hash, show]
 
-  let pp f fmt =
+  let pp ?(sep="; ") ?(wrap="[","]") f fmt l =
     let rec aux fmt = function
     | []   -> Format.fprintf fmt ""
     | [a]  -> Format.fprintf fmt "%a" f a
-    | a::l -> Format.fprintf fmt "%a; %a" f a aux l
-    in Format.fprintf fmt"[%a]" aux
+    | a::l -> Format.fprintf fmt "%a%s%a" f a sep aux l
+    in
+    let b,e = wrap in
+    Format.fprintf fmt "%s%a%s" b aux l e
        
   let rec mem eq x = function
     | [] -> false

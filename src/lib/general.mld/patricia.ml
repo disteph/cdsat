@@ -215,15 +215,10 @@ module Poly(I:Intern) = struct
     let print_tree_in_fmt
           ?(common   =print_nothing)
           ?(branching=print_nothing)
-          keyvalue
-          fmt t =
+          pp_binding fmt t =
       let rec aux indent fmt t = match reveal t with
 	| Empty            -> fprintf fmt "{}"
-	| Leaf(j,x)        -> fprintf fmt "%t%s%a" indent "   "
-                                (match keyvalue with
-                                 | Some f -> f
-                                 | None -> print_dot)
-                                (j,x)
+	| Leaf(j,x)        -> fprintf fmt "%t%s%a" indent "   " pp_binding (j,x)
 	| Branch(p,m,t0,t1)->
            let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent common p s branching m) in
            fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
@@ -231,18 +226,19 @@ module Poly(I:Intern) = struct
 
     (* argument f says how to print a pair (key,value) *)
 
-    let print_in_fmt ?tree keyvalue fmt t =
+    let print_in_fmt ?tree ?(sep=", ") ?(wrap="{","}") pp_binding fmt t =
       match tree with
       | Some(common,branching) ->
-         print_tree_in_fmt ~common ~branching (Some keyvalue) fmt t
-      | None -> 
+         print_tree_in_fmt ~common ~branching pp_binding fmt t
+      | None ->
+         let b,e = wrap in
          let rec aux indent fmt t = match reveal t with
-	   | Empty            -> fprintf fmt "{}"
-	   | Leaf(j,x)        -> fprintf fmt "%a" keyvalue (j,x) 
+	   | Empty            -> fprintf fmt ""
+	   | Leaf(j,x)        -> fprintf fmt "%a" pp_binding (j,x) 
 	   | Branch(p,m,t0,t1)->
               let auxd = aux indent in
-              fprintf fmt "%a, %a" auxd t0 auxd t1
-         in fprintf fmt "%a" (aux (fun fmt -> ())) t
+              fprintf fmt "%a%s%a" auxd t0 sep auxd t1
+         in fprintf fmt "%s%a%s" b (aux (fun fmt -> ())) t e
 
   (* argument f says what to do in case a binding is already found *)
 
@@ -613,12 +609,10 @@ module Poly(I:Intern) = struct
     (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
 
-    let print_tree_in_fmt ?common ?branching f =
-      PM.print_tree_in_fmt ?common ?branching
-        (match f with Some f -> Some(fun fmt (x,())->f fmt x) | None -> None)
-
-    let print_in_fmt ?tree f fmt a =
-      PM.print_in_fmt ?tree (fun fmt (x,())->f fmt x) fmt a
+    let print_tree_in_fmt ?common ?branching pp_e =
+      PM.print_tree_in_fmt ?common ?branching (fun fmt (k,()) -> pp_e fmt k)
+    let print_in_fmt ?tree ?sep ?wrap pp_e =
+      PM.print_in_fmt ?tree ?sep ?wrap (fun fmt (k,()) -> pp_e fmt k)
 
     let make l     = List.fold add l empty
 

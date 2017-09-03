@@ -52,7 +52,7 @@ let pp (type a l b)
   let aux fmt: (a,l*b)xterm -> unit = function
     | V l        -> fprintf fmt "%a" pLeaf l
     | C(symb,[]) -> fprintf fmt "%a" Symbols.pp symb
-    | C(symb,l)  -> fprintf fmt "%a%a" Symbols.pp symb (List.pp pRec) l
+    | C(symb,l)  -> fprintf fmt "%a%a" Symbols.pp symb (List.pp ~sep:", " ~wrap:("(",")") pRec) l
     | FB(so,f,d) -> let FreeFunc pif = pSub in
                     fprintf fmt "%a%a" (fun fmt a -> pif a fmt) f (DSubst.pp pLeaf) d
     | BB(so,f)   -> fprintf fmt "%a" pRec f
@@ -144,7 +144,6 @@ module type S = sig
   type datatype
   type leaf
   include PHCons with type t = (leaf,datatype) termF
-  val pp_tl: Format.formatter -> t list -> unit
   val print_of_id: Format.formatter -> int -> unit
   val get_sort : t -> Sorts.t
   val term_of_id: int -> t
@@ -193,8 +192,6 @@ module Make(Leaf: Leaf)
       in aux fmt t
 
     let show = Print.stringOf pp
-
-    let pp_tl = List.pp pp
                         
     let print_of_id fmt index =
       let atom = term_of_id index in

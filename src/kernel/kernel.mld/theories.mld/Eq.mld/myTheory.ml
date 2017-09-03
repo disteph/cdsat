@@ -111,7 +111,7 @@ module Make(DS: sig include GlobalDS val proj : Term.datatype -> ts end) = struc
             machine { state with egraph; treated; myvars })
       with
         EG.Conflict(propa,conflict) ->
-        Print.print ["kernel.egraph",1] (fun p->
+        Print.print ["kernel.egraph",0] (fun p->
             p "kernel.egraph detected conflict:\n %a\n leads to %a"
               (List.pp Msg.pp) propa
               Msg.pp conflict);

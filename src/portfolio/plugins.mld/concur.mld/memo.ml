@@ -125,7 +125,7 @@ module Make(WB : WhiteBoardExt) = struct
       Patricia.Fold2.{
           sameleaf = (fun sassign () () sofar ->
             let sassign = SAssign.reveal sassign in
-            if Top.Sassigns.is_Boolean sassign then sofar else sassign::sofar);
+            if Top.Sassigns.is_Boolean sassign then sofar else sassign::sassign::sofar);
           emptyfull= (fun _ sofar -> sofar);
           fullempty= (fun assign sofar ->
             let return x = x in
@@ -209,23 +209,22 @@ module Make(WB : WhiteBoardExt) = struct
         | Case1 _ ->
            watchref := watch;
            Nothing
-        | Case2(constr,termlist) ->
+        | Case2(constr,list) ->
            let msg = Constraint.msg constr in
-           Print.print ["memo",0] (fun p-> p "Memo: List is %a" (List.pp Var.pp) termlist);
+           Print.print ["memo",1] (fun p-> p "Memo: List is %a" (List.pp Var.pp) list);
            let prune sassign sofar =
              if Fixed.is_fixed sassign fixed then sofar else sassign::sofar
            in
-           Print.print ["memo",0] (fun p->
-               p "Memo: Pruned List is %a"
-                 (List.pp Var.pp) (List.fold prune termlist []));
-           match List.fold prune termlist [] with
+           Print.print ["memo",1] (fun p->
+               p "Memo: Pruned List is %a" (List.pp Var.pp) (List.fold prune list []));
+           match List.fold prune list [] with
 
            | [] ->
-              Print.print ["memo",1] (fun p->
+              Print.print ["memo",0] (fun p->
                   p "Memo: found memoised conflict %a" WB.pp msg);
-              Print.print ["memo",2] (fun p->
-                  let WB(_,Propa(justif,_)) = msg in
-                  p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+              (* Print.print ["memo",0] (fun p-> *)
+              (*     let WB(_,Propa(justif,_)) = msg in *)
+              (*     p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed)); *)
               watchref := watch;
               Conflict msg
                    
@@ -251,7 +250,8 @@ module Make(WB : WhiteBoardExt) = struct
                      p "Memo: %a already known" pp_bassign flipped);
                  aux watch)
               else
-                (Print.print ["memo",1] (fun p-> p "Memo: useful prop");
+                (Print.print ["memo",0] (fun p->
+                     p "Memo: useful propagation %a" WB.pp newmsg);
                  watchref := watch;
                  UP newmsg)
 
@@ -264,10 +264,11 @@ module Make(WB : WhiteBoardExt) = struct
 
   end
 
-  let suicide msg term = function
-    | Some term' when !Flags.memo ->
-       Print.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
-       WR.add (Constraint.make msg) term term'
+  let suicide msg sassign = function
+    | Some sassign'
+         when !Flags.memo && Top.Sassigns.is_Boolean sassign && Top.Sassigns.is_Boolean sassign'
+      -> Print.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
+         WR.add (Constraint.make msg) sassign sassign'
     | _ -> ()
 
   let rec flush ports msg =
