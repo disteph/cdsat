@@ -10,7 +10,7 @@ with concurrency, as provided by Jane Street's Async library.
 (*********************************************************************)
 
 open Async
-
+       
 open Kernel
 open Top.Messages
 open Top.Sassigns
@@ -104,7 +104,6 @@ module Make(WB4M: WhiteBoard4Master) = struct
                 select_msg { state with messages = Pqueue.push msg state.messages }
 
   (* Main loop of the master thread *)
-
   let rec master_loop current state =
 
     Print.print ["concur",2] (fun p-> p "\nMaster thread enters new loop");
@@ -130,11 +129,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
           let assign1   = DS.Assign.add sassign current.assign in
           let current1  = sat_init assign1 ~sharing:current.sharing in
-          let newstate1 = { state with
-                            hub      = hub1;
-                            waiting4 = AS.all;
-                            trail }
-          in
+          let newstate1 = { state with hub = hub1; waiting4 = AS.all; trail } in
           (* In the first branch, we broadcast the guess *)
           H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
           (* First recursive call *)
@@ -171,6 +166,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
        | Propa(tset,Unsat) -> 
           Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory found a proof. We stop and close all pipes. *)
+          (* let g = Let_syntax.bind in *)
           T.analyse state.trail thmsg (H.suicide state.hub) >>| fun ans ->
           H.kill state.hub;
           Case1 ans

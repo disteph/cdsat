@@ -191,7 +191,7 @@ module Make(Leaf: Leaf)
           aux reveal fmt t
       in aux fmt t
 
-    let show = Print.stringOf pp
+    let show a = Print.stringOf pp a
                         
     let print_of_id fmt index =
       let atom = term_of_id index in
