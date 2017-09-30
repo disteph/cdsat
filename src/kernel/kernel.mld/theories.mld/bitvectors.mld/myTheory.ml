@@ -9,17 +9,19 @@ open Sassigns
 
 type sign = unit
 
+(* This is the module for constant bitvectors *)
 module CstBV = HardCaml.Bits.Comb.ArraybitsNativeint
-
               
 module V = struct
   include CstBV
 
+  (* Predicate "is true ?" *)
   let isT a = [%eq:nativeint array * int] (a ==: vdd) vdd
   let equal a b = isT(a ==: b)
   let compare a b = if equal a b then 0
                     else if isT(a <=: b) then 1 else -1
-  let hash a = CstBV.to_int(CstBV.select a 16 0)
+  (* hash function only uses the lowest 16 bits: to be refined later? *)
+  let hash a = CstBV.to_int(CstBV.select a 16 0) 
   let hash_fold_t = Hash.hash2fold hash
   let pp fmt a =
     let rec aux fmt = function
@@ -33,7 +35,7 @@ end
 (* We are using the above as values *)
 include Theory.HasValues(V)
 
-(* We are using VarSets as alternative term representations *)
+(* We are using VarSets (sets of variables) as alternative term representations *)
 type ts = Termstructures.VarSet.Generic.IntSortSet.t
 let ts = Termstructures.Register.VarSetBV
 
@@ -46,61 +48,79 @@ module Make(DS: DSproj with type values = values
   type tset = TSet.t
 
   let HasVconv{ vinj; vproj } = conv
-                
-  exception CannotEval of string
 
-  type 'a eval = {
-      cst : 'a;
-      sgl : Term.t -> V.t -> 'a;
-      uni : 'a -> 'a -> 'a
-    }
-                            
-  let term_eval_by f by term =
-    let open Symbols in
-    let rec aux term =
-      match Terms.reveal term with
-      | Terms.C(Extract(hi,lo,_),[a]) ->
-         let a,a' = aux a in
-         V.select_e a hi lo, a'
-      | Terms.C(Conc _,[a;b]) ->
-         let a,a' = aux a in
-         let b,b' = aux b in
-         V.(a @: b), by.uni a' b'
-      | Terms.C(CstBV s,[]) ->
-         V.constb s, by.cst
-      | _ -> let v = f(Term.id term) in
-             v, by.sgl term v
-    in aux term
+  (* First, we implement evaluation functions for bitvector terms and predicates *)
 
-  let form_eval_by f by form =
-    let open Symbols in
-    match Terms.reveal form with
-    | Terms.C(Eq(Sorts.BV _),[a;b]) ->
-       let a,a' = term_eval_by f by a in
-       let b,b' = term_eval_by f by b in
-       V.equal a b, by.uni a' b'
-    | Terms.C(NEq(Sorts.BV _),[a;b]) ->
-       let a,a' = term_eval_by f by a in
-       let b,b' = term_eval_by f by b in
-       not(V.equal a b), by.uni a' b'
-    | _ -> raise(CannotEval(Print.stringOf Term.pp form))
+  (* Datastructure that we use for the by-product of evaluation *)
+  type 'a eval = { cst : 'a;                  (* by-product for a constant bitvector *)
+                   sgl : Term.t -> V.t -> 'a; (* by-product for a variable with a value *)
+                   uni : 'a -> 'a -> 'a }     (* by-product for a binary operation *)
 
+  (* datastructure to use when we don't want any by-product *)
   let noby = { cst = ();
                sgl = (fun _ _ -> ());
                uni = fun () () -> () }
 
-  let term_eval f term = fst(term_eval_by f noby term)
-  let form_eval f term = fst(form_eval_by f noby term)
-
+  (* datastructure to use when the by-product is the assignements used for evaluation *)
   let by = { cst = Assign.empty;
              sgl = (fun term v ->
                Assign.singleton(SAssign(term, Values.NonBoolean(vinj v))));
              uni = Assign.union }
 
-  type state = { seen : Assign.t;
-                 valuation : V.t IntMap.t;
+  (* evaluation of a term *)
+  let term_eval_by valuation by term =
+    let rec aux term =
+      match Terms.reveal term with
+      | Terms.C(Symbols.Extract{hi;lo},[a]) ->
+         let a,a' = aux a in
+         V.select_e a hi lo, a'
+      | Terms.C(Symbols.Conc _,[a;b]) ->
+         let a,a' = aux a in
+         let b,b' = aux b in
+         V.(a @: b), by.uni a' b'
+      | Terms.C(Symbols.CstBV s,[]) ->
+         V.constb s, by.cst
+      | _ -> let v = valuation(Term.id term) in
+             v, by.sgl term v
+    in aux term
+
+  (* Exception that we raise if we cannot evaluate a bitvector formula *)
+  exception CannotEval of string
+
+  (* evaluation of an atomic predicate *)
+  let form_eval_by valuation by form =
+    let term_eval = term_eval_by valuation by in
+    match Terms.reveal form with
+    | Terms.C(Symbols.Eq(Sorts.BV _),[a;b]) ->
+       let a,a' = term_eval a in
+       let b,b' = term_eval b in
+       V.equal a b, by.uni a' b'
+    | Terms.C(Symbols.NEq(Sorts.BV _),[a;b]) ->
+       let a,a' = term_eval a in
+       let b,b' = term_eval b in
+       not(V.equal a b), by.uni a' b'
+    | _ -> raise(CannotEval(Print.stringOf Term.pp form))
+
+
+  (* Evaluation without by-products *)
+  let term_eval valuation term = fst(term_eval_by valuation noby term)
+  let form_eval valuation term = fst(form_eval_by valuation noby term)
+
+  (* States of the algorithm *)
+  type state = { seen        : Assign.t;
+                 valuation   : V.t IntMap.t;
                  constraints : Term.t list }
 
+  (* Initial state *)
+  let init = { seen        = Assign.empty;
+               valuation   = IntMap.empty;
+               constraints = [] }
+
+  (* Evaluation function for a formula, given the state of the algorithm.
+     Either raises an exception CannotEval,
+     or produces a message Propa(assign,boolassign), where
+     boolassign is the Boolean assignment saying if the formula evaluates to true or false
+     assign are the assignments that were used in the evaluation *)
   let eval state term =
     let f i = 
       if IntMap.mem i state.valuation then IntMap.find i state.valuation
@@ -115,10 +135,6 @@ module Make(DS: DSproj with type values = values
     (*    in Values.NonBoolean v, assign  *)
     | s -> raise (CannotEval(Print.toString(fun p ->
                                  p "I do not know sort %a" Sorts.pp s)))
-
-  let init = { seen = Assign.empty;
-               valuation = IntMap.empty;
-               constraints = [] }
     
 end
 

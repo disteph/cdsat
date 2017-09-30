@@ -1,10 +1,6 @@
 type var = int
-type man = MLBDD.man
 type t = MLBDD.t
 type support = MLBDD.support
-val init : ?cache:int -> unit -> man
-val clear : man -> unit
-val manager : t -> man
 val support : t -> support
 val list_of_support : support -> int list
 val support_of_list : int list -> support
@@ -14,9 +10,6 @@ val is_false : t -> bool
 val equal : t -> t -> bool
 val id : t -> int
 val hash : t -> int
-val dtrue : man -> t
-val dfalse : man -> t
-val ithvar : man -> var -> t
 val dnot : t -> t
 val dand : t -> t -> t
 val dor : t -> t -> t
@@ -60,12 +53,13 @@ module type WHS =
   end
 module WeakHash = MLBDD.WeakHash
 
+val dtrue : t
+val dfalse : t
+val ithvar : var -> t
+  
 (* Printing a BDD in Latex.
 Takes as parameter the printing function for a BDD node,
 which in the implementation is just an int *)
                     
 val pp : (Format.formatter -> int -> unit) -> Format.formatter -> t -> unit
-                                                                         
 val to_string : (Format.formatter -> int -> unit) -> t -> string
-
-val man : MLBDD.man

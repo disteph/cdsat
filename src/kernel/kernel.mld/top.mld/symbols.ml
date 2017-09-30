@@ -25,10 +25,12 @@ type t =
   | Plus | Minus | Times | Divide | Op
 
   (* Arrays *)
-  | Select of Sorts.t*Sorts.t | Store of Sorts.t*Sorts.t | Diff of Sorts.t*Sorts.t
+  | Select of {indices:Sorts.t;values:Sorts.t}
+  | Store of {indices:Sorts.t;values:Sorts.t}
+  | Diff of {indices:Sorts.t;values:Sorts.t}
 
   (* BitVectors *)
-  | Extract of int*int*int
+  | Extract of { hi:int; lo:int; length:int }
   | Conc of int*int
   | CstBV of Stringhashed.t
                [@@deriving eq, hash, ord]
@@ -44,10 +46,10 @@ let arity = function
   | Plus | Minus | Times | Divide     -> Sorts.Rat, [Sorts.Rat;Sorts.Rat]
   | Op                                -> Sorts.Rat, [Sorts.Rat]
   | Ge | Gt | Le | Lt                 -> Sorts.Prop, [Sorts.Rat;Sorts.Rat]
-  | Select(indices,values)            -> values, [Sorts.Array(indices,values);indices]
-  | Store(indices,values)             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
-  | Diff(indices,values)              -> indices, [Sorts.Array(indices,values); Sorts.Array(indices,values);]
-  | Extract(hi,lo,orig)               -> Sorts.BV (max [%ord:int] (hi-lo+1) 0), [Sorts.BV orig]
+  | Select{indices;values}            -> values, [Sorts.Array(indices,values);indices]
+  | Store{indices;values}             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
+  | Diff{indices;values}              -> indices, [Sorts.Array(indices,values); Sorts.Array(indices,values);]
+  | Extract{hi;lo;length}             -> Sorts.BV (max [%ord:int] (hi-lo+1) 0), [Sorts.BV length]
   | Conc(l1,l2)                       -> Sorts.BV(l1+l2), [Sorts.BV l1; Sorts.BV l2]
   | CstBV s                           -> Sorts.BV(String.length s), []
 
@@ -79,10 +81,10 @@ let print_in_fmt_latex fmt = function
   | Select _    -> fprintf fmt "\\mbox{\\small select}"
   | Store _     -> fprintf fmt "\\mbox{\\small store}"
   | Diff _      -> fprintf fmt "\\mbox{\\small diff}"
-  | Extract(hi,lo,_) when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
-  | Extract(hi,lo,_) -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
-  | Conc(l1,l2)      -> fprintf fmt "\\circl"
-  | CstBV s          -> fprintf fmt "%s" s
+  | Extract{hi;lo} when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
+  | Extract{hi;lo} -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
+  | Conc(l1,l2)    -> fprintf fmt "\\circl"
+  | CstBV s        -> fprintf fmt "%s" s
 
 let print_in_fmt_utf8 fmt = function
   | User(f,ar)  -> fprintf fmt "%s" f
@@ -111,10 +113,10 @@ let print_in_fmt_utf8 fmt = function
   | Select _    -> fprintf fmt "select"
   | Store _     -> fprintf fmt "store"
   | Diff _      -> fprintf fmt "diff"
-  | Extract(hi,lo,_) when hi = lo -> fprintf fmt "ex[%i]" hi
-  | Extract(hi,lo,_) -> fprintf fmt "ex[%i:%i]" hi lo
-  | Conc(l1,l2)      -> fprintf fmt "⚬"
-  | CstBV s          -> fprintf fmt "%s" s
+  | Extract{hi;lo} when hi = lo -> fprintf fmt "ex[%i]" hi
+  | Extract{hi;lo} -> fprintf fmt "ex[%i:%i]" hi lo
+  | Conc(l1,l2)    -> fprintf fmt "⚬"
+  | CstBV s        -> fprintf fmt "%s" s
 
 let pp fmt = match !Dump.display with
   | Dump.Latex -> print_in_fmt_latex fmt

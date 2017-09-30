@@ -57,8 +57,8 @@ let symbol ~decsorts =
     | "<" -> [Lt]
     | ">=" ->[Ge]
     | "<=" ->[Le]
-    | "select" -> let aux ind = List.map (fun so -> Select(ind,so)) allsorts
+    | "select" -> let aux indices = List.map (fun values -> Select{indices;values}) allsorts
                   in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
-    | "store"  -> let aux ind = List.map (fun so -> Store(ind,so)) allsorts
+    | "store"  -> let aux indices = List.map (fun values -> Store{indices;values}) allsorts
                   in List.fold (fun ind accu -> (aux ind)@accu) allsorts []
     | s    -> try [CstRat(Q.of_string s)] with _ -> []

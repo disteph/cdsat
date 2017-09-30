@@ -65,7 +65,10 @@ let to_string_aux a =
 let to_string pp_node a = to_string_aux (fun p->p "%a" (pp pp_node) a)
                                         
 let man = MLBDD.init()
-
+let dtrue = dtrue man
+let dfalse = dfalse man
+let ithvar = ithvar man
+                 
                     (* let f = MLBDD.ithvar man 79 *)
                     (* (\* let g = BDD.reveal f *\) *)
                     (* let () = print_endline(MLBDD.to_string f) *)
