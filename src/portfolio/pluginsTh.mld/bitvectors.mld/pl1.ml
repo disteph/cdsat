@@ -26,8 +26,6 @@ module Make(DS: GlobalImplem) = struct
     type state = {
         kernel : K.state;  (* The state of the kernel *)
         domains: Domain.t; (* The set of variables we could fix, with their domains *)
-        propas : (sign,straight) Msg.t Pqueue.t; (* The propa messages to be send*)
-        umsg   : (sign,unsat) Msg.t option;      (* The unsat message to be send*)
         silent : bool      (* Whether we have already sent an unsat message *)
       }
 
@@ -54,8 +52,6 @@ module Make(DS: GlobalImplem) = struct
 
     let init = machine { kernel = K.init;
                          domains = Domain.empty;
-                         propas = Pqueue.empty();
-                         umsg   = None;
                          silent = false }
 
     let clear () = ()

@@ -44,11 +44,13 @@ module Make(DS: DSproj with type values = values
 
   open DS
   type termdata = Term.datatype
+  type value = Value.t
   type assign = Assign.t
   type tset = TSet.t
 
   let HasVconv{ vinj; vproj } = conv
-
+  let proj t = Terms.data t |> proj
+               
   (* First, we implement evaluation functions for bitvector terms and predicates *)
 
   (* Datastructure that we use for the by-product of evaluation *)
@@ -140,6 +142,7 @@ end
 
 module type API = sig
   type termdata
+  type value
   type assign
   type tset
   type state
@@ -148,9 +151,13 @@ module type API = sig
   val form_eval : (int -> V.t) -> termdata termF -> bool
   val eval : state -> termdata termF
              -> (sign, assign * (termdata termF, _)bassign*tset, straight) message
+  val vinj : V.t -> value
+  val vproj : value -> V.t option
+  val proj : termdata termF -> Termstructures.VarSet.Generic.IntSortSet.t
 end
 
 type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                      and type value  = 'v
                                       and type assign = 'a
                                       and type tset   = 's)
 

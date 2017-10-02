@@ -18,6 +18,7 @@ end
        
 module type API = sig
   type termdata
+  type value
   type assign
   type tset
 
@@ -37,10 +38,16 @@ module type API = sig
      assign are the assignments that were used in the evaluation *)
   val eval : state -> termdata termF
              -> (sign, assign * (termdata termF, _)bassign*tset, straight) message
+
+  (* Injection and projections for values and termrepresentations *)
+  val vinj : V.t -> value
+  val vproj : value -> V.t option
+  val proj : termdata termF -> Termstructures.VarSet.Generic.IntSortSet.t
 end
 
 
 include Theory.Type
         with type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                                   and type value  = 'v
                                                    and type assign = 'a
                                                    and type tset   = 's)
