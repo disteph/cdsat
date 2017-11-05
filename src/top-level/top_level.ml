@@ -4,7 +4,7 @@
 
 open General
 open TopFlags
-       
+   
 type _ stringOrunit =
   | String : string stringOrunit
   | Unit   : unit stringOrunit
@@ -14,7 +14,7 @@ let run parser input =
 
   (* Setting up the Kernel *)
   
-  let (module K)   = Kernel.Top_level.init ~parser input in
+  let (module K) = Kernel.Top_level.init ~parser input in
 
   (* Getting the result for the run *)
 
@@ -39,7 +39,7 @@ let run parser input =
            include K
 
            open Kernel.Theories.Register
-                  
+              
            module Plugin = PluginsTh.Register.Make(WB.DS)
 
            let add_plugin
@@ -65,7 +65,7 @@ let run parser input =
 
        (* RUNNING PSYCHE *)
        
-       let answer = P.solve() in
+       let answer = K.answer(P.solve K.problem) in
        if !clear4each then P.clear();
        print_endline(
            match K.expected, answer with
@@ -110,21 +110,21 @@ let parseNrun input =
   in
   let rec trying = function
     | parser::other_parsers ->
-      begin
-	try 
-          run parser input
-	with Kernel.Parsers.Parser.ParsingError s
-           | Kernel.Parsers.Typing.TypingError s ->
-              print_endline(Print.toString (fun p->
-                                p "Parser %a could not parse input, because \n%s"
-                                  Kernel.Parsers.Register.pp parser s));
-              trying other_parsers
-      end
+       begin
+	 try 
+           run parser input
+	 with Kernel.Parsers.Parser.ParsingError s
+            | Kernel.Parsers.Typing.TypingError s ->
+               print_endline(Print.toString (fun p->
+                                 p "Parser %a could not parse input, because \n%s"
+                                   Kernel.Parsers.Register.pp parser s));
+               trying other_parsers
+       end
     | [] -> print_endline "No parser seems to work for this input."; function _ -> None
   in
   trying parsers
 
-                           
+  
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:
 - init is the initial data before any run is made
 - accu is what do do after every run ('b option is the return type of the run) 
@@ -163,8 +163,8 @@ let treatstdin pack () =
 let treatfile_aux accu aux filename = 
   let filename4latex  = "file \\verb="^filename^"=" in
   let filename4stdout = "===========================\nTreating file "^filename in
-    print_endline filename4stdout;
-    accu aux filename4latex (parseNrun(IO.read_from_file filename))
+  print_endline filename4stdout;
+  accu aux filename4latex (parseNrun(IO.read_from_file filename))
 
 (* treatfile wraps treatfile_aux in case 1 file is treated *)
 
@@ -175,13 +175,13 @@ let treatfile pack filename =
 
 let collect_sort s =
   match Sys.os_type with
-    | "Unix" when !sizesort ->
-	let open Unix in
-	let size_of s = (stat s).st_size in
-	let l = List.map (fun filename -> (filename,size_of filename)) s in
-	let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
-	  List.map (fun (filename,size) -> filename) l'
-    | _ -> List.sort Stringhashed.compare s
+  | "Unix" when !sizesort ->
+     let open Unix in
+     let size_of s = (stat s).st_size in
+     let l = List.map (fun filename -> (filename,size_of filename)) s in
+     let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
+     List.map (fun (filename,size) -> filename) l'
+  | _ -> List.sort Stringhashed.compare s
 
 let treatdir pack dirname =
   print_endline("Treating directory "^dirname);
@@ -191,13 +191,13 @@ let treatdir pack dirname =
   let rec aux acc = function
     | []      -> pack.final acc 
     | name::l ->
-      let newacc = if not(Sys.is_directory name)
-	then treatfile_aux pack.accu acc name
-	else acc
-      in aux newacc l
+       let newacc = if not(Sys.is_directory name)
+	            then treatfile_aux pack.accu acc name
+	            else acc
+       in aux newacc l
   in
   aux pack.init b
-    
+  
 (* treatname does both *)
 
 let treatname pack name =

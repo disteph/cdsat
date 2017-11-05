@@ -69,9 +69,7 @@ module Make(K:Plugin.Input) = struct
   (* Finally, we launch the scheduler on mysolve tset, waiting for
          all tasks to be done before returning. *)
 
-  let solve_th tset = Thread_safe.block_on_async_exn (fun () -> mysolve tset)
+  let solve assign = Thread_safe.block_on_async_exn (fun () -> mysolve assign)
 
-  let solve () = answer(solve_th problem)
-                                                     
   let clear () = K.clear(); Mm.clear()
 end
