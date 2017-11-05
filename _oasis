@@ -62,6 +62,19 @@ Library portfolio
   XMETADescription: Psyche's portfolio of plugins
   XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std zarith"
 
+Flag sat_api
+  Description: Target is Psyche's interface for SAT-solving
+  Default: false
+
+Library SAT_API
+  FindlibName: psyche_SAT_API
+  Path:        src/SAT_API
+  Build$:      flag(sat_api)
+  Install$:    flag(sat_api)
+  Modules:     SAT_API
+  XMETADescription: Psyche's interface for SAT-solving
+  XMETAExtraLines : requires = "psyche_kernel_lib psyche_kernel psyche_portfolio"
+
 Flag exec
   Description: Target is Psyche's executable
   Default: false

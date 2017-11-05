@@ -60,9 +60,13 @@ portfolio: CONFIGUREFLAGS = --enable-portfolio
 portfolio: LIB = psyche_portfolio
 portfolio: ROOTDIR = src/portfolio
 
+SAT_API: CONFIGUREFLAGS = --enable-sat-api
+SAT_API: LIB = psyche_SAT_API
+SAT_API: ROOTDIR = src/SAT_API
+
 cdsat: CONFIGUREFLAGS = --enable-exec
 
-kernel_lib kernel portfolio: rm_data configure_lib setup.data
+kernel_lib kernel portfolio SAT_API: rm_data configure_lib setup.data
 
 cdsat: rm_data setup.data
 
@@ -72,9 +76,11 @@ libs:
 	make clean kernel_lib build reinstall
 	make clean kernel build reinstall
 	make clean portfolio build reinstall
+	make clean SAT_API build reinstall
 
 uninstall_libs:
 	make clean kernel_lib uninstall
 	make clean kernel uninstall
 	make clean portfolio uninstall
+	make clean SAT_API build uninstall
 
