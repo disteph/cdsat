@@ -8,6 +8,7 @@ bug-reports: "https://github.com/disteph/cdsat/issues"
 license: "CeCILL-C"
 dev-repo: "https://github.com/disteph/cdsat.git"
 build: [
+  ["oasis" "setup"]
   ["make" "libs"]
 ]
 remove: [
