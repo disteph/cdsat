@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: dc735c402d7ec34d54ba2217f2955d01)
+version = "2.1"
+description = "Psyche's interface for SAT-solving"
+archive(byte) = "SAT_API.cma"
+archive(byte, plugin) = "SAT_API.cma"
+archive(native) = "SAT_API.cmxa"
+archive(native, plugin) = "SAT_API.cmxs"
+requires = "psyche_kernel_lib psyche_kernel psyche_portfolio"
+exists_if = "SAT_API.cma"
+# OASIS_STOP
+
