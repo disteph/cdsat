@@ -12,26 +12,18 @@ module Make(DS: GlobalDS) : sig
   open DS
 
   (* Abbreviation for single assignments *)
-  type nonrec straight = (unit,straight) Msg.t
-  type stop = straight list * (unit,unsat) Msg.t
-
-  (* The information we want to keep about each component *)
-  type info              
-
+  type stop = (unit,straight) Msg.t list * (unit,unsat) Msg.t
+  
   (* Sum type for terms+values *)
   module TermValue : sig
     type t = (Term.t,Value.t values) sum
                [@@deriving eq,ord,show,hash]                               
   end
 
-  module Make(REG : RawEgraph with type node = TermValue.t
-                               and type edge = (bassign,sassign)sum
-                               and type info = info)
-         : (Egraph with type info := info
-                                 and type cval := CValue.t
-                                              and type stop := stop
-                                                           and type term := Term.t
-                                                                        and type value := Value.t)
+  module EG : Egraph with type cval  := CValue.t
+                      and type stop  := stop
+                      and type term  := Term.t
+                      and type value := Value.t
 end
 
 
