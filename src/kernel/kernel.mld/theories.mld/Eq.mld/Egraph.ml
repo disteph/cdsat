@@ -10,17 +10,13 @@ open Messages
 
 open Interfaces
        
-type sign = unit
-              
 module Make(DS: GlobalDS) = struct
   
   open DS
 
-  type nonrec straight = (unit,straight) Msg.t
-  type stop = straight list * (unit,unsat) Msg.t
-
+  type stop = (unit,straight) Msg.t list * (unit,unsat) Msg.t
+            
   (* Sum type for terms+values *)
-
   module TermValue = struct
     type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]                               
   end
@@ -51,22 +47,30 @@ module Make(DS: GlobalDS) = struct
     let pp fmt tvset = List.pp TermValue.pp fmt (elements tvset)
   end
 
+  (* Parameter module for the Raw EGraph *)
+  module P = struct
 
-  (* The information we want to keep about each component *)
-  type info = {
-      nf  : Term.t;   (* Normal form *)
-      cval: CValue.t; (* Combined value *)
-      (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
-      diseq: BMap.t;
-      listening: TVSet.t
-    } [@@deriving eq,show] 
-                
-  module Make(REG : RawEgraph with type node = TermValue.t
-                               and type edge = (bassign,sassign)sum
-                               and type info = info)
-    = struct
+    module Node = TermValue
 
+    type edge = (bassign,sassign)sum [@@deriving show]
+
+    (* The information we want to keep about each component *)
+    type info = {
+        nf  : Term.t;   (* Normal form *)
+        cval: CValue.t; (* Combined value *)
+        (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
+        diseq: BMap.t;
+        listening: TVSet.t
+      } [@@deriving eq,show] 
+  end
+
+  module REG = RawEgraph.Make(P)
+
+  module EG = struct
+
+    open P
     open REG
+    type info = P.info
     type t = REG.t
 
     let init = init

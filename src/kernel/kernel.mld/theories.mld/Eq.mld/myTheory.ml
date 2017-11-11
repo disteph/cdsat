@@ -15,28 +15,17 @@ type sign = unit
 (* As alternative term representation, we only use the free vars *)
 type ts = IntSortSet.t
                     
-module Make(DS: sig include GlobalDS val proj : Term.datatype -> ts end) = struct
+module Make(DS: sig
+                include GlobalDS
+                val proj : Term.datatype -> ts
+              end) = struct
 
-  open DS
-  include Egraph.Make(DS)
-
-  module P = struct
-    module Node = TermValue
-    type edge = (bassign,sassign)sum [@@deriving show]
-    type nonrec info = info
-  end
-
-  module EG = Make(RawEgraph.Make(P))
-    
-  type nonrec sign = sign
-  type termdata = Term.datatype
-  type value  = Value.t
-  type assign = Assign.t
-  type cval   = CValue.t
   type sassign = DS.sassign
   type bassign = DS.bassign
-  type tset    = DS.TSet.t
-                   
+  open DS
+
+  include Egraph.Make(DS)
+
   module TMap = struct
     include Map.Make(Term)
     let pp x fmt tmap =
@@ -56,12 +45,12 @@ module Make(DS: sig include GlobalDS val proj : Term.datatype -> ts end) = struc
     | SAT of (sign, sat) Msg.t * self
 
    and self = { add : sassign -> output;
-                share : tset  -> output;
+                share : TSet.t  -> output;
                 ask : ?subscribe:bool
-                      -> (termdata termF, value Sassigns.values) sum
-                      -> (termdata termF)
-                         * cval
-                         * (unit -> cval list)
+                      -> (Term.t, Value.t Sassigns.values) sum
+                      -> Term.t
+                         * CValue.t
+                         * (unit -> CValue.t list)
                          * self }
                 
   type state = { egraph : EG.t;
