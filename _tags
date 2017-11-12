@@ -28,7 +28,7 @@ true: annot, bin_annot
 # This is to silence warnings "Tag ... is not used"
 <silent> : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
-true: debug
+true: debug, optimize(3), unbox_closures
 <problems>:  -traverse, not_hygienic
 <problems2>: -traverse, not_hygienic
 <srcjs>:     -traverse, not_hygienic

@@ -70,7 +70,7 @@ kernel_lib kernel portfolio SAT_API: rm_data configure_lib setup.data
 
 cdsat: rm_data setup.data
 
-.PHONY: build doc test libs install reinstall uninstall_libs clean distclean rm_makefile.data rm_data configure_lib kernel_lib kernel portfolio psyche
+.PHONY: build doc test libs install reinstall uninstall_libs clean distclean rm_makefile.data rm_data configure_lib kernel_lib kernel portfolio SAT_API psyche
 
 libs:
 	make clean kernel_lib build reinstall
@@ -79,8 +79,8 @@ libs:
 	make clean SAT_API build reinstall
 
 uninstall_libs:
-	make clean kernel_lib uninstall
-	make clean kernel uninstall
+	make clean SAT_API uninstall
 	make clean portfolio uninstall
-	make clean SAT_API build uninstall
+	make clean kernel uninstall
+	make clean kernel_lib uninstall
 
