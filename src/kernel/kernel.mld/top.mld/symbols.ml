@@ -49,7 +49,7 @@ let arity = function
   | Select{indices;values}            -> values, [Sorts.Array(indices,values);indices]
   | Store{indices;values}             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
   | Diff{indices;values}              -> indices, [Sorts.Array(indices,values); Sorts.Array(indices,values);]
-  | Extract{hi;lo;length}             -> Sorts.BV (max [%ord:int] (hi-lo+1) 0), [Sorts.BV length]
+  | Extract{hi;lo;length}             -> Sorts.BV (Compare.max [%ord:int] (hi-lo+1) 0), [Sorts.BV length]
   | Conc(l1,l2)                       -> Sorts.BV(l1+l2), [Sorts.BV l1; Sorts.BV l2]
   | CstBV s                           -> Sorts.BV(String.length s), []
 

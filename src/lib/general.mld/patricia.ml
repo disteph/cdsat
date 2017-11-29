@@ -138,7 +138,7 @@ module Poly(I:Intern) = struct
       let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
 
       let compare =
-        if is_hcons then fun a b -> id2compare id a b
+        if is_hcons then fun a b -> Compare.id2compare id a b
         else fun _ _ -> failwith "No function compare when patricia trees are not HConsed"
 
       let equal =

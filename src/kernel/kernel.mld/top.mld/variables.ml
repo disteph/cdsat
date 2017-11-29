@@ -124,7 +124,7 @@ module World = struct
       | Some fv -> fv,res
       | None -> failwith "Successful projection should have a last freevar")
 
-  let equal = id2equal id
+  let equal = Compare.id2equal id
   let hash = id
 
   let rec prefix w1 w2 =
@@ -183,7 +183,7 @@ module MakesSense = struct
     | FreeVar.Eigen ei -> let i,_ = IntSort.reveal ei in (i,-1)
     | FreeVar.Meta mv  -> let i,_ = IntSort.reveal mv in (-1,i)
 
-  let combine (a1,a2) (b1,b2) = (max [%ord:int] a1 b1, max [%ord:int] a2 b2)
+  let combine (a1,a2) (b1,b2) = (Compare.max [%ord:int] a1 b1, Compare.max [%ord:int] a2 b2)
 
   let check (ei_max,mv_max) w = 
     let ar = World.data w in

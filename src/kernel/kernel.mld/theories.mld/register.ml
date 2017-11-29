@@ -13,7 +13,7 @@ module Tags = struct
     | LRA   : (_,_,_,_) LRA.signature t
     | IfThenElse: (_,_,_,_) IfThenElse.signature t
 
-  let id (type a) : a t -> int = function
+  let[@inline] id (type a) : a t -> int = function
     | Bool -> 2
     | Arrays -> 3
     | LRA -> 4
@@ -89,7 +89,7 @@ module Handlers = struct
     | Handler hdl -> Tags.id hdl +1
     | Eq -> 0
                              
-  let compare = id2compare id
+  let compare = Compare.id2compare id
   let pp fmt = function
     | Handler hdl -> Tags.pp fmt hdl
     | Eq -> Format.fprintf fmt "Eq"

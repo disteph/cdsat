@@ -43,7 +43,7 @@ module TypesFromHConsed(S:FromHConsed) = struct
   type keys    = S.t
   type common  = int
   let tag      = S.id
-  let kcompare = id2compare tag
+  let kcompare = Compare.id2compare tag
 
   type branching = int
   let bcompare   = Pervasives.compare

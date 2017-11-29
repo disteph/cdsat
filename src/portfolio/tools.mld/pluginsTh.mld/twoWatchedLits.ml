@@ -36,14 +36,14 @@ module Make (C : Config) = struct
                           
   module CSetD = struct
     include Constraint
-    let compare      = id2compare Constraint.id
+    let compare      = Compare.id2compare Constraint.id
     include EmptyInfo
     let treeHCons    = None
   end
 
   module CMapD = struct
     include Constraint
-    let compare      = id2compare Constraint.id
+    let compare      = Compare.id2compare Constraint.id
     type values      = VarSet.t
     let pp_binding fmt (c,v) = Format.fprintf fmt "(%a->%a)" pp c VarSet.pp v
     include EmptyInfo
