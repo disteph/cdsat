@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 44e7abe5fbdfa171bfe7384aab2aa5e0)
+# DO NOT EDIT (digest: fde2f93c9a12be43ae1597a35de44196)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -20,15 +20,13 @@ true: annot, bin_annot
 "src/kernel/kernel.cmxs": use_kernel
 # Library portfolio
 "src/portfolio/portfolio.cmxs": use_portfolio
-# Library SAT_API
-"src/SAT_API/SAT_API.cmxs": use_SAT_API
 # Executable psyche
 # OASIS_STOP
 
 # This is to silence warnings "Tag ... is not used"
 <silent> : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
-true: debug, optimize(3), unbox_closures
+true: debug
 <problems>:  -traverse, not_hygienic
 <problems2>: -traverse, not_hygienic
 <srcjs>:     -traverse, not_hygienic
@@ -40,7 +38,6 @@ true: debug, optimize(3), unbox_closures
 <src/lib/*/*.ml{,i,y}>         : open(Open)
 <src/kernel/**/*.ml{,i,y}>     : open(Open)
 <src/portfolio/**/*.ml{,i,y}>  : open(Open)
-<src/SAT_API/**/*.ml{,i,y}>    : open(Open)
 <src/top-level/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>            : pkg_ppx_deriving.std, pkg_zarith, pkg_ppx_hash, pkg_ppx_enumerate
 
@@ -49,8 +46,6 @@ true: debug, optimize(3), unbox_closures
 
 <src/portfolio/**/*.ml{,i,y}>  : thread, pkg_async, pkg_ppx_let, pkg_psyche_kernel_lib, pkg_psyche_kernel
 <src/portfolio/tools.mld>      : blind
-
-<src/SAT_API/**/*.ml{,i,y}>  : thread, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
 <src/top-level>           : visible(src)
 <src/top-level/*.ml{,i,y}>: thread, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
