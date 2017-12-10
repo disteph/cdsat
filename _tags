@@ -20,8 +20,6 @@ true: annot, bin_annot
 "src/kernel/kernel.cmxs": use_kernel
 # Library portfolio
 "src/portfolio/portfolio.cmxs": use_portfolio
-# Library SAT_API
-"src/SAT_API/SAT_API.cmxs": use_SAT_API
 # Executable psyche
 # OASIS_STOP
 
@@ -41,7 +39,6 @@ true: debug, optimize(3), unbox_closures
 <src/lib/*/*.ml{,i,y}>         : open(Open)
 <src/kernel/**/*.ml{,i,y}>     : open(Open)
 <src/portfolio/**/*.ml{,i,y}>  : open(Open)
-<src/SAT_API/**/*.ml{,i,y}>    : open(Open)
 <src/top-level/**/*.ml{,i,y}>  : open(Open)
 <src/**/*.ml{,i,y}>            : package(ppx_deriving.std),\
                                  package(zarith),\
@@ -55,12 +52,11 @@ true: debug, optimize(3), unbox_closures
 
 <src/portfolio/**/*.ml{,i,y}>  : thread,\
                                  package(async),\
+                                 package(tensorflow.fnn),\
                                  package(ppx_let),\
                                  package(psyche_kernel_lib),\
                                  package(psyche_kernel)
 <src/portfolio/tools.mld>      : blind
-
-<src/SAT_API/**/*.ml{,i,y}>  : thread, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
 <src/top-level>           : visible(src)
 <src/top-level/*.ml{,i,y}>: thread,\
@@ -69,6 +65,7 @@ true: debug, optimize(3), unbox_closures
                             package(psyche_portfolio)
 <src/top-level/main.{native,byte}>: thread,\
                                     package(async),\
+                                    package(tensorflow.fnn),\
                                     package(ppx_hash),\
                                     package(ppx_let),\
                                     package(str),\

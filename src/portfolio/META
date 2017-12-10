@@ -1,12 +1,12 @@
 # OASIS_START
-# DO NOT EDIT (digest: 7865221b0c3cfb6d6a7113063dec3872)
+# DO NOT EDIT (digest: f78f4aa69ca83c4eb460020abcd5ada4)
 version = "2.1"
 description = "Psyche's portfolio of plugins"
 archive(byte) = "portfolio.cma"
 archive(byte, plugin) = "portfolio.cma"
 archive(native) = "portfolio.cmxa"
 archive(native, plugin) = "portfolio.cmxs"
-requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std zarith"
+requires = "psyche_kernel_lib psyche_kernel async threads ppx_deriving.std zarith tensorflow"
 exists_if = "portfolio.cma"
 # OASIS_STOP
 
