@@ -52,7 +52,7 @@ let init
      let answer =
        let open DS in
        function
-       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg) ->
+       | Case1(WB.WB(_,Propa(assign,Unsat),_) as msg) ->
           if Assign.subset assign problem
           then UNSAT msg
           else

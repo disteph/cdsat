@@ -26,7 +26,7 @@ module Make(WB : WhiteBoardExt) = struct
     
     type (_,'a) t = 'a WB.t
 
-    let equal (type a) _ _ (WB(hdls1,msg1):a WB.t) (WB(hdls2,msg2):a WB.t) =
+    let equal (type a) _ _ (WB(hdls1,msg1,_):a WB.t) (WB(hdls2,msg2,_):a WB.t) =
       if not(HandlersMap.equal (fun () () -> true) hdls1 hdls2)
       then false
       else
@@ -36,7 +36,7 @@ module Make(WB : WhiteBoardExt) = struct
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
           -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2'
 
-    let hash (type a) (WB(hdls,msg):a WB.t) =
+    let hash (type a) (WB(hdls,msg,_):a WB.t) =
       match msg with
       | Sat{ assign } -> 2*(Assign.hash assign)
       | Propa(tset,Unsat) -> 1+3*(Assign.hash tset)
@@ -85,7 +85,7 @@ module Make(WB : WhiteBoardExt) = struct
     let show = Print.stringOf pp
     let make = H'.build
     let assign c =
-      let WB(_,Propa(assign,Unsat)) = msg c in
+      let WB(_,Propa(assign,Unsat),_) = msg c in
       assign
     let simplify _ msg = msg
   end
@@ -236,7 +236,7 @@ module Make(WB : WhiteBoardExt) = struct
                   
            | SAssign((_,Top.Values.Boolean _) as bassign)::_ ->
               let newmsg = WB.curryfy ~flip:bassign msg in
-              let WB(_,Propa(justif,Straight flipped)) = newmsg in
+              let WB(_,Propa(justif,Straight flipped),_) = newmsg in
               Print.print ["memo",1] (fun p->
                   p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
                     WB.pp msg pp_bassign flipped);

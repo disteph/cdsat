@@ -34,9 +34,17 @@ end
                    
 module Solve(S:Syntax) : sig
 
+  open S
+  type sequent = Formula.t list * Formula.t list
+  type proof =
+    | Trivial : sequent -> proof
+    | Unsat   : sequent * proof -> proof
+    | Resolve : sequent * proof * proof -> proof
+    | Curry   : sequent * proof -> proof
+
   type answer =
     | SAT of (S.a * bool) list
-    | UNSAT of (S.Formula.t list * bool)
+    | UNSAT of proof
 
   val prove : S.Sequent.t -> answer
 

@@ -90,7 +90,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              | Say m ->
                 let () =
                   match m with
-                  | WB(_,Sat _) ->
+                  | WB(_,Sat _,Blob) ->
                      Print.print ["concur",2] (fun p->
                          p "Hearing Sat from %a at chrono %i, and buffering"
                            Agents.pp agent chrono);
@@ -159,7 +159,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           end
        end         
 
-    | Say(WB(_,msg) as thmsg), state ->
+    | Say(WB(_,msg,_) as thmsg), state ->
 
        match msg with
          

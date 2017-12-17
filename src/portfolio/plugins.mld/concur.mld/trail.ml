@@ -112,7 +112,7 @@ The reason it was added to the trail was either:
   formulae in semsplit do not end up in the extraction. *)
                      
   let get_data trailmap ?(semsplit=Assign.empty) msg =
-    let WB.WB(_,Propa(tset,_)) = msg in
+    let WB.WB(_,Propa(tset,_),_) = msg in
     let map = TrailMap.inter_poly (fun _ v () ->v) trailmap (Assign.diff tset semsplit) in
     TrailMap.info map
 

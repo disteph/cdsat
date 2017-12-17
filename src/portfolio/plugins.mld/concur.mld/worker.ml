@@ -52,7 +52,7 @@ module Make(WB: WhiteBoardExt) = struct
            Deferred.all_unit
              [loop_read hdl cont    ports1 ;
               loop_read hdl newcont ports2 ]
-      | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return(suicide cont assign)
+      | KillYourself(WB(_,Propa(assign,Unsat),_),_,_) -> return(suicide cont assign)
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["worker",2] (fun p-> p "%a dies" Tags.pp hdl)))

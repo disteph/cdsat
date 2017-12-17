@@ -421,9 +421,15 @@ let make theories : (module API) =
                      
        open DS
 
-       type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
+       type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t * 'a proof
 
-       let pp fmt (type a) (WB(hdls,msg) : a t) =
+       and 'a proof =
+         | Blob : 'a proof
+         | UnsatProof   : straight t -> unsat proof
+         | ResolveProof : straight t * 'b propa t -> 'b propa proof
+         | CurryProof   : bassign * unsat t -> straight proof
+
+       let pp fmt (type a) (WB(hdls,msg,_) : a t) =
          match msg with
          | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
                         HandlersMap.pp hdls
@@ -438,37 +444,42 @@ let make theories : (module API) =
          | Propa(assign,o) ->
             if HandlersMap.mem hdl theories
             then WB(HandlersMap.singleton hdl (),
-                    Messages.propa () assign o)
+                    Messages.propa () assign o,
+                    Blob)
             else failwith "Using a theory that is not allowed"
          | Sat{ assign; sharing; myvars } ->
             WB(HandlersMap.remove hdl theoriesWeq,
-               Messages.sat () assign ~sharing ~myvars)
+               Messages.sat () assign ~sharing ~myvars,
+               Blob)
             
        let sign_Eq (type a) : (_,a) Msg.t -> a t = function
          | Propa(assign,o) ->
             WB(HandlersMap.singleton Handlers.Eq (),
-               Messages.propa () assign o)
+               Messages.propa () assign o,
+               Blob)
          | Sat{ assign; sharing; myvars } ->
             WB(HandlersMap.remove Handlers.Eq theoriesWeq,
-               Messages.sat () assign ~sharing ~myvars)
+               Messages.sat () assign ~sharing ~myvars,
+              Blob)
 
 
        let resolve
-             (WB(hdls1,Propa(oldset,Straight bassign)))
-             (WB(hdls2,Propa(thset,o)))
+             (WB(hdls1,Propa(oldset,Straight bassign),_) as sub1)
+             (WB(hdls2,Propa(thset,o),_) as sub2)
          =
          let res = Assign.remove (SAssign bassign) thset in
          WB(HandlersMap.union hdls1 hdls2,
-            Messages.propa () (Assign.union res oldset) o)
+            Messages.propa () (Assign.union res oldset) o,
+            ResolveProof(sub1,sub2))
            
-       let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
-         WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
+       let unsat (WB(hdls,Propa(thset,Straight(t,b)),_) as sub) =
+         WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset),UnsatProof sub)
 
        let curryfy
              ?(assign = Assign.empty)
              ?flip
-             (WB(hdls,Propa(thset,Unsat))) =
-         let thset,(t,Values.Boolean b) =
+             (WB(hdls,Propa(thset,Unsat),_) as sub) =
+         let thset,((t,Values.Boolean b) as flip) =
            match flip with
            | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
            | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
@@ -486,7 +497,7 @@ let make theories : (module API) =
            | _ -> sofar
          in
          let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
-         WB(hdls,straight () thset (rhs,Values.Boolean b))
+         WB(hdls,straight () thset (rhs,Values.Boolean b),CurryProof(flip,sub))
               
        type sat_tmp = { assign  : Assign.t;
                         sharing : TSet.t;
@@ -523,7 +534,7 @@ let make theories : (module API) =
             else Share newshared
             
        let sat
-             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
+             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'},_))
              { left; assign; sharing; varlist } =
          if Assign.equal assign assign'
          then

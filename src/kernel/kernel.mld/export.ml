@@ -29,12 +29,19 @@ module type WhiteBoard = sig
 
   module DS : GlobalImplem
   open DS
-
+  
   (* Type of theory messages after they have been "signed"
      with the appropiate theory handlers. 
      It's basically a message, together with the set of handlers
      of the theories that signed/contributed to the message *)
-  type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
+  type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t * 'a proof
+
+  and 'a proof = private
+    | Blob  : 'a proof
+    | UnsatProof   : straight t -> unsat proof
+    | ResolveProof : straight t * 'b propa t -> 'b propa proof
+    | CurryProof   : bassign * unsat t -> straight proof
+  
   val pp : Format.formatter -> 'a t -> unit
 
   (* Signing messages: one function for standard theories, one for the equality theory *)
