@@ -17,12 +17,11 @@ open API
        
 type sign = unit
 
-(* We are not using values *)
+(* We are not using first-order values *)
 include Theory.HasNoValues
 
 module Clauses = TS
           
-(* We are not using alternative term representation *)
 type ts = Clauses.t
 let ts = Termstructures.Register.Clauses
 
@@ -44,7 +43,7 @@ module Make(DS: DSproj with type ts = ts) = struct
      one must satisfy each constraint in todo. *)
   type state = { seen : Assign.t;
                  todo : Constraint.t list;
-                 sharing : TSet.t;
+                 sharing  : TSet.t;
                  myvars : TSet.t Lazy.t }
 
   (* Initial state. Note: can produce Sat(init). *)
@@ -113,19 +112,42 @@ module Make(DS: DSproj with type ts = ts) = struct
             { state with todo = c::rest }, None
     in
     aux state.todo
-        
+
+  let fromeq state sassign b a1 a2 =
+    let f =
+      if b then (fun a -> a)
+      else (fun a -> Term.bC Symbols.Neg [a])
+    in
+    let derived1 = Term.bC Symbols.Imp [a1;f a2], Values.Boolean true in
+    let derived2 = Term.bC Symbols.Imp [a2;f a1], Values.Boolean true in
+    let msg1 = straight () (Assign.singleton sassign) derived1 in
+    let msg2 = straight () (Assign.singleton sassign) derived2 in
+    let propas = [msg1;msg2] in
+    Case1 propas, state.todo
+      (* { state with seen; myvars }, propas *)
+
   let add sassign state =
     Print.print ["kernel.bool",2] (fun p ->
         p "kernel.bool receiving %a" pp_sassign sassign);
     let seen = Assign.add sassign state.seen in
     let SAssign((term,v) as bassign) = sassign in
     let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
+    let finalise (propas,todo) =
+      { state with seen; todo; myvars }, propas
+    in
     match v with
     | Values.NonBoolean _ -> { state with seen; myvars }, Case1 []
-    | Values.Boolean _ ->
-       let propas,todo =
-         match cube bassign with
-         | Some set when LSet.cardinal set > 1 ->
+    | Values.Boolean b ->
+      match Terms.reveal term with
+      | Terms.C(Symbols.Eq Sorts.Prop, [a1;a2]) ->
+        finalise(fromeq state sassign b a1 a2)
+      | Terms.C(Symbols.NEq Sorts.Prop, [a1;a2])
+      | Terms.C(Symbols.Xor, [a1;a2])->
+        finalise(fromeq state sassign (not b) a1 a2)
+      | _ ->
+        let result =
+          match cube bassign with
+          | Some set when LSet.cardinal set > 1 ->
             let aux lit (sofar,todo) =
               let b',id = LitF.reveal lit in
               let derived = Term.term_of_id id,Values.Boolean b' in
@@ -137,11 +159,11 @@ module Make(DS: DSproj with type ts = ts) = struct
             in
             let propas, todo = LSet.fold aux set ([],state.todo) in
             Case1 propas, todo
-         | _ ->
+          | _ ->
             let c = Constraint.make bassign in
             Case2 c, c::state.todo
-       in
-       { state with seen; todo; myvars }, propas
+        in
+        finalise result
 
   let share tset state =
     let sharing = TSet.union tset state.sharing in

@@ -26,12 +26,12 @@ let rec sort ~decsorts (Sort(s,l)) =
 
 open Multiary
 
-(* val multiary  : symbol -> ((('a list->'a list) -> 'a list -> 'a) option) *)
+(* val multiary  : symbol -> (symbol -> 'a list -> 'a) -> ((('a list->'a list) -> 'a list -> 'a) option) *)
 let multiary =
   let open Top.Symbols in
   function
-  | And | Or | Plus | Times -> Some r_assoc
-  (*   | NEqRat | EqRat -> None (\* ThSig_tools.pairwise *\) *)
+  | And | Or | Plus | Times | ITE _ -> Some r_assoc
+  | Eq _ | NEq _ -> Some pairwise
   | _ -> None
 
 let symbol ~decsorts = 

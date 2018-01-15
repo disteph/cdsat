@@ -63,45 +63,49 @@ module Make(WB4M: WhiteBoard4Master) = struct
     | Some(msg,l) -> return(msg, { state with messages = l } )
 
     | None ->
-       Print.print ["concur",2]
-         (fun p-> p "Want to hear from %a at chrono %i"
-                    AS.pp state.waiting4 (T.chrono state.trail));
-       match state.decision with
-       | Some thmsg when AS.is_empty state.waiting4 ->
-          return(thmsg, { state with decision = None } )
-       | _ ->
-          Pipe.read (H.reader state.hub) >>= function
-          | `Eof -> failwith "Eof"
-          | `Ok(Msg(agent,msg,chrono)) ->
-             let state =
-               if (chrono = T.chrono state.trail)&&(AS.mem agent state.waiting4)
-               then { state with waiting4 = AS.remove agent state.waiting4 }
-               else state
-             in
-             match msg with
-             | Ack ->
+      Print.print ["concur",2]
+        (fun p-> p "Want to hear from %a at chrono %i"
+            AS.pp state.waiting4 (T.chrono state.trail));
+      match state.decision with
+      | Some thmsg when AS.is_empty state.waiting4 ->
+        return(thmsg, { state with decision = None } )
+      | _ ->
+        Pipe.read (H.reader state.hub) >>= function
+        | `Eof -> failwith "Eof"
+        | `Ok(Msg(agent,msg,chrono)) ->
+          let state =
+            if (chrono = T.chrono state.trail)&&(AS.mem agent state.waiting4)
+            then { state with waiting4 = AS.remove agent state.waiting4 }
+            else state
+          in
+          match msg with
+          | Ack ->
+            Print.print ["concur",2] (fun p->
+                p "Hearing Ack %i from %a" chrono Agents.pp agent);
+            select_msg state
+          | Try sassign -> 
+            Print.print ["concur",2] (fun p->
+                p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
+            select_msg { state with decision = Some msg }
+          (* | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
+           *   Print.print ["concur",2] (fun p->
+           *       p "Hearing Sat from %a at old chrono %i, ignoring"
+           *         Agents.pp agent chrono);
+           *   select_msg state *)
+          | Say m ->
+            let () =
+              match m with
+              | WB(_,Sat _) ->
                 Print.print ["concur",2] (fun p->
-                    p "Hearing Ack %i from %a" chrono Agents.pp agent);
-                select_msg state
-             | Try sassign -> 
+                    p "Hearing Sat from %a at current chrono %i, and buffering"
+                      Agents.pp agent chrono);
+                Print.print ["concur",6] (fun p-> p " %a" WBE.pp m);
+              | _ ->
                 Print.print ["concur",2] (fun p->
-                    p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
-                select_msg { state with decision = Some msg }
-             | Say m ->
-                let () =
-                  match m with
-                  | WB(_,Sat _) ->
-                     Print.print ["concur",2] (fun p->
-                         p "Hearing Sat from %a at chrono %i, and buffering"
-                           Agents.pp agent chrono);
-                     Print.print ["concur",6] (fun p->
-                         p " %a" WBE.pp m);
-                  | _ ->
-                     Print.print ["concur",2] (fun p->
-                         p "Hearing from %a at chrono %i, and buffering:\n %a"
-                           Agents.pp agent chrono WBE.pp m);
-                in
-                select_msg { state with messages = Pqueue.push msg state.messages }
+                    p "Hearing from %a at chrono %i, and buffering:\n %a"
+                      Agents.pp agent chrono WBE.pp m);
+            in
+            select_msg { state with messages = Pqueue.push msg state.messages }
 
   (* Main loop of the master thread *)
   let rec master_loop current state =

@@ -11,21 +11,31 @@ let rec mapdbl l1 l2 = match l1,l2 with
   | l,[] -> ([],l)
   | [],_ -> raise (MultiaryError "MultiaryError: not enough arguments for symbol's arity")
 
-let symb (output,input) multiary sym_i =
-  let interpret l =
-    let combo,rest = mapdbl l input in
-    let a expsort =
-      if Sorts.equal expsort output  then sym_i combo
-      else raise (TypingError "TypingError: symbol's output sort does not match expected sort")
-    in
-    a::rest
-  in
-  match multiary with 
-  | None     -> fun l -> singleton (interpret l)
-  | Some mul -> fun l ->
-    try singleton (interpret l)
+
+let one_step interp sym args =
+  let output,input = Symbols.arity sym in
+  let combo,rest   = mapdbl args input in
+  let f expsort =
+    if Sorts.equal expsort output  then interp sym combo
+    else
+      begin
+        Print.print ["typing",1] (fun p->
+            p "\nWarning: symbol %a's output sort %a does not match output sort %a\n"
+              Symbols.pp sym
+              Sorts.pp output
+              Sorts.pp output);
+        raise (TypingError "TypingError: symbol's output sort does not match expected sort")
+      end
+  in f::rest
+
+let symb interp sym args =
+  match Parse.multiary sym with 
+  | None     -> singleton (one_step interp sym args)
+  | Some mul -> 
+    try singleton (one_step interp sym args)
     with
-      MultiaryError _ | TypingError _ -> mul interpret l
+      MultiaryError _ | TypingError _ ->
+      mul (one_step interp) sym args
 
 
 module ForParsing = struct
@@ -57,24 +67,21 @@ let forParser (type a)
      let sigsymb s =
        let rec aux = function
          | sym::k ->
-            fun l expsort ->
-            (try symb 
-                   (Symbols.arity sym)
-                   (Parse.multiary sym)
-                   (I.bC sym)
-                   l expsort
-	     with MultiaryError msg
-                | TypingError msg
-                  -> 
-                   Print.print ["typing",1] (fun p->
-                       p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
-	           aux k l expsort)
+           fun l expsort ->
+             begin
+               try symb I.bC sym l expsort with
+               | MultiaryError msg
+               | TypingError msg
+                 -> Print.print ["typing",1] (fun p->
+                     p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
+	         aux k l expsort
+             end
          | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
        in aux (parseSymb s)
 
      let decsymb s ((decsort:sort),(decarg:sort list)) =
        let arit = (parseSort decsort, List.map parseSort decarg) in
-       symb arit None (I.bC(Symbols.User(s,arit)))
+       symb I.bC (Symbols.User(s,arit))
 
      let boundsymb db decsort expsort =
        let pdecsort = parseSort decsort in
