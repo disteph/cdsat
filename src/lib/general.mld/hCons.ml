@@ -44,7 +44,7 @@ module MakePoly(M: sig
   (* | Some d -> d *)
   (* | None -> failwith "HConsed value contains None!" *)
 
-  let compare a b = id2compare id a b
+  let compare a b = Compare.id2compare id a b
 
   module InitData
            (B: OptionValue)
@@ -165,7 +165,7 @@ module Make(M: sig
     let reveal f = f.TMP.reveal
     let id f     = f.TMP.id
     let data f   = TMP.data f
-    let compare a b = id2compare id a b
+    let compare a b = Compare.id2compare id a b
 
     module InitData(B: OptionValue)
              (Data: sig

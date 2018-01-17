@@ -3,7 +3,36 @@
 (* as it redefines OCaml's standard stuff           *)
 (****************************************************)
 
+module type Pervasives = sig
+  val (=) : int -> int -> bool
+  val (<>) : int -> int -> bool
+  val (<) : int -> int -> bool
+  val (>) : int -> int -> bool
+  val (<=) : int -> int -> bool
+  val (>=) : int -> int -> bool
+  val compare : int -> int -> int
+  val max: int -> int -> int
+  val min: int -> int -> int
+end
+
+module Compare = struct
+  let min compare a1 a2 =
+    if compare a1 a2 <= 0 then a1 else a2
+  let max compare a1 a2 =
+    if compare a1 a2 >= 0 then a1 else a2
+  let lex compare1 compare2 (a1,a2) (b1,b2)
+    = let c = compare1 a1 b1 in
+    if c = 0 then compare2 a2 b2 else c
+  let id2compare id a b = compare (id a) (id b)
+  let id2equal   id a b = (id a)=(id b)
+end
+
+module Pervasives = Pervasives
+
+include Pervasives
+                                       
 include Ppx_hash_lib.Std.Hash.Builtin
+
 module Hash = struct
   let hash2fold h hash_state a = hash_fold_int hash_state (h a)
   let fold2hash f = Ppx_hash_lib.Std.Hash.run f
@@ -11,10 +40,6 @@ module Hash = struct
   let wrap1 hash_fold f = fold2hash (hash_fold (hash2fold f))
   let wrap2 hash_fold f g = fold2hash (hash_fold (hash2fold f) (hash2fold g))
 end
-
-module Pervasives = Pervasives
-
-include Pervasives
 
 module Boolhashed = struct
   type t = bool [@@deriving eq,ord,hash,show]
@@ -28,19 +53,6 @@ module Floathashed = struct
   type t = float [@@deriving eq,ord,hash,show]
 end
 
-let id2compare id a b = compare (id a) (id b)
-let id2equal   id a b = (id a)=(id b)
-
-let lex_compare compare1 compare2 (a1,a2) (b1,b2)
-  = let c = compare1 a1 b1 in
-    if c = 0 then compare2 a2 b2 else c
-
-let min compare a1 a2 =
-  if compare a1 a2 <= 0 then a1 else a2
-
-let max compare a1 a2 =
-  if compare a1 a2 >= 0 then a1 else a2
-                                       
 module List = struct
 
   include List

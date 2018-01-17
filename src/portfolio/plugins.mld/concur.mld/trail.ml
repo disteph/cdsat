@@ -271,7 +271,7 @@ The reason it was added to the trail was either:
            learn conflict highest highest2 >>| fun ()->
 
            (* Now jumping to level of second formula contributing to conflict *)
-           Backjump { backjump_level = max [%ord:int] 0 next.level;
+           Backjump { backjump_level = Compare.max [%ord:int] 0 next.level;
                       propagations   = late next.level trail [msg];
                       decision       = None }
 

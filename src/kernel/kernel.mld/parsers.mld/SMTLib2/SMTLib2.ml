@@ -164,7 +164,7 @@ let guessThDecProc aft =
   match aft.theory with
     | None   -> None
     | Some "QF_BOOL"-> Some ["bool"]
-    | Some "QF_UF"  -> Some ["CC"; "bool"; "IfThenElse"]
+    | Some "QF_UF"  -> Some ["bool"; "IfThenElse"]
     | Some "QF_LRA" -> Some ["LRA"; "bool"; "IfThenElse"]
     | Some "QF_LIA" -> Some ["LIA"; "bool"; "IfThenElse"]
     | Some "QF_AX"  -> Some ["Arrays"; "bool"; "IfThenElse"]
