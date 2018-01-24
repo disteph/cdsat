@@ -18,8 +18,7 @@ let write t msg =
         Pipe.write(* _without_pushback *) t msg)
 
 let read from ?(onkill=return) f =
-  Pipe.read from
-  >>= function
+  match%bind Pipe.read from with
   | `Eof -> onkill()
   | `Ok msg -> f msg
 

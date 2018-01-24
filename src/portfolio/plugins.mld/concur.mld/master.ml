@@ -70,7 +70,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | Some thmsg when AS.is_empty state.waiting4 ->
         return(thmsg, { state with decision = None } )
       | _ ->
-        Pipe.read (H.reader state.hub) >>= function
+        match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
         | `Ok(Msg(agent,msg,chrono)) ->
           let state =
@@ -112,7 +112,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     Print.print ["concur",2] (fun p-> p "\nMaster thread enters new loop");
 
-    select_msg state >>= function
+    match%bind select_msg state with
 
     | Try sassign, state ->
        Print.print ["concur",1] (fun p -> p "About to try %a" DS.pp_sassign sassign);
@@ -125,7 +125,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* This is a branching point where we tell all slave workers:
               "Please, clone yourself; here are the new pipes to be used
               for your clone to communicate with me." *)
-          H.clone state.hub >>= fun (hub1,hub2) ->
+          let%bind hub1,hub2 = H.clone state.hub in
           H.kill state.hub;
           (* Once all slave workers have cloned themselves, we treat the first branch. *)
           Print.print ["concur",1] (fun p ->
@@ -137,30 +137,30 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* In the first branch, we broadcast the guess *)
           H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
           (* First recursive call *)
-          master_loop current1 newstate1 >>= fun ans ->
+          let%bind ans = master_loop current1 newstate1 in
           (* Killing the pipes used in the first recursive call *)
           H.kill hub1;
           (* We analyse the answer ans of the recursive call,
              and decide whether to treat the second branch or to backjump further. *)
-          begin match ans with
+          match ans with
           | Case1(T.Backjump{ backjump_level; propagations; decision })
-               when backjump_level = T.level state.trail ->
-             Print.print ["concur",0] (fun p -> 
-                 p "Backtrack level: %i, Propagations:\n %a"
-                   (T.level state.trail) (List.pp WBE.pp) propagations);
-             Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
-             let messages = let enqueue msg = Pqueue.push(Say msg) in
-                            List.fold enqueue propagations state.messages
-             in
-             let messages = match decision with
-               | Some dec -> Pqueue.push(Try dec) messages
-               | None -> messages
-             in
-             let newstate2 = { state with hub = hub2; decision = None; messages } in
-             master_loop current newstate2
-                         
+            when backjump_level = T.level state.trail ->
+            Print.print ["concur",0] (fun p -> 
+                p "Backtrack level: %i, Propagations:\n %a"
+                  (T.level state.trail) (List.pp WBE.pp) propagations);
+            Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
+            let messages =
+              let enqueue msg = Pqueue.push(Say msg) in
+              List.fold enqueue propagations state.messages
+            in
+            let messages = match decision with
+              | Some dec -> Pqueue.push(Try dec) messages
+              | None -> messages
+            in
+            let newstate2 = { state with hub = hub2; decision = None; messages } in
+            master_loop current newstate2
+
           | _ -> H.kill hub2; return ans
-          end
        end         
 
     | Say(WB(_,msg) as thmsg), state ->
@@ -171,7 +171,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory found a proof. We stop and close all pipes. *)
           (* let g = Let_syntax.bind in *)
-          T.analyse state.trail thmsg (H.suicide state.hub) >>| fun ans ->
+          let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
           H.kill state.hub;
           Case1 ans
 
@@ -204,7 +204,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                 all other theories need to stamp newtset. *)
 
           match sat thmsg current with
-          | (Done(assign,sharing)) as sat_ans ->
+          | Done(assign,sharing) as sat_ans ->
              Print.print ["concur",2] (fun p ->
                  p "All theories were fine with model %a sharing %a"
                    DS.Assign.pp assign
@@ -265,7 +265,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                   trail }
     in
     Deferred.all_unit tasks >>= fun () ->
-    master_loop (sat_init input ~sharing:DS.TSet.empty) state >>| function
+    match%map master_loop (sat_init input ~sharing:DS.TSet.empty) state with
     | Case1(T.InputConflict conflict) ->
        Print.print ["concur",2] (fun p ->
            p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);
