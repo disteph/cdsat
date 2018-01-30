@@ -4,7 +4,7 @@
 
 open General
 open TopFlags
-   
+
 type _ stringOrunit =
   | String : string stringOrunit
   | Unit   : unit stringOrunit
@@ -13,8 +13,11 @@ type _ stringOrunit =
 let run parser input =
 
   (* Setting up the Kernel *)
-  
+
   let (module K) = Kernel.Top_level.init ~parser input in
+
+  print_endline(Print.toString (fun p->
+      p "Parsed with parser %a" Kernel.Parsers.Register.pp parser));
 
   (* Getting the result for the run *)
 
@@ -28,79 +31,79 @@ let run parser input =
     | Some false when !skipsat    -> print_endline("Skipping problem expected to be SAT/unprovable");None
     | _ ->
 
-       (* OK, we have some work to do. First get the plugin *)
+      (* OK, we have some work to do. First get the plugin *)
 
-       let (module Pl)  = Plugins.Register.get !myplugin in
+      let (module Pl)  = Plugins.Register.get !myplugin in
 
-       (* Setting up the plugin *)
+      (* Setting up the plugin *)
 
-       let module A = struct
+      let module A = struct
 
-           include K
+        include K
 
-           open Kernel.Theories.Register
-              
-           module Plugin = PluginsTh.Register.Make(WB.DS)
+        open Kernel.Theories.Register
 
-           let add_plugin
-                 (Modules.Module(tag,_) as plugin)
-                 (plugins_sofar, clear_sofar)
-             =
-             let init,clear = Plugin.make plugin in
-             init::plugins_sofar,
-             (fun () -> clear_sofar (); clear ())
+        module Plugin = PluginsTh.Register.Make(WB.DS)
 
-           (* We create a map pluginsTh that maps every (involved) theory
-      handler to (the initial state of) a decision procedure for it. *)
+        let add_plugin
+            (Modules.Module(tag,_) as plugin)
+            (plugins_sofar, clear_sofar)
+          =
+          let init,clear = Plugin.make plugin in
+          init::plugins_sofar,
+          (fun () -> clear_sofar (); clear ())
 
-           let pluginsTh, clear =
-             List.fold
-               add_plugin
-               K.th_modules
-               ([],(fun () -> ()))
-         end
-       in
+        (* We create a map pluginsTh that maps every (involved) theory
+           handler to (the initial state of) a decision procedure for it. *)
 
-       let module P = Pl.Make(A) in
+        let pluginsTh, clear =
+          List.fold
+            add_plugin
+            K.th_modules
+            ([],(fun () -> ()))
+      end
+      in
 
-       (* RUNNING PSYCHE *)
-       
-       let answer = K.answer(P.solve K.problem) in
-       if !clear4each then P.clear();
-       print_endline(
-           match K.expected, answer with
-	   |None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
-	   |None ,K.SAT _        -> "Nothing expected, got Unprovable (SAT)"
-	   |Some true, K.UNSAT _ -> "Expected Provable (UNSAT), got it"
-	   |Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
-	   |Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
-	   |Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
-	   |_, K.NotAnsweringProblem -> "You did not answer the problem"
-	 );
-       Some answer
+      let module P = Pl.Make(A) in
+
+      (* RUNNING PSYCHE *)
+
+      let answer = K.answer(P.solve K.problem) in
+      if !clear4each then P.clear();
+      print_endline(
+        match K.expected, answer with
+	|None ,K.UNSAT _      -> "Nothing expected, got Provable (UNSAT)"
+	|None ,K.SAT _        -> "Nothing expected, got Unprovable (SAT)"
+	|Some true, K.UNSAT _ -> "Expected Provable (UNSAT), got it"
+	|Some true, K.SAT _   -> "*** WARNING ***: Expected Provable (UNSAT), got Unprovable (SAT)"
+	|Some false,K.UNSAT _ -> "*** WARNING ***: Expected Unprovable (SAT), got Provable (UNSAT)"
+	|Some false,K.SAT _   -> "Expected Unprovable (SAT), got it"
+	|_, K.NotAnsweringProblem -> "You did not answer the problem"
+      );
+      Some answer
 
   in 
 
   (* Post-treatment of answer *)
-  
+
   let aux : type s. s stringOrunit -> s option =
-  fun stringOrunit ->
-  match result,stringOrunit with
-  | None, _        -> None
-  | Some r, Unit   -> Some()
-  | Some r, String ->
-     let display = !Dump.display in
-     if !Flags.latex then
-       Dump.display := Dump.Latex;
-     let ans =
-       match r with
-       | K.UNSAT assign -> Some(Print.toString (fun p->p "%a" K.WB.pp assign))
-       | K.SAT assign -> Some(Print.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
-       | K.NotAnsweringProblem -> None
-     in
-     Dump.display := display;
-     ans
-                 in aux
+    fun stringOrunit ->
+      match result,stringOrunit with
+      | None, _        -> None
+      | Some r, Unit   -> Some()
+      | Some r, String ->
+        let display = !Dump.display in
+        if !Flags.latex then
+          Dump.display := Dump.Latex;
+        let ans =
+          match r with
+          | K.UNSAT assign -> Some(Print.toString (fun p->p "%a" K.WB.pp assign))
+          | K.SAT assign -> Some(Print.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
+          | K.NotAnsweringProblem -> None
+        in
+        Dump.display := display;
+        ans
+  in aux
 
 
 let parseNrun input =
@@ -110,28 +113,28 @@ let parseNrun input =
   in
   let rec trying = function
     | parser::other_parsers ->
-       begin
-	 try 
-           run parser input
-	 with Kernel.Parsers.Parser.ParsingError s
-            | Kernel.Parsers.Typing.TypingError s ->
-               print_endline(Print.toString (fun p->
-                                 p "Parser %a could not parse input, because \n%s"
-                                   Kernel.Parsers.Register.pp parser s));
-               trying other_parsers
-       end
+      begin
+	try 
+          run parser input
+        with Kernel.Parsers.Parser.ParsingError s
+           | Kernel.Parsers.Typing.TypingError s ->
+          Print.print ["top",1] (fun p->
+              p "Parser %a could not parse input, because \n%s"
+                Kernel.Parsers.Register.pp parser s);
+          trying other_parsers
+      end
     | [] -> print_endline "No parser seems to work for this input."; function _ -> None
   in
   trying parsers
 
-  
+
 (* Inhabitant of type ('a,'b)wrap describe how to wrap a series of Psyche runs:
-- init is the initial data before any run is made
-- accu is what do do after every run ('b option is the return type of the run) 
-- final is what to do with the accumulated data
-Think of init and accu as what will be fed, together with a list of
-inputs, to a List.fold_left call. And final as what will be done to
-the result of that call. *)
+   - init is the initial data before any run is made
+   - accu is what do do after every run ('b option is the return type of the run) 
+   - final is what to do with the accumulated data
+   Think of init and accu as what will be fed, together with a list of
+   inputs, to a List.fold_left call. And final as what will be done to
+   the result of that call. *)
 
 type ('a,'b)wrap = {init: 'a ;
                     accu: 'a->string->('b stringOrunit->'b option)->'a ;
@@ -140,10 +143,10 @@ type ('a,'b)wrap = {init: 'a ;
 let latex_wrap =
   { init  = "";
     accu  = (fun aux text output ->
-      aux^"Trying to prove: "^text^"\n\n"
-      ^(match output String with
-        | Some s -> s
-        | None -> "No run")^"\n\\vspace{30pt}\n\n") ;
+        aux^"Trying to prove: "^text^"\n\n"
+        ^(match output String with
+           | Some s -> s
+           | None -> "No run")^"\n\\vspace{30pt}\n\n") ;
     final = IO.write_to_file "latex/output.tex" }
 
 let empty_wrap =
@@ -176,11 +179,11 @@ let treatfile pack filename =
 let collect_sort s =
   match Sys.os_type with
   | "Unix" when !sizesort ->
-     let open Unix in
-     let size_of s = (stat s).st_size in
-     let l = List.map (fun filename -> (filename,size_of filename)) s in
-     let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
-     List.map (fun (filename,size) -> filename) l'
+    let open Unix in
+    let size_of s = (stat s).st_size in
+    let l = List.map (fun filename -> (filename,size_of filename)) s in
+    let l'= List.sort (fun (a,b)(c,d)->[%ord:int] b d) l in 
+    List.map (fun (filename,size) -> filename) l'
   | _ -> List.sort Stringhashed.compare s
 
 let treatdir pack dirname =
@@ -191,13 +194,13 @@ let treatdir pack dirname =
   let rec aux acc = function
     | []      -> pack.final acc 
     | name::l ->
-       let newacc = if not(Sys.is_directory name)
-	            then treatfile_aux pack.accu acc name
-	            else acc
-       in aux newacc l
+      let newacc = if not(Sys.is_directory name)
+	then treatfile_aux pack.accu acc name
+	else acc
+      in aux newacc l
   in
   aux pack.init b
-  
+
 (* treatname does both *)
 
 let treatname pack name =

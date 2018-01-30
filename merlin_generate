@@ -3,8 +3,8 @@ autodotmerlin()
   # Modules to open
   [ -f _tags ] && { echo "$(grep -o 'open([^)]*)' _tags | sed -e 's/open(/FLG -open /' -e 's/)//')"; }
   # Findlib packages
-  # [ -f _tags ] && { echo "PKG $(grep -o 'package([^)]*)' _tags | sed -e 's/package(//' -e 's/)//' | tr ','$'\n' '  ')"; }
-  [ -f _tags ] && { echo "PKG $(grep -o 'pkg_[^{,[:space:]}]*' _tags | sed -e 's/pkg_//' -e 's///' | tr '\n' '  ')"; }
+  [ -f _tags ] && { echo "PKG $(grep -o 'package([^)]*)' _tags | sed -e 's/package(//' -e 's/)//' | tr ','$'\n' '  ')"; }
+  # [ -f _tags ] && { echo "PKG $(grep -o 'pkg_[^{,[:space:]}]*' _tags | sed -e 's/pkg_//' -e 's///' | tr '\n' '  ')"; }
   # Find source files
   find _build \( -name \*.ml* -and \! -name myocamlbuild\* \) -printf 'S %h\n' | sort -u
   # Find build files
