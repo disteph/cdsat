@@ -22,7 +22,7 @@ module Make(K:Plugin.Input) = struct
   open K
 
   let () = print_endline("Welcome to the Monte-Carlo Tree Search plugin")
-      
+
   module WBE = struct
     include WB
     include WhiteBoardExt.Make(WB)
@@ -64,7 +64,7 @@ module Make(K:Plugin.Input) = struct
 
     (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)
-    Deferred.both workers (master hub tset) >>| fun ((),a) ->
+    let%map (),a = Deferred.both workers (master hub tset) in
     Print.print ["concur",1] (fun p-> p "Finished computation");
     a
 

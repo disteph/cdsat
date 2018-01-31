@@ -305,32 +305,32 @@ The reason it was added to the trail was either:
       with
 
       | Empty ->
-         begin
-           match Assign.is_empty semsplit with
-           | true -> (* This is an Undo case *)
-              Print.print ["trail",1] (fun p ->
-                  p "Reached decision %a: Undo case" pp_sassign (data.sassign()));
-              return None
+        let%map decision =
+          match Assign.is_empty semsplit with
+          | true -> (* This is an Undo case *)
+            Print.print ["trail",1] (fun p ->
+                p "Reached decision %a: Undo case" pp_sassign (data.sassign()));
+            return None
 
-           | false -> (* This is an UndoDecide case *)
-              (* We want to learn the conflict as a clause, so we
+          | false -> (* This is an UndoDecide case *)
+            (* We want to learn the conflict as a clause, so we
                pick 2 formulae to watch. *)
-              Print.print ["trail",1] (fun p ->
-                  p "Semsplit with level(conflict minus semsplit) = %i and level(conflict) = %i"
-                    data.level level);
-              let t,rest = Assign.next semsplit in
-              let t'     = if Assign.is_empty rest
-                           then None
-                           else Some(Assign.choose rest)
-              in
-              (if data.level < level
-               then learn conflict t t'
-               else return ())
-              >>| fun ()-> Some t
-         end >>| fun decision ->
-         Backjump { backjump_level = level-1;
-                    propagations   = late (level-1) trail [];
-                    decision }
+            Print.print ["trail",1] (fun p ->
+                p "Semsplit with level(conflict minus semsplit) = %i and level(conflict) = %i"
+                  data.level level);
+            let t,rest = Assign.next semsplit in
+            let t'     = if Assign.is_empty rest
+              then None
+              else Some(Assign.choose rest)
+            in
+            (if data.level < level
+             then learn conflict t t'
+             else return ())
+            >>| fun ()-> Some t
+        in
+        Backjump { backjump_level = level-1;
+                   propagations   = late (level-1) trail [];
+                   decision }
 
                
     in aux conflict Assign.empty data
