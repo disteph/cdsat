@@ -24,7 +24,6 @@ true: annot, bin_annot
 # OASIS_STOP
 
 true: debug, optimize(3), unbox_closures
-
 # This is to silence warnings "Tag ... is not used"
 <silent> : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
