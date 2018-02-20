@@ -67,8 +67,17 @@ let run parser input =
       let module P = Pl.Make(A) in
 
       (* RUNNING PSYCHE *)
-
+      PFlags.decnumb := 0;
+      PFlags.decnumbB := 0;
+      PFlags.decwidth := 0;
+      let timer = Dump.Timer.newtimer "Global timer" in
+      Dump.Timer.start timer;
       let answer = K.answer(P.solve K.problem) in
+      Dump.Timer.stop timer;
+      print_endline("Global time: "^string_of_float(Dump.Timer.watch timer));
+      print_endline("Total number of decisions: "^string_of_int !PFlags.decnumb);
+      print_endline("Decisions per second: "^string_of_float((float_of_int !PFlags.decnumb) /. (Dump.Timer.watch timer)));
+      print_endline("Options per decisions: "^string_of_float((float_of_int !PFlags.decwidth) /. (float_of_int !PFlags.decnumbB)));
       if !clear4each then P.clear();
       print_endline(
         match K.expected, answer with

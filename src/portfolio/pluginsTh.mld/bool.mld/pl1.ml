@@ -39,18 +39,19 @@ module Make(DS: GlobalImplem) = struct
       type values    = float
       let pp_binding fmt (l,f) =
         Format.fprintf fmt "%a:%f" pp_sassign (SAssign.reveal l) f
-      type infos     = (SAssign.t*float) option
+      type infos     = (SAssign.t*float) option*int
       let info_build = {
-          empty_info  = None;
+          empty_info  = None,0 ;
           leaf_info   =
-            (fun lit score -> Some(lit,score));
+            (fun lit score -> Some(lit,score),1);
           branch_info =
-            (fun x1 x2 ->
+            (fun (x1,c1) (x2,c2) ->
               match x1,x2 with
               | None,_ -> failwith "Bad1"
               | _,None -> failwith "Bad2"
               | Some(_,s1),Some(_,s2)->
-                 if [%ord:Floathashed.t] s1 s2 < 0 then x2 else x1
+                (if [%ord:Floathashed.t] s1 s2 < 0 then x2 else x1),
+                c1+c2
             )
         }
       let treeHCons = None
@@ -129,16 +130,18 @@ module Make(DS: GlobalImplem) = struct
                Print.print ["bool",5] (fun p ->
                    p "bool: Choosing among %a" BaMap.pp remaining);
                match BaMap.info remaining with
-               | Some(sassignh,_) ->
-                  let sassign = SAssign.reveal sassignh in
-                  Print.print ["bool",2] (fun p ->
-                      p "bool: kernel is not fine yet, proposing %a"
-                        pp_sassign sassign);
-                  Try sassign, machine state
-               | None ->
-                  Print.print ["bool",0] (fun p ->
-                      p "bool: waiting for master to catch up");
-                  Silence, machine state
+               | Some(sassignh,_),card ->
+                 let sassign = SAssign.reveal sassignh in
+                 Print.print ["bool",2] (fun p ->
+                     p "bool: kernel is not fine yet, proposing %a"
+                       pp_sassign sassign);
+                 incr PFlags.decnumbB;
+                 PFlags.decwidth := !PFlags.decwidth + card;
+                 Try sassign, machine state
+               | None,_ ->
+                 Print.print ["bool",0] (fun p ->
+                     p "bool: waiting for master to catch up");
+                 Silence, machine state
             end
 
          | Case2(c,_) ->
