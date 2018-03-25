@@ -6,9 +6,7 @@ open Interfaces
 module Make(P : Parameters) = struct
 
   open P
-  type node = Node.t
-  type edge = P.edge
-  type info = P.info
+
   module NodeMap = Map.Make(Node)
 
   type _ egraph = {

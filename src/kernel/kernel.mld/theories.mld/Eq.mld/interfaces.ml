@@ -93,11 +93,10 @@ module type API = sig
 
   type nonrec sassign = (termdata termF,value) sassign
   type nonrec bassign = (termdata termF,value) bassign
-  type straight = (sign, assign*bassign*tset, Top.Messages.straight) message
-        
+
   type output =
-    | UNSAT of (straight list
-               * (sign, assign*bassign*tset, unsat) message)
+    | UNSAT of ((sign, assign*bassign*tset, straight) message list
+                * (sign, assign*bassign*tset, unsat) message)
     | SAT of (sign, assign*bassign*tset, sat) message
              * self
 

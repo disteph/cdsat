@@ -95,12 +95,12 @@ module type API = sig
   open WB.DS
 
   (* E-graph module *)
-  module EGraph : Eq.Interfaces.API with type sign = Eq.MyTheory.sign
-                                     and type termdata = Term.datatype
-                                     and type value  = Value.t
-                                     and type cval   = CValue.t
-                                     and type assign = Assign.t
-                                     and type tset   = TSet.t
+  module EGraph : Eq.Interfaces.API with type sign := Eq.MyTheory.sign
+                                     and type termdata := Term.datatype
+                                     and type value  := Value.t
+                                     and type cval   := CValue.t
+                                     and type assign := Assign.t
+                                     and type tset   := TSet.t
   (* List of theory modules - kernel part *)
   val th_modules : (Term.datatype*Value.t*Assign.t*TSet.t) Modules.t list
 
