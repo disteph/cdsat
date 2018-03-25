@@ -11,21 +11,21 @@ type probability = float
  **)
 
 type ('s, 'r) problem = {
-  successors : 's -> ('s option Lazy.t * probability) list
-; reward : 's -> reward_t * 'r
+  successors : 's -> ('s option Lazy.t * probability) list;
+  reward : 's -> reward_t * 'r
 }
 
 
 (** Type of Monte-Carlo trees **)
 
 type 's tree = {
-  state : 's              (* The state of the tree node *)
-; visits : int            (* How many times the node has been visited *)
-; rewards : reward_t      (* Sum of the rewards of the successors *)
-; embryos : 's Lazylist.t (* Unvisited successor states of state,
+  state : 's;              (* The state of the tree node *)
+  visits : int;            (* How many times the node has been visited *)
+  rewards : reward_t;      (* Sum of the rewards of the successors *)
+  embryos : 's Lazylist.t; (* Unvisited successor states of state,
                              already organised in such a way that getting the first one
                              amounts to doing the BIASEDDRAW from CADE'17 *)
-; children : 's tree list (* Monte-Carlo tree children *)
+  children : 's tree list (* Monte-Carlo tree children *)
 }
 
 (* let rec dot_tree (ft, fs) ({children; embryos} as tree) =
@@ -37,12 +37,12 @@ type 's tree = {
 (** A problem together with policies **)
 
 type ('s, 'r) uct = {
-  problem : ('s, 'r) problem
-; tree_policy : 's tree -> 's tree -> float (* function UCT in Algo 1 in CADE'17 *)
-; simulation_policy : 's -> 's list   (* function SIMULATION in Algo 1,
-                                         producing chain of successive states;
-                                         length of list is the depth of simulation *)
-; expansion_policy : 's list -> 's tree * (reward_t * 'r) (* From such a chain,
+  problem : ('s, 'r) problem;
+  tree_policy : 's tree -> 's tree -> float; (* function UCT in Algo 1 in CADE'17 *)
+  simulation_policy : 's -> 's list;   (* function SIMULATION in Algo 1,
+                                          producing chain of successive states;
+                                          length of list is the depth of simulation *)
+  expansion_policy : 's list -> 's tree * (reward_t * 'r) (* From such a chain,
                                                              retain one state,
                                                              turn it into MC tree node,
                                                              together with reward *)
@@ -60,11 +60,11 @@ let weighted_shuffle l = l |>
   Lazylist.filter_map Lazy.force
 
 let empty_tree p s = {
-  state = s
-; visits = 0
-; rewards = 0.
-; embryos = weighted_shuffle (p.successors s)
-; children = []
+  state = s;
+  visits = 0;
+  rewards = 0.;
+  embryos = weighted_shuffle (p.successors s);
+  children = []
 }
 
 let avg_reward tree = tree.rewards /. float_of_int tree.visits
@@ -111,13 +111,13 @@ let greedy_sample xs = List.hd (List.sort (fun (_, x) (_, y) -> compare y x) xs)
 (** The default simulation policy takes a problem,
     a depth (how far should we simulate) and a starting state **)
 
-let rec default_simulation_policy p depth s =
+let rec default_simulation_policy p ~depth s =
   if depth <= 0 then [s]
   else
     (* Random walk on successors *)
     match Lazylist.get (weighted_shuffle (p.successors s)) with
       None -> [s]
-    | Some (x, _) -> s :: default_simulation_policy p (depth-1) x
+    | Some (x, _) -> s :: default_simulation_policy p ~depth:(depth-1) x
 
 (** Bookkeeping, lines 11 and 12 of Algo 1, CADE'17 **)
 
@@ -174,20 +174,31 @@ let single_iteration uct v =
   else let v', rewres = tree_policy uct v in Some ((v', rewres), v')
 
 (** Iterates the above, stacking up the states+rewards(+proof) in a lazylist (FIFO) **)
-
 let iteration uct v = Lazylist.from_loop (single_iteration uct) v
 
 (** Wraps the above, initialising the initial MC-tree from initial state **)
-let search uct s = iteration uct (empty_tree uct.problem s)
- 
-let by_reward c1 c2 = Floathashed.compare (avg_reward c2) (avg_reward c1)
+let search uct ~init = iteration uct (empty_tree uct.problem init)
 
-let by_visits c1 c2 = compare c2.visits c1.visits
+let search_default_policies problem ~exploration ~simuldepth ~init =
+  let uct = {
+    problem           = problem;
+    tree_policy       = uct_tree_policy exploration;
+    simulation_policy = default_simulation_policy problem ~depth:simuldepth;
+    expansion_policy  = single_expansion_policy problem;
+  }
+  in
+  search uct ~init
+
 
 (** After some work has been done and rewards+visits have been updated,
-    outputs the best leaf, according to a notion of "best".
+    best_state outputs the best leaf, according to a notion of "best",
+    provided a comparison function, which could be by_reward or by_visits.
     May not be used in MonteCop **)
 
-let rec best_state cmp tree = match List.sort cmp tree.children with
-  | best :: _ -> best_state cmp best
+let by_reward c1 c2 = Floathashed.compare (avg_reward c2) (avg_reward c1)
+let by_visits c1 c2 = compare c2.visits c1.visits
+
+let rec best_state ~compare tree = match List.sort compare tree.children with
+  | best :: _ -> best_state ~compare best
   | [] -> tree.state
+
