@@ -1,8 +1,3 @@
-(*
-module Lazylist =
-struct
-*)
-
 type 'x t = unit -> 'x node_t
 and 'x node_t = Nil | Cons of ('x * 'x t)
 
@@ -105,7 +100,3 @@ let rec take n li =
 let rec range start stop =
   if start > stop then fun () -> Nil
   else fun () -> Cons (start, range (start + 1) stop)
-
-(*
-end
-*)
