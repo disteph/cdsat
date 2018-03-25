@@ -62,7 +62,8 @@ module List : sig
   val pp : ?sep:string -> ?wrap:string*string
            -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
   val hash : ('a -> int) -> 'a list -> int
-  val mem : ('a -> 'a -> bool) -> 'a -> 'a list -> bool
+  val mem  : ('a -> 'a -> bool) -> 'a -> 'a list -> bool
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+  val last : 'a t -> 'a
 end
 

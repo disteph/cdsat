@@ -76,4 +76,10 @@ module List = struct
   let fold f seed l = List.fold_left (fun sofar elt -> f elt sofar) l seed
 
   let hash h = Hash.wrap1 hash_fold_t h
+
+  let rec last = function
+    | [] -> failwith "last"
+    | [h] -> h
+    | h :: t -> last t
+
 end
