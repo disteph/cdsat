@@ -46,9 +46,11 @@ module Make(DS: GlobalImplem) = struct
       
       let clone () = machine state in
 
-      let suicide _ = ()
+      let suicide _ = () in
 
-      in SlotMachine { add; share; clone; suicide }
+      let propose ?term _ = [] in
+
+      SlotMachine { add; share; clone; suicide; propose }
 
     let init = machine { kernel = K.init;
                          domains = Domain.empty;

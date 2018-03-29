@@ -84,9 +84,9 @@ module Make(WB4M: WhiteBoard4Master) = struct
             Print.print ["concur",2] (fun p->
                 p "Hearing Ack %i from %a" chrono Agents.pp agent);
             select_msg state
-          | Try sassign -> 
+          | Try _ -> 
             Print.print ["concur",2] (fun p->
-                p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
+                p "Hearing guesses from %a" Agents.pp agent);
             select_msg { state with decision = Some msg }
           | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
@@ -115,7 +115,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     match%bind select_msg state with
 
-    | Try sassign, state ->
+    | Try [], state ->
+      Print.print ["concur",1] (fun p -> p "No decision available");
+      master_loop current state
+
+    | Try ((sassign,_)::_), state ->
        Print.print ["concur",1] (fun p -> p "About to try %a" DS.pp_sassign sassign);
 
        (* We attempt to create the trail extended with the decision *)
@@ -154,7 +158,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
               List.fold enqueue propagations state.messages
             in
             let messages = match decision with
-              | Some dec -> Pqueue.push(Try dec) messages
+              | Some dec -> Pqueue.push(Try [dec,1.]) messages
               | None -> messages
             in
             let newstate2 = { state with hub = hub2; decision = None; messages } in

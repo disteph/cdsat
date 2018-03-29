@@ -64,26 +64,12 @@ module Make(DS: GlobalImplem) = struct
                let state = { state with watchedB; watchedQ; kernel } in
                begin match msg with
                | Some msg ->
-                  (* Kernel says all is satisfied and gave us the message to send *)
-                  Msg msg, machine state
+                 (* Kernel says all is satisfied and gave us the message to send *)
+                 Msg msg, machine state
 
                | None ->
-                  (* Some constraints still need to be satisfied somehow.
-                     Time to decide. *)
-                  match Domain.info state.domains with
-                  | None ->
-                     Print.print ["LRA",2] (fun p ->
-                         p "LRA: waiting for master to catch up");
-                     Silence, machine state
-
-                  | Some var ->
-                     let range = Domain.find var state.domains in
-                     let v = Top.Values.NonBoolean(K.vinj(Range.pick range)) in
-                     let sassign = SAssign(Term.term_of_id var,v) in
-                     Print.print ["LRA",2] (fun p ->
-                         p "LRA: kernel is not fine yet, proposing %a from range %a"
-                           pp_sassign sassign Range.pp range);
-                     Try sassign, machine state
+                 (* Some constraints still need to be satisfied somehow. *)
+                 Silence, machine state
                end
 
             | Case2((c,q,_),_) ->
@@ -102,16 +88,16 @@ module Make(DS: GlobalImplem) = struct
 
                | Qeval(term,q') ->
                   begin match q with
-                  | None ->
-                     let v = Top.Values.NonBoolean(K.vinj q') in
-                     let sassign = SAssign(term,v) in
-                     let i = Term.id term in
-                     if K.VarMap.mem i (K.Model.map state.fixed)
-                     then speak machine state
-                     else
-                       (Print.print ["LRA",2] (fun p ->
-                            p "LRA: new value! %a" pp_sassign sassign);
-                        Try sassign, machine state )
+                  | None -> speak machine state
+                     (* let v = Top.Values.NonBoolean(K.vinj q') in
+                      * let sassign = SAssign(term,v) in
+                      * let i = Term.id term in
+                      * if K.VarMap.mem i (K.Model.map state.fixed)
+                      * then speak machine state
+                      * else
+                      *   (Print.print ["LRA",2] (fun p ->
+                      *        p "LRA: new value! %a" pp_sassign sassign);
+                      *    Try sassign, machine state ) *)
                   | Some q when Q.equal q q' -> speak machine state
                   | Some q                   -> failwith "SMA problem!"
                   end
@@ -287,9 +273,26 @@ module Make(DS: GlobalImplem) = struct
       
       let clone () = machine state in
 
-      let suicide _ = ()
+      let suicide _ = () in
 
-      in SlotMachine { add; share; clone; suicide }
+      let propose ?term _ =
+        match Domain.info state.domains with
+        | None ->
+          Print.print ["LRA",2] (fun p ->
+              p "LRA: waiting for master to catch up");
+          []
+
+        | Some var ->
+          let range = Domain.find var state.domains in
+          let v = Top.Values.NonBoolean(K.vinj(Range.pick range)) in
+          let sassign = SAssign(Term.term_of_id var,v) in
+          Print.print ["LRA",2] (fun p ->
+              p "LRA: kernel is not fine yet, proposing %a from range %a"
+                pp_sassign sassign Range.pp range);
+          [sassign,1.0]
+      in
+
+      SlotMachine { add; share; clone; suicide; propose }
 
     let init = machine { kernel = K.init;
                          fixed  = K.Model.empty;

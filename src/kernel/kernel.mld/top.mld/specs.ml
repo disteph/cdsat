@@ -112,14 +112,18 @@ type (_,_) output =
    | Silence
    | Msg: ('s,'a*('t termF, 'v) bassign*'tset,_) Messages.message
           -> ('s,'t*'v*'a*'tset) output
-   | Try: ('t termF, 'v) sassign
-          -> (_,'t*'v*_*_) output
+   (* | Try: ('t termF, 'v) sassign
+    *        -> (_,'t*'v*_*_) output *)
 
 type (_,_) slot_machine =
   SlotMachine : {
       add     : ('t termF, 'v) sassign option
                 -> ('s,'t*'v*'a*'tset) output
                    * ('s,'t*'v*'a*'tset) slot_machine;
+      propose :
+        ?term:'t termF
+        -> int
+        -> (('t termF, 'v) sassign * float) list;
       share   : 'tset
                 -> ('s,'t*'v*'a*'tset) output
                    * ('s,'t*'v*'a*'tset) slot_machine;

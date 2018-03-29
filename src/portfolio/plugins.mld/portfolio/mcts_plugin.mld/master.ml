@@ -91,10 +91,10 @@ module Make(WB4M: WhiteBoard4Master) = struct
             Print.print ["concur",2] (fun p->
                 p "Hearing Ack %i from %a" chrono Agents.pp agent);
             select_msg state
-          | Try sassign -> 
+          | Try decisions -> 
             Print.print ["concur",2] (fun p->
-                p "Hearing guess %a from %a" DS.pp_sassign sassign Agents.pp agent);
-            select_msg { state with moves = DS.Assign.add sassign state.moves }
+                p "Hearing guesses from %a" Agents.pp agent);
+            select_msg { state with moves = List.fold (fun (sassign,_) -> DS.Assign.add sassign) decisions state.moves }
           | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
                 p "Hearing Sat from %a at old chrono %i, ignoring"

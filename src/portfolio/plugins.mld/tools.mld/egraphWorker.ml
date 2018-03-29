@@ -34,7 +34,7 @@ module Make(WB: WhiteBoardExt)
   let rec flush ports unsat_msg l =
     let aux (incoming : egraph msg2th) =
       match incoming with
-      | MsgStraight _ | MsgSharing _ | TheoryAsk _ -> flush ports unsat_msg l
+      | MsgStraight _ | MsgSharing _ | MsgPropose _ | TheoryAsk _ -> flush ports unsat_msg l
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -56,6 +56,14 @@ module Make(WB: WhiteBoardExt)
         -> loop_write (egraph.add sassign) chrono ports
       | MsgSharing(tset,chrono)
         -> loop_write (egraph.share tset) chrono ports
+      | MsgPropose(_,number,chrono)
+        ->
+        let msg2pl = Msg(None,Try [],chrono) in
+        Deferred.all_unit
+         [
+           Lib.write ports.writer msg2pl ;
+           loop_read egraph ports
+         ]
       | TheoryAsk(address,tv)
         -> let nf,cval,distinct,egraph = egraph.ask tv in
            Deferred.all_unit

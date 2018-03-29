@@ -20,10 +20,11 @@ module Make(WB: WhiteBoardExt) = struct
   let share   (SlotMachine{share})   = share
   let clone   (SlotMachine{clone})   = clone()
   let suicide (SlotMachine{suicide}) = suicide
+  let propose (SlotMachine{propose}) = propose
 
   let rec flush ports msg =
     let aux = function
-      | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
+      | MsgStraight _ | MsgSharing _ | MsgPropose _ | Infos _ -> flush ports msg
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -45,6 +46,16 @@ module Make(WB: WhiteBoardExt) = struct
         -> loop_write hdl (add cont (Some sassign)) chrono ports
       | MsgSharing(tset,chrono)
         -> loop_write hdl (share cont tset) chrono ports
+      | MsgPropose(_,number,chrono)
+        ->
+        let decisions = propose cont number in
+        Print.print ["worker",1] (fun p-> p "%a: Proposing" Tags.pp hdl);
+        let msg2pl = Msg(Some(Handlers.Handler hdl),Try decisions,chrono) in
+        Deferred.all_unit
+         [
+           Lib.write ports.writer msg2pl ;
+           loop_read hdl cont ports
+         ]
       | Infos _
         -> loop_read hdl cont ports
       | MsgSpawn newports
@@ -87,14 +98,6 @@ module Make(WB: WhiteBoardExt) = struct
               loop_read hdl cont ports
          ]
 
-    | Try sassign ->
-       Print.print ["worker",1] (fun p-> p "%a: Try %a" Tags.pp hdl pp_sassign sassign);
-       let msg2pl = Msg(hhdl,Try sassign,chrono) in
-       Deferred.all_unit
-         [
-           Lib.write ports.writer msg2pl ;
-           loop_read hdl cont ports
-         ]
 
   let make (PluginsTh.PluginTh.Signed(hdl,init)) = loop_read hdl init
 

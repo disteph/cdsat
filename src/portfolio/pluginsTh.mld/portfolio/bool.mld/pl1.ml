@@ -121,27 +121,8 @@ module Make(DS: GlobalImplem) = struct
                Msg msg, machine state
 
             | None ->
-               (* Some clauses still need to be satisfied somehow. It's time to split. *)
-               let remaining =
-                 BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
-               in
-               Print.print ["bool",6] (fun p ->
-                   p "bool: All scored assignments\n %a" BaMap.pp !scores);
-               Print.print ["bool",5] (fun p ->
-                   p "bool: Choosing among %a" BaMap.pp remaining);
-               match BaMap.info remaining with
-               | Some(sassignh,_),card ->
-                 let sassign = SAssign.reveal sassignh in
-                 Print.print ["bool",2] (fun p ->
-                     p "bool: kernel is not fine yet, proposing %a"
-                       pp_sassign sassign);
-                 incr PFlags.decnumbB;
-                 PFlags.decwidth := !PFlags.decwidth + card;
-                 Try sassign, machine state
-               | None,_ ->
-                 Print.print ["bool",0] (fun p ->
-                     p "bool: waiting for master to catch up");
-                 Silence, machine state
+              (* Some clauses still need to be satisfied somehow. It's time to split. *)
+               Silence, machine state
             end
 
          | Case2(c,_) ->
@@ -333,8 +314,31 @@ module Make(DS: GlobalImplem) = struct
         then (scores := BaMap.map (fun _ score -> score /. factor) !scores;
               bump_value := !bump_value /. factor;
               since_last := 1)
+      in
 
-      in SlotMachine { add; share; clone; suicide }
+      let propose ?term _ =
+        let remaining =
+          BaMap.inter_poly (fun _ v () -> v) !scores state.undetermined
+        in
+        Print.print ["bool",6] (fun p ->
+            p "bool: All scored assignments\n %a" BaMap.pp !scores);
+        Print.print ["bool",5] (fun p ->
+            p "bool: Choosing among %a" BaMap.pp remaining);
+        match BaMap.info remaining with
+        | Some(sassignh,_),card ->
+          let sassign = SAssign.reveal sassignh in
+          Print.print ["bool",2] (fun p ->
+              p "bool: kernel is not fine yet, proposing %a"
+                pp_sassign sassign);
+          incr PFlags.decnumbB;
+          PFlags.decwidth := !PFlags.decwidth + card;
+          [sassign,1.0]
+        | None,_ ->
+          Print.print ["bool",0] (fun p ->
+              p "bool: waiting for master to catch up");
+          []
+      in
+      SlotMachine { add; share; clone; suicide; propose }
 
                   
     let init = machine { kernel = K.init;

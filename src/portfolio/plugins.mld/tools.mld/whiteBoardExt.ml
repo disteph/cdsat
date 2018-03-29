@@ -23,7 +23,7 @@ module Make(WB: Export.WhiteBoard) = struct
 
   type _ answer = Ack :            ack answer
                 | Say : _ t     -> say answer
-                | Try : sassign -> say answer
+                | Try : (sassign*float) list -> say answer
     
   type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
       
@@ -41,6 +41,7 @@ module Make(WB: Export.WhiteBoard) = struct
    and _ msg2th =
      | MsgStraight : sassign*int         -> _ msg2th
      | MsgSharing  : TSet.t*int          -> _ msg2th
+     | MsgPropose  : term option*int*int -> _ msg2th
      | MsgSpawn    : 'a ports            -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
@@ -55,6 +56,8 @@ module Make(WB: Export.WhiteBoard) = struct
       -> Format.fprintf fmt "MsgStraight_%i %a" chrono pp_sassign assign
     | MsgSharing(tset,chrono)
       -> Format.fprintf fmt "MsgSharing_%i %a" chrono TSet.pp tset
+    | MsgPropose(_,number,chrono)
+      -> Format.fprintf fmt "MsgPropose_%i %i" chrono number
     | MsgSpawn _
       -> Format.fprintf fmt "MsgSpawn"
     | Infos(tv,nf,cval,distinct)

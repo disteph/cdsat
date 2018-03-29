@@ -31,7 +31,7 @@ module type Extra = sig
 
   type _ answer = Ack :            ack answer
                 | Say : _ t     -> say answer
-                | Try : sassign -> say answer
+                | Try : (sassign*float) list -> say answer
     
   type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
 
@@ -49,6 +49,7 @@ module type Extra = sig
    and _ msg2th =
      | MsgStraight : sassign*int         ->  _ msg2th
      | MsgSharing  : tset*int            ->  _ msg2th
+     | MsgPropose  : term option*int*int ->  _ msg2th
      | MsgSpawn    : 'a ports            -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)

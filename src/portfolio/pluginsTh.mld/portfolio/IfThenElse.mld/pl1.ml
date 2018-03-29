@@ -18,10 +18,7 @@ module Make(DS: GlobalImplem) = struct
         match K.what_now state with
         | Some(K.Sat msg), state ->   Msg msg, machine state
         | Some(K.Propa msg), state -> Msg msg, machine state
-        | None, state ->
-           let tset = K.wondering state in
-           let term = TSet.choose tset in
-           Try(boolassign term), machine state
+        | None, state -> Silence, machine state
 
       and machine state =
         Print.print ["ITE",2] (fun p -> p "ITE: starting machine loop");
@@ -39,8 +36,12 @@ module Make(DS: GlobalImplem) = struct
         in
 
         let suicide _ = () in
-
-        SlotMachine {add; share; clone; suicide }
+        let propose ?term _ =
+          let tset = K.wondering state in
+          let term = TSet.choose tset in
+          [boolassign term,1.0]
+        in
+        SlotMachine {add; share; clone; suicide; propose }
 
       in
       { PluginTh.init = machine K.init;
