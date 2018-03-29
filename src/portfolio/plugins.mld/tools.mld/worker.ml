@@ -27,12 +27,10 @@ module Make(WB: WhiteBoardExt) = struct
       | MsgStraight _ | MsgSharing _ | MsgPropose _ | Infos _ -> flush ports msg
       | MsgSpawn newports -> 
          Deferred.all_unit
-           [
-             Lib.write ports.writer msg;
+           [ Lib.write ports.writer msg;
              Lib.write newports.writer msg;
              flush ports msg;
-             flush newports msg
-           ]
+             flush newports msg ]
       | KillYourself _ -> return()
     in
     Lib.read ports.reader aux
@@ -52,10 +50,8 @@ module Make(WB: WhiteBoardExt) = struct
         Print.print ["worker",1] (fun p-> p "%a: Proposing" Tags.pp hdl);
         let msg2pl = Msg(Some(Handlers.Handler hdl),Try decisions,chrono) in
         Deferred.all_unit
-         [
-           Lib.write ports.writer msg2pl ;
-           loop_read hdl cont ports
-         ]
+         [ Lib.write ports.writer msg2pl ;
+           loop_read hdl cont ports ]
       | Infos _
         -> loop_read hdl cont ports
       | MsgSpawn newports

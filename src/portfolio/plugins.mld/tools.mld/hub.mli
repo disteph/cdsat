@@ -17,6 +17,8 @@ module Make(WB: WhiteBoardExt) : sig
   (* Telling all slaves to kill themselves *)
   val suicide   : t -> Kernel.Top.Messages.unsat WB.t -> sassign -> sassign option
                   -> unit Deferred.t
+  (* Calling for decision proposals *)
+  val propose   : t -> ?term:term -> int -> chrono:int -> unit Deferred.t
   (* The pipe reader on which the master thread must read *)
   val reader    : t -> msg2pl Pipe.Reader.t
   (* Constructing a hub *)

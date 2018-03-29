@@ -124,4 +124,8 @@ module Make(WB: WhiteBoardExt) = struct
     let msg = KillYourself(msg,a,a') in
     send hub msg msg
 
+  let propose hub ?term number ~chrono =
+    let msg = MsgPropose(term,number,chrono) in
+    send hub msg msg
+
 end

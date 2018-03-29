@@ -92,6 +92,8 @@ module type WhiteBoard4Master = sig
     (* Telling all slaves to kill themselves *)
     val suicide   : t -> unsat WBE.t -> WBE.sassign -> WBE.sassign option ->
                     unit Deferred.t
+    (* Calling for decision proposals *)
+    val propose   : t -> ?term:WBE.DS.Term.t -> int -> chrono:int -> unit Deferred.t
     (* The pipe reader on which the master thread must read *)
     val reader    : t -> WBE.msg2pl Pipe.Reader.t
   end

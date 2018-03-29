@@ -46,7 +46,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
   type state = {
       hub      : H.t;                 (* Communication channels with other modules *)
       messages : say answer Pqueue.t; (* The buffer queue for messages *)
-      decision : say answer option;   (* The latest decision proposal *)
+      decision : (sassign*float) list;(* The latest decision proposal *)
       waiting4 : AS.t;                (* The agents from which we await an answer *)
       trail    : T.t                  (* The trail *)
     }
@@ -67,11 +67,13 @@ module Make(WB4M: WhiteBoard4Master) = struct
       Print.print ["concur",2]
         (fun p-> p "Want to hear from %a at chrono %i"
             AS.pp state.waiting4 (T.chrono state.trail));
-      match state.decision with
-      | Some thmsg when AS.is_empty state.waiting4 ->
-        return(thmsg, { state with decision = None } )
-      | _ ->
-        match%bind Pipe.read (H.reader state.hub) with
+      if AS.is_empty state.waiting4
+      then match state.decision with
+        | _::_ -> return(Try state.decision, { state with decision = [] } )
+        | [] ->
+          H.propose state.hub 1 (T.chrono state.trail) >>= fun () ->
+          select_msg { state with waiting4 = AS.all }
+      else match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
         | `Ok(Msg(agent,msg,chrono)) ->
           let state =
@@ -84,10 +86,14 @@ module Make(WB4M: WhiteBoard4Master) = struct
             Print.print ["concur",2] (fun p->
                 p "Hearing Ack %i from %a" chrono Agents.pp agent);
             select_msg state
-          | Try _ -> 
+          | Try [] -> 
+            Print.print ["concur",2] (fun p->
+                p "Hearing empty guesses from %a" Agents.pp agent);
+            select_msg state
+          | Try decision -> 
             Print.print ["concur",2] (fun p->
                 p "Hearing guesses from %a" Agents.pp agent);
-            select_msg { state with decision = Some msg }
+            select_msg { state with decision }
           | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
                 p "Hearing Sat from %a at old chrono %i, ignoring"
@@ -115,9 +121,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     match%bind select_msg state with
 
-    | Try [], state ->
-      Print.print ["concur",1] (fun p -> p "No decision available");
-      master_loop current state
+    | Try [], state -> failwith "Should not happen"
 
     | Try ((sassign,_)::_), state ->
        Print.print ["concur",1] (fun p -> p "About to try %a" DS.pp_sassign sassign);
@@ -161,7 +165,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
               | Some dec -> Pqueue.push(Try [dec,1.]) messages
               | None -> messages
             in
-            let newstate2 = { state with hub = hub2; decision = None; messages } in
+            let newstate2 = { state with hub = hub2; decision = []; messages } in
             master_loop current newstate2
 
           | _ -> H.kill state.hub; return ans
@@ -193,7 +197,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              let assign  = DS.Assign.add sassign current.assign in
              let current = sat_init assign ~sharing:current.sharing in
              let state   = { state with
-                             decision = None; (* we cancel remaining decision proposal *)
+                             decision = []; (* we cancel remaining decision proposal *)
                              waiting4 = AS.all;
                              trail }
              in
@@ -225,7 +229,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              let sharing = DS.TSet.union toshare current.sharing in
              let current = sat_init current.assign ~sharing in
              let state   = { state with
-                             decision = None; (* we cancel remaining decision proposal *)
+                             decision = []; (* we cancel remaining decision proposal *)
                              waiting4 = AS.all;
                              trail    = T.chrono_incr state.trail }
              in
@@ -266,7 +270,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     let state = { hub;
                   waiting4 = AS.all;
                   messages = Pqueue.empty();
-                  decision = None;
+                  decision = [];
                   trail }
     in
     Deferred.all_unit tasks >>= fun () ->

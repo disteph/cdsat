@@ -275,7 +275,7 @@ module Make(WB : WhiteBoardExt) = struct
     Print.print ["memo",2] (fun p-> p "Memo enters flush");
     let aux (incoming : regular msg2th) =
       match incoming with
-      | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
+      | MsgStraight _ | MsgSharing _ | MsgPropose _ | Infos _ -> flush ports msg
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -297,6 +297,10 @@ module Make(WB : WhiteBoardExt) = struct
          let fixed = Fixed.extend (Assign.singleton sassign) fixed in
          WR.fix sassign;
          loop_write fixed chrono ports (WR.speak fixed)
+      | MsgPropose(_,number,chrono) ->
+        Deferred.all_unit
+          [ loop_read fixed ports ;
+            Lib.write ports.writer (Msg(None,Try [],chrono)) ]
       | MsgSharing(tset,chrono) ->
          loop_write fixed chrono ports (WR.speak fixed)
       | MsgSpawn newports ->

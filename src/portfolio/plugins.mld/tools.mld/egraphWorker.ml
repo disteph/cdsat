@@ -58,17 +58,15 @@ module Make(WB: WhiteBoardExt)
         -> loop_write (egraph.share tset) chrono ports
       | MsgPropose(_,number,chrono)
         ->
-        let msg2pl = Msg(None,Try [],chrono) in
+        Print.print ["egraph",1] (fun p-> p "E-graph: I have nothing to propose");
         Deferred.all_unit
-         [
-           Lib.write ports.writer msg2pl ;
-           loop_read egraph ports
-         ]
+             [ Lib.write ports.writer (Msg(Some Handlers.Eq,Try [],chrono)) ;
+               loop_read egraph ports ]
       | TheoryAsk(address,tv)
         -> let nf,cval,distinct,egraph = egraph.ask tv in
-           Deferred.all_unit
-             [ Lib.write address (Infos(tv,nf,cval,distinct));
-               loop_read egraph ports ]
+        Deferred.all_unit
+          [ Lib.write address (Infos(tv,nf,cval,distinct));
+            loop_read egraph ports ]
       | MsgSpawn newports
         -> Deferred.all_unit
              [loop_read egraph ports ;
@@ -88,23 +86,19 @@ module Make(WB: WhiteBoardExt)
 
     match output with
     | UNSAT(propas,conflict) -> 
-       Print.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
-       
-       let unsat_msg = msg_make conflict in
-       let l = List.map msg_make propas in
-       Deferred.all_unit
-         [
-           flush_write ports.writer unsat_msg l ;
-           flush ports unsat_msg l
-         ]
+      Print.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
+
+      let unsat_msg = msg_make conflict in
+      let l = List.map msg_make propas in
+      Deferred.all_unit
+        [ flush_write ports.writer unsat_msg l ;
+          flush ports unsat_msg l ]
 
     | SAT(msg,egraph) ->
-       Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
-       Deferred.all_unit
-         [
-           Lib.write ports.writer (msg_make msg) ;
-           loop_read egraph ports
-         ]
+      Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
+      Deferred.all_unit
+        [ Lib.write ports.writer (msg_make msg) ;
+          loop_read egraph ports ]
 
   let make = loop_read EGraph.init
 
