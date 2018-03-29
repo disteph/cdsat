@@ -32,6 +32,14 @@ module Make(WB: WhiteBoardExt) = struct
              flush ports1 msg;
              flush ports2 msg
            ]
+      | MsgSpawn newports -> 
+         Deferred.all_unit
+           [
+             Lib.write ports.writer msg;
+             Lib.write newports.writer msg;
+             flush ports msg;
+             flush newports msg
+           ]
       | KillYourself _ -> return()
     in
     Lib.read ports.reader aux
@@ -52,6 +60,11 @@ module Make(WB: WhiteBoardExt) = struct
            Deferred.all_unit
              [loop_read hdl cont    ports1 ;
               loop_read hdl newcont ports2 ]
+      | MsgSpawn newports
+        -> let newcont = clone cont in
+           Deferred.all_unit
+             [loop_read hdl cont    ports ;
+              loop_read hdl newcont newports ]
       | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return(suicide cont assign)
     in
     Lib.read

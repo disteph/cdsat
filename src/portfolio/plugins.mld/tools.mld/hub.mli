@@ -8,6 +8,8 @@ module Make(WB: WhiteBoardExt) : sig
   type t
   (* Cloning a hub into 2 hubs *)
   val clone     : t -> (t*t) Deferred.t
+  (* Spawning a hub *)
+  val spawn     : t -> t Deferred.t
   (* Killing the communication pipes between master and slaves *)
   val kill      : t -> unit
   (* Sending a message to all slaves *)
@@ -21,8 +23,8 @@ module Make(WB: WhiteBoardExt) : sig
   val reader    : t -> msg2pl Pipe.Reader.t
   (* Constructing a hub *)
   val make :
-    (egraph ports -> unit Deferred.t)
-    -> (regular ports -> unit Deferred.t)
-    -> (regular ports -> unit Deferred.t) HandlersMap.t 
+    egraph_init:(egraph ports -> unit Deferred.t)
+    -> memo_init:(regular ports -> unit Deferred.t)
+    -> other_init:(regular ports -> unit Deferred.t) HandlersMap.t 
     ->  unit Deferred.t * t
 end

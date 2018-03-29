@@ -44,6 +44,16 @@ module Make(WB: WhiteBoardExt)
              flush ports1 unsat_msg l;
              flush ports2 unsat_msg l
            ]
+
+      | MsgSpawn newports -> 
+         Deferred.all_unit
+           [
+             flush_write ports.writer unsat_msg l;
+             flush_write newports.writer unsat_msg l;
+             flush ports unsat_msg l;
+             flush newports unsat_msg l
+           ]
+
       | KillYourself _ -> return()
     in
     Lib.read ports.reader aux
@@ -66,6 +76,10 @@ module Make(WB: WhiteBoardExt)
         -> Deferred.all_unit
              [loop_read egraph ports1 ;
               loop_read egraph ports2 ]
+      | MsgSpawn newports
+        -> Deferred.all_unit
+             [loop_read egraph ports ;
+              loop_read egraph newports ]
       | KillYourself _ -> return()
     in
     Lib.read

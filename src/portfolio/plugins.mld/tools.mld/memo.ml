@@ -284,6 +284,14 @@ module Make(WB : WhiteBoardExt) = struct
              flush ports1 msg;
              flush ports2 msg
            ]
+      | MsgSpawn newports -> 
+         Deferred.all_unit
+           [
+             Lib.write ports.writer msg;
+             Lib.write newports.writer msg;
+             flush ports msg;
+             flush newports msg
+           ]
       | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in
     Lib.read ~onkill:(fun ()->return(Print.print ["memo",2] (fun p-> p "Memo thread dies during flush")))
@@ -303,6 +311,10 @@ module Make(WB : WhiteBoardExt) = struct
          Deferred.all_unit
            [ loop_read fixed ports1 ;
              loop_read fixed ports2 ]
+      | MsgSpawn newports ->
+         Deferred.all_unit
+           [ loop_read fixed ports ;
+             loop_read fixed newports ]
       | Infos _ -> loop_read fixed ports
       | KillYourself(conflict,t,t') -> return(suicide conflict t t')
     in

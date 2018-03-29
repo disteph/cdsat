@@ -73,23 +73,31 @@ module Make(WB: WhiteBoardExt) = struct
       memo   = write2memo;
       others = write2workers }
 
-  let make egraph memo hdlsmap =
+  let make ~egraph_init ~memo_init ~other_init =
     let egraph_task,memo_task,tasks,hub
-      = common egraph memo hdlsmap
+      = common egraph_init memo_init other_init
     in
     let tasks = HandlersMap.fold (fun _ task sofar -> task::sofar) tasks [] in
-    Deferred.all_unit
-      (egraph_task::memo_task::tasks),
+    Deferred.all_unit (egraph_task::memo_task::tasks),
     hub
 
   let clone hub =
     let aux writer ports1 ports2 = Lib.write writer (MsgBranch(ports1,ports2)) in
-    let hdlsmap = HandlersMap.map aux hub.others in
-    let egraph_ptask,memo_ptask,ptasks,hub1
-      = common (aux hub.egraph) (aux hub.memo) hdlsmap
+    let egraph_init,memo_init,other_init,hub1
+      = common (aux hub.egraph) (aux hub.memo) (HandlersMap.map aux hub.others)
     in
-    let tasks,hub2 = make egraph_ptask memo_ptask ptasks in
+    let tasks,hub2 = make ~egraph_init ~memo_init ~other_init in
     tasks >>| fun () -> hub1,hub2
+
+  let spawn hub =
+    let aux writer ports = Lib.write writer (MsgSpawn ports) in
+    let tasks,newhub =
+      make
+        ~egraph_init:(aux hub.egraph)
+        ~memo_init:(aux hub.memo)
+        ~other_init:(HandlersMap.map aux hub.others)
+    in
+    tasks >>| fun () -> newhub
 
   let kill hub =
     HandlersMap.iter (fun _ w -> Pipe.close w) hub.others;

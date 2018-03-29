@@ -59,7 +59,10 @@ module Make(K:Plugin.Input) = struct
            and a map mapping each theory handler to the pipe writer
            used to communicate to its corresponding slave. *)
 
-    let workers, hub = H.make EG.make Mm.make pluginsTh in
+    let workers, hub = H.make
+        ~egraph_init:EG.make
+        ~memo_init:Mm.make
+        ~other_init:pluginsTh in
 
     (* Now we wait until all slaves have finished and master has
            finished with answer a, and we return a. *)

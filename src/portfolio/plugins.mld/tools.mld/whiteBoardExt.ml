@@ -42,6 +42,7 @@ module Make(WB: Export.WhiteBoard) = struct
      | MsgStraight : sassign*int         -> _ msg2th
      | MsgSharing  : TSet.t*int          -> _ msg2th
      | MsgBranch   : 'a ports * 'a ports -> 'a msg2th
+     | MsgSpawn    : 'a ports            -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
                      * ((term,vvalue) sum)
@@ -57,6 +58,8 @@ module Make(WB: Export.WhiteBoard) = struct
       -> Format.fprintf fmt "MsgSharing_%i %a" chrono TSet.pp tset
     | MsgBranch(_,_)
       -> Format.fprintf fmt "MsgBranch"
+    | MsgSpawn _
+      -> Format.fprintf fmt "MsgSpawn"
     | Infos(tv,nf,cval,distinct)
       -> Format.fprintf fmt "Infos for %a:\nNormal form is %a\nValues are %a\nDistinct values are %a"
            pp_tv tv Term.pp nf CValue.pp cval (List.pp CValue.pp) (distinct())
