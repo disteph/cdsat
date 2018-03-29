@@ -49,7 +49,6 @@ module type Extra = sig
    and _ msg2th =
      | MsgStraight : sassign*int         ->  _ msg2th
      | MsgSharing  : tset*int            ->  _ msg2th
-     | MsgBranch   : 'a ports * 'a ports -> 'a msg2th
      | MsgSpawn    : 'a ports            -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
@@ -81,8 +80,6 @@ module type WhiteBoard4Master = sig
 
   module H : sig
     type t
-    (* Cloning a hub into 2 hubs *)
-    val clone     : t -> (t*t) Deferred.t
     (* Spawning a hub *)
     val spawn     : t -> t Deferred.t
     (* Killing the communication pipes between master and slaves *)

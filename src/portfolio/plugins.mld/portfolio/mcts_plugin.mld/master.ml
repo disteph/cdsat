@@ -43,13 +43,13 @@ module Make(WB4M: WhiteBoard4Master) = struct
     let pp fmt hdls = List.pp Agents.pp fmt (elements hdls)
   end
 
-  (* module MovesMap = struct
-   *   module Map = Map.Make(Agents)
-   *   type t = DS.sassign list Map.t
-   *   let all = theories_fold (fun hdl -> Map.add(Some hdl)[]) (Map.singleton None [])
-   *   type binding = Agents.t*(DS.sassign list) [@@deriving show]
-   *   let pp fmt hdls = List.pp pp_binding fmt (Map.bindings hdls)
-   * end *)
+  module MovesMap = struct
+    module Map = Map.Make(Agents)
+    type t = DS.sassign list Map.t
+    let all = theories_fold (fun hdl -> Map.add(Some hdl)[]) (Map.singleton None [])
+    type binding = Agents.t*(DS.sassign list) [@@deriving show]
+    let pp fmt hdls = List.pp pp_binding fmt (Map.bindings hdls)
+  end
 
   module Moves = Set.Make(DS.SAssign)
 
@@ -223,24 +223,27 @@ module Make(WB4M: WhiteBoard4Master) = struct
     (* We attempt to create the trail extended with the decision *)
     match T.add ~nature:T.Decision sassign state.trail with
     | None -> (* The flip of the decision is in the trail, we miserably fail *)
-      return None
+      None
     | Some trail ->
-      (* This is a branching point where we tell all slave workers:
-          "Please, clone yourself; here are the new pipes to be used
-          for your clone to communicate with me." *)
-      let%bind hub1 = H.spawn state.hub in
-      (* Once all slave workers have cloned themselves, we treat the first branch. *)
-      Print.print ["concur",1] (fun p ->
-          p "Everybody cloned themselves; now returning first child state");
+      let state = 
+        (* This is a branching point where we tell all slave workers:
+            "Please, clone yourself; here are the new pipes to be used
+            for your clone to communicate with me." *)
+        let%bind hub1 = H.spawn state.hub in
+        (* Once all slave workers have cloned themselves, we treat the first branch. *)
+        Print.print ["concur",1] (fun p ->
+            p "Everybody cloned themselves; now returning first child state");
 
-      H.broadcast hub1 sassign (T.chrono trail) >>| fun () ->
-      let assign1 = DS.Assign.add sassign state.current.assign in
-      let state1 = { state with hub = hub1;
-                                waiting4 = AS.all;
-                                trail;
-                                current = sat_init assign1 ~sharing:state.current.sharing }
+        H.broadcast hub1 sassign (T.chrono trail) >>= fun () ->
+        let assign1 = DS.Assign.add sassign state.current.assign in
+        let state1 = { state with hub = hub1;
+                                  waiting4 = AS.all;
+                                  trail;
+                                  current = sat_init assign1 ~sharing:state.current.sharing }
+        in
+        saturate state1
       in
-      Some(saturate state1)
+      Some state
   (* In the first branch, we broadcast the guess *)
   (* (\* First recursive call *\)
    * let%bind ans = master_loop current1 newstate1 in
@@ -269,7 +272,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
    * | _ -> H.kill hub2; return ans *)
 
 
-  let successors current state =
+  let successors state =
     DS.Assign.fold (fun move sofar -> (move,1.)::sofar) state.moves [] 
 
   let master hub input =

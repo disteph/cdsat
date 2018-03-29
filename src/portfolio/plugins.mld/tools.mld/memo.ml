@@ -276,14 +276,6 @@ module Make(WB : WhiteBoardExt) = struct
     let aux (incoming : regular msg2th) =
       match incoming with
       | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
-      | MsgBranch(ports1,ports2) -> 
-         Deferred.all_unit
-           [
-             Lib.write ports1.writer msg;
-             Lib.write ports2.writer msg;
-             flush ports1 msg;
-             flush ports2 msg
-           ]
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -307,10 +299,6 @@ module Make(WB : WhiteBoardExt) = struct
          loop_write fixed chrono ports (WR.speak fixed)
       | MsgSharing(tset,chrono) ->
          loop_write fixed chrono ports (WR.speak fixed)
-      | MsgBranch(ports1,ports2) ->
-         Deferred.all_unit
-           [ loop_read fixed ports1 ;
-             loop_read fixed ports2 ]
       | MsgSpawn newports ->
          Deferred.all_unit
            [ loop_read fixed ports ;

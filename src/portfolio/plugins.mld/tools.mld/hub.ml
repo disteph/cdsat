@@ -81,13 +81,13 @@ module Make(WB: WhiteBoardExt) = struct
     Deferred.all_unit (egraph_task::memo_task::tasks),
     hub
 
-  let clone hub =
-    let aux writer ports1 ports2 = Lib.write writer (MsgBranch(ports1,ports2)) in
-    let egraph_init,memo_init,other_init,hub1
-      = common (aux hub.egraph) (aux hub.memo) (HandlersMap.map aux hub.others)
-    in
-    let tasks,hub2 = make ~egraph_init ~memo_init ~other_init in
-    tasks >>| fun () -> hub1,hub2
+  (* let clone hub =
+   *   let aux writer ports1 ports2 = Lib.write writer (MsgBranch(ports1,ports2)) in
+   *   let egraph_init,memo_init,other_init,hub1
+   *     = common (aux hub.egraph) (aux hub.memo) (HandlersMap.map aux hub.others)
+   *   in
+   *   let tasks,hub2 = make ~egraph_init ~memo_init ~other_init in
+   *   tasks >>| fun () -> hub1,hub2 *)
 
   let spawn hub =
     let aux writer ports = Lib.write writer (MsgSpawn ports) in

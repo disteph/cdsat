@@ -41,7 +41,6 @@ module Make(WB: Export.WhiteBoard) = struct
    and _ msg2th =
      | MsgStraight : sassign*int         -> _ msg2th
      | MsgSharing  : TSet.t*int          -> _ msg2th
-     | MsgBranch   : 'a ports * 'a ports -> 'a msg2th
      | MsgSpawn    : 'a ports            -> 'a msg2th
      | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
      | TheoryAsk   : (regular msg2th Pipe.Writer.t)
@@ -56,8 +55,6 @@ module Make(WB: Export.WhiteBoard) = struct
       -> Format.fprintf fmt "MsgStraight_%i %a" chrono pp_sassign assign
     | MsgSharing(tset,chrono)
       -> Format.fprintf fmt "MsgSharing_%i %a" chrono TSet.pp tset
-    | MsgBranch(_,_)
-      -> Format.fprintf fmt "MsgBranch"
     | MsgSpawn _
       -> Format.fprintf fmt "MsgSpawn"
     | Infos(tv,nf,cval,distinct)

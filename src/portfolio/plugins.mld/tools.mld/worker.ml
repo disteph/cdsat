@@ -24,14 +24,6 @@ module Make(WB: WhiteBoardExt) = struct
   let rec flush ports msg =
     let aux = function
       | MsgStraight _ | MsgSharing _ | Infos _ -> flush ports msg
-      | MsgBranch(ports1,ports2) -> 
-         Deferred.all_unit
-           [
-             Lib.write ports1.writer msg;
-             Lib.write ports2.writer msg;
-             flush ports1 msg;
-             flush ports2 msg
-           ]
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -55,11 +47,6 @@ module Make(WB: WhiteBoardExt) = struct
         -> loop_write hdl (share cont tset) chrono ports
       | Infos _
         -> loop_read hdl cont ports
-      | MsgBranch(ports1,ports2)
-        -> let newcont = clone cont in
-           Deferred.all_unit
-             [loop_read hdl cont    ports1 ;
-              loop_read hdl newcont ports2 ]
       | MsgSpawn newports
         -> let newcont = clone cont in
            Deferred.all_unit
