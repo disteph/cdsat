@@ -23,5 +23,22 @@ open General.Sums
 module Make(WBEH: WhiteBoard4Master) : sig
   open WBEH
   open WBE
+  module T : sig
+    type analysis =
+      | InputConflict of unsat WBE.t (* Was a conflict of level 0 *)
+      | Backjump of { backjump_level : int; (* Which level to backjump to *)
+                      (* The propagations to perform in the new branch *)
+                      propagations   : straight WBE.t list;
+                      (* Possible decision to make in new branch (for rule UndoDecide) *)
+                      decision       : sassign option }
+  end
+  type state
+  type answer    = (T.analysis,WBE.sat_ans) sum
+  type saturated = Unfinished of state | Finished of state*answer
+  val saturate : state -> saturated Deferred.t
+  exception Trail_fail
+  val apply_move : DS.sassign -> state -> saturated Deferred.t
+  val successors : state -> (sassign * float) list
+  val init_state : H.t -> DS.Assign.t -> state Deferred.t
   val master : H.t -> DS.Assign.t -> (unsat t, sat_ans) sum Deferred.t
 end

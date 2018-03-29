@@ -51,14 +51,12 @@ module Make(WB4M: WhiteBoard4Master) = struct
     let pp fmt hdls = List.pp pp_binding fmt (Map.bindings hdls)
   end
 
-  module Moves = Set.Make(DS.SAssign)
-
   type state = {
+      trail    : T.t;                 (* The trail *)
+      moves    : DS.Assign.t;         (* The set of available moves *)
       hub      : H.t;                 (* Communication channels with other modules *)
       messages : say answer Pqueue.t; (* The buffer queue for messages that are not decisions *)
-      moves    : DS.Assign.t;             (* The latest decision proposal *)
       waiting4 : AS.t;                (* The agents from which we await an answer *)
-      trail    : T.t;                 (* The trail *)
       current  : sat_tmp
     }
 
@@ -216,6 +214,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                 DS.TSet.pp sharing DS.TSet.pp sharing_ref);
           saturate state
 
+  exception Trail_fail
 
   let apply_move sassign state =
     Print.print ["concur",1] (fun p -> p "About to apply move %a" DS.pp_sassign sassign);
@@ -223,32 +222,26 @@ module Make(WB4M: WhiteBoard4Master) = struct
     (* We attempt to create the trail extended with the decision *)
     match T.add ~nature:T.Decision sassign state.trail with
     | None -> (* The flip of the decision is in the trail, we miserably fail *)
-      None
+      raise Trail_fail
     | Some trail ->
-      let state = 
-        (* This is a branching point where we tell all slave workers:
-            "Please, clone yourself; here are the new pipes to be used
-            for your clone to communicate with me." *)
-        let%bind hub1 = H.spawn state.hub in
-        (* Once all slave workers have cloned themselves, we treat the first branch. *)
-        Print.print ["concur",1] (fun p ->
-            p "Everybody cloned themselves; now returning first child state");
+      (* This is a branching point where we tell all slave workers:
+          "Please, clone yourself; here are the new pipes to be used
+          for your clone to communicate with me." *)
+      let%bind hub1 = H.spawn state.hub in
+      (* Once all slave workers have cloned themselves, we treat the first branch. *)
+      Print.print ["concur",1] (fun p ->
+          p "Everybody cloned themselves; now returning first child state");
 
-        H.broadcast hub1 sassign (T.chrono trail) >>= fun () ->
-        let assign1 = DS.Assign.add sassign state.current.assign in
-        let state1 = { state with hub = hub1;
-                                  waiting4 = AS.all;
-                                  trail;
-                                  current = sat_init assign1 ~sharing:state.current.sharing }
-        in
-        saturate state1
-      in
-      Some state
+      H.broadcast hub1 sassign (T.chrono trail) >>= fun () ->
+      let assign1 = DS.Assign.add sassign state.current.assign in
+      saturate { state with hub = hub1;
+                            waiting4 = AS.all;
+                            trail;
+                            current = sat_init assign1 ~sharing:state.current.sharing }
+        
   (* In the first branch, we broadcast the guess *)
   (* (\* First recursive call *\)
    * let%bind ans = master_loop current1 newstate1 in
-   * (\* Killing the pipes used in the first recursive call *\)
-   * H.kill hub1;
    * (\* We analyse the answer ans of the recursive call,
    *    and decide whether to treat the second branch or to backjump further. *\)
    * match ans with
@@ -258,6 +251,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
    *       p "Backtrack level: %i, Propagations:\n %a"
    *         (T.level state.trail) (List.pp WBE.pp) propagations);
    *   Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
+   *   let%bind hub2 = H.spawn state.hub in
+   *   H.kill state.hub;
    *   let messages =
    *     let enqueue msg = Pqueue.push(Say msg) in
    *     List.fold enqueue propagations state.messages
@@ -269,14 +264,13 @@ module Make(WB4M: WhiteBoard4Master) = struct
    *   let newstate2 = { state with hub = hub2; decision = None; messages } in
    *   master_loop current newstate2
    * 
-   * | _ -> H.kill hub2; return ans *)
+   * | _ -> H.kill state.hub; return ans *)
 
 
   let successors state =
     DS.Assign.fold (fun move sofar -> (move,1.)::sofar) state.moves [] 
 
-  let master hub input =
-
+  let init_state hub input =
     let treat sassign (trail,tasks) =
       match T.add ~nature:T.Input sassign trail with
       | Some trail -> trail, (H.broadcast hub sassign (T.chrono trail))::tasks
@@ -290,7 +284,10 @@ module Make(WB4M: WhiteBoard4Master) = struct
                   trail;
                   current = sat_init input ~sharing:DS.TSet.empty }
     in
-    Deferred.all_unit tasks >>= fun () ->
+    Deferred.all_unit tasks >>| fun () ->
+    state
+    
+  let master hub input =
     failwith "MCTS to plug in"
     (* match%map master_loop state with
      * | Case1(T.InputConflict conflict) ->
