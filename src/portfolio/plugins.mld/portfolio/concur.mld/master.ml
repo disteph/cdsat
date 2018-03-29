@@ -126,8 +126,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           (* This is a branching point where we tell all slave workers:
               "Please, clone yourself; here are the new pipes to be used
               for your clone to communicate with me." *)
-          let%bind hub1,hub2 = H.clone state.hub in
-          H.kill state.hub;
+          let%bind hub1 = H.spawn state.hub in
           (* Once all slave workers have cloned themselves, we treat the first branch. *)
           Print.print ["concur",1] (fun p ->
               p "Everybody cloned themselves; now starting first branch");
@@ -139,8 +138,6 @@ module Make(WB4M: WhiteBoard4Master) = struct
           H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
           (* First recursive call *)
           let%bind ans = master_loop current1 newstate1 in
-          (* Killing the pipes used in the first recursive call *)
-          H.kill hub1;
           (* We analyse the answer ans of the recursive call,
              and decide whether to treat the second branch or to backjump further. *)
           match ans with
@@ -150,6 +147,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
                 p "Backtrack level: %i, Propagations:\n %a"
                   (T.level state.trail) (List.pp WBE.pp) propagations);
             Print.print ["concur",1] (fun p -> p "%s" "Now starting second branch");
+            let%bind hub2 = H.spawn state.hub in
+            H.kill state.hub;
             let messages =
               let enqueue msg = Pqueue.push(Say msg) in
               List.fold enqueue propagations state.messages
@@ -161,7 +160,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
             let newstate2 = { state with hub = hub2; decision = None; messages } in
             master_loop current newstate2
 
-          | _ -> H.kill hub2; return ans
+          | _ -> H.kill state.hub; return ans
        end         
 
     | Say(WB(_,msg) as thmsg), state ->
@@ -253,6 +252,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
   let master hub input =
 
+    Print.print ["concur",2] (fun p -> p "Starting master\n");
     let treat sassign (trail,tasks) =
       match T.add ~nature:T.Input sassign trail with
       | Some trail -> trail, (H.broadcast hub sassign (T.chrono trail))::tasks
@@ -266,6 +266,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                   trail }
     in
     Deferred.all_unit tasks >>= fun () ->
+    Print.print ["concur",2] (fun p -> p "Starting master_loop\n");
     match%map master_loop (sat_init input ~sharing:DS.TSet.empty) state with
     | Case1(T.InputConflict conflict) ->
        Print.print ["concur",2] (fun p ->

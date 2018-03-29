@@ -83,6 +83,8 @@ module type WhiteBoard4Master = sig
     type t
     (* Cloning a hub into 2 hubs *)
     val clone     : t -> (t*t) Deferred.t
+    (* Spawning a hub *)
+    val spawn     : t -> t Deferred.t
     (* Killing the communication pipes between master and slaves *)
     val kill      : t -> unit
     (* Sending a message to all slaves *)
