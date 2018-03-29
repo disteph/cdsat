@@ -1,7 +1,7 @@
 (*********************************************************************)
 (* Main plugin, implementing the combination of decision procedures
-with concurrency, as provided by Jane Street's Async library.
-
+   with concurrency, as provided by Jane Street's Async library.
+   
    This is a master-slaves architecture.
 
    Each slave thread runs the code written in worker.ml, controlling
@@ -37,8 +37,8 @@ module Make(WBEH: WhiteBoard4Master) : sig
   type saturated = Unfinished of state | Finished of state*answer
   val saturate : state -> saturated Deferred.t
   exception Trail_fail
-  val apply_move : DS.sassign -> state -> saturated Deferred.t
-  val successors : state -> (sassign * float) list
+  val apply_move : sassign -> state -> saturated Deferred.t
+  val moves : state -> (sassign * float) list
   val init_state : H.t -> DS.Assign.t -> state Deferred.t
   val master : H.t -> DS.Assign.t -> (unsat t, sat_ans) sum Deferred.t
 end

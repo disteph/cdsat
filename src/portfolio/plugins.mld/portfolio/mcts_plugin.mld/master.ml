@@ -53,13 +53,14 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
   type state = {
       trail    : T.t;                 (* The trail *)
-      moves    : DS.Assign.t;         (* The set of available moves *)
+      moves    : (sassign*float) list;(* The set of available moves *)
       hub      : H.t;                 (* Communication channels with other modules *)
       messages : say answer Pqueue.t; (* The buffer queue for messages that are not decisions *)
       waiting4 : AS.t;                (* The agents from which we await an answer *)
       current  : sat_tmp
     }
 
+  let moves state = state.moves
 
   (* Select message function:
      reads input channel and selects a message to process;
@@ -77,7 +78,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
         (fun p-> p "Want to hear from %a at chrono %i"
             AS.pp state.waiting4 (T.chrono state.trail));
       if AS.is_empty state.waiting4 (* && not(DS.Assign.is_empty state.moves) *)
-      then return None
+      then match state.moves with
+        | _::_ -> return None
+        | [] ->
+          H.propose state.hub 1 (T.chrono state.trail) >>= fun () ->
+          select_msg { state with waiting4 = AS.all }
       else match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
         | `Ok(Msg(agent,msg,chrono)) ->
@@ -94,7 +99,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | Try decisions -> 
             Print.print ["concur",2] (fun p->
                 p "Hearing guesses from %a" Agents.pp agent);
-            select_msg { state with moves = List.fold (fun (sassign,_) -> DS.Assign.add sassign) decisions state.moves }
+            select_msg { state with moves = List.append decisions state.moves }
           | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
                 p "Hearing Sat from %a at old chrono %i, ignoring"
@@ -153,7 +158,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
             let assign  = DS.Assign.add sassign state.current.assign in
             let current = sat_init assign ~sharing:state.current.sharing in
             let state   = { state with
-                            moves = DS.Assign.empty; (* we cancel remaining decision proposal *)
+                            moves = []; (* we cancel remaining decision proposal *)
                             waiting4 = AS.all;
                             trail;
                             current }
@@ -185,7 +190,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
               p "New variables to share: %a" DS.TSet.pp toshare);
           let sharing = DS.TSet.union toshare state.current.sharing in
           let state   = { state with
-                          moves = DS.Assign.empty; (* we cancel remaining decision proposal *)
+                          moves = []; (* we cancel remaining decision proposal *)
                           waiting4 = AS.all;
                           trail    = T.chrono_incr state.trail;
                           current = sat_init state.current.assign ~sharing }
@@ -267,9 +272,6 @@ module Make(WB4M: WhiteBoard4Master) = struct
    * | _ -> H.kill state.hub; return ans *)
 
 
-  let successors state =
-    DS.Assign.fold (fun move sofar -> (move,1.)::sofar) state.moves [] 
-
   let init_state hub input =
     let treat sassign (trail,tasks) =
       match T.add ~nature:T.Input sassign trail with
@@ -280,7 +282,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     let state = { hub;
                   waiting4 = AS.all;
                   messages = Pqueue.empty();
-                  moves = DS.Assign.empty;
+                  moves = [];
                   trail;
                   current = sat_init input ~sharing:DS.TSet.empty }
     in
