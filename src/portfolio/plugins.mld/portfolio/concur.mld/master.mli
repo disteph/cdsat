@@ -15,6 +15,7 @@ open Kernel
 open Top.Messages
 open Theories.Register
 
+open Tools
 open Interfaces
 
 open General.Sums

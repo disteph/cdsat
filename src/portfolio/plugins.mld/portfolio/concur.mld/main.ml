@@ -16,6 +16,7 @@ open Sums
 
 open Kernel
 open Theories.Register
+open Tools
 open Lib
 
 module Make(K:Plugin.Input) = struct

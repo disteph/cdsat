@@ -9,7 +9,7 @@ open Export
 open Theories.LRA
 open Top.Messages
        
-open Tools.PluginsTh
+open Tools
        
 module Make(DS: GlobalImplem)
          (K: API.API with type sign   = MyTheory.sign

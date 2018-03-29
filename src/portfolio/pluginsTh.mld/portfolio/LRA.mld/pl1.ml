@@ -12,7 +12,7 @@ open Top.Sassigns
 open Top.Messages
 open Theories.LRA
 
-open Tools.PluginsTh
+open Tools
        
 type sign = MyTheory.sign
 

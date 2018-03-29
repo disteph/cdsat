@@ -9,7 +9,7 @@ open Export
 open Theories.Bitvectors
 open Top.Messages
        
-open Tools.PluginsTh
+open Tools
        
 module Make(DS: GlobalImplem)
          (K: MyTheory.API with type assign = DS.Assign.t

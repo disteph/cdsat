@@ -10,7 +10,7 @@ open Theories.LRA
 open Top.Sassigns
 open Top.Messages
        
-open Tools.PluginsTh
+open Tools
        
 module Make(DS: GlobalImplem)
          (K: API.API with type sign   = MyTheory.sign

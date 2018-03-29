@@ -55,7 +55,6 @@ true: debug, optimize(3), unbox_closures
                                  package(ppx_let),\
                                  package(psyche_kernel_lib),\
                                  package(psyche_kernel)
-<src/portfolio/tools.mld>      : blind
 
 <src/top-level>           : visible(src)
 <src/top-level/*.ml{,i,y}>: thread,\

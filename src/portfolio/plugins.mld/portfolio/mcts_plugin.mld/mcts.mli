@@ -11,8 +11,18 @@ module type Problem = sig
   type state
   type proof
   val successors : state -> (state option Lazy.t * probability) list
-  val reward     : state -> reward_t * proof  
+  val reward : state -> reward_t * proof  
 end
+
+(* New API? *)
+(* module type Problem = sig
+ *   type state
+ *   type proof
+ *   type move
+ *   val moves      : state -> (move * probability) list
+ *   val apply_move : state -> move -> state
+ *   val reward     : state -> reward_t * proof  
+ * end *)
 
 
 module Make(P:Problem) : sig

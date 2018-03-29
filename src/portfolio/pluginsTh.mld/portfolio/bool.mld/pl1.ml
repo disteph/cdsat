@@ -13,7 +13,7 @@ open Termstructures.Literals
 open Termstructures.Clauses
 open Theories.Bool
 
-open Tools.PluginsTh
+open Tools
        
 type sign = MyTheory.sign
               

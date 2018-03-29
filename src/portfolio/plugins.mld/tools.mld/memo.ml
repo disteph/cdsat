@@ -12,7 +12,7 @@ open Top.Messages
 open Top.Sassigns
 open Theories.Register
 
-open Tools.PluginsTh
+open PluginsTh.Tools
 
 open Interfaces
 
