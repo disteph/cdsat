@@ -121,16 +121,16 @@ module Make(WB4M: WhiteBoard4Master) = struct
             select_msg { state with messages = Pqueue.push msg state.messages }
 
   type answer    = (T.analysis,sat_ans) sum
-  type saturated = Unfinished of state | Finished of state*answer
+  type saturation_info = NeedsMove | Leaf of answer
     
   (* Main loop of the master thread *)
-  let rec saturate state : saturated Deferred.t =
+  let rec saturate state : (state*saturation_info) Deferred.t =
 
     Print.print ["concur",2] (fun p-> p "\nsaturate enters new loop");
 
     match%bind select_msg state with
 
-    | None -> return(Unfinished(state))
+    | None -> return(state,NeedsMove)
 
     | Some(Try _,_) -> failwith "Probably in situation of UndoDecide"
 
@@ -142,7 +142,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
         (* A theory found a proof. We stop and close all pipes. *)
         let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
         H.kill state.hub;
-        Finished(state,Case1 ans)
+        (state,Leaf(Case1 ans))
 
       | Propa(old,Straight bassign) ->
         Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
@@ -183,7 +183,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
              stamped the assignment consset as being consistent with them,
              so we can finish, closing all pipes *)
           H.kill state.hub;
-          return(Finished(state,Case2 sat_ans))
+          return(state,Leaf(Case2 sat_ans))
 
         | Share toshare ->
           Print.print ["concur",2] (fun p ->
