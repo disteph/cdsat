@@ -51,7 +51,6 @@ true: debug, optimize(3), unbox_closures
 
 <src/portfolio/**/*.ml{,i,y}>  : thread,\
                                  package(async),\
-                                 package(tensorflow.fnn),\
                                  package(ppx_let),\
                                  package(psyche_kernel_lib),\
                                  package(psyche_kernel)
@@ -63,7 +62,6 @@ true: debug, optimize(3), unbox_closures
                             package(psyche_portfolio)
 <src/top-level/main.{native,byte}>: thread,\
                                     package(async),\
-                                    package(tensorflow.fnn),\
                                     package(ppx_hash),\
                                     package(ppx_let),\
                                     package(str),\
