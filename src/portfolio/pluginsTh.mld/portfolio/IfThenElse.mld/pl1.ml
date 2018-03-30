@@ -38,8 +38,11 @@ module Make(DS: GlobalImplem) = struct
         let suicide _ = () in
         let propose ?term _ =
           let tset = K.wondering state in
-          let term = TSet.choose tset in
-          [boolassign term,1.0]
+          if TSet.is_empty tset
+          then []
+          else
+            let term = TSet.choose tset in
+            [boolassign term,1.0]
         in
         SlotMachine {add; share; clone; suicide; propose }
 
