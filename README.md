@@ -65,6 +65,7 @@ A command-line argument will be considered as the file name or directory name to
 If no argument is given, the standard input will be used.
 
 Available options are:
+
     -no XXX forbids use of theory XXX
     -th XXX forces use of theory XXX
     -alltheories makes Psyche use all theories, except those specified by -no option
