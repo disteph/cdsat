@@ -20,6 +20,7 @@ COMPILING AND INSTALLING:
 In the main directory: run
 
   opam pin add cdsat-libs .
+  oasis setup
   make cdsat build
 
 The first line installs the CDSAT dependencies and the CDSAT libraries via opam.
