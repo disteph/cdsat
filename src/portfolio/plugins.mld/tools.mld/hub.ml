@@ -97,7 +97,8 @@ module Make(WB: WhiteBoardExt) = struct
         ~memo_init:(aux hub.memo)
         ~other_init:(HandlersMap.map aux hub.others)
     in
-    tasks >>| fun () -> newhub
+    tasks;%map
+    newhub
 
   let kill hub =
     HandlersMap.iter (fun _ w -> Pipe.close w) hub.others;

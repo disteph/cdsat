@@ -268,7 +268,7 @@ The reason it was added to the trail was either:
              );
 
            (* We learn the conflict, watching first and second highest assignment *)
-           learn conflict highest highest2 >>| fun ()->
+           learn conflict highest highest2;%map
 
            (* Now jumping to level of second formula contributing to conflict *)
            Backjump { backjump_level = Compare.max [%ord:int] 0 next.level;
@@ -325,8 +325,8 @@ The reason it was added to the trail was either:
             in
             (if data.level < level
              then learn conflict t t'
-             else return ())
-            >>| fun ()-> Some t
+             else return ()) ;%map
+            Some t
         in
         Backjump { backjump_level = level-1;
                    propagations   = late (level-1) trail [];

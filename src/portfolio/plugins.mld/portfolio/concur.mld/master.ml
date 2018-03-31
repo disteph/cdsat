@@ -71,7 +71,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       then match state.decision with
         | _::_ -> return(Try state.decision, { state with decision = [] } )
         | [] ->
-          H.propose state.hub 1 (T.chrono state.trail) >>= fun () ->
+          H.propose state.hub 1 (T.chrono state.trail) ;%bind
           select_msg { state with waiting4 = AS.all }
       else match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
@@ -143,7 +143,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           let current1  = sat_init assign1 ~sharing:current.sharing in
           let newstate1 = { state with hub = hub1; waiting4 = AS.all; trail } in
           (* In the first branch, we broadcast the guess *)
-          H.broadcast hub1 sassign (T.chrono newstate1.trail) >>= fun () ->
+          H.broadcast hub1 sassign (T.chrono newstate1.trail);%bind
           (* First recursive call *)
           let%bind ans = master_loop current1 newstate1 in
           (* We analyse the answer ans of the recursive call,
@@ -201,7 +201,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                              waiting4 = AS.all;
                              trail }
              in
-             H.broadcast state.hub sassign (T.chrono state.trail) >>= fun () ->
+             H.broadcast state.hub sassign (T.chrono state.trail);%bind
              master_loop current state
           end
 
@@ -233,7 +233,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                              waiting4 = AS.all;
                              trail    = T.chrono_incr state.trail }
              in
-             H.share state.hub toshare (T.chrono state.trail) >>= fun () ->
+             H.share state.hub toshare (T.chrono state.trail);%bind
              master_loop current state
 
           | GoOn current ->
@@ -273,7 +273,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                   decision = [];
                   trail }
     in
-    Deferred.all_unit tasks >>= fun () ->
+    Deferred.all_unit tasks;%bind
     Print.print ["concur",2] (fun p -> p "Starting master_loop\n");
     match%map master_loop (sat_init input ~sharing:DS.TSet.empty) state with
     | Case1(T.InputConflict conflict) ->

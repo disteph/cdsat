@@ -81,7 +81,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       then match state.moves with
         | _::_ -> return None
         | [] ->
-          H.propose state.hub 1 (T.chrono state.trail) >>= fun () ->
+          H.propose state.hub 1 (T.chrono state.trail);%bind
           select_msg { state with waiting4 = AS.all }
       else match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
@@ -163,7 +163,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                             trail;
                             current }
             in
-            H.broadcast state.hub sassign (T.chrono state.trail) >>= fun () ->
+            H.broadcast state.hub sassign (T.chrono state.trail);%bind
             saturate state
         end
 
@@ -195,7 +195,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                           trail    = T.chrono_incr state.trail;
                           current = sat_init state.current.assign ~sharing }
           in
-          H.share state.hub toshare (T.chrono state.trail) >>= fun () ->
+          H.share state.hub toshare (T.chrono state.trail);%bind
           saturate state
 
         | GoOn current ->
@@ -237,7 +237,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       Print.print ["concur",1] (fun p ->
           p "Everybody cloned themselves; now returning first child state");
 
-      H.broadcast hub1 sassign (T.chrono trail) >>= fun () ->
+      H.broadcast hub1 sassign (T.chrono trail);%bind
       let assign1 = DS.Assign.add sassign state.current.assign in
       saturate { state with hub = hub1;
                             waiting4 = AS.all;
@@ -286,7 +286,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                   trail;
                   current = sat_init input ~sharing:DS.TSet.empty }
     in
-    Deferred.all_unit tasks >>| fun () ->
+    Deferred.all_unit tasks;%map
     state
     
   let master hub input =

@@ -27,8 +27,7 @@ module Make(WB: WhiteBoardExt)
     | [] ->
        Lib.write writer unsat_msg
     | msg::l ->
-       Lib.write writer msg
-       >>= fun () ->
+       Lib.write writer msg;%bind
        flush_write writer unsat_msg l
          
   let rec flush ports unsat_msg l =
