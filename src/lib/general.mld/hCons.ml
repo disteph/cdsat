@@ -33,17 +33,14 @@ module MakePoly(M: sig
   let tableid = ref 0
                        
   type ('t,'a) initial    = ('t,'a) M.t
-  type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data Lazy.t }
+
+  type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data: 'data Lazy.t }
   (* type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data option} *)
   and  ('a,'data) g_revealed = (('a,'data) generic,'a) M.t
 
   let reveal f = f.reveal
   let id f     = f.id
   let data f   = Lazy.force f.data
-  (* match f.data with *)
-  (* | Some d -> d *)
-  (* | None -> failwith "HConsed value contains None!" *)
-
 
   module InitData
            (B: OptionValue)
@@ -98,17 +95,19 @@ module MakePoly(M: sig
          Opt.Some(BackIndex.find backtable)
       | Opt.None -> (fun _ _ -> ()),Opt.None
     in aux B.value
-                            
+
     let build a =
       (* let f = {reveal =  a; id = !unique; data = None} in *)
       (* try H.find table f *)
       try H.find table a
-      with Not_found -> 
-        let rec newf = { reveal =  a; id = !unique; data = lazy (Data.build newf) } in
+      with Not_found ->
+        let id = !unique in
+        let rec newf = { reveal =  a; id ; data = lazy(Data.build newf)} in
+        let _ = Lazy.force newf.data in
         incr unique;
         H.add table a newf;
         (* H.add table newf; *)
-        record newf.id newf;
+        record id newf;
         newf
 
     let clear() =
