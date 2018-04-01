@@ -21,7 +21,7 @@ module IntSort = struct
   module HMade = H.Init(HCons.NoBackIndex)
   include (HMade: sig type t = unit H.generic [@@deriving eq,hash] end)
             
-  let compare = H.compare
+  let compare = HMade.compare
   let id = H.id
   let reveal t = let i,_,s = H.reveal t in i,s 
   let build (i,s)  = HMade.build(i,true,s)

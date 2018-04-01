@@ -62,7 +62,7 @@ module World = struct
 
     type t = data
 
-    let build _ = function
+    let build w = match reveal w with
       | Init ->  
         {
           last = None;

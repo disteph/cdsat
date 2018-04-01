@@ -169,7 +169,9 @@ module Make(Leaf: Leaf)
     include InitData(HCons.BackIndex)(Leaf)
               (struct 
                 type t = Data.t
-                let build tag = function
+                let build term =
+                  let tag = id term in
+                  match reveal term with
                   | V v     -> Data.bV tag v
                   | C(f,l)  -> Data.bC tag f (List.map data l)
                   | FB(so,t,d) -> Data.bB tag (so,t,d)

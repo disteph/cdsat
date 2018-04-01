@@ -10,7 +10,7 @@ end
 
 module EmptyData = struct 
   type t = unit
-  let build _ _ = ()
+  let build _ = ()
 end
 
 module type PolyS = sig
@@ -20,7 +20,7 @@ module type PolyS = sig
   val reveal : ('a,'data) generic -> ('a,'data) g_revealed
   val id     : ('a,'data) generic -> int
   val data   : ('a,'data) generic -> 'data
-  val compare: ('a,'data) generic -> ('a,'data) generic -> int
+  (* val compare: ('a,'data) generic -> ('a,'data) generic -> int *)
 end
 
 module MakePoly(M: sig 
@@ -33,25 +33,24 @@ module MakePoly(M: sig
   let tableid = ref 0
                        
   type ('t,'a) initial    = ('t,'a) M.t
-  type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data }
+  type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data Lazy.t }
   (* type ('a,'data) generic = {reveal: ('a,'data) g_revealed; id:int; data:'data option} *)
   and  ('a,'data) g_revealed = (('a,'data) generic,'a) M.t
 
   let reveal f = f.reveal
   let id f     = f.id
-  let data f   = f.data
+  let data f   = Lazy.force f.data
   (* match f.data with *)
   (* | Some d -> d *)
   (* | None -> failwith "HConsed value contains None!" *)
 
-  let compare a b = Compare.id2compare id a b
 
   module InitData
            (B: OptionValue)
            (Par: sig type t [@@deriving eq, hash] end)
            (Data: sig
                 type t
-                val build : int -> (Par.t,t) g_revealed -> t
+                val build : (Par.t,t) generic -> t
               end)
     = struct
 
@@ -66,6 +65,7 @@ module MakePoly(M: sig
     let hash = id
     let hash_fold_t a = Hash.hash2fold hash a
     let equal = (==)
+    let compare a b = Compare.id2compare id a b
 
     module Arg = struct
       type t = revealed
@@ -104,7 +104,7 @@ module MakePoly(M: sig
       (* try H.find table f *)
       try H.find table a
       with Not_found -> 
-        let newf = { reveal =  a; id = !unique; data = Data.build !unique a } in
+        let rec newf = { reveal =  a; id = !unique; data = lazy (Data.build newf) } in
         incr unique;
         H.add table a newf;
         (* H.add table newf; *)
@@ -131,7 +131,7 @@ module type S = sig
   val reveal : 'data generic -> 'data g_revealed
   val id     : 'data generic -> int
   val data   : 'data generic -> 'data
-  val compare: 'data generic -> 'data generic -> int
+  (* val compare: 'data generic -> 'data generic -> int *)
 end
 
 module type BuiltS = sig
@@ -170,7 +170,7 @@ module Make(M: sig
     module InitData(B: OptionValue)
              (Data: sig
                   type t
-                  val build : int -> t g_revealed -> t
+                  val build : t generic -> t
                 end)
       = TMP.InitData(B)(struct type t = unit [@@deriving eq,hash] end)(Data)
                     
