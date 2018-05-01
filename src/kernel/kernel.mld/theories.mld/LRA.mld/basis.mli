@@ -11,8 +11,12 @@ open Sassigns
        
 open Termstructures.Rationals
        
-
-module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) : sig
+module Make
+    (DS: GlobalDS) (* (DS: DSproj with type ts = TS.t and type values = Q.t has_values) *)
+    (Proj: sig
+       val proj: DS.Term.datatype -> (DS.Term.datatype,DS.TSet.t) TS.t
+       val conv: (Q.t has_values,DS.Value.t) conv
+     end) : sig
 
   open DS
 
@@ -34,8 +38,8 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) : s
     type t [@@deriving show]
     val term    : t -> Term.t
     val scaling : t -> Q.t
-    val nature  : t -> TS.nature
-    val coeffs  : t -> TS.VarMap.t
+    val nature  : t -> nature
+    val coeffs  : t -> Termstructures.Rationals.VarMap.t
     val constant  : t -> Q.t
     val watchable : t -> int list
     val justif  : t -> Assign.t

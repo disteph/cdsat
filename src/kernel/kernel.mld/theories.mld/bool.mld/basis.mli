@@ -10,9 +10,12 @@ open Top.Messages
 open Termstructures
 open Literals
 open Clauses
-       
-
-module Make(DS: DSproj with type ts = TS.t) : sig
+         
+module Make
+    (DS: GlobalDS)
+    (Proj: sig
+       val proj: DS.Term.datatype -> (DS.Term.datatype,DS.TSet.t) Clauses.TS.t
+     end) : sig
 
   open DS
          

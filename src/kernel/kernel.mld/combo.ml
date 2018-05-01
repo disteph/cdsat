@@ -18,6 +18,9 @@ open Register
 
 open Export
 
+(********************)
+(* Combining Values *)
+(********************)
 
 module type VValue = sig
   module Value : PH
@@ -31,11 +34,24 @@ end
 
 type 'v cval = (Boolhashed.t option,'v) sum  [@@deriving eq,ord,show,hash]
 
-module type Proj = sig
-  type cvalue
-  val proj : (_*(_*_*'vopt*_)) Tags.t -> (cvalue,'vopt)proj
-end
+(* module type Proj = sig
+ *   type cvalue
+ *   val proj : ((_*_*_*_)*(_*_*'vopt*_)) Tags.t -> (cvalue,'vopt)proj
+ * end *)
 
+type ('a,'b,'c,'d,'cvalue) projtype = {
+  proj : 'e 'f 'vopt 'g. (('a*'b*'c*'d)*('e*'f*'vopt*'g)) Tags.t -> ('cvalue,'vopt)proj
+} [@@unboxed]
+
+type ('old_value,'old_cvalue,'vopt,'gv,'cv) vplus = {
+  old_conv : ('old_value has_values,'gv) conv;
+  new_conv : ('vopt,'gv) conv;
+  old_proj    : ('cv -> 'old_cvalue);
+  new_proj    : 'a 'b 'c 'd 'e 'f 'g.
+               (('a*'b*'c*'d)*('e*'f*'vopt*'g)) Tags.t
+    -> ('a,'b,'c,'d,'cv cval) projtype
+    -> ('a,'b,'c,'d,'cv cval) projtype
+}
 
 module type Vplus = sig
   include VValue
@@ -44,11 +60,13 @@ module type Vplus = sig
   type vopt
   val trans : (Value.t has_values,'gv) conv
     -> ('cv -> CValue.t)
-    -> (old_value has_values,'gv) conv * (vopt,'gv) conv
-       * ('cv -> old_cvalue)
-       *( (_*(_*_*vopt*_)) Tags.t
-          -> (module Proj with type cvalue = 'cv cval)
-          -> (module Proj with type cvalue = 'cv cval) )
+    -> (old_value,old_cvalue,vopt,'gv,'cv) vplus
+      (* (old_value has_values,'gv) conv
+       *  * (vopt,'gv) conv
+       *  * ('cv -> old_cvalue)
+       *  *( ((_*_*_*_)*(_*_*vopt*_)) Tags.t
+       *     -> (module Proj with type cvalue = 'cv cval)
+       *     -> (module Proj with type cvalue = 'cv cval) ) *)
 end
 
 module Value_add(V : PH)(Vold : VValue) =
@@ -89,37 +107,39 @@ module Value_add(V : PH)(Vold : VValue) =
 
     let trans (type gv cv)
         (HasVconv{vinj; vproj} : (Value.t has_values,'gv) conv)
-        (g : cv -> CValue.t)
-      =
-      HasVconv{ vinj  = (fun ov -> vinj(Case2 ov));
-                vproj = (fun gv -> match vproj gv with
-                    | None | Some(Case1 _) -> None
-                    | Some(Case2 d) -> Some d) },
-      HasVconv{ vinj  = (fun nv -> vinj(Case1 nv));
-                vproj = (fun gv -> match vproj gv with
-                    | None | Some(Case2 _) -> None
-                    | Some(Case1 d) -> Some d) },
-      (fun cv -> snd(g cv)),
-      let pr = function
-        | Case1 None    -> None
-        | Case1(Some b) -> Some(Values(Values.Boolean b))
-        | Case2 v ->
-          match fst(g v) with
-          | None    -> None
-          | Some v' -> Some(Values(Values.NonBoolean v'))
-      in
-      fun hdl (module Proj : Proj with type cvalue = cv cval)
-        ->
-          (module struct
-            type cvalue = cv cval
-            module P = struct
-              type (_,_,_,_,_,'v) t = (cvalue,'v) proj
-            end
-            module M = Tags.TestEq(P)
-            let proj tag = M.eq hdl tag (Proj pr) (Proj.proj tag)
-          end :
-            Proj with type cvalue = cv cval)
-
+        (g : cv -> CValue.t) =
+      { 
+        old_conv = HasVconv{ vinj  = (fun ov -> vinj(Case2 ov));
+                             vproj = (fun gv -> match vproj gv with
+                                 | None | Some(Case1 _) -> None
+                                 | Some(Case2 d) -> Some d) };
+        new_conv = HasVconv{ vinj  = (fun nv -> vinj(Case1 nv));
+                             vproj = (fun gv -> match vproj gv with
+                                 | None | Some(Case2 _) -> None
+                                 | Some(Case1 d) -> Some d) };
+        old_proj = (fun cv -> snd(g cv));
+        new_proj =
+          let pr = function
+            | Case1 None    -> None
+            | Case1(Some b) -> Some(Values(Values.Boolean b))
+            | Case2 v ->
+              match fst(g v) with
+              | None    -> None
+              | Some v' -> Some(Values(Values.NonBoolean v'))
+          in
+          fun (type a b c d e f g)
+            (hdl : ((a*b*c*d)*(e*f*vopt*g)) Tags.t)
+            (oldproj : (a,b,c,d,cv cval) projtype)
+            ->
+              let proj : type e' f' vopt' g'.
+                ((a*b*c*d)*(e'*f'*vopt'*g')) Tags.t -> (cv cval,vopt')proj =
+                function tag ->
+                match Tags.eq hdl tag with
+                | PolyEq.Eq  -> Proj pr
+                | PolyEq.NEq -> oldproj.proj tag
+              in
+              { proj }
+      }
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
                and type vopt = V.t has_values)
@@ -133,127 +153,362 @@ module Value_keep(Vold : VValue) =
     type old_cvalue = CValue.t
     type vopt = has_no_values
 
-    let trans conv g = conv,HasNoVconv,g,fun _ proj -> proj
+    let trans conv g = {
+      old_conv = conv;
+      new_conv = HasNoVconv;
+      old_proj = g;
+      new_proj = fun _ proj -> proj
+    }
 
   end : Vplus with type old_value  = Vold.Value.t
                and type old_cvalue = Vold.CValue.t
                and type vopt = has_no_values)
 
+(****************************)
+(* Combining Termstructures *)
+(****************************)
 
-type _ typedList =
-  | El  : unit typedList
-  | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList
+module type DTCombi = sig
+  open Termstructures
+  include Termstructure.PreType
+
+  module type T = sig
+
+    module Make(Term: Term)(TSet: Collection with type e = Term.t) : sig
+      type ts
+      val hdl : (Term.datatype*TSet.t*ts) Termstructure.handler
+      val ts : ((Term.datatype -> (Term.datatype,TSet.t) t) -> (Term.datatype -> ts))
+    (* type (_,_) tmp
+     * val t :
+     *   ((('data -> ('data,'tset) t) -> ('data -> ('data,'tset) tmp)) -> 'r)
+     *   -> 'r *)
+    end
+  end
+  
+  val get_proj : (_*_*_) Termstructure.handler -> (module T) option
+       
+end
+
+module type DTCombiArg = sig
+  open Termstructures
+  module TS : Termstructure.Type
+  module DT : DTCombi
+  type return
+  module Continuation(Result: sig
+      include DTCombi
+      (* val ts : (('data -> ('data,'tset) t) -> ('data -> ('data,'tset) TS.t))
+       * val dt : (('data -> ('data,'tset) t) -> ('data -> ('data,'tset) DT.t)) *)
+    end): sig
+    val result: return
+  end
+end
+
+let dt_combi (type return)
+    (module DTP : DTCombiArg with type return = return)
+  = let open DTP in
+  match DT.get_proj TS.Hdl with
+  | Some(module T) ->
+    let module C = Continuation(DT) in
+    C.result
+  | None ->
+    let ts proj = proj >> fst in
+    let dt proj = proj >> snd in
+    let module Result = struct
+
+      type ('data,'tset) t = ('data,'tset) TS.t * ('data,'tset) DT.t
+
+      module Make(Term: Term)(TSet : Collection with type e = Term.t) = struct
+        module TSMade = TS.Make(Term)(TSet)
+        module DTMade = DT.Make(Term)(TSet)
+        type t = TSMade.t*DTMade.t [@@deriving show]
+        let build ~proj term =
+          TSMade.build ~proj:(ts proj) term,
+          DTMade.build ~proj:(dt proj) term
+      end
+
+      open Termstructures
+
+      module type T = sig
+        module Make(Term: Term)(TSet: Collection with type e = Term.t) : sig
+          type ts
+          val hdl : (Term.datatype*TSet.t*ts) Termstructure.handler
+          val ts : ((Term.datatype -> (Term.datatype,TSet.t) t) -> (Term.datatype -> ts))
+        end
+      end
+
+      let get_proj (type a b c) (hdl: (a*b*c) Termstructure.handler) =
+        match TS.isHdl hdl with
+        | PolyEq.Eq  ->
+          Some(module struct
+            module Make(Term: Term)(TSet: Collection with type e = Term.t) = struct
+              type ts = (Term.datatype,TSet.t) TS.t
+              let hdl = TS.Hdl
+              let ts = ts
+            end
+          end:T)
+        | PolyEq.NEq ->
+          match DT.get_proj hdl with
+          | Some(module T) ->
+            Some(module struct
+              module Make(Term: Term)(TSet: Collection with type e = Term.t) = struct
+                module Tapp = T.Make(Term)(TSet)
+                type ts = Tapp.ts
+                let hdl = Tapp.hdl
+                let ts x = x |> dt |> Tapp.ts
+              end
+              (* type ('a,'b) tmp = ('a,'b) T.tmp
+               * let t cont =
+               *   let rec_cont trans = cont (dt >> trans) in
+               *   T.t rec_cont *)
+            end:T)
+          | None -> None
+    end
+    in
+    let module C = Continuation(Result) in
+    C.result
+
+
+(*****************************)
+(* State and state transform *)
+(*****************************)
+
+(* type _ typedList =
+ *   | El  : unit typedList
+ *   | Cons: 'a Termstructures.Register.t * 'b typedList -> ('a*'b) typedList *)
 
 
 module type State = sig
 
-  module DT : DataType
+  module DT : DTCombi
 
   module VV : VValue
 
-  val tsHandlers : DT.t typedList
-
-  val modules : ('termdata -> DT.t)
+  val modules :
+    ('data -> ('data,'tset) DT.t)
     -> (VV.Value.t has_values,'gv) conv
     -> ('cv -> VV.CValue.t)
-    -> ('termdata,'gv,'cv cval,'assign,'tset) globalDS
-    -> ('termdata*'gv*'assign*'tset) Register.Modules.t list
-       * (module Proj with type cvalue = 'cv cval)
+    -> ('data,'gv,'cv cval,'assign,'tset) globalDS
+    -> ('data*'gv*'assign*'tset) Register.Modules.t list
+       * ('data,'gv,'assign,'tset,'cv cval) projtype
+         (* (module Proj with type cvalue = 'cv cval) *)
 end
 
+(* module type Proj = sig
+ *   type cvalue
+ *   val proj : ((_*_*_*_)*(_*_*'vopt*_)) Tags.t -> (cvalue,'vopt)proj
+ * end *)
 
-let theory_add (type tva sign ts values api)
-    (hdl: (tva*(sign*ts*values*api)) Tags.t)
-    (module S : State) =
+(* type ('a,'b,'c,'d,'cvalue) projtype = {
+ *   proj : 'e 'f 'vopt 'g. (('a*'b*'c*'d)*('e*'f*'vopt*'g)) Tags.t -> ('cvalue,'vopt)proj
+ * } [@@unboxed] *)
 
-  let ts, values = Modules.get hdl in
+let theory_add (* (type tva sign ts values api) *)
+    (module Th: Theory.WithHandler)
+    (module S : State)
+  : (module State)
+  =
 
   let (module Vplus) =
-    match values with
+    match Th.T.values with
     | Theory.HasValues(module V) ->
       let module V = struct
         type t = V.t [@@deriving eq,ord,hash]
-        let pp fmt v = Format.fprintf fmt "%a<%a>" Tags.pp hdl V.pp v
+        let pp fmt v = Format.fprintf fmt "%a<%a>" Tags.pp Th.Hdl V.pp v
         let show  = Print.stringOf pp
       end
       in
       (module Value_add(V)(S.VV) : Vplus with type old_value = S.VV.Value.t
                                           and type old_cvalue = S.VV.CValue.t
-                                          and type vopt = values)
+                                          and type vopt = Th.T.values)
     | Theory.HasNoValues ->
       (module Value_keep(S.VV) : Vplus with type old_value = S.VV.Value.t
                                         and type old_cvalue = S.VV.CValue.t
-                                        and type vopt = values)
+                                        and type vopt = Th.T.values)
   in
 
-  let termstructure_add (type dt)
-      (proj1 : dt -> ts)
-      (proj2 : dt -> S.DT.t)
-      tsHandlers
-      (module DT: DataType with type t = dt)
-    : (module State) =
-    (module struct
+  let module DTP = struct
 
-      module DT = DT
+    open Termstructures
+    module TS = Th.T.TS
+    module DT = S.DT
+    type return = (module State)
 
-      module VV = Vplus
+    module Continuation(Result:DTCombi) = struct
+      let cont (type data tset)
+          ~(ts:((data -> (data,tset) Result.t) -> (data -> (data,tset) TS.t)))
+          ~(dt:((data -> (data,tset) Result.t) -> (data -> (data,tset) DT.t)))
+        : return
+        = (module struct
 
-      let tsHandlers = tsHandlers
-      let modules (type gts gv cv a s)
-          proj
-          conv
-          g
-          ((module DS) : (gts,gv,cv cval,a,s) globalDS)
-        =
-        let conv_old,conv_new,proj_old,proj_make = Vplus.trans conv g in
-        let module NewDS =
-          (struct
-            include DS
-            type nonrec ts = ts
-            let proj x = proj1(proj x)
-            type nonrec values = values
-            let conv = conv_new
-          end :  DSproj with type Term.datatype = gts
-                         and type Value.t  = gv
-                         and type Assign.t = a
-                         and type TSet.t   = s
-                         and type ts     = ts
-                         and type values = values)
-        in
-        let tm = Modules.make hdl (module NewDS) in
-        let reclist, proj_mod =
-          S.modules (fun x -> proj2(proj x)) conv_old proj_old (module DS)
-        in
-        tm::reclist,
-        proj_make hdl proj_mod
+            module DT = Result
 
-    end)
+            module VV = Vplus
+
+            let modules (type gts gv cv a s)
+                proj
+                conv
+                g
+                ((module DS) : (gts,gv,cv cval,a,s) globalDS)
+              =
+              let convs = Vplus.trans conv g in
+              let module NewDS =
+                (struct
+                  include DS
+                  type ts     = (gts,s) TS.t
+                  let proj x  = x |> proj |> proj1
+                  type values = Th.T.values
+                  let conv = convs.new_conv
+                end :  DSproj with type Term.datatype = gts
+                               and type Value.t  = gv
+                               and type Assign.t = a
+                               and type TSet.t   = s
+                               and type ts     = ts
+                               and type values = values)
+              in
+              let tm = Th.T.make (module NewDS) in
+              let reclist, proj_mod =
+                S.modules (fun x -> x |> proj |> proj2)
+                  convs.old_conv convs.old_proj (module DS)
+              in
+              (Register.Modules.Module(Th.Hdl,tm))::reclist,
+              convs.new_proj Th.Hdl proj_mod
+
+
+          end)
+    end
+  end
   in
+  dt_combi (module DTP)
+  
+  (* let module TMP
+   *     (A : sig
+   *        module DT : DataType2
+   *        module DTlocal : DataType2
+   *        val proj1 : ('term,'tset) DT.t -> ('term,'tset) DTlocal.t
+   *        val proj2 : ('term,'tset) DT.t -> ('term,'tset) S.DT.t
+   *      end)
+   * = struct
+   * 
+   *   module DT = DT
+   *   module VV = Vplus
+   * 
+   *   let modules (type gts gv cv a s)
+   *       proj
+   *       conv
+   *       g
+   *       ((module DS) : (gts,gv,cv cval,a,s) globalDS)
+   *     =
+   *     let conv_old,conv_new,proj_old,proj_make = Vplus.trans conv g in
+   *     let module NewDS =
+   *       (struct
+   *         include DS
+   *         type nonrec ts = (Term.t,TSet.t) A.DTlocal.t
+   *         let proj x = x |> proj |> A.proj1
+   *         type nonrec values = values
+   *         let conv = conv_new
+   *       end :  DSproj with type Term.datatype = gts
+   *                      and type Value.t  = gv
+   *                      and type Assign.t = a
+   *                      and type TSet.t   = s
+   *                      and type ts     = (DS.Term.t,DS.TSet.t) A.DTlocal.t
+   *                      and type values = values)
+   *     in
+   *     let tm = Modules.make hdl (module NewDS) in
+   *     let reclist, proj_mod =
+   *       S.modules (fun x -> x |> proj |> A.proj2) conv_old proj_old (module DS)
+   *     in
+   *     tm::reclist,
+   *     proj_make hdl proj_mod
+   * 
+   * end
+   * in
+   * match S.tsHandlers (tmp ts) with
+   * | None -> failwith "HH"
+   * | Some proj ->
+   *   let module A = struct
+   *     module DT = S.DT
+   *     let proj1 = proj
+   *     let proj2 x = x
+   *   end
+   *   in
+   *   let module B = TMP(A)
+   *   in (module struct
+   *        include B
+   *        let tsHandlers = S.tsHandlers
+   *      end: State) *)
 
-  let rec traverse : type a. (S.DT.t -> a) -> a typedList -> (module State) =
-    fun proj_sofar ->
-      function
-      | El ->
-        begin
-          let open Termstructures.Register in
-          match get ts with
-          | NoRepModule ->
-            termstructure_add (fun _ -> ()) (fun x->x) S.tsHandlers (module S.DT)
 
-          | RepModule(module DT) ->
-            let dt = (module Tools.Pairing(DT)(S.DT)
-                : DataType with type t = DT.t*S.DT.t) in
-            termstructure_add fst snd (Cons(ts,S.tsHandlers)) dt
-        end
-      | Cons(hts,l) ->
-        match Termstructures.Register.equal hts ts with
-        | None    -> traverse (fun x -> snd(proj_sofar x)) l
-        | Some id ->
-          let proj x = id(fst(proj_sofar x)) in
-          termstructure_add proj (fun x->x) S.tsHandlers (module S.DT)
 
-  in
-  traverse (fun x -> x) S.tsHandlers
+
+  (* let termstructure_add (type dt)
+   *     (proj1 : dt -> ts)
+   *     (proj2 : dt -> S.DT.t)
+   *     tsHandlers
+   *     (module DT: DataType with type t = dt)
+   *   : (module State) =
+   *   (module struct
+   * 
+   *     module DT = DT
+   * 
+   *     module VV = Vplus
+   * 
+   *     let tsHandlers = tsHandlers
+   *     let modules (type gts gv cv a s)
+   *         proj
+   *         conv
+   *         g
+   *         ((module DS) : (gts,gv,cv cval,a,s) globalDS)
+   *       =
+   *       let conv_old,conv_new,proj_old,proj_make = Vplus.trans conv g in
+   *       let module NewDS =
+   *         (struct
+   *           include DS
+   *           type nonrec ts = ts
+   *           let proj x = proj1(proj x)
+   *           type nonrec values = values
+   *           let conv = conv_new
+   *         end :  DSproj with type Term.datatype = gts
+   *                        and type Value.t  = gv
+   *                        and type Assign.t = a
+   *                        and type TSet.t   = s
+   *                        and type ts     = ts
+   *                        and type values = values)
+   *       in
+   *       let tm = Modules.make hdl (module NewDS) in
+   *       let reclist, proj_mod =
+   *         S.modules (fun x -> proj2(proj x)) conv_old proj_old (module DS)
+   *       in
+   *       tm::reclist,
+   *       proj_make hdl proj_mod
+   * 
+   *   end)
+   * in *)
+
+  (* let rec traverse
+   *   : type a. a typedList -> ((S.DT.t -> a) -> (module State)) =
+   *     function
+   *     | [] -> failwith "HH"
+   *       (\* begin
+   *        *   let open Termstructures.Register in
+   *        *   match get ts with
+   *        *   | NoRepModule ->
+   *        *     termstructure_add (fun _ -> ()) (fun x->x) S.tsHandlers (module S.DT)
+   *        * 
+   *        *   | RepModule(module DT) ->
+   *        *     let dt = (module Tools.Pairing(DT)(S.DT)
+   *        *         : DataType with type t = DT.t*S.DT.t) in
+   *        *     termstructure_add fst snd (Cons(ts,S.tsHandlers)) dt
+   *        * end *\)
+   *     | Cons(hts,l) ->
+   *       fun proj_sofar ->
+   *       match Termstructures2.Register.equal hts ts with
+   *       | None    -> traverse (fun x -> snd(proj_sofar x)) l
+   *       | Some id ->
+   *         let proj x = id(fst(proj_sofar x)) in
+   *         termstructure_add proj (fun x->x) S.tsHandlers (module S.DT) *)
+
+  (* in
+   * traverse (fun x -> x) S.tsHandlers *)
 
 
 

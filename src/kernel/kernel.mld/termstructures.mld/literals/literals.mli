@@ -28,4 +28,4 @@ module LitB : sig
   val negation : t -> t
 end
 
-module TS : Specs.DataType with type t = LitF.t
+module TS : Termstructure.Type with type (_,_) t = LitF.t

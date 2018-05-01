@@ -33,6 +33,7 @@ type ('leaf,'datatype) termF
 val reveal : ('leaf,'datatype) termF
              -> (('leaf,'datatype) termF,('leaf*TermB.t free)) xterm
 val data   : ('leaf,'datatype) termF -> 'datatype
+val id     : ('leaf,'datatype) termF -> int
 
 module type DataType = sig
   type t

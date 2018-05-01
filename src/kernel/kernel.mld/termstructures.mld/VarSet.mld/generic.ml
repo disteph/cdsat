@@ -1,38 +1,25 @@
-open General
-open Patricia
-open Patricia_tools
 open Top
-open Basic
-       
-module D = struct
-  include IntSort
-  include EmptyInfo
-  let treeHCons = Some(IntSort.id)
-end
-             
-module IntSortSet = PatSet.Make(D)(TypesFromHConsed(IntSort))
+open Interfaces_basic
+open Specs
 
-(* module SortSet = Set.Make(Sorts) *)
-(* module SymbSet = Set.Make(Symbols) *)
-           
 module Make(S: sig
-                (* val ksorts : Sorts.t -> bool *)
-                val known : Symbols.t -> bool
-              end) =
-  struct
+    val known : Symbols.t -> bool
+  end) = struct
 
-    type t = IntSortSet.t
+  include Termstructure.Make(struct
+      type (_,'tset) t = 'tset
 
-    let aux i so = IntSortSet.singleton(IntSort.build(i,so))
-                                       
-    let bV tag fv = aux tag (Variables.FreeVar.get_sort fv)
+      module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
 
-    let bC tag symb l =
-      if S.known symb
-      then List.fold IntSortSet.union l IntSortSet.empty
-      else let so,_ = Symbols.arity symb in
-           aux tag so
-               
-    let bB tag (_,termB,_) = aux tag (Top.Terms.TermB.get_sort termB)
+        type t = TSet.t [@@deriving show]
 
-  end
+        let build ~proj (t:Term.t) : t =
+          match Terms.reveal t with
+          | Terms.C(symb,l) when S.known symb
+            -> List.fold (fun t -> (t |> Terms.data |> proj |> TSet.union)) l TSet.empty
+          | _ -> TSet.singleton t
+
+      end
+    end)
+
+end

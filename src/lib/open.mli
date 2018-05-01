@@ -30,6 +30,8 @@ module Compare : sig
   val id2equal   : ('a -> int) -> 'a -> 'a -> bool
 end
 
+val (>>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
+
 include module type of Ppx_hash_lib.Std.Hash.Builtin
                               
 module Hash : sig
@@ -66,3 +68,7 @@ module List : sig
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
 end
 
+module PolyEq : sig
+  type (_,_) t = NEq : (_,_) t | Eq : ('a,'a) t
+  val pp : Format.formatter -> ('a,'b) t -> unit
+end

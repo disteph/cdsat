@@ -18,33 +18,57 @@ end
 
 module type Type = sig
 
-  type ts
-  val ts : ts Termstructures.Register.t
+  module TS : Termstructures.Termstructure.Type
 
   type values
   val values : values values_opt
 
   type ('term,'value,'assign,'tset) api
 
-  val make : (ts,values,'termdata,'value,'assign,'tset) dsProj
+  val make : (('termdata,'tset) TS.t,values,'termdata,'value,'assign,'tset) dsProj
              -> ('termdata,'value,'assign,'tset) api
                     
 end
 
-module type Signature = sig
-  type sign
+module type WithSign = sig
   include Type
-  type ('termdata,'value,'assign,'tset) signature
-    = ('termdata*'value*'assign*'tset)
-      *(sign*ts*values*('termdata,'value,'assign,'tset) api)
+  (* sign is the secret type used by the theory module to label its messages *)
+  type sign
 end
-                     
-module Make(T : sig
-             type sign
-             include Type
-           end) = struct
-  include T
-  type ('termdata,'value,'assign,'tset) signature
-    = ('termdata*'value*'assign*'tset)
-      *(T.sign*T.ts*T.values*('termdata,'value,'assign,'tset) T.api)
+
+type _ handler = ..
+
+module type WithHandler = sig
+
+  module T : WithSign
+  open T
+
+  type ('data,'value,'assign,'tset) signature
+    = ('data*'value*'assign*'tset)
+      *(sign*('data,'tset) TS.t*values*('data,'value,'assign,'tset) api)
+
+  type _ handler += Hdl : ('data,'value,'assign,'tset) signature handler
+
+  val isHdl : 
+      (('data*'value*'assign*'tset)*('sign*'ts*'values*'api)) handler
+      -> (('data,'value,'assign,'tset) signature,
+          ('data*'value*'assign*'tset)*('sign*'ts*'values*'api)) PolyEq.t
+end
+
+
+module Make(T : WithSign) = struct
+  module T = T
+  open T
+  type ('data,'value,'assign,'tset) signature
+    = ('data*'value*'assign*'tset)
+      *(sign*('data,'tset) TS.t*values*('data,'value,'assign,'tset) api)
+  type _ handler += Hdl : ('data,'value,'assign,'tset) signature handler
+  let isHdl
+    : type data value assign tset sign ts values api.
+      ((data*value*assign*tset)*(sign*ts*values*api)) handler
+      -> ((data,value,assign,tset) signature,
+          (data*value*assign*tset)*(sign*ts*values*api)) PolyEq.t
+    = function
+      | Hdl -> PolyEq.Eq
+      | _ -> PolyEq.NEq
 end

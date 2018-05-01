@@ -58,11 +58,20 @@ module LitB = struct
 
 end
 
-module TS = struct
-  type t = LitF.t 
-  let bV tag _ = LitF.build(true,tag)
-  let bB tag _ = LitF.build(true,tag)
-  let bC tag symb l = match symb,l with
-    | Symbols.Neg,[a] -> LitF.negation a
-    | _,_ ->  bV tag l
-end
+module TS = Termstructure.Make(struct
+
+    type nonrec (_,_) t = LitF.t
+
+    module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
+
+      include LitF
+
+      let build ~proj (t:Term.t) : t =
+        let tag = Terms.id t in
+        match Terms.reveal t with
+        | Terms.C(Symbols.Neg,[a]) -> a |> Terms.data |> proj |> LitF.negation
+        | _ -> LitF.build(true,tag)
+
+    end
+
+  end)

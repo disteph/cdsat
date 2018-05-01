@@ -6,18 +6,16 @@ open Basic
 open Specs
 open Sassigns
 open Messages
-open Termstructures.VarSet.Generic
   
 open Interfaces
        
 type sign = unit
 
 (* As alternative term representation, we only use the free vars *)
-type ts = IntSortSet.t
                     
 module Make(DS: sig
                 include GlobalDS
-                val proj : Term.datatype -> ts
+                val proj : Term.datatype -> TSet.t
               end) = struct
 
   type sassign = DS.sassign
@@ -59,8 +57,7 @@ module Make(DS: sig
                  myvars  : TSet.t Lazy.t }
 
   let add_myvars term myvars =
-    let aux var = var |> IntSort.reveal |> fun (i,_) -> TSet.add (Term.term_of_id i) in
-    IntSortSet.fold aux (DS.proj(Terms.data term)) myvars
+    TSet.fold TSet.add (DS.proj(Terms.data term)) myvars
                  
   let rec machine state =
 

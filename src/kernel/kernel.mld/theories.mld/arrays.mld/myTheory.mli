@@ -9,5 +9,5 @@ module type API = sig
 end
 
 include Theory.Type
-        with type ('t,'v,'a,'s) api = (module API with type datatypes = 't*'v*'a*'s)
-                        
+  with type ('t,'v,'a,'s) api = (module API with type datatypes = 't*'v*'a*'s)
+                                

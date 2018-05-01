@@ -1,6 +1,8 @@
 open Top
 open Basic
-       
+open Specs
+open Interfaces_basic
+    
 open Literals
 open VarSet.Generic
        
@@ -22,6 +24,7 @@ end
 module LSet = struct
   include PatSet.Make(Arg)(I)
   let next lset = let lit = choose lset in lit, remove lit lset
+  let pp = print_in_fmt ~wrap:("{","}") LitF.pp
 end
   
 (* Representation of terms for boolean reasoning *)                
@@ -39,13 +42,13 @@ None is used to represent the trivially true clause, i.e. the negation
 of the empty clause. 
    *)
 
-type t = { asclause : LSet.t option; (* None if trivially true *)
+type t' = { asclause : LSet.t option; (* None if trivially true *)
            ascube   : LSet.t option; (* None if trivially false *)
-           freevar  : IntSortSet.t }
+           freevar  : IntSortSet.t } [@@deriving show]
            
-module TS = struct
+module PreTS = struct
     
-  type nonrec t = t
+  type (_,_) t = t'
                     
   (* Building the unary clause containing literal lit *)
            
@@ -101,10 +104,6 @@ module TS = struct
                      ascube   = t.asclause;
                      freevar  = t.freevar }
 
-  let bV tag fv = build_lit tag (Variables.FreeVar.get_sort fv)
-    
-  let bB tag (_,termB,_) = build_lit tag (Top.Terms.TermB.get_sort termB)
-
   let bC tag symb l = match symb,l with
     | Symbols.True, []  -> ttrue tag
     | Symbols.False,[]  -> ffalse tag
@@ -113,6 +112,26 @@ module TS = struct
     | Symbols.Imp,[a;b] -> iimp tag a b
     | Symbols.Neg,[a]   -> negation a
     | _,_ -> let so,_ = Symbols.arity symb in
-             build_lit tag so
+      build_lit tag so
+
+  module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
+
+    type t = t'
+
+    let pp = pp_t'
+    let show = show_t'
+
+    let build ~proj (t:Term.t) : t =
+      let tag = Terms.id t in
+      match Terms.reveal t with
+      | Terms.C(symb,l)
+        -> let l = List.map (fun t -> (t |> Terms.data |> proj )) l in
+        bC tag symb l
+      | Terms.V fv -> build_lit tag (Variables.FreeVar.get_sort fv)
+      | Terms.FB(_,termB,_) -> build_lit tag (Top.Terms.TermB.get_sort termB)
+
+  end
 
 end
+
+module TS = Termstructure.Make(PreTS)

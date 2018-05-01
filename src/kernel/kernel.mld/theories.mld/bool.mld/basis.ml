@@ -9,10 +9,15 @@ open Specs
 open Sassigns
 open Messages
        
-open Termstructures.Literals
-open Termstructures.Clauses
-       
-module Make(DS: DSproj with type ts = TS.t) = struct
+open Termstructures
+open Literals
+open Clauses
+
+module Make
+    (DS: GlobalDS)
+    (Proj: sig
+       val proj: DS.Term.datatype -> (DS.Term.datatype,DS.TSet.t) Clauses.TS.t
+     end) = struct
 
   open DS
          
@@ -75,11 +80,11 @@ module Make(DS: DSproj with type ts = TS.t) = struct
   end
 
   let clause (t,Values.Boolean b) =
-    let data = proj (Terms.data t) in
+    let data = Proj.proj (Terms.data t) in
     if b then data.asclause else data.ascube
 
   let cube (t,Values.Boolean b) =
-    let data = proj (Terms.data t) in
+    let data = Proj.proj (Terms.data t) in
     if b then data.ascube else data.asclause
 
           

@@ -9,12 +9,19 @@ open Messages
 open Specs
 open Sassigns
        
-open Termstructures.Rationals
-       
-module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = struct
+open Termstructures
+open Rationals
+  
+module Make
+    (DS: GlobalDS) (* (DS: DSproj with type ts = TS.t and type values = Q.t has_values) *)
+    (Proj: sig
+       val proj: DS.Term.datatype -> (DS.Term.datatype,DS.TSet.t) TS.t
+       val conv: (Q.t has_values,DS.Value.t) conv
+     end) = struct
 
   open DS
-  let HasVconv{vinj;vproj} = conv
+      
+  let HasVconv{vinj;vproj} = Proj.conv
 
   (* We first define a notion of LRA model, as a map from LRA variables to (value,sassign),
      where value is a rational value,
@@ -51,14 +58,14 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
 
   module Simpl = struct
 
-    type simpl = { coeffs    : TS.VarMap.t;
+    type simpl = { coeffs    : Rationals.VarMap.t;
                    constant  : Q.t;
                    watchable : int list;
                    justif    : Assign.t; }
 
     type t = { term : Term.t;
                scaling : Q.t;
-               nature  : TS.nature;
+               nature  : nature;
                simpl   : simpl }
 
     let term t      = t.term
@@ -71,7 +78,7 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
 
     (* Picking 2 vars in a sum, or the maximum thereof *)
     let pick2 =
-      TS.VarMap.fold_monad
+      Rationals.VarMap.fold_monad
         ~return:(fun watchable -> watchable)
         ~bind:(fun reccall todo watchable ->
           if List.length watchable < 2
@@ -89,14 +96,14 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
     let action =
       (* Variable var is assigned in the model, can't pick it to watch *)
       let sameleaf var coeff (value,sassign) watchable =
-        { coeffs   = TS.VarMap.empty;
+        { coeffs   = Rationals.VarMap.empty;
           constant = Q.(value * coeff);
           watchable;
           justif = Assign.singleton sassign }
       in
       (* No variable in this part of the exploration *)
       let emptyfull _ watchable =
-        { coeffs   = TS.VarMap.empty;
+        { coeffs   = Rationals.VarMap.empty;
           constant = Q.zero;
           watchable;
           justif   = Assign.empty }
@@ -116,34 +123,34 @@ module Make(DS: DSproj with type ts = TS.t and type values = Q.t has_values) = s
         if List.length ans1.watchable < 2
         then
           let ans2 = treat rconstraint rmodel ans1.watchable in
-          { coeffs    = TS.VarMap.union snh ans1.coeffs ans2.coeffs;
+          { coeffs    = Rationals.VarMap.union snh ans1.coeffs ans2.coeffs;
             constant  = Q.(ans1.constant + ans2.constant);
             watchable = ans2.watchable;
             justif    = Assign.union ans1.justif ans2.justif }
         else
-          { ans1 with coeffs = TS.VarMap.union snh ans1.coeffs rconstraint }
+          { ans1 with coeffs = Rationals.VarMap.union snh ans1.coeffs rconstraint }
       in
-      TS.VarMap.Fold2.{ sameleaf; emptyfull; fullempty;
-                        combine = make_combine TS.VarMap.empty Model.empty combine }
+      Rationals.VarMap.Fold2.{ sameleaf; emptyfull; fullempty;
+                        combine = make_combine Rationals.VarMap.empty Model.empty combine }
                 
     let simplify model c =
-      let simpl = TS.VarMap.fold2_poly action c.simpl.coeffs model [] in
+      let simpl = Rationals.VarMap.fold2_poly action c.simpl.coeffs model [] in
       { c with simpl = { simpl with
                          constant = Q.(c.simpl.constant + simpl.constant);
                          justif = Assign.union c.simpl.justif simpl.justif } }
 
     let make term =
-      let data = proj(Terms.data term) in
-      let simpl = { coeffs    = data.TS.coeffs;
-                    constant  = data.TS.constant;
-                    watchable = pick2 data.TS.coeffs [];
+      let data = Proj.proj(Terms.data term) in
+      let simpl = { coeffs    = data.coeffs;
+                    constant  = data.constant;
+                    watchable = pick2 data.coeffs [];
                     justif    = Assign.empty }
       in
-      { term; scaling=data.TS.scaling; nature=data.TS.nature; simpl }
+      { term; scaling=data.scaling; nature=data.nature; simpl }
 
     let pp fmt c =
       let pp_var fmt i = Term.pp fmt (Term.term_of_id i) in
-      TS.pp pp_var fmt (proj(Terms.data(term c)))
+      Rationals.pp pp_var fmt (Proj.proj(Terms.data(term c)))
     let show = Print.stringOf pp
   end
 

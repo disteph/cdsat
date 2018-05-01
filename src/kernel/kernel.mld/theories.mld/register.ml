@@ -7,77 +7,60 @@ module IfThenElse = Theory.Make(IfThenElse.MyTheory)
        
 module Tags = struct
 
-  type _ t = 
-    | Bool  : (_,_,_,_) Bool.signature t
-    | Arrays: (_,_,_,_) Arrays.signature t
-    | LRA   : (_,_,_,_) LRA.signature t
-    | IfThenElse: (_,_,_,_) IfThenElse.signature t
+  type 'a t = 'a Theory.handler
 
   let[@inline] id (type a) : a t -> int = function
-    | Bool -> 2
-    | Arrays -> 3
-    | LRA -> 4
-    | IfThenElse -> 5
+    | Bool.Hdl -> 2
+    | Arrays.Hdl -> 3
+    | LRA.Hdl -> 4
+    | IfThenElse.Hdl -> 5
+    | _ -> failwith "You forgot to map a theory to an int"
                 
   let pp fmt (type a) : a t -> unit = function
-    | Bool       -> fprintf fmt "Bool"
-    | Arrays     -> fprintf fmt "Arrays"
-    | LRA        -> fprintf fmt "LRA"
-    | IfThenElse -> fprintf fmt "IfThenElse"
+    | Bool.Hdl       -> fprintf fmt "Bool"
+    | Arrays.Hdl     -> fprintf fmt "Arrays"
+    | LRA.Hdl        -> fprintf fmt "LRA"
+    | IfThenElse.Hdl -> fprintf fmt "IfThenElse"
+    | _ -> failwith "You forgot to give a name to a theory"
 
-  module TestEq(M : sig
-               type (_,_,_,_,_,_) t
-             end) = struct
-    open General.Sums
-    let eq
-          (type s1 t1 v1 tva1 api1
-                  s2 t2 v2 tva2 api2)
-          (tag1 : (tva1*(s1*t1*v1*api1)) t)
-          (tag2 : (tva2*(s2*t2*v2*api2)) t)
-          (iftrue  : (s1,t1,v1,s1,t1,v1) M.t)
-          (iffalse : (s1,t1,v1,s2,t2,v2) M.t)
-        : (s1,t1,v1,s2,t2,v2) M.t
-      =
-      match tag1,tag2 with
-      | Bool, Bool   -> iftrue
-      | Arrays, Arrays -> iftrue
-      | LRA, LRA       -> iftrue
-      | IfThenElse, IfThenElse -> iftrue
-      | _ -> iffalse
-  end
-
-  module M = TestEq(struct
-                       type (_,_,_,_,_,_) t = bool
-                     end)
-
-  let eq tag1 tag2 = M.eq tag1 tag2 true false
-
+  let eq  (type data value assign tset sign1 ts1 values1 api1 sign2 ts2 values2 api2)
+    : ((data*value*assign*tset)*(sign1*ts1*values1*api1)) Theory.handler
+      -> ((data*value*assign*tset)*(sign2*ts2*values2*api2)) Theory.handler
+      -> ((data*value*assign*tset)*(sign1*ts1*values1*api1),
+          (data*value*assign*tset)*(sign2*ts2*values2*api2)) PolyEq.t
+    = function
+    | Bool.Hdl       -> Bool.isHdl
+    | Arrays.Hdl     -> Arrays.isHdl
+    | LRA.Hdl        -> LRA.isHdl
+    | IfThenElse.Hdl -> IfThenElse.isHdl
+    | _ -> failwith "You forgot to map a theory to its eq function"
+    
 end
 
 module Modules = struct
 
-  let get (type tva sign ts v api)
-        (tag : (tva*(sign*ts*v*api)) Tags.t)
-       : ts Termstructures.Register.t * v Theory.values_opt
-    = let open Tags in
-      match tag with
-    | Bool       -> Bool.ts, Bool.values
-    | Arrays     -> Arrays.ts, Arrays.values
-    | LRA        -> LRA.ts, LRA.values
-    | IfThenElse -> IfThenElse.ts, IfThenElse.values
+  let get (type gv a termdata tset sign ts v api)
+        (tag : ((termdata*gv*a*tset)*(sign*ts*v*api)) Tags.t)
+       : (module Theory.Type)
+    = match tag with
+    | Bool.Hdl       -> (module Bool.T)
+    | Arrays.Hdl     -> (module Arrays.T)
+    | LRA.Hdl        -> (module LRA.T)
+    | IfThenElse.Hdl -> (module IfThenElse.T)
+    | _ -> failwith "Forgot to map a theory to its module"
                              
   type _ t = Module : ('tva*(_*_*_*'api)) Tags.t * 'api -> 'tva t
 
-  let make(type tva sign ts v api)
-        (tag : (tva*(sign*ts*v*api)) Tags.t)
-        (ds  : (ts,v,_,_,_,_) Top.Specs.dsProj)
+  let make(type data gv assign tset sign ts v api)
+        (tag : ((data*gv*assign*tset)*(sign*ts*v*api)) Tags.t)
+        (ds  : (ts,v,data,_,_,tset) Top.Specs.dsProj)
     =
-    let open Tags in
     match tag with 
-    | Bool       -> Module(Bool,Bool.make ds)
-    | Arrays     -> Module(Arrays,Arrays.make ds)
-    | LRA        -> Module(LRA,LRA.make ds)
-    | IfThenElse -> Module(IfThenElse,IfThenElse.make ds)
+    | Bool.Hdl       -> Bool.(Module(Hdl,T.make ds))
+    | Arrays.Hdl     -> Arrays.(Module(Hdl,T.make ds))
+    | LRA.Hdl        -> LRA.(Module(Hdl,T.make ds))
+    | IfThenElse.Hdl -> IfThenElse.(Module(Hdl,T.make ds))
+    | _ -> failwith "Forgot to map a theory to its make function"
                              
 end
 
@@ -97,10 +80,10 @@ end
 
 let all_theories_list = 
   [
-    Handlers.Handler Tags.Bool;
-    Handlers.Handler Tags.Arrays;
-    Handlers.Handler Tags.LRA;
-    Handlers.Handler Tags.IfThenElse;
+    Handlers.Handler Bool.Hdl;
+    Handlers.Handler Arrays.Hdl;
+    Handlers.Handler LRA.Hdl;
+    Handlers.Handler IfThenElse.Hdl;
     Handlers.Eq
   ]
 
@@ -143,10 +126,10 @@ let all_theories = List.fold (fun hdl -> HandlersMap.add hdl ()) all_theories_li
 exception NotFound of string
 
 let parse = function
-  | "LRA"        -> Handlers.Handler Tags.LRA
-  | "Arrays"     -> Handlers.Handler Tags.Arrays
-  | "IfThenElse" -> Handlers.Handler Tags.IfThenElse
-  | "bool"       -> Handlers.Handler Tags.Bool
+  | "LRA"        -> Handlers.Handler LRA.Hdl
+  | "Arrays"     -> Handlers.Handler Arrays.Hdl
+  | "IfThenElse" -> Handlers.Handler IfThenElse.Hdl
+  | "bool"       -> Handlers.Handler Bool.Hdl
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories

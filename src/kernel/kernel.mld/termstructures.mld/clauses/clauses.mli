@@ -1,7 +1,6 @@
 open Top.Specs
 
 open Literals
-open VarSet.Generic
 
 open General
 open Patricia
@@ -32,8 +31,8 @@ end
    are usually Some a, Some b, with one of a or b being a singleton
    and the other one being non-empty. *)
 
-type t = private { asclause : LSet.t option; (* None if trivially true *)
+type t' = private { asclause : LSet.t option; (* None if trivially true *)
                    ascube   : LSet.t option; (* None if trivially false *)
                    freevar  : IntSortSet.t }
 
-module TS : DataType with type t = t
+module TS : Termstructure.Type with type (_,_) t = t'

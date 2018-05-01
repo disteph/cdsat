@@ -13,5 +13,5 @@ end
        
 val fail_state : (_,_*_*_*_) Specs.slot_machine
 
-module Pairing(B1: DataType)(B2: DataType)
-       : (DataType with type t = B1.t*B2.t)
+(* module Pairing(B1: DataType)(B2: DataType)
+ *        : (DataType with type t = B1.t*B2.t) *)

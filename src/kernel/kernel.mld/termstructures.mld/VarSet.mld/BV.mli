@@ -1,1 +1,1 @@
-include Top.Specs.DataType with type t = Generic.IntSortSet.t
+include Termstructure.Type with type (_,'tset) t = 'tset

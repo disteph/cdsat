@@ -15,13 +15,13 @@ let fail_state =
   let suicide = add in
   Specs.SlotMachine { add; share; clone; suicide }
                    
-module Pairing(B1: DataType)(B2: DataType)
-       : (DataType with type t = B1.t*B2.t) =
-  struct
-    type t = B1.t*B2.t
-    let bC tag symb args = 
-      (B1.bC tag symb (List.map fst args),
-       B2.bC tag symb (List.map snd args))
-    let bV tag v = (B1.bV tag v, B2.bV tag v)
-    let bB tag t = (B1.bB tag t, B2.bB tag t)
-  end
+(* module Pairing(B1: DataType)(B2: DataType)
+ *        : (DataType with type t = B1.t*B2.t) =
+ *   struct
+ *     type t = B1.t*B2.t
+ *     let bC tag symb args = 
+ *       (B1.bC tag symb (List.map fst args),
+ *        B2.bC tag symb (List.map snd args))
+ *     let bV tag v = (B1.bV tag v, B2.bV tag v)
+ *     let bB tag t = (B1.bB tag t, B2.bB tag t)
+ *   end *)

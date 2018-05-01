@@ -30,7 +30,9 @@ end
 module Pervasives = Pervasives
 
 include Pervasives
-                                       
+
+let (>>) f g x = x |> f |> g
+  
 include Ppx_hash_lib.Std.Hash.Builtin
 
 module Hash = struct
@@ -76,4 +78,11 @@ module List = struct
   let fold f seed l = List.fold_left (fun sofar elt -> f elt sofar) l seed
 
   let hash h = Hash.wrap1 hash_fold_t h
+end
+
+module PolyEq = struct
+  type (_,_) t = NEq : (_,_) t | Eq : ('a,'a) t
+  let pp fmt (type a b) : (a,b) t -> unit = function
+    | NEq -> Format.fprintf fmt "NEq"
+    | Eq  -> Format.fprintf fmt "Eq"
 end

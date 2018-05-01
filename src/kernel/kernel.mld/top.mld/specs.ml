@@ -8,7 +8,6 @@ open General
 open Sums
        
 open Interfaces_basic
-open Basic
 open Variables
 open Sassigns
        
@@ -18,8 +17,7 @@ module type Term = Terms.S with type leaf = FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
                            
-module type DataType = Terms.DataType with type leaf := FreeVar.t
-
+(* module type DataType = Terms.DataType with type leaf := FreeVar.t *)
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -70,8 +68,8 @@ type ('gts,'gv,'cv,'assign,'tset) globalDS
                       and type CValue.t  = 'cv
                       and type Assign.t  = 'assign
                       and type TSet.t    = 'tset)
-  
-(* Extension thereof,
+
+(* Extension of GlobalDS,
    that adds interfacing functions with theory-specific types for terms and values.
      proj can project the global term datatype into the theory-specific one ts
      proj_opt, if the theory module has values, offers an injection (resp. a projection)
@@ -98,13 +96,12 @@ end
 
 (* type version of the above *)
 type ('ts,'v,'gts,'gv,'assign,'tset) dsProj
-  = (module DSproj with type ts       = 'ts
+  = (module DSproj with type ts = 'ts
                     and type values   = 'v
                     and type Term.datatype = 'gts
                     and type Value.t  = 'gv
                     and type Assign.t = 'assign
                     and type TSet.t   = 'tset)
-
 
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
 

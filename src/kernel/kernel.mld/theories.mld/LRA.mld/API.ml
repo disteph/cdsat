@@ -49,8 +49,8 @@ module type API = sig
     type t [@@deriving show]
     val term    : t -> termdata termF
     val scaling : t -> Q.t
-    val nature  : t -> TS.nature
-    val coeffs  : t -> TS.VarMap.t
+    val nature  : t -> nature
+    val coeffs  : t -> Termstructures.Rationals.VarMap.t
     val constant  : t -> Q.t
     val watchable : t -> int list
     val justif  : t -> assign
@@ -72,7 +72,7 @@ module type API = sig
        whether it is large or strict, etc, can be determined by nature
        and the sign of the coefficient for var in the term *)
     | Unit    of { var         : int;
-                   nature      : TS.nature;
+                   nature      : nature;
                    is_coeff_pos: bool;
                    bound       : Q.t }
     (* There are at least 2 unassigned variables in the term.

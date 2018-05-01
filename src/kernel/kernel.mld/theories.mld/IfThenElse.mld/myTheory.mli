@@ -23,10 +23,9 @@ module type API = sig
 end
 
 
-include Theory.Type with type ts = Termstructures.VarSet.Generic.IntSortSet.t
+include Theory.Type with module TS = Termstructures.VarSet.ITE
                      and type values = has_no_values
                      and type ('t,'v,'a,'s) api = (module API with type termdata = 't
                                                                and type value = 'v
                                                                and type assign = 'a
                                                                and type tset = 's)
-                                                    

@@ -22,10 +22,8 @@ end
 
 module type Type = sig
 
-  (* ts is the type of term representations used by the theory module *)
-  type ts
-  (* ts is the handler for this term representation module *)
-  val ts : ts Termstructures.Register.t
+  (* TS is the term representations used by the theory module *)
+  module TS : Termstructures.Termstructure.Type
 
   (* type values is
      - either has_no_values if the theory module does not use values
@@ -56,24 +54,34 @@ module type Type = sig
   type ('term,'value,'assign,'tset) api
 
   (* How to build an API *)
-  val make : (ts,values,'termdata,'value,'assign,'tset) dsProj
+  val make : (('termdata,'tset) TS.t,values,'termdata,'value,'assign,'tset) dsProj
              -> ('termdata,'value,'assign,'tset) api
                     
 end
 
-module type Signature = sig
-  type sign
+module type WithSign = sig
   include Type
-  type ('termdata,'value,'assign,'tset) signature
-    = ('termdata*'value*'assign*'tset)
-      *(sign*ts*values*('termdata,'value,'assign,'tset) api)
+  (* sign is the secret type used by the theory module to label its messages *)
+  type sign
 end
 
-module Make(T : sig
-             (* sign is the secret type used by the theory module to label its messages *)
-             type sign
-             include Type
-           end) : Signature with type sign = T.sign
-                             and type ts = T.ts
-                             and type values = T.values
-                             and type ('t,'v,'a,'s) api = ('t,'v,'a,'s) T.api
+type _ handler = private ..
+
+module type WithHandler = sig
+
+  module T : WithSign
+  open T
+
+  type ('data,'value,'assign,'tset) signature
+    = ('data*'value*'assign*'tset)
+      *(sign*('data,'tset) TS.t*values*('data,'value,'assign,'tset) api)
+
+  type _ handler += Hdl : ('data,'value,'assign,'tset) signature handler
+
+  val isHdl : 
+      (('data*'value*'assign*'tset)*('sign*'ts*'values*'api)) handler
+      -> (('data,'value,'assign,'tset) signature,
+          ('data*'value*'assign*'tset)*('sign*'ts*'values*'api)) PolyEq.t
+end
+
+module Make(T : WithSign) : WithHandler with module T = T

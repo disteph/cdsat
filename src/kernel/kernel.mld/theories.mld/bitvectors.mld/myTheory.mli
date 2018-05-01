@@ -42,12 +42,12 @@ module type API = sig
   (* Injection and projections for values and termrepresentations *)
   val vinj : V.t -> value
   val vproj : value -> V.t option
-  val proj : termdata termF -> Termstructures.VarSet.Generic.IntSortSet.t
+  val proj : termdata termF -> tset
 end
 
 
 include Theory.Type
-        with type ('t,'v,'a,'s) api = (module API with type termdata = 't
-                                                   and type value  = 'v
-                                                   and type assign = 'a
-                                                   and type tset   = 's)
+  with type ('t,'v,'a,'s) api = (module API with type termdata = 't
+                                             and type value  = 'v
+                                             and type assign = 'a
+                                             and type tset   = 's)
