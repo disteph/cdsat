@@ -1,35 +1,35 @@
 (* This module contains the basic constructions of Patricia trees to
   represent maps and sets *)
 
-open Patricia_interfaces
+open Patricia_sig
 
-type ('keys,'values,'common,'branching,'infos) poly
+(* type ('keys,'values,'common,'branching,'infos) poly *)
 
-module PatMap: sig
+module Make(K:Key) : sig
 
-  module type S = PatMap
+  module MapH(I:MapArgH with type t:=K.t)
+    : MapH with type keys    = K.t
+            and type common  := K.common
+            and type branching := K.branching
+            and type values  = I.values
+            and type infos   = I.infos
 
-  module Make
-    (K:MapArg)
-    (I:Intern with type keys=K.t)
-    : S with type keys   = K.t
-        and  type values = K.values
-        and  type infos  = K.infos
-        and  type common = I.common
-        and  type branching = I.branching
-        and  type ('v,'i) param = (K.t,'v,I.common,I.branching,'i) poly
-end
+  module MapNH(I:MapArgNH with type t:=K.t)
+    : Map with type keys    = K.t
+           and type common  := K.common
+           and type branching := K.branching
+           and type values  = I.values
+           and type infos   = I.infos
 
-module PatSet: sig
+  module SetH(I:SetArgH with type t:=K.t)
+    : SetH with type e       = K.t
+            and type common  := K.common
+            and type branching := K.branching
+            and type infos   = I.infos
 
-  module type S = PatSet
-
-  module Make
-    (E:SetArg)
-    (I:Intern with type keys=E.t)
-    : S with type e      = E.t
-        and  type infos  = E.infos
-        and  type common = I.common
-        and  type branching = I.branching
-        and  type ('v,'i) param = (E.t,'v,I.common,I.branching,'i) poly
+  module SetNH(I:SetArgNH with type t:=K.t)
+    : Set with type e       = K.t
+           and type common  := K.common
+           and type branching := K.branching
+           and type infos   = I.infos
 end

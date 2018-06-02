@@ -16,10 +16,6 @@ let map f = function
 let is_none = function None -> true | Some _ -> false
 let is_some = function None -> false | Some _ -> true
 
-type some = private S
-type none = private N
-
-type (_,_) gadt =
-  | Some: 'a -> ('a,some) gadt
-  | None: ('a,none) gadt
-
+type (_,_) gadt = 
+  | Some: 'a -> ('a,[`Some]) gadt
+  | None: ('a,[`None]) gadt

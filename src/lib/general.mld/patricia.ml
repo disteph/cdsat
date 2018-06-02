@@ -1,164 +1,111 @@
 open Format
-open Sums
-open Patricia_interfaces
-
-let pattreenum = ref 0
-
-(* Direct type of Patricia tries. 'a is the type of the sub-tries *)
-type ('a,'keys,'values,'common,'branching) poly_rev =
-  | Empty
-  | Leaf of 'keys * 'values
-  | Branch of 'common * 'branching * 'a * 'a
-
-(* Type of Patricia tries used in hash-consing *)
-type ('keys,'values,'common,'branching,'infos) poly =
-  {reveal: (('keys,'values,'common,'branching,'infos) poly,
-            'keys,
-            'values,
-            'common,
-            'branching) poly_rev ;
-   id:int ;
-   info: 'infos}
+open Patricia_sig
 
 let print_nothing _ _ = ()
 let print_dot fmt _ = fprintf fmt "."
 
-module Poly(I:Intern) = struct
+module Make(K:Key) = struct
 
-  open I
+  open K
 
-  module ToInclude = struct
-    type ('v,'i) param = (keys,'v,common,branching,'i) poly
-    type branching = I.branching
-    type common = I.common
-    let reveal f = f.reveal
-    let info f   = f.info
-    let rec checktree aux t = match reveal t with
-      | Empty               -> true
-      | Leaf (j,_)          ->
-         List.fold (fun m b ->
-             let g = check (tag j) m in
-             if not g then print_endline("Warning leaf");
-             b&&g)
-           aux true
-      | Branch (_, m, l, r) ->
-    	 let aux' = m::aux in
-    	 let o = match aux with
-    	   | []   -> true
-    	   | a::l when bcompare a m < 0 -> true
-    	   | _    -> false
-    	 in
-    	 if not o then print_endline("Warning Branch");
-    	 o&&(checktree aux r)&&(checktree aux' l)
+  let kequal k1 k2 = K.compare k1 k2 = 0
 
-    let is_empty t = match reveal t with Empty -> true | _ -> false
+  module Poly = struct
+    (* Direct type of Patricia tries. 'a is the type of the sub-tries *)
+    type ('a,'values) t =
+      | Empty
+      | Leaf of K.t * 'values
+      | Branch of common * branching * 'a * 'a
 
-    let rec cardinal t = match reveal t with
-      | Empty  -> 0
-      | Leaf _ -> 1
-      | Branch (_,_,t0,t1) -> cardinal t0 + cardinal t1
-
-  end
+    let equal rec_eq vequal t1 t2 =
+      match t1,t2 with
+      | Empty, Empty -> true
+      | Leaf(key1,value1), Leaf(key2,value2)
+        -> (kequal key1 key2) && (vequal value1 value2)
+      | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')
+        -> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2=0)&&(match_prefix c1 c2 b1)
+      | _            -> false
     
-  let equal rec_eq kcompare vequal t1 t2 =
-    match t1.reveal,t2.reveal with
-    | Empty, Empty                             -> true
-    | Leaf(key1,value1), Leaf(key2,value2)     -> (kcompare key1 key2=0) && (vequal value1 value2)
-    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')-> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2=0)&&(match_prefix c1 c2 b1)
-    | _                                        -> false
+    let hash_fold_t khash rec_hash vhash state t1 = match t1 with
+      | Empty            -> [%hash_fold:int] state 3
+      | Leaf(key,value)  -> Hash.triple [%hash_fold:int] khash vhash state (5,key,value)
+      | Branch(_,_,t2,t3)-> Hash.triple [%hash_fold:int] rec_hash rec_hash state (7,t2,t3)
 
-  let hash rec_hash khash vhash t1 = match t1.reveal with
-    | Empty            -> 1
-    | Leaf(key,value)  -> 2*(khash key)+3*(vhash value)
-    | Branch(_,b,t2,t3)-> 5*(rec_hash t2)+7*(rec_hash t3)
+    let name = "Patricia tries"
+  end
 
+  open Poly
+  
+  module M = HCons.MakePoly(Poly)
+  open M
 
-  module MapMake(K:MapArg with type t=I.keys) = struct
+  module type Base = sig
+    type values
+    type infos
+    type hcons
+    val build  : ((values*infos*hcons) G.t, values) Poly.t -> (values*infos*hcons) G.t
+    val equal_opt : (values*infos*hcons) G.t Equal.t option
+  end
 
-  (* This module BackOffice will be share by the Patricia tree
-     structure for sets, below *)
+  module MapGen(I:MapArgNH with type t:=K.t)
+      (B : Base with type values := I.values
+                 and type infos  := I.infos) = struct
+
+    open G
+    open B
+
+    let is_hcons = match equal_opt with
+      | Some _ -> true
+      | None -> false
+
+    (* This module BackOffice will be share by the Patricia tree
+       structure for sets, below *)
+
     module BackOffice = struct
 
-      include ToInclude
       type keys   = K.t
-      type values = K.values
-      type infos  = K.infos
+      type infos  = I.infos
+      type values = I.values
 
-      (* Our Patricia trees can be HConsed *)
+      type ('v,'ih)param = ('v*'i*'h) G.t constraint 'ih = 'i*'h
 
-      let is_hcons = match K.treeHCons with
-        | None -> false
-        | Some _ -> true
+      let info = data
 
-      let id =
-        if is_hcons then fun f -> f.id
-        else fun _ -> failwith "No function id when patricia trees are not HConsed"
+      let rec checktree aux t = match reveal t with
+        | Empty               -> true
+        | Leaf (j,_)          ->
+          List.fold_right (fun m b ->
+              let g = check (tag j) m in
+              if not g then print_endline("Warning leaf");
+              b&&g)
+            aux true
+        | Branch (_, m, l, r) ->
+    	  let aux' = m::aux in
+    	  let o = match aux with
+    	    | []   -> true
+    	    | a::_ when bcompare a m < 0 -> true
+    	    | _    -> false
+    	  in
+    	  if not o then print_endline("Warning Branch");
+    	  o&&(checktree aux r)&&(checktree aux' l)
 
-      (* Primitive type of Patricia trees to feed the HashTable Make
-         functor *)
+      let rec cardinal t = match reveal t with
+        | Empty  -> 0
+        | Leaf _ -> 1
+        | Branch (_,_,t0,t1) -> cardinal t0 + cardinal t1
 
-      module PATPrimitive = struct
+      let is_empty t = match reveal t with Empty -> true | _ -> false
 
-        type t = (keys,values,common,branching,infos) poly
-
-        let equal =
-          match K.treeHCons with
-          | None -> fun t t' -> failwith "No function equal when patricia trees are not HConsed"
-          | Some(_,_,vequal) -> equal (==) K.compare vequal
-
-        let hash = match K.treeHCons with
-          | None -> fun t -> failwith "No function hash when patricia trees are not HConsed"
-          | Some(khash,vhash,_) -> hash id khash vhash
-
-      end
-
-      type t = PATPrimitive.t
-
-      let info_gen = function
-        | Empty            -> K.info_build.empty_info
-        | Leaf(k,x)        -> K.info_build.leaf_info k x
-        | Branch(_,_,t0,t1)-> K.info_build.branch_info (info t0) (info t1)  
-
-      module H = Hashtbl.Make(PATPrimitive)
-
-      let num = !pattreenum
-
-      let table = incr pattreenum; H.create 5003 
-
-      let uniqq =ref 0
-      let build =
-        let f a = {reveal =  a; id = !uniqq ; info = info_gen a} in
-        if is_hcons
-        then (fun a ->
-          let f = f a in
-          try H.find table f
-	  with Not_found -> incr uniqq; H.add table f f; f)
-        else f
-
-      let clear() = uniqq := 0;H.clear table; let _ = build Empty in ()
-
-      let compare =
-        if is_hcons then fun a b -> Compare.id2compare id a b
-        else fun _ _ -> failwith "No function compare when patricia trees are not HConsed"
-
-      let equal =
-        if is_hcons then (==)
-        else fun t t' -> failwith "No function equal when patricia trees are not HConsed"
-
-      let hash =
-        if is_hcons then id
-        else fun t -> failwith "No function hash when patricia trees are not HConsed"
-                               
       (* Now we start the standard functions on maps/sets *)
 
       let rec mem k t = match reveal t with
         | Empty               -> false
-        | Leaf (j,_)          -> K.compare k j = 0
+        | Leaf (j,_)          -> kequal k j
         | Branch (_, m, l, r) -> mem k (if check (tag k) m then l else r)
 
       let rec find k t = match reveal t with
         | Empty               -> raise Not_found
-        | Leaf (j,x)          -> if K.compare k j = 0 then x else raise Not_found
+        | Leaf (j,x)          -> if kequal k j then x else raise Not_found
         | Branch (_, m, l, r) -> find k (if check (tag k) m then l else r)
 
 
@@ -187,7 +134,7 @@ module Poly(I:Intern) = struct
       let remove_aux f k t =
         let rec rmv t = match reveal t with
 	  | Empty      -> raise Not_found
-	  | Leaf (j,x) -> if  K.compare k j = 0 then f k x else raise Not_found
+	  | Leaf (j,x) -> if  kequal k j then f k x else raise Not_found
 	  | Branch (p,m,t0,t1) ->
 	     if match_prefix (tag k) p m then
 	       if check (tag k) m then branch (p, m, rmv t0, t1)
@@ -222,7 +169,7 @@ module Poly(I:Intern) = struct
 	| Branch(p,m,t0,t1)->
            let auxd s = aux (fun fmt -> fprintf fmt "%t%a%s%a" indent common p s branching m) in
            fprintf fmt "%a\n%a" (auxd "+") t0 (auxd "-") t1
-      in fprintf fmt "\n%a" (aux (fun fmt -> ())) t
+      in fprintf fmt "\n%a" (aux (fun _ -> ())) t
 
     (* argument f says how to print a pair (key,value) *)
 
@@ -235,10 +182,10 @@ module Poly(I:Intern) = struct
          let rec aux indent fmt t = match reveal t with
 	   | Empty            -> fprintf fmt ""
 	   | Leaf(j,x)        -> fprintf fmt "%a" pp_binding (j,x) 
-	   | Branch(p,m,t0,t1)->
+	   | Branch(_,_,t0,t1)->
               let auxd = aux indent in
               fprintf fmt "%a%s%a" auxd t0 sep auxd t1
-         in fprintf fmt "%s%a%s" b (aux (fun fmt -> ())) t e
+         in fprintf fmt "%s%a%s" b (aux (fun _ -> ())) t e
 
   (* argument f says what to do in case a binding is already found *)
 
@@ -246,7 +193,7 @@ module Poly(I:Intern) = struct
       let rec ins t = match reveal t with
         | Empty      -> leaf(k,f None)
         | Leaf (j,y) ->
-	  if  K.compare k j =0 then leaf (k,f (Some y))
+	  if  kequal k j then leaf (k,f (Some y))
 	  else join(tag k, leaf(k,f None), tag j, t)
         | Branch (c,b,t0,t1) ->
 	  if match_prefix (tag k) c b then
@@ -263,7 +210,7 @@ module Poly(I:Intern) = struct
       | Leaf (k,x)         -> leaf (k, f k x)
       | Branch (p,m,t0,t1) -> branch (p, m, map f t0, map f t1)
 
-    let rec fold_monad ~return ~bind f t seed =
+    let fold_monad ~return ~bind f t seed =
       let rec aux t sofar = 
         match reveal t with
         | Empty              -> return sofar
@@ -322,13 +269,13 @@ module Poly(I:Intern) = struct
         (fun t1 b -> combine reccall t1 empty2 b)
                                          
       let merge2fold2 m = {
-          sameleaf  = Merge.(fun k v1 v2 () -> m.sameleaf k v1 v2);
-          emptyfull = Merge.(fun a () -> m.emptyfull a);
-          fullempty = Merge.(fun a () -> m.fullempty a);
-          combine   = Merge.(fun reccall ->
-            (fun a1 a2 b -> m.combine b (reccall a1 a2())),
-            (fun a b -> m.combine b (m.emptyfull a)),
-            (fun a b -> m.combine b (m.fullempty a)))
+          sameleaf  = (fun k v1 v2 () -> m.Merge.sameleaf k v1 v2);
+          emptyfull = (fun a () -> m.Merge.emptyfull a);
+          fullempty = (fun a () -> m.Merge.fullempty a);
+          combine   = (fun reccall ->
+            (fun a1 a2 b -> m.Merge.combine b (reccall a1 a2())),
+            (fun a b -> m.Merge.combine b (m.Merge.emptyfull a)),
+            (fun a b -> m.Merge.combine b (m.Merge.fullempty a)))
         }
     end
 
@@ -344,11 +291,11 @@ module Poly(I:Intern) = struct
       | _, Empty -> seed |> action.fullempty s1
 
       | Leaf(k1,x1), Leaf(k2,x2) ->
-	 if  K.compare k1 k2 =0
+	 if  kequal k1 k2
          then action.sameleaf k1 x1 x2 seed
 	 else seed |> disjoint s1 s2
 
-      | Leaf(k,x), Branch(p,m,t1,t2) ->
+      | Leaf(k,_), Branch(p,m,t1,t2) ->
          let tagk = tag k in
 	 if match_prefix tagk p m then
 	   if check tagk m then
@@ -358,7 +305,7 @@ module Poly(I:Intern) = struct
          else
            seed |> disjoint s1 s2
                 
-      | Branch(p,m,t1,t2), Leaf(k,x) ->
+      | Branch(p,m,t1,t2), Leaf(k,_) ->
          let tagk = tag k in
 	 if match_prefix tagk p m then
 	   if check tagk m then 
@@ -389,20 +336,20 @@ module Poly(I:Intern) = struct
       in aux
            
     let fold2 =
-      if is_hcons
-      then
+      match equal_opt with
+      | Some _ ->
         (fun ?equal action ->
-          match equal with
-          | Some f ->
+           match equal with
+           | Some f ->
              let rec aux s1 s2 =
-               if s1==s2 then f s1 else fold2_trans aux action s1 s2
+               if s1 == s2 then f s1 else fold2_trans aux action s1 s2
              in aux
-          | None -> fold2_poly action )
-      else
+           | None -> fold2_poly action )
+      | None ->
         (fun ?equal action ->
-          match equal with
-          | Some f -> failwith "Patricia tries not hconsed"
-          | None -> fold2_poly action )
+           match equal with
+           | Some _ -> failwith "Patricia tries not hconsed"
+           | None -> fold2_poly action )
 
     let merge_poly action t1 t2 =
       fold2_poly (Fold2.merge2fold2 action) t1 t2 ()
@@ -462,7 +409,7 @@ module Poly(I:Intern) = struct
 
     let diff =
       if is_hcons
-      then (fun f -> merge ~equal:(fun a->empty) (diff_action f))
+      then (fun f -> merge ~equal:(fun _->empty) (diff_action f))
       else diff_poly
 
     let subset_action f = Fold2.{
@@ -471,8 +418,8 @@ module Poly(I:Intern) = struct
         fullempty = (fun _ () -> false);
         combine   = fun reccall ->
                     (fun a1 a2 l -> l && reccall a1 a2 ()),
-                    (fun a2 l    -> l),
-                    (fun a1 l    -> false)
+                    (fun _ l    -> l),
+                    (fun _ _    -> false)
       }
 
     let subset_poly f =
@@ -481,15 +428,14 @@ module Poly(I:Intern) = struct
       in fun s1 s2 -> aux s1 s2 ()
 
     let subset =
-      if is_hcons
-      then 
+      match equal_opt with
+      | Some eq ->
         (fun f ->
           let action = subset_action f in
           let rec aux s1 s2 () =
-            if s1==s2 then true else fold2_trans aux action s1 s2 ()
+            if eq s1 s2 then true else fold2_trans aux action s1 s2 ()
           in fun s1 s2 -> aux s1 s2 ())
-      else
-        subset_poly 
+      | None -> subset_poly 
 
   (* first_diff indicates where 2 patricia trees s1 and s2 start
      differing: It produces (g,b), where
@@ -527,7 +473,7 @@ module Poly(I:Intern) = struct
           | a        -> a)
         | _,Leaf _     -> let (b,c) = aux s2 s1 in (b,not c)
         | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
-          let (rec1,rec2,i)=
+          let rec1,rec2,_ =
             if (bcompare m1 m2=0) &&  match_prefix p1 p2 m1 then
               (aux l1 l2,aux r1 r2,1)
             else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
@@ -547,7 +493,7 @@ module Poly(I:Intern) = struct
       | Leaf(k,x) -> (k,x)
       | Branch (_, _,t0,_) -> choose t0   (* we know that [t0] is non-empty *)
 	
-    let make f l = List.fold (fun (k,x)->add k (f x)) l empty
+    let make f l = List.fold_right (fun (k,x)->add k (f x)) l empty
 
     let elements s =
       let rec elements_aux acc t = match reveal t with
@@ -559,29 +505,68 @@ module Poly(I:Intern) = struct
 
   end
 
+  let build ib = function
+    | Empty            -> ib.empty_info
+    | Leaf(k,x)        -> ib.leaf_info k x
+    | Branch(_,_,t0,t1)-> ib.branch_info (M.G.data t0) (M.G.data t1)
+  
+  module MapH(I:MapArgH with type t:=K.t) = struct
+    open I
+    module P = struct
+      include Poly
+      let hash_fold_t rechash vhash = hash_fold_t I.khash rechash vhash
+    end
+    module Par = struct
+      type t          = values
+      let equal       = vequal
+      let hash_fold_t = vhash
+      let hash        = Hash.fold2hash vhash
+    end
+    module Data = struct
+      type t = infos
+      let build t = t |> M.G.reveal |> build I.info_build
+    end
+    module B = struct
+      type hcons = [`HCons]
+      include M.InitData(P)(Par)(Data)
+      let equal_opt = Some equal
+    end
+    include MapGen(I)(B)
+    include B
+  end
+
+  module MapNH(I:MapArgNH with type t:=K.t) = struct
+    module B = struct
+      type hcons = [`NoHCons]
+      include M
+      let build t = M.NoHCons.build t (lazy (build I.info_build t))
+      let equal_opt = None
+    end
+    type t = (I.values*I.infos) M.NoHCons.t
+    include MapGen(I)(B)
+    include B
+  end
 
 
   (* Construction of a Patricia tree structure for sets, given the above.
      Most of it is imported from PATMap *)
 
-  module SetMake(E:SetArg with type t=I.keys) = struct
+  module SetGen(E:SetArgNH with type t:=K.t)
+      (B : Base with type values := unit
+                 and type infos  := E.infos) = struct
 
+    open G
+        
   (* A Set is just a Map with codomain unit.  Constructing this Map
      structure *)
 
     module MapDest = struct
-      type t       = E.t [@@deriving ord]
       type values  = unit
       type infos   = E.infos
       let info_build = E.info_build
-      let treeHCons  = match E.treeHCons with
-        | None       -> None
-        | Some khash -> Some(khash, 
-                             (fun _   -> 0),
-                             (fun _ _ -> true))
     end
 
-    module PM = MapMake(MapDest)
+    module PM = MapGen(MapDest)(B)
 
     include PM.BackOffice
     
@@ -599,12 +584,12 @@ module Poly(I:Intern) = struct
     let subset_poly a b = PM.subset_poly (fun () _ -> true) a b
     let diff       = PM.diff  (fun _ _ _ -> empty)
     let diff_poly a b = PM.diff_poly (fun _ _ _ -> empty) a b
-    let first_diff = PM.first_diff (fun _ ()()-> None,true) E.compare
+    let first_diff = PM.first_diff (fun _ ()()-> None,true) K.compare
     let iter f a   = PM.iter (fun k () -> f k) a
     let fold_monad ~return ~bind f = PM.fold_monad ~return ~bind (fun k _ -> f k)
-    let fold f     = PM.fold (fun k x -> f k)
+    let fold f     = PM.fold (fun k _ -> f k)
     let choose t   = let k,_ = PM.choose t in k
-    let elements s = List.map (function (k,x)->k) (PM.elements s)
+    let elements s = List.map (function (k,_)->k) (PM.elements s)
 
     (* Now starting functions specific to Sets, without equivalent
      ones for Maps *)
@@ -614,7 +599,7 @@ module Poly(I:Intern) = struct
     let print_in_fmt ?tree ?sep ?wrap pp_e =
       PM.print_in_fmt ?tree ?sep ?wrap (fun fmt (k,()) -> pp_e fmt k)
 
-    let make l     = List.fold add l empty
+    let make l     = List.fold_right add l empty
 
     let rec for_all p t = match reveal t with
       | Empty      -> true
@@ -646,28 +631,38 @@ module Poly(I:Intern) = struct
 
   end
 
-
-end
-
-
-module PatSet = struct
-
-  module type S = PatSet
-
-  module Make(E:SetArg)(I:Intern with type keys=E.t) = struct
-    module Basis = Poly(I)
-    include Basis.SetMake(E)
+  module SetH(I:SetArgH with type t:=K.t) = struct
+    open I
+    module P = struct
+      include Poly
+      let hash_fold_t rechash vhash = hash_fold_t I.khash rechash vhash
+    end
+    module Par = struct
+      type t = unit [@@deriving eq,hash]
+    end
+    module Data = struct
+      type t = infos
+      let build t = t |> M.G.reveal |> build I.info_build
+    end
+    module B = struct
+      type hcons = [`HCons]
+      include M.InitData(P)(Par)(Data) 
+      let equal_opt = Some equal
+    end
+    include SetGen(I)(B)
+    include B
   end
 
-end
-
-module PatMap = struct
-
-  module type S = PatMap
-
-  module Make(K:MapArg)(I:Intern with type keys=K.t) = struct
-    module Basis = Poly(I)
-    include Basis.MapMake(K)
+  module SetNH(I:SetArgNH with type t:=K.t) = struct
+    module B = struct
+      type hcons = [`NoHCons]
+      include M
+      let build t = M.NoHCons.build t (lazy (build I.info_build t))
+      let equal_opt = None
+    end
+    type t = (unit*I.infos) M.NoHCons.t
+    include SetGen(I)(B)
+    include B
   end
 
 end

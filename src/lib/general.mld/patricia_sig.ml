@@ -3,8 +3,6 @@
    to represent maps and sets *)
 (*********************************************************************)
 
-open Sums
-
 (* We embark extra info in Patricia tries. How to construct this info
    is given as a record of this type *)
       
@@ -13,52 +11,21 @@ type ('keys,'values,'infos) info_build_type =
     leaf_info   : 'keys -> 'values -> 'infos;
     branch_info : 'infos -> 'infos -> 'infos }
 
-(* The two interfaces Dest and Intern descibe the material that must be
-  provided to construct a Patricia tree structure.
 
-  Dest describes the info that that the user expects to provide anyway to build
-  a map/set.
-  Intern describes the structures to be used for the internal mechanisms of
-  Patricia trees; standard implementations of Intern are the object of module
-  SetConstructions *)
-
-module type MapArg = sig
-
-  (* Domain of the map (keys) *)
-  type t [@@deriving ord]
-
-  (* Co-domain of the map (values) *)
-  type values
-
-  (* Allows to store information about the Patricia tree: typically, number of
-    bindings stored, etc *) 
-  type infos
-
-  (* Provides info for empty tree, singleton tree, and disjoint union
-    of two tree *)
-  val info_build : (t,values,infos) info_build_type
-
-  (* Do you want the patricia trees hconsed? if so you should provide
-    an equal function for values, and hash functions for keys and values *) 
-  val treeHCons : ((t->int)
-                   *(values->int)
-                   *(values -> values -> bool)) option
-end
-
-
-module type Intern = sig
+module type Key = sig
   (* Implementation of keys and how to compute them.
     Typically for a HConsed keys type, common = int *)
 
-  type keys
+  type t [@@deriving ord]
+
   type common
-  val tag : keys -> common
+  val tag : t -> common
 
   (* Branching is the type of data used for discriminating the keys (themselves
     represented in common via tag) *) 
 
   type branching
-  val bcompare : branching -> branching -> int
+  val bcompare : branching Compare.t
 
   (* Check discriminates its first argument over second *)
   val check : common -> branching -> bool
@@ -73,24 +40,59 @@ module type Intern = sig
   val match_prefix : common -> common -> branching -> bool
 end
 
-module type PatMap = sig
+
+
+
+(* The two interfaces Dest and Intern descibe the material that must be
+  provided to construct a Patricia tree structure.
+
+  Dest describes the info that that the user expects to provide anyway to build
+  a map/set.
+  Intern describes the structures to be used for the internal mechanisms of
+  Patricia trees; standard implementations of Intern are the object of module
+  SetConstructions *)
+
+module type MapArgNH = sig
+
+  (* Domain of the map (keys) *)
+  type t
+
+  (* Co-domain of the map (values) *)
+  type values
+
+  (* Allows to store information about the Patricia tree: typically, number of
+    bindings stored, etc *) 
+  type infos
+
+  (* Provides info for empty tree, singleton tree, and disjoint union
+    of two tree *)
+  val info_build : (t,values,infos) info_build_type
+end
+
+module type MapArgH = sig
+  include MapArgNH
+  (* Do you want the patricia trees hconsed? if so you should provide
+    an equal function for values, and hash functions for keys and values *) 
+  val khash : t Hash.folder
+  val vhash : values Hash.folder
+  val vequal: values Equal.t
+end
+
+
+module type Map = sig
   type keys
   type values
   type common
   type branching
   type infos
+  type hcons
 
-  type ('v,'i) param
-  type t = (values,infos) param
+  type ('v,'i) param constraint 'i = _*_
+  type t = (values,infos*hcons) param
 
-  val equal  : t -> t -> bool
-  val hash   : t -> int
-  val id     : t -> int
   val info   : t -> infos
-  val clear    : unit -> unit
-  val compare  : t -> t -> int
   val is_empty : t -> bool
-    (* val checktree : branching list -> t -> bool *)
+  (* val checktree : branching list -> t -> bool *)
   val mem      : keys -> t -> bool
   val find     : keys -> t -> values
   val cardinal : t -> int
@@ -104,7 +106,7 @@ module type PatMap = sig
   val fold   : (keys -> values -> 'a -> 'a) -> t -> 'a -> 'a
   val fold_monad : return:('a -> 'b) -> bind:((t -> 'a -> 'b) -> t -> 'b -> 'b)
                -> (keys -> values -> 'a -> 'b) -> t -> 'a -> 'b
-  val map    : (keys -> 'v -> values) -> ('v,_)param -> t
+  val map    : (keys -> 'v -> values) -> ('v,_*_)param -> t
   val choose : t -> keys * values
 
   module Fold2 : sig
@@ -189,11 +191,21 @@ module type PatMap = sig
     -> Format.formatter -> t -> unit
 end
 
+module type MapH = sig
+  include Map with type hcons = [`HCons]
+  val equal    : t Equal.t
+  val hash_fold_t : t Hash.folder
+  val compare  : t Compare.t
+  val id       : t -> int
+  val clear    : unit -> unit
+end
 
-module type SetArg = sig
+module type MapNH = Map with type hcons = [`NoHCons]
+
+module type SetArgNH = sig
 
   (* Elements of the set *)
-  type t [@@deriving ord]
+  type t
 
   (* Allows to store information about the Patricia tree: typically, number of
     bindings stored, etc *) 
@@ -203,26 +215,25 @@ module type SetArg = sig
     of two tree *)
   val info_build : (t,unit,infos) info_build_type
 
-  (* Do you want the patricia trees hconsed? if so you should provide
-  a hash function for keys *) 
-  val treeHCons : (t->int) option 
-
 end
 
-module type PatSet = sig
+module type SetArgH = sig
+  include SetArgNH
+  (* Do you want the patricia trees hconsed? if so you should provide
+    a hash function for keys *) 
+  val khash : t Hash.folder
+end
+
+module type Set = sig
   type e
   type common
   type branching
   type infos
-
-  type ('v,'i) param
-  type t = (unit,infos) param
-  val equal  : t -> t -> bool
-  val hash   : t -> int
-  val id     : t -> int
+  type hcons
+    
+  type ('v,'i) param constraint 'i = _*_
+  type t = (unit,infos*hcons) param
   val info   : t -> infos
-  val clear  : unit -> unit
-  val compare  : t -> t -> int
   val is_empty : t -> bool
     (* val checktree : branching list -> t -> bool *)
   val mem    : e -> t -> bool
@@ -234,11 +245,11 @@ module type PatSet = sig
   val add    : e -> t -> t
   val union  : t -> t -> t
   val inter  : t -> t -> t
-  val inter_poly : t -> (_,_)param -> t
+  val inter_poly : t -> (_,_*_)param -> t
   val subset : t -> t -> bool
-  val subset_poly : t -> (_,_)param -> bool
+  val subset_poly : t -> (_,_*_)param -> bool
   val diff   : t -> t -> t
-  val diff_poly : t -> (_,_)param -> t
+  val diff_poly : t -> (_,_*_)param -> t
   val first_diff : (t -> e option) -> t -> t -> e option * bool
   val iter   : (e -> unit) -> t -> unit
   val fold   : (e -> 'a -> 'a) -> t -> 'a -> 'a
@@ -264,3 +275,14 @@ module type PatSet = sig
   val partition : (e -> bool) -> t -> t * t
   val elect   : (e -> e -> e) -> t -> e
 end
+
+module type SetH = sig
+  include Set with type hcons = [`HCons]
+  val equal    : t Equal.t
+  val hash_fold_t : t Hash.folder
+  val compare  : t Compare.t
+  val id       : t -> int
+  val clear    : unit -> unit
+end
+
+module type SetNH = Set with type hcons = [`NoHCons]

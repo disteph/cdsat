@@ -23,25 +23,33 @@ end
 include Pervasives
 
 module Compare : sig
-  val max: ('a->'a->int) -> 'a -> 'a -> 'a
-  val min: ('a->'a->int) -> 'a -> 'a -> 'a
-  val lex: ('a->'a->int) -> ('b->'b->int) -> ('a*'b) -> ('a*'b) ->int
+  type 'a t = 'a->'a->int
+  val max: 'a t -> 'a -> 'a -> 'a
+  val min: 'a t -> 'a -> 'a -> 'a
+  val lex: 'a t -> 'b t -> ('a*'b) t
   val id2compare : ('a -> int) -> 'a -> 'a -> int
+end
+
+module Equal : sig
+  type 'a t = 'a->'a->bool
   val id2equal   : ('a -> int) -> 'a -> 'a -> bool
 end
+
 
 include module type of Ppx_hash_lib.Std.Hash.Builtin
                               
 module Hash : sig
-  val hash2fold : ('a -> int) -> 'a Ppx_hash_lib.Std.Hash.folder
-  val fold2hash : 'a Ppx_hash_lib.Std.Hash.folder -> 'a -> int
-  val fold      : 'a Ppx_hash_lib.Std.Hash.folder
-  val wrap1 :
-    ('a Ppx_hash_lib.Std.Hash.folder -> 'b Ppx_hash_lib.Std.Hash.folder) ->
-    ('a -> int) -> 'b -> int
-  val wrap2 :
-    ('a Ppx_hash_lib.Std.Hash.folder -> 'b Ppx_hash_lib.Std.Hash.folder -> 'c Ppx_hash_lib.Std.Hash.folder) ->
-    ('a -> int) -> ('b -> int) -> 'c -> int
+  open Ppx_hash_lib.Std
+  type 'a t      = 'a -> int
+  type 'a folder = 'a Hash.folder
+  val hash2fold : ('a -> int) -> 'a folder
+  val fold2hash : 'a folder -> 'a t
+  val fold      : 'a folder
+  val pair      :  'a folder -> 'b folder -> ('a*'b) folder
+  val triple    :  'a folder -> 'b folder -> 'c folder -> ('a*'b*'c) folder
+  val wrap1     : ('a folder -> 'b folder) -> 'a t -> 'b t
+  val wrap2     :
+    ('a Hash.folder -> 'b Hash.folder -> 'c Hash.folder) -> 'a t -> 'b t -> 'c t
 end
 
 module Boolhashed : sig
