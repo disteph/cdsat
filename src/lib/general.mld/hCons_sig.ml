@@ -11,8 +11,8 @@ module type SHCons = sig
   (* val backindex: (int -> t,M.backindex) Goption.t *)
 end
 
-module type PolyArg = sig 
-  type ('t,'a) t [@@deriving eq,hash]
+module type Arg = sig 
+  type 't t [@@deriving eq,hash]
   val name : string
 end
 
@@ -34,8 +34,8 @@ module type PolyS = sig
   end
 
   module InitData
-      (M   : PolyArg with type ('recurs,'a) t := ('recurs,'a) initial)
-      (Par : sig type t [@@deriving eq,hash] end)
+      (Par : sig type t end)
+      (M   : Arg with type 't t := ('t,Par.t) initial)
       (Data: sig
          type t
          val build : (Par.t*t*[`HCons]) G.t -> t
@@ -44,15 +44,10 @@ module type PolyS = sig
               and type revealed = (Par.t*Data.t*[`HCons]) G.revealed
 
   module Init
-      (M   : PolyArg with type ('recurs,'a) t := ('recurs,'a) initial)
-      (Par: sig type t [@@deriving eq,hash] end)
+      (Par : sig type t end)
+      (M   : Arg with type 't t := ('t,Par.t) initial)
     : SHCons with type t        = (Par.t*unit*[`HCons]) G.t
               and type revealed = (Par.t*unit*[`HCons]) G.revealed
-end
-
-module type Arg = sig 
-  type 't t [@@deriving eq,hash]
-  val name : string
 end
 
 module type S = sig

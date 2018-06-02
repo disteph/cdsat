@@ -32,8 +32,8 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
   let tableid = ref 0
 
   module InitData
-      (M   : PolyArg with type ('recurs,'a) t := ('recurs,'a) M.t)
-      (Par : sig type t [@@deriving eq,hash] end)
+      (Par : sig type t end)
+      (M   : Arg with type 't t := ('t,Par.t) M.t)
       (Data: sig
          type t
          val build : (Par.t*t*[`HCons]) G.t -> t
@@ -58,8 +58,8 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
 
     module Arg = struct
       type t = revealed
-      let equal = M.equal (==) Par.equal
-      let hash  = Hash.fold2hash(M.hash_fold_t hash_fold_t Par.hash_fold_t)
+      let equal = M.equal (==)
+      let hash  = Hash.fold2hash(M.hash_fold_t hash_fold_t)
     end
 
     module H = Hashtbl.Make(Arg)
@@ -101,9 +101,9 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
   end
 
   module Init
-      (M   : PolyArg with type ('recurs,'a) t := ('recurs,'a) M.t)
-      (Par : sig type t [@@deriving eq,hash] end)
-    = InitData(M)(Par)(EmptyData)
+      (Par : sig type t end)
+      (M   : Arg with type 't t := ('t,Par.t) M.t)
+    = InitData(Par)(M)(EmptyData)
 
 end
 
@@ -130,15 +130,13 @@ module Make(M: sig type 'a t end) = struct
          type t
          val build : (t*[`HCons]) G.t -> t
        end)
-    = TMP.InitData(struct
-      module Arg = struct
+    = TMP.InitData
+      (struct type t = unit end)
+      (struct
         include M
         include Mhash
-      end
-      type ('t,'a) t = 't Arg.t [@@deriving eq,hash]
-      let name = Mhash.name
-    end)
-      (struct type t = unit [@@deriving eq, hash] end)
+        let name = Mhash.name
+      end)
       (Data)
 
   module Init(M : Arg with type 'a t := 'a M.t) = InitData(M)(EmptyData)

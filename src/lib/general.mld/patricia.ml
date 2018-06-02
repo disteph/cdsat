@@ -4,49 +4,37 @@ open Patricia_sig
 let print_nothing _ _ = ()
 let print_dot fmt _ = fprintf fmt "."
 
+module Poly = struct
+  (* Direct type of Patricia tries. 'a is the type of the sub-tries *)
+  type ('a,'p) t =
+    | Empty : (_,_) t
+    | Leaf  : 'keys * 'values -> (_,'keys*'values*_*_) t
+    | Branch: 'common * 'branching * 'a * 'a -> ('a,_*_*'common*'branching) t
+end
+
+module M = HCons.MakePoly(Poly)
+open M
+
+type ('k,'v,'common,'branching,'ih) poly =
+  (('k*'v*'common*'branching)*'i*'h) G.t constraint 'ih = 'i*'h
+
 module Make(K:Key) = struct
 
   open K
 
   let kequal k1 k2 = K.compare k1 k2 = 0
 
-  module Poly = struct
-    (* Direct type of Patricia tries. 'a is the type of the sub-tries *)
-    type ('a,'values) t =
-      | Empty
-      | Leaf of K.t * 'values
-      | Branch of common * branching * 'a * 'a
-
-    let equal rec_eq vequal t1 t2 =
-      match t1,t2 with
-      | Empty, Empty -> true
-      | Leaf(key1,value1), Leaf(key2,value2)
-        -> (kequal key1 key2) && (vequal value1 value2)
-      | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')
-        -> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2=0)&&(match_prefix c1 c2 b1)
-      | _            -> false
-    
-    let hash_fold_t khash rec_hash vhash state t1 = match t1 with
-      | Empty            -> [%hash_fold:int] state 3
-      | Leaf(key,value)  -> Hash.triple [%hash_fold:int] khash vhash state (5,key,value)
-      | Branch(_,_,t2,t3)-> Hash.triple [%hash_fold:int] rec_hash rec_hash state (7,t2,t3)
-
-    let name = "Patricia tries"
-  end
-
   open Poly
-  
-  module M = HCons.MakePoly(Poly)
-  open M
 
-  type ('v,'ih) param = ('v*'i*'h) G.t constraint 'ih = 'i*'h
+  type ('v,'ih) param = ((K.t*'v*common*branching)*'i*'h) G.t constraint 'ih = 'i*'h
+  type ('v,'ih) param_r = ((K.t*'v*common*branching)*'i*'h) G.revealed constraint 'ih = 'i*'h
              
   module type Base = sig
     type values
     type infos
     type hcons
-    val build  : ((values*infos*hcons) G.t, values) Poly.t -> (values*infos*hcons) G.t
-    val equal_opt : (values*infos*hcons) G.t Equal.t option
+    val build     : (values,infos*hcons) param_r -> (values,infos*hcons) param
+    val equal_opt : (values,infos*hcons) param Equal.t option
   end
 
   module MapGen(I:MapArgNH with type t:=K.t)
@@ -505,22 +493,35 @@ module Make(K:Key) = struct
 
   end
 
+  let equal vequal rec_eq t1 t2 =
+    match t1,t2 with
+    | Empty, Empty -> true
+    | Leaf(key1,value1), Leaf(key2,value2)
+      -> (kequal key1 key2) && (vequal value1 value2)
+    | Branch(c1,b1,t3,t3'),Branch(c2,b2,t4,t4')
+      -> (rec_eq t3 t4)&&(rec_eq t3' t4')&&(bcompare b1 b2=0)&&(match_prefix c1 c2 b1)
+    | _            -> false
+  
+  let hash_fold_t khash vhash rec_hash state t1 = match t1 with
+    | Empty            -> [%hash_fold:int] state 3
+    | Leaf(key,value)  -> Hash.triple [%hash_fold:int] khash vhash state (5,key,value)
+    | Branch(_,_,t2,t3)-> Hash.triple [%hash_fold:int] rec_hash rec_hash state (7,t2,t3)
+  
   let build ib = function
     | Empty            -> ib.empty_info
     | Leaf(k,x)        -> ib.leaf_info k x
     | Branch(_,_,t0,t1)-> ib.branch_info (M.G.data t0) (M.G.data t1)
-  
+
   module MapH(I:MapArgH with type t:=K.t) = struct
     open I
-    module P = struct
-      include Poly
-      let hash_fold_t rechash vhash = hash_fold_t I.khash rechash vhash
-    end
     module Par = struct
-      type t          = values
-      let equal       = vequal
-      let hash_fold_t = vhash
-      let hash        = Hash.fold2hash vhash
+      type t = K.t*I.values*K.common*K.branching
+    end
+    module P = struct
+      type 'a t = ('a,Par.t) Poly.t
+      let equal a b = equal vequal a b
+      let hash_fold_t state a = hash_fold_t khash vhash state a
+      let name = "Patricia Maps"
     end
     module Data = struct
       type t = infos
@@ -528,7 +529,7 @@ module Make(K:Key) = struct
     end
     module B = struct
       type hcons = [`HCons]
-      include M.InitData(P)(Par)(Data)
+      include M.InitData(Par)(P)(Data)
       let equal_opt = Some equal
     end
     include MapGen(I)(B)
@@ -542,7 +543,7 @@ module Make(K:Key) = struct
       let build t = M.NoHCons.build t (lazy (build I.info_build t))
       let equal_opt = None
     end
-    type t = (I.values*I.infos) M.NoHCons.t
+    type t = ((K.t*I.values*K.common*K.branching)*I.infos) M.NoHCons.t
     include MapGen(I)(B)
     include B
   end
@@ -633,12 +634,14 @@ module Make(K:Key) = struct
 
   module SetH(I:SetArgH with type t:=K.t) = struct
     open I
-    module P = struct
-      include Poly
-      let hash_fold_t rechash vhash = hash_fold_t I.khash rechash vhash
-    end
     module Par = struct
-      type t = unit [@@deriving eq,hash]
+      type t = K.t*unit*K.common*K.branching
+    end
+    module P = struct
+      type 'a t = ('a,Par.t) Poly.t
+      let equal a b = equal [%eq:unit] a b
+      let hash_fold_t state a = hash_fold_t khash [%hash_fold:unit] state a
+      let name = "Patricia Sets"
     end
     module Data = struct
       type t = infos
@@ -646,7 +649,7 @@ module Make(K:Key) = struct
     end
     module B = struct
       type hcons = [`HCons]
-      include M.InitData(P)(Par)(Data) 
+      include M.InitData(Par)(P)(Data) 
       let equal_opt = Some equal
     end
     include SetGen(I)(B)
@@ -660,7 +663,7 @@ module Make(K:Key) = struct
       let build t = M.NoHCons.build t (lazy (build I.info_build t))
       let equal_opt = None
     end
-    type t = (unit*I.infos) M.NoHCons.t
+    type t = ((K.t*unit*K.common*K.branching)*I.infos) M.NoHCons.t
     include SetGen(I)(B)
     include B
   end

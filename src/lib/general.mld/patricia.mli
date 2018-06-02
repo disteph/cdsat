@@ -3,9 +3,11 @@
 
 open Patricia_sig
 
+type ('k,'v,'common,'branching,'ih) poly constraint 'ih=_*_
+
 module Make(K:Key) : sig
 
-  type ('v,'ih) param constraint 'ih=_*_
+  type ('v,'ih) param = (K.t,'v,K.common,K.branching,'ih) poly constraint 'ih=_*_ 
                                        
   module MapH(I:MapArgH with type t:=K.t)
     : MapH with type keys    = K.t
