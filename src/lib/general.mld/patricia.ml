@@ -39,6 +39,8 @@ module Make(K:Key) = struct
   module M = HCons.MakePoly(Poly)
   open M
 
+  type ('v,'ih) param = ('v*'i*'h) G.t constraint 'ih = 'i*'h
+             
   module type Base = sig
     type values
     type infos
@@ -66,8 +68,6 @@ module Make(K:Key) = struct
       type keys   = K.t
       type infos  = I.infos
       type values = I.values
-
-      type ('v,'ih)param = ('v*'i*'h) G.t constraint 'ih = 'i*'h
 
       let info = data
 
