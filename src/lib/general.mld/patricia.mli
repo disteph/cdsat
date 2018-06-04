@@ -5,37 +5,32 @@ open Patricia_sig
 
 type ('k,'v,'common,'branching,'ih) poly constraint 'ih=_*_
 
-module Make(K:Key) : sig
+module MapH(I:MapArgH)
+  : MapH with type keys    = I.t
+          and type common  := I.common
+          and type branching := I.branching
+          and type values  = I.values
+          and type infos   = I.infos
+          and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-  type ('v,'ih) param = (K.t,'v,K.common,K.branching,'ih) poly constraint 'ih=_*_ 
-                                       
-  module MapH(I:MapArgH with type t:=K.t)
-    : MapH with type keys    = K.t
-            and type common  := K.common
-            and type branching := K.branching
-            and type values  = I.values
-            and type infos   = I.infos
-            and type ('v,'ih)param := ('v,'ih) param
+module MapNH(I:MapArgNH)
+  : Map with type keys    = I.t
+         and type common  := I.common
+         and type branching := I.branching
+         and type values  = I.values
+         and type infos   = I.infos
+         and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-  module MapNH(I:MapArgNH with type t:=K.t)
-    : Map with type keys    = K.t
-           and type common  := K.common
-           and type branching := K.branching
-           and type values  = I.values
-           and type infos   = I.infos
-           and type ('v,'ih)param := ('v,'ih) param
+module SetH(I:SetArgH)
+  : SetH with type e       = I.t
+          and type common  := I.common
+          and type branching := I.branching
+          and type infos   = I.infos
+          and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-  module SetH(I:SetArgH with type t:=K.t)
-    : SetH with type e       = K.t
-            and type common  := K.common
-            and type branching := K.branching
-            and type infos   = I.infos
-            and type ('v,'ih)param := ('v,'ih) param
-
-  module SetNH(I:SetArgNH with type t:=K.t)
-    : Set with type e       = K.t
-           and type common  := K.common
-           and type branching := K.branching
-           and type infos   = I.infos
-           and type ('v,'ih)param := ('v,'ih) param
-end
+module SetNH(I:SetArgNH)
+  : Set with type e       = I.t
+         and type common  := I.common
+         and type branching := I.branching
+         and type infos   = I.infos
+         and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly

@@ -40,7 +40,6 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S:FromHConsed) = struct
-  type t       = S.t
   type common  = int
   let tag      = S.id
   let compare  = Compare.id2compare tag
@@ -72,7 +71,6 @@ end
 
 module TypesFromCollect(S: FromCollect) = struct
 
-  type t            = S.keys
   type common       = S.t
   let tag           = S.tag
   let compare t1 t2 = S.compare(tag t1)(tag t2)
@@ -100,7 +98,6 @@ module LexProduct
    end)
   (I2:Key with type t=I1.t) = struct
 
-  type t      = I1.t
   let compare = I1.compare
   type common = I1.common*I2.common
 
@@ -150,7 +147,6 @@ module Lift(I:sig include Key
 		  val project :newkeys-> t option
 	    end) = struct
 
-  type t      = I.newkeys
   type tmp    = I.t option [@@deriving ord] 
   let compare a b = compare_tmp (I.project a) (I.project b)
   type common = I.common option

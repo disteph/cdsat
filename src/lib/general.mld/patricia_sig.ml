@@ -55,7 +55,7 @@ end
 module type MapArgNH = sig
 
   (* Domain of the map (keys) *)
-  type t
+  include Key
 
   (* Co-domain of the map (values) *)
   type values
@@ -73,9 +73,9 @@ module type MapArgH = sig
   include MapArgNH
   (* Do you want the patricia trees hconsed? if so you should provide
     an equal function for values, and hash functions for keys and values *) 
-  val khash : t Hash.folder
-  val vhash : values Hash.folder
-  val vequal: values Equal.t
+  val hash_fold_t : t Hash.folder
+  val hash_fold_values : values Hash.folder
+  val equal_values: values Equal.t
 end
 
 
@@ -195,6 +195,7 @@ module type MapH = sig
   include Map with type hcons = [`HCons]
   val equal    : t Equal.t
   val hash_fold_t : t Hash.folder
+  val hash     : t Hash.t
   val compare  : t Compare.t
   val id       : t -> int
   val clear    : unit -> unit
@@ -205,7 +206,7 @@ module type MapNH = Map with type hcons = [`NoHCons]
 module type SetArgNH = sig
 
   (* Elements of the set *)
-  type t
+  include Key
 
   (* Allows to store information about the Patricia tree: typically, number of
     bindings stored, etc *) 
@@ -221,7 +222,7 @@ module type SetArgH = sig
   include SetArgNH
   (* Do you want the patricia trees hconsed? if so you should provide
     a hash function for keys *) 
-  val khash : t Hash.folder
+  val hash_fold_t : t Hash.folder
 end
 
 module type Set = sig
@@ -280,6 +281,7 @@ module type SetH = sig
   include Set with type hcons = [`HCons]
   val equal    : t Equal.t
   val hash_fold_t : t Hash.folder
+  val hash     : t Hash.t
   val compare  : t Compare.t
   val id       : t -> int
   val clear    : unit -> unit

@@ -19,9 +19,10 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
           constraint 'p=_*_*_
 
     and 'p revealed = ('p t,'a) M.t constraint 'p='a*_*_
-    let reveal (G{reveal}) = reveal
-    let data   (G{data})   = Lazy.force data
   end
+
+  let reveal (G.G{reveal}) = reveal
+  let data   (G.G{data})   = Lazy.force data
 
   module NoHCons = struct
     type 'p t        = ('a*'data*[`NoHCons]) G.t constraint 'p='a*'data
@@ -114,9 +115,10 @@ module Make(M: sig type 'a t end) = struct
   module G = struct
     type 'dh t        = (unit*'d*'h) TMP.G.t constraint 'dh='d*'h
     type 'dh revealed = (unit*'d*'h) TMP.G.revealed constraint 'dh='d*'h
-    let reveal = TMP.G.reveal
-    let data   = TMP.G.data
   end
+
+  let reveal = TMP.reveal
+  let data   = TMP.data
 
   module NoHCons = struct
     type 'd t        = ('d*[`NoHCons]) G.t

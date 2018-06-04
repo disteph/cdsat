@@ -31,10 +31,10 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S : FromHConsed) 
-  :sig include Key with type t      = S.t
+  :sig include Key with type t      := S.t
 	            and type common = int
 	     and type branching = int
-       val pequals: common Equal.t
+    val pequals: common Equal.t
   end
   
 (***************************************************)
@@ -54,7 +54,7 @@ end
 
 module TypesFromCollect(S : FromCollect)
   :sig
-    include Key with type t      = S.keys
+    include Key with type t      := S.keys
 		 and type common = S.t
    and type branching = S.e
     val pequals: common Equal.t
@@ -71,7 +71,7 @@ module LexProduct
    end)
   (I2:Key with type t=I1.t)
   :sig
-    include Key with type t      = I1.t
+    include Key with type t      := I1.t
 		 and type common = I1.common*I2.common
    and type branching = (I1.branching,I2.branching) sum
     val sub: 
@@ -90,7 +90,7 @@ module Lift(I:sig include Key
 		  val project :newkeys -> t option
 	    end)
   :sig
-    include Key with type t      = I.newkeys
+    include Key with type t      := I.newkeys
 		 and type common = I.common option
    and type branching = I.branching option
     val sub: 
