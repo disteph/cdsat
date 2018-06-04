@@ -28,7 +28,7 @@ let pp pp_v fmt (type a) : ('v,a) t -> unit =
 let show pp_v = Print.stringOf (pp pp_v)
 
 let hash_fold_t (type v) hash_fold_v state v =
-  [% hash_fold: v isomorph] state (isomorph v)
+  [%hash_fold: v isomorph] state (isomorph v)
 
 let hash_fold (type t) hash_fold_t (type v) hash_fold_v state (t,v) =
-  [% hash_fold: t*(v isomorph)] state (t,isomorph v)
+  [%hash_fold: t*(v isomorph)] state (t,isomorph v)

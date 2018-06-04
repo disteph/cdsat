@@ -29,6 +29,6 @@ open Patricia_tools
        
 module MakePATCollection(M: PHCons) : sig
   include Collection with type e = M.t
-                      and type t = (M.t, unit, int, int, EmptyInfo.infos) poly
+                      and type t = (M.t, unit, int, int, EmptyInfo.infos*[`HCons]) poly
   val id : t -> int
 end

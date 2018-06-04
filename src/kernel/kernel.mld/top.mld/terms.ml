@@ -92,7 +92,7 @@ module TermB = struct
   end
 
   include HCons.Make(B)
-  include Init(HCons.NoBackIndex)
+  include Init(B)
 
   let pp =
     let rec aux fmt t = pp BoundVar.pp BoundFunc aux reveal fmt t
@@ -130,7 +130,7 @@ end
 
 include HCons.MakePoly(F)
 
-type ('leaf,'datatype) termF = ('leaf,'datatype) generic
+type ('leaf,'datatype) termF = ('leaf*'datatype*[`HCons]) G.t
                                                  
 module type DataType = sig
   type t
