@@ -41,6 +41,7 @@ include module type of Ppx_hash_lib.Std.Hash.Builtin
 module Hash : sig
   open Ppx_hash_lib.Std
   type 'a t      = 'a -> int
+  type state     = Hash.state
   type 'a folder = 'a Hash.folder
   val hash2fold : ('a -> int) -> 'a folder
   val fold2hash : 'a folder -> 'a t
@@ -50,6 +51,13 @@ module Hash : sig
   val wrap1     : ('a folder -> 'b folder) -> 'a t -> 'b t
   val wrap2     :
     ('a Hash.folder -> 'b Hash.folder -> 'c Hash.folder) -> 'a t -> 'b t -> 'c t
+end
+
+module Format : sig
+  include module type of Format
+  with type formatter = Format.formatter
+   and type symbolic_output_buffer = Format.symbolic_output_buffer
+  type 'a printer = formatter -> 'a -> unit
 end
 
 module Boolhashed : sig
@@ -68,8 +76,7 @@ module List : sig
   include module type of List
   type 'a t = 'a list [@@deriving eq, hash, show]
   val pp : ?sep:string -> ?wrap:string*string
-           -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
-  val hash : ('a -> int) -> 'a list -> int
+           -> ('a Format.printer) -> 'a t Format.printer
   val mem  : ('a -> 'a -> bool) -> 'a -> 'a list -> bool
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val last : 'a t -> 'a

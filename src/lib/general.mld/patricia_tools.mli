@@ -1,4 +1,4 @@
-open Patricia_sig
+open Patricia
 open Sums
 
 (***************************************************)

@@ -1,5 +1,5 @@
+open Patricia
 open Sums
-open Patricia_sig
 
 module EmptyInfo = struct
   type infos = unit

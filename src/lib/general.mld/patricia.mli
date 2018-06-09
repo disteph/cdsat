@@ -1,7 +1,7 @@
 (* This module contains the basic constructions of Patricia trees to
   represent maps and sets *)
 
-open Patricia_sig
+include module type of Patricia_sig
 
 type ('k,'v,'common,'branching,'ih) poly constraint 'ih=_*_
 

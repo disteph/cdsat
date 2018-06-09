@@ -10,10 +10,9 @@ module Arg = struct
   let id i = i
   type values = Q.t
   include EmptyInfo
-  let treeHCons = None
 end
 
-module VarMap = PatMap.Make(Arg)(TypesFromHConsed(Arg))
+module VarMap = MapNH(struct include Arg include TypesFromHConsed(Arg) end)
 
 type nature = Lt | Le | Eq | NEq | Term | Other
                            

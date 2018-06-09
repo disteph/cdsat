@@ -4,7 +4,7 @@
 
 open Format
 
-open Interfaces_basic
+include module type of Basic_sig
 
 module IntSort : sig
   include PHCons

@@ -421,9 +421,9 @@ let make theories : (module API) =
                      
        open DS
 
-       type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
+       type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) Msg.t * 'proof
 
-       let pp fmt (type a) (WB(hdls,msg) : a t) =
+       let pp fmt (type a)(type proof) (WB(hdls,msg,_) : (a,proof) t) =
          match msg with
          | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
                         HandlersMap.pp hdls
@@ -432,62 +432,69 @@ let make theories : (module API) =
                            HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
                            Msg.pp msg
 
-       let sign hdl (type a) : (_,a) Msg.t -> a t =
-         let hdl = Handlers.Handler hdl in
-         function
-         | Propa(assign,o) ->
-            if HandlersMap.mem hdl theories
-            then WB(HandlersMap.singleton hdl (),
-                    Messages.propa () assign o)
-            else failwith "Using a theory that is not allowed"
-         | Sat{ assign; sharing; myvars } ->
-            WB(HandlersMap.remove hdl theoriesWeq,
-               Messages.sat () assign ~sharing ~myvars)
-            
-       let sign_Eq (type a) : (_,a) Msg.t -> a t = function
-         | Propa(assign,o) ->
-            WB(HandlersMap.singleton Handlers.Eq (),
-               Messages.propa () assign o)
-         | Sat{ assign; sharing; myvars } ->
-            WB(HandlersMap.remove Handlers.Eq theoriesWeq,
-               Messages.sat () assign ~sharing ~myvars)
+       module Make(Proof:Proof) = struct
+
+         type nonrec 'a t = ('a,Proof.t) t
 
 
-       let resolve
+         let sign hdl (type a) : (_,a) Msg.t -> a t =
+           let hdl = Handlers.Handler hdl in
+           function
+           | Propa(assign,o) ->
+             if HandlersMap.mem hdl theories
+             then WB(HandlersMap.singleton hdl (),
+                     Messages.propa () assign o)
+             else failwith "Using a theory that is not allowed"
+           | Sat{ assign; sharing; myvars } ->
+             WB(HandlersMap.remove hdl theoriesWeq,
+                Messages.sat () assign ~sharing ~myvars)
+
+         let sign_Eq (type a) : (_,a) Msg.t -> a t = function
+           | Propa(assign,o) ->
+             WB(HandlersMap.singleton Handlers.Eq (),
+                Messages.propa () assign o)
+           | Sat{ assign; sharing; myvars } ->
+             WB(HandlersMap.remove Handlers.Eq theoriesWeq,
+                Messages.sat () assign ~sharing ~myvars)
+
+
+         let resolve
              (WB(hdls1,Propa(oldset,Straight bassign)))
              (WB(hdls2,Propa(thset,o)))
-         =
-         let res = Assign.remove (SAssign bassign) thset in
-         WB(HandlersMap.union hdls1 hdls2,
-            Messages.propa () (Assign.union res oldset) o)
-           
-       let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
-         WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
+           =
+           let res = Assign.remove (SAssign bassign) thset in
+           WB(HandlersMap.union hdls1 hdls2,
+              Messages.propa () (Assign.union res oldset) o)
 
-       let curryfy
+         let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
+           WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
+
+         let curryfy
              ?(assign = Assign.empty)
              ?flip
              (WB(hdls,Propa(thset,Unsat))) =
-         let thset,(t,Values.Boolean b) =
-           match flip with
-           | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
-           | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
-         in
-         let aux (SAssign(term,value) as a) ((thset,clause,b) as sofar) =
-           match value with
-           | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
-              -> Assign.remove a thset,
-                 Term.bC Symbols.Imp (if b then [term;clause] else [clause;term]),
-                 true                 
-           | Values.Boolean false when Assign.mem a thset
-              -> Assign.remove a thset,
-                 Term.bC (if b then Symbols.Or else Symbols.And) [term;clause],
-                 b
-           | _ -> sofar
-         in
-         let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
-         WB(hdls,straight () thset (rhs,Values.Boolean b))
-              
+           let thset,(t,Values.Boolean b) =
+             match flip with
+             | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
+             | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
+           in
+           let aux (SAssign(term,value) as a) ((thset,clause,b) as sofar) =
+             match value with
+             | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
+               -> Assign.remove a thset,
+                  Term.bC Symbols.Imp (if b then [term;clause] else [clause;term]),
+                  true                 
+             | Values.Boolean false when Assign.mem a thset
+               -> Assign.remove a thset,
+                  Term.bC (if b then Symbols.Or else Symbols.And) [term;clause],
+                  b
+             | _ -> sofar
+           in
+           let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
+           WB(hdls,straight () thset (rhs,Values.Boolean b))
+
+       end
+       
        type sat_tmp = { assign  : Assign.t;
                         sharing : TSet.t;
                         left    : unit HandlersMap.t;
@@ -523,7 +530,7 @@ let make theories : (module API) =
             else Share newshared
             
        let sat
-             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
+             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'},_))
              { left; assign; sharing; varlist } =
          if Assign.equal assign assign'
          then

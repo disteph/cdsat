@@ -44,15 +44,15 @@ let init
 
      let expected = expected
 
-     type answer =
-       | UNSAT of unsat WB.t
+     type 'proof answer =
+       | UNSAT of (unsat,'proof) WB.t
        | SAT of WB.DS.Assign.t
        | NotAnsweringProblem
 
      let answer =
        let open DS in
        function
-       | Case1(WB.WB(_,Propa(assign,Unsat)) as msg) ->
+       | Case1(WB.WB(_,Propa(assign,Unsat),_) as msg) ->
           if Assign.subset assign problem
           then UNSAT msg
           else

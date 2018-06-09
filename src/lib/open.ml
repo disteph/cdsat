@@ -41,6 +41,7 @@ include Ppx_hash_lib.Std.Hash.Builtin
 module Hash = struct
   open Ppx_hash_lib.Std.Hash
   type 'a t      = 'a -> int
+  type nonrec state = state
   type nonrec 'a folder = 'a folder
   let hash2fold h hash_state a = hash_fold_int hash_state (h a)
   let fold2hash = of_fold
@@ -50,6 +51,11 @@ module Hash = struct
     = [%hash_fold:a*b*c]
   let wrap1 hash_fold f = fold2hash (hash_fold (hash2fold f))
   let wrap2 hash_fold f g = fold2hash (hash_fold (hash2fold f) (hash2fold g))
+end
+
+module Format = struct
+  include Format
+  type 'a printer = formatter -> 'a -> unit
 end
 
 module Boolhashed = struct
@@ -85,8 +91,6 @@ module List = struct
     | _::l -> mem eq x l
 
   let fold f seed l = List.fold_left (fun sofar elt -> f elt sofar) l seed
-
-  let hash h = Hash.wrap1 hash_fold_t h
 
   let rec last = function
     | [] -> failwith "last"

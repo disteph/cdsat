@@ -1,5 +1,6 @@
 open Format
-open Patricia_sig
+
+include Patricia_sig
 
 let print_nothing _ _ = ()
 let print_dot fmt _ = fprintf fmt "."

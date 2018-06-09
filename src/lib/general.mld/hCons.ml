@@ -80,17 +80,17 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
      *       | Goption.None -> (fun _ _ -> ()),Goption.None
      *   in aux M.backindex *)
 
-    let build a =
+    let build reveal =
       (* let f = {reveal =  a; id = !unique; data = None} in *)
       (* try H.find table f *)
-      try H.find table a
+      try H.find table reveal
       with Not_found ->
         let id = !unique in
-        let rec newf = G { reveal =  a; id ; data = lazy(Data.build newf)} in
+        let rec newf = G { reveal; id; data = lazy(Data.build newf)} in
         let G{data} = newf in
         let _ = Lazy.force data in
         incr unique;
-        H.add table a newf;
+        H.add table reveal newf;
         (* H.add table newf; *)
         (* record id newf; *)
         newf

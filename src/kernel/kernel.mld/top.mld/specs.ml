@@ -7,7 +7,6 @@ open Format
 open General
 open Sums
        
-open Interfaces_basic
 open Basic
 open Variables
 open Sassigns
@@ -18,10 +17,12 @@ module type Term = Terms.S with type leaf = FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
                            
-module type DataType = Terms.DataType with type leaf := FreeVar.t
+module type DataType = sig
+  type t
+  val build : ('d -> t) -> 'd termF -> t
+end
 
-
-(* Internal representation of objects in the theory module, used
+                                         (* Internal representation of objects in the theory module, used
    during parsing. 
    Similar to the definition of a model structure in logic:
 

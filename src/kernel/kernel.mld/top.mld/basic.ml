@@ -4,12 +4,12 @@
 
 open Format
 
-open Interfaces_basic
-
 open General
 open Patricia
 open Patricia_tools
 
+include Basic_sig
+    
 module IntSort = struct
 
   module M = struct
@@ -57,8 +57,8 @@ module MakeCollection
   include Set.Make(OT)
   type e    = elt
   let next t = let e = choose t in (e,remove e t)
-  let hash t = List.hash OT.hash (elements t)
   let hash_fold_t s t = List.hash_fold_t OT.hash_fold_t s (elements t)
+  let hash t = Hash.fold2hash hash_fold_t t
   let pp fmt s = List.pp OT.pp fmt (elements s)
   let show = Print.stringOf pp
 end

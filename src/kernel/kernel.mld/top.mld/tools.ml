@@ -1,4 +1,4 @@
-open Interfaces_basic
+open Basic
 open Specs
 
 module FVSubst = struct
@@ -20,9 +20,8 @@ module Pairing(B1: DataType)(B2: DataType)
        : (DataType with type t = B1.t*B2.t) =
   struct
     type t = B1.t*B2.t
-    let bC tag symb args = 
-      (B1.bC tag symb (List.map fst args),
-       B2.bC tag symb (List.map snd args))
-    let bV tag v = (B1.bV tag v, B2.bV tag v)
-    let bB tag t = (B1.bB tag t, B2.bB tag t)
+    let build proj term =
+      let proj1 data = data |> proj |> fst in
+      let proj2 data = data |> proj |> snd in
+      (B1.build proj1 term, B2.build proj2 term)
   end
