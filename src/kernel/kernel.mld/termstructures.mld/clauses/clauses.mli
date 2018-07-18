@@ -1,26 +1,12 @@
 open Top.Specs
 
-open Literals
-
 open General
-open Patricia
-open Patricia_interfaces
 
-module I : Intern with type keys = LitF.t
-                   and type common = int
-                   and type branching = int
                       
-(* LSet = Sets of literals, patricia tries implementation (hconsed)
+(* Type of maps from rational variables to rational coefficients
    infos is the cardinal of the set *)
+type 'data varmap = ('data termF, bool, int, int, int*[`NoHCons]) Patricia.poly
 
-module LSet : sig
-  include PatSet
-          with type e = LitF.t
-           and type infos = int
-           and type ('v, 'i) param =
-                      (LitF.t, 'v, I.common, I.branching, 'i) poly
-  val next : t -> e*t
-end
      
 (* Representation of terms for boolean reasoning, knowing about
    disjunction, negation, true and false *)
@@ -31,8 +17,9 @@ end
    are usually Some a, Some b, with one of a or b being a singleton
    and the other one being non-empty. *)
 
-type t' = private { asclause : LSet.t option; (* None if trivially true *)
-                   ascube   : LSet.t option; (* None if trivially false *)
-                   freevar  : IntSortSet.t }
+type ('data,'tset) t = private
+  { asclause : 'data varmap option; (* None if trivially true *)
+    ascube   : 'data varmap option; (* None if trivially false *)
+    freevar  : 'tset }
 
-module TS : Termstructure.Type with type (_,_) t = t'
+module TS : Termstructure.Type with type ('d,'ts) t = ('d,'ts) t

@@ -1,9 +1,10 @@
 open Format
 open General
 open Basic
-open Interfaces_basic
 open Variables
 
+include Terms_sig
+    
 type _ free = private Free
 type bound_prim  = private Bound
 type bound = BoundVar.t*bound_prim
@@ -21,11 +22,11 @@ type (_,_) func_prim =
 type ('a,'b) func = ('a,'b free) func_prim
 
 let equal (type l b a)
-      (eqLeaf: l -> l -> bool)
-      (eqSub:(b,(b,bool)func)func)
-      eqRec
-      (t1:(a,l*b)xterm)
-      (t2:(a,l*b)xterm) =
+      (eqLeaf: l Equal.t)
+      (eqSub :(b,(b,bool)func)func)
+      (eqRec : a Equal.t)
+      (t1    :(a,l*b)xterm)
+      (t2    :(a,l*b)xterm) =
   match t1,t2 with
   | V l1, V l2          -> eqLeaf l1 l2
   | C(s1,l1), C(s2,l2)  -> Symbols.equal s1 s2 && List.equal eqRec l1 l2
@@ -35,14 +36,17 @@ let equal (type l b a)
   | BB(s1,x1), BB(s2,x2) -> eqRec x1 x2
   | _, _                       -> false
 
+let hash_fold (type a l b)
+    (hash_fold_l:l Hash.folder)
+    (hSub: (b,Hash.state -> Hash.state)func)
+    hash_fold_a : (a,l*b) xterm Hash.folder  = fun state xterm -> match xterm with
+  | V l        -> [%hash_fold:int*l] state (3,l)
+  | C(symb,l)  -> [%hash_fold:int*Symbols.t*(a list)] state (5,symb,l)
+  | FB(so,x,d) -> let FreeFunc hash_fold_b = hSub in
+    [%hash_fold:int*Sorts.t*(l DSubst.t)] state (7,so,d)
+    |> hash_fold_b x
+  | BB(so,x)   -> [%hash_fold:int*Sorts.t*a] state (11,so,x)
 
-let hash (type a l b)
-      (hLeaf:l->int) (hSub:(b,int)func) hRec : (a,l*b)xterm -> int  = function
-  | V l        -> hLeaf l
-  | C(symb,l)  -> 5*(Symbols.hash symb)+17*(List.hash hRec l)
-  | FB(so,x,d) -> let FreeFunc hSub = hSub in
-                  19*Sorts.hash so+31*(hSub x)+23*(Hash.wrap1 DSubst.hash_fold_t hLeaf d)
-  | BB(so,x)   -> 31*(hRec x)
 
 (* Displays a formula *)
 let pp (type a l b)
@@ -69,12 +73,7 @@ let get_sort (type a l b)
     | FB(_,t,_) -> let FreeFunc sSub = sSub in
                    sSub t
     | BB(_,f)   -> sRec f
-  in fun reveal t -> aux (reveal t)
-
-module type Leaf = sig
-  include PH
-  val get_sort : t -> Sorts.t
-end
+  in fun reveal t -> t |> reveal |> aux
 
                      
 (******************************)
@@ -84,15 +83,14 @@ end
 module TermB = struct
 
   module B = struct
-    type nonrec 'a t = ('a,bound) xterm
+    type 'a t = ('a,bound) xterm
     let equal eqRec = equal BoundVar.equal BoundFunc eqRec 
-    let hash hRec = hash BoundVar.hash BoundFunc hRec
-    let hash_fold_t hash_fold_a = Hash.hash2fold(hash(Hash.fold2hash hash_fold_a))
+    let hash_fold_t hRec = hash_fold BoundVar.hash_fold_t BoundFunc hRec
     let name = "TermB"
   end
 
   include HCons.Make(B)
-  include Init(HCons.NoBackIndex)
+  include Init(B)
 
   let pp =
     let rec aux fmt t = pp BoundVar.pp BoundFunc aux reveal fmt t
@@ -118,68 +116,38 @@ end
                  
 module F = struct
   type ('a,'l) t = ('a, 'l * TermB.t free) xterm
-  let equal eqRec eqPar = equal
-                            eqPar
-                            (FreeFunc(fun x->FreeFunc(TermB.equal x)))
-                            eqRec
-  let hash hRec hPar = hash hPar (FreeFunc TermB.hash) hRec
-  let hash_fold_t hash_fold_a hash_fold_l
-    = Hash.hash2fold(hash(Hash.fold2hash hash_fold_a)(Hash.fold2hash hash_fold_l))
-  let name = "TermF"
 end
 
 include HCons.MakePoly(F)
 
-type ('leaf,'datatype) termF = ('leaf,'datatype) generic
+type ('leaf,'datatype) termF = ('leaf*'datatype*[`HCons]) G.t
                                                  
-module type DataType = sig
-  type t
-  type leaf
-  val bV : int -> leaf -> t
-  val bC : int -> Symbols.t -> t list -> t
-  val bB : int -> Sorts.t*TermB.t*leaf DSubst.t -> t
-end
-
-module type S = sig
-  type datatype
-  type leaf
-  include PHCons with type t = (leaf,datatype) termF
-  val print_of_id: Format.formatter -> int -> unit
-  val get_sort : t -> Sorts.t
-  val term_of_id: int -> t
-  val bV : leaf -> t
-  val bC : Symbols.t -> t list -> t
-  val bB : Sorts.t -> TermB.t -> leaf DSubst.t -> t
-  module Homo(Mon: MonadType) : sig
-    val lift :
-      ('a -> leaf Mon.t) -> ('a,_) termF -> (leaf,datatype) termF Mon.t
-    val lifttl :
-      ('a -> leaf Mon.t) -> ('a,_) termF list -> (leaf,datatype) termF list Mon.t
-  end
-  val subst : ('a -> leaf) -> ('a,_) termF -> (leaf,datatype) termF
-  val lift : leaf DSubst.t -> TermB.t -> t
-end
 
 module Make(Leaf: Leaf)
-         (Data : DataType with type leaf = Leaf.t) =
+    (Data : DataType with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
+                      and type leaf := Leaf.t) =
   struct
 
     type leaf = Leaf.t
-                  
-    include InitData(HCons.BackIndex)(Leaf)
-              (struct 
-                type t = Data.t
-                let build term =
-                  let tag = id term in
-                  match reveal term with
-                  | V v     -> Data.bV tag v
-                  | C(f,l)  -> Data.bC tag f (List.map data l)
-                  | FB(so,t,d) -> Data.bB tag (so,t,d)
-              end)
+
+    module F = struct
+      type 'a t = ('a, leaf) F.t
+      let equal eqRec = equal
+          Leaf.equal
+          (FreeFunc(fun x->FreeFunc(TermB.equal x)))
+          eqRec
+      let hash_fold_t hashRec
+        = hash_fold
+          Leaf.hash_fold_t
+          (FreeFunc(fun x state -> TermB.hash_fold_t state x))
+          hashRec
+      let name = "TermF"
+    end
+
+    
+    include InitData(Leaf)(F)(Data)
 
     type datatype = Data.t
-
-    let Opt.Some term_of_id = backindex
 
     let id = id
     let compare = compare
@@ -195,10 +163,6 @@ module Make(Leaf: Leaf)
 
     let show a = Print.stringOf pp a
                         
-    let print_of_id fmt index =
-      let atom = term_of_id index in
-      pp fmt atom
-         
     let get_sort =
       let rec aux t =
         get_sort Leaf.get_sort (FreeFunc(TermB.get_sort)) aux reveal t
@@ -245,7 +209,5 @@ module Make(Leaf: Leaf)
 module EmptyData(Leaf:Leaf) = struct
   type t = unit
   type leaf = Leaf.t
-  let bC _ _ _ = ()
-  let bV _ _   = ()
-  let bB _ _   = ()
+  let build _ = ()
 end

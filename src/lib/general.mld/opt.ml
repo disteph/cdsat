@@ -12,11 +12,10 @@ let pp_print_option ?pp_none print_in_fmt fmt = function
 let map f = function
   | None -> None
   | Some a -> Some(f a)
-                           
-type some = private S
-type none = private N
 
-type (_,_) gadt =
-  | Some: 'a -> ('a,some) gadt
-  | None: ('a,none) gadt
+let is_none = function None -> true | Some _ -> false
+let is_some = function None -> false | Some _ -> true
 
+type (_,_) gadt = 
+  | Some: 'a -> ('a,[`Some]) gadt
+  | None: ('a,[`None]) gadt

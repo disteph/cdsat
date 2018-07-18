@@ -16,6 +16,7 @@ module type Pervasives = sig
 end
 
 module Compare = struct
+  type 'a t = 'a->'a->int
   let min compare a1 a2 =
     if compare a1 a2 <= 0 then a1 else a2
   let max compare a1 a2 =
@@ -24,6 +25,10 @@ module Compare = struct
     = let c = compare1 a1 b1 in
     if c = 0 then compare2 a2 b2 else c
   let id2compare id a b = compare (id a) (id b)
+end
+
+module Equal = struct
+  type 'a t = 'a->'a->bool
   let id2equal   id a b = (id a)=(id b)
 end
 
@@ -36,11 +41,23 @@ let (>>) f g x = x |> f |> g
 include Ppx_hash_lib.Std.Hash.Builtin
 
 module Hash = struct
+  open Ppx_hash_lib.Std.Hash
+  type 'a t      = 'a -> int
+  type nonrec state = state
+  type nonrec 'a folder = 'a folder
   let hash2fold h hash_state a = hash_fold_int hash_state (h a)
-  let fold2hash f = Ppx_hash_lib.Std.Hash.run f
+  let fold2hash = of_fold
   let fold a = hash2fold Hashtbl.hash a
+  let pair (type a) (type b) hash_fold_a hash_fold_b = [%hash_fold:a*b]
+  let triple (type a) (type b) (type c) hash_fold_a hash_fold_b hash_fold_c
+    = [%hash_fold:a*b*c]
   let wrap1 hash_fold f = fold2hash (hash_fold (hash2fold f))
   let wrap2 hash_fold f g = fold2hash (hash_fold (hash2fold f) (hash2fold g))
+end
+
+module Format = struct
+  include Format
+  type 'a printer = formatter -> 'a -> unit
 end
 
 module Boolhashed = struct
@@ -77,7 +94,11 @@ module List = struct
 
   let fold f seed l = List.fold_left (fun sofar elt -> f elt sofar) l seed
 
-  let hash h = Hash.wrap1 hash_fold_t h
+  let rec last = function
+    | [] -> failwith "last"
+    | [h] -> h
+    | h :: t -> last t
+
 end
 
 module PolyEq = struct

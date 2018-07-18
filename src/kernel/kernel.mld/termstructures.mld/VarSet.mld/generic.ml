@@ -1,5 +1,5 @@
 open Top
-open Interfaces_basic
+open Basic
 open Specs
 
 module Make(S: sig
@@ -13,10 +13,10 @@ module Make(S: sig
 
         type t = TSet.t [@@deriving show]
 
-        let build ~proj (t:Term.t) : t =
+        let build ~proj t =
           match Terms.reveal t with
           | Terms.C(symb,l) when S.known symb
-            -> List.fold (fun t -> (t |> Terms.data |> proj |> TSet.union)) l TSet.empty
+            -> List.fold (Terms.data >> proj >> TSet.union) l TSet.empty
           | _ -> TSet.singleton t
 
       end

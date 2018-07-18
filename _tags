@@ -24,6 +24,8 @@ true: annot, bin_annot
 # OASIS_STOP
 
 true: debug, optimize(3), unbox_closures
+# This is to silence warnings "Tag ... is not used"
+<silent> : thread, pkg_async, pkg_str, pkg_psyche_kernel_lib, pkg_psyche_kernel, pkg_psyche_portfolio
 
 <problems>:  -traverse, not_hygienic
 <problems2>: -traverse, not_hygienic
@@ -52,7 +54,6 @@ true: debug, optimize(3), unbox_closures
                                  package(ppx_let),\
                                  package(psyche_kernel_lib),\
                                  package(psyche_kernel)
-<src/portfolio/tools.mld>      : blind
 
 <src/top-level>           : visible(src)
 <src/top-level/*.ml{,i,y}>: thread,\

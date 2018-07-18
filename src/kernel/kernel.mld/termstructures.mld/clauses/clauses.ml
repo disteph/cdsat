@@ -1,137 +1,137 @@
 open Top
 open Basic
 open Specs
-open Interfaces_basic
     
-open Literals
-open VarSet.Generic
-       
 open General
 open Patricia
 open Patricia_tools
 
-(* LSet = Sets of literals, patricia tries implementation.
-The only extra information that is stored is the cardinality of the set *)
+(* Type of maps from rational variables to rational coefficients *)
+type 'data varmap = ('data termF, bool, int, int, int*[`NoHCons]) Patricia.poly
 
-module I = TypesFromHConsed(LitF)
-  
-module Arg = struct
-  include LitF
-  include CardInfo
-  let treeHCons  = None (* Some LitF.id  *)
-end
-
-module LSet = struct
-  include PatSet.Make(Arg)(I)
-  let next lset = let lit = choose lset in lit, remove lit lset
-  let pp = print_in_fmt ~wrap:("{","}") LitF.pp
-end
-  
 (* Representation of terms for boolean reasoning *)                
-                         
-  (* asLit is the representation of the term as a literal
-No other connective than negation is known in this representation,
-but aslit for term t is equal to aslit for term not(not(t)).
 
-asclause and nasclause are the representations of the term and its
-negation, respectively, as clauses. In these representations, only
-disjunctions, conjunctions, negation, and the constants true and false
-are known.
+(* asclause and ascube are the representations of the term and its
+   negation, respectively, as clauses. For instance, (a \/ not b) is represented as
+   { asclause = Some {a -> true, b -> false};
+     ascube   = Some {(a \/ not b) -> false};
+     freevar  = { a, b };
+   }
+   In these representations, only disjunctions, conjunctions, negation, and the
+   constants true and false are known.
+   None is used to represent the trivially true clause, i.e. the negation
+   of the empty clause. 
+*)
 
-None is used to represent the trivially true clause, i.e. the negation
-of the empty clause. 
-   *)
+type ('data,'tset) t =
+  { asclause : 'data varmap option; (* None if trivially true *)
+    ascube   : 'data varmap option; (* None if trivially false *)
+    freevar  : 'tset }
 
-type t' = { asclause : LSet.t option; (* None if trivially true *)
-           ascube   : LSet.t option; (* None if trivially false *)
-           freevar  : IntSortSet.t } [@@deriving show]
-           
 module PreTS = struct
     
-  type (_,_) t = t'
-                    
-  (* Building the unary clause containing literal lit *)
-           
-  let build_slit lit = Some(LSet.singleton lit)
-
-  let build_lit tag so = { asclause = build_slit (LitF.build(false,tag));
-                           ascube   = build_slit (LitF.build(true,tag));
-                           freevar  = IntSortSet.singleton(IntSort.build(tag,so)) }
-
-  (* Two clauses in a disjunction -> union, 
-     unless one is trivially true *)
-
-  let or_comb = function
-    | Some a, Some b -> Some(LSet.union a b)
-    | _ -> None
-
-  (* Two clauses in a conjunction:
-     if one of them is trivially true -> other one,
-     otherwise it is a abstract literal representing conjunction
-     (has to be passed as argument *)
-
-  let and_comb lit = function
-    | None, a | a, None -> a
-    | _ -> build_slit lit
-
-  let ttrue tag = { asclause = None;
-                    ascube   = Some LSet.empty;
-                    freevar  = IntSortSet.empty }
-
-  let ffalse tag = { asclause = Some LSet.empty;
-                     ascube   = None;
-                     freevar  = IntSortSet.empty }
-
-  let oor tag a b =
-    let lit = LitF.build(true,tag) in
-    { asclause = or_comb (a.asclause,b.asclause);
-      ascube = and_comb lit (a.ascube,b.ascube);
-      freevar = IntSortSet.union a.freevar b.freevar }
-
-  let aand tag a b =
-    let lit = LitF.build(true,tag) in
-    { asclause = and_comb (LitF.negation lit) (a.asclause,b.asclause);
-      ascube   = or_comb (a.ascube,b.ascube);
-      freevar  = IntSortSet.union a.freevar b.freevar }
-
-  let iimp tag a b =
-    let lit = LitF.build(true,tag) in
-    { asclause = or_comb (a.ascube,b.asclause);
-      ascube   = and_comb lit (a.asclause,b.ascube);
-      freevar  = IntSortSet.union a.freevar b.freevar }
-
-  let negation t = { asclause = t.ascube;
-                     ascube   = t.asclause;
-                     freevar  = t.freevar }
-
-  let bC tag symb l = match symb,l with
-    | Symbols.True, []  -> ttrue tag
-    | Symbols.False,[]  -> ffalse tag
-    | Symbols.Or, [a;b] -> oor tag a b
-    | Symbols.And,[a;b] -> aand tag a b
-    | Symbols.Imp,[a;b] -> iimp tag a b
-    | Symbols.Neg,[a]   -> negation a
-    | _,_ -> let so,_ = Symbols.arity symb in
-      build_lit tag so
+  type nonrec ('data,'tset) t = ('data,'tset) t                    
 
   module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
 
-    type t = t'
+    type nonrec t = (Term.datatype,TSet.t) t                    
 
-    let pp = pp_t'
-    let show = show_t'
+    (* VarMap = mapping variables to booleans, patricia tries implementation.
+       The only extra information that is stored is the cardinality of the set *)
+
+    module VarMap = struct
+      include MapNH(struct
+          include Term
+          include CardInfo
+          include TypesFromHConsed(Term)
+          type values = bool
+        end)
+      let next varmap = let var,b = choose varmap in var,b, remove var varmap
+      let pp_lit fmt (var,b) =
+        Format.fprintf fmt "%s%a" (if b then "" else "~") Term.pp var
+      let pp = print_in_fmt ~wrap:("{","}") pp_lit
+    end
+
+    let pp fmt t = match t.asclause with
+      | Some asc -> VarMap.pp fmt asc
+      | None -> Format.fprintf fmt "True_clause"
+    let show t = Print.stringOf pp t
+
+    (* Building the unary clause containing literal lit *)
+
+    let build_slit var b = Some(VarMap.singleton var b)
+
+    let build_lit var = { asclause = build_slit var true;
+                          ascube   = build_slit var false;
+                          freevar  = TSet.singleton var }
+
+    exception Both
+
+    let merge b1 b2 = if [%eq:bool] b1 b2 then b1 else raise Both
+
+    (* Two clauses in a disjunction -> union, 
+       unless one is trivially true;
+       if one clause contains l and the other \neg l, then trivially true
+    *)
+
+    let or_comb = function
+      | Some a, Some b ->
+        (try Some(VarMap.union merge a b) with Both -> None)
+      | _ -> None
+
+    (* Two clauses in a conjunction:
+       if one of them is trivially true -> other one,
+       otherwise it is a abstract literal representing conjunction
+       (has to be passed as argument *)
+
+    let and_comb var b = function
+      | None, a | a, None -> a
+      | _ -> build_slit var b
+
+    let ttrue = { asclause = None;
+                  ascube   = Some VarMap.empty;
+                  freevar  = TSet.empty }
+
+    let ffalse = { asclause = Some VarMap.empty;
+                   ascube   = None;
+                   freevar  = TSet.empty }
+
+    let oor var a b =
+      { asclause = or_comb (a.asclause,b.asclause);
+        ascube = and_comb var true (a.ascube,b.ascube);
+        freevar = TSet.union a.freevar b.freevar }
+
+    let aand var a b =
+      { asclause = and_comb var false (a.asclause,b.asclause);
+        ascube   = or_comb (a.ascube,b.ascube);
+        freevar  = TSet.union a.freevar b.freevar }
+
+    let iimp var a b =
+      { asclause = or_comb (a.ascube,b.asclause);
+        ascube   = and_comb var true (a.asclause,b.ascube);
+        freevar  = TSet.union a.freevar b.freevar }
+
+    let negation t = { asclause = t.ascube;
+                       ascube   = t.asclause;
+                       freevar  = t.freevar }
+
+    let bC var symb l = match symb,l with
+      | Symbols.True, []  -> ttrue
+      | Symbols.False,[]  -> ffalse
+      | Symbols.Or, [a;b] -> oor var a b
+      | Symbols.And,[a;b] -> aand var a b
+      | Symbols.Imp,[a;b] -> iimp var a b
+      | Symbols.Neg,[a]   -> negation a
+      | _,_ -> build_lit var
 
     let build ~proj (t:Term.t) : t =
-      let tag = Terms.id t in
       match Terms.reveal t with
       | Terms.C(symb,l)
-        -> let l = List.map (fun t -> (t |> Terms.data |> proj )) l in
-        bC tag symb l
-      | Terms.V fv -> build_lit tag (Variables.FreeVar.get_sort fv)
-      | Terms.FB(_,termB,_) -> build_lit tag (Top.Terms.TermB.get_sort termB)
+        -> let l = List.map (Terms.data >> proj) l in bC t symb l
+      | Terms.V _
+      | Terms.FB(_,_,_) -> build_lit t
 
   end
-
 end
 
 module TS = Termstructure.Make(PreTS)

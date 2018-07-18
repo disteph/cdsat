@@ -7,17 +7,23 @@ open Format
 open General
 open Sums
        
-open Interfaces_basic
+open Basic
 open Variables
 open Sassigns
        
 (* Abbreviations *)
 
-module type Term = Terms.S with type leaf = FreeVar.t
+module type Term = Terms.S with type ('leaf,'datatype) termF := ('leaf,'datatype) Terms.termF
+                            and type termB := Terms.TermB.t
+                            and type leaf  := FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
                            
 (* module type DataType = Terms.DataType with type leaf := FreeVar.t *)
+module type DataType = sig
+  type t
+  val build : ('d -> t) -> 'd termF -> t
+end
 
 (* Internal representation of objects in the theory module, used
    during parsing. 
@@ -109,14 +115,18 @@ type (_,_) output =
    | Silence
    | Msg: ('s,'a*('t termF, 'v) bassign*'tset,_) Messages.message
           -> ('s,'t*'v*'a*'tset) output
-   | Try: ('t termF, 'v) sassign
-          -> (_,'t*'v*_*_) output
+   (* | Try: ('t termF, 'v) sassign
+    *        -> (_,'t*'v*_*_) output *)
 
 type (_,_) slot_machine =
   SlotMachine : {
       add     : ('t termF, 'v) sassign option
                 -> ('s,'t*'v*'a*'tset) output
                    * ('s,'t*'v*'a*'tset) slot_machine;
+      propose :
+        ?term:'t termF
+        -> int
+        -> (('t termF, 'v) sassign * float) list;
       share   : 'tset
                 -> ('s,'t*'v*'a*'tset) output
                    * ('s,'t*'v*'a*'tset) slot_machine;

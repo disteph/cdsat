@@ -4,71 +4,67 @@ open Patricia_tools
 
 open Top
 open Basic
-open Interfaces_basic
 open Specs
-    
-module Arg = struct
-  type t = int [@@deriving ord]
-  let id i = i
-  type values = Q.t
-  include EmptyInfo
-  let treeHCons = None
-end
 
-module VarMap = PatMap.Make(Arg)(TypesFromHConsed(Arg))
-
+(* Type for the nature of a rational predicate *)
 type nature = Lt | Le | Eq | NEq | Term | Other
 
-type t' = { scaling : Q.t; (* A scaling factor, so that multiplication by a constant
-                              does not necessitate a traversal of the map *)
-            coeffs : VarMap.t;  (* The map from variables to coefficients *)
-            constant: Q.t;      (* The constant term *)
-            nature : nature }   (* The predicate *)
+(* Type of maps from rational variables to rational coefficients *)
+type 'data varmap = ('data termF, Q.t, int, int, EmptyInfo.infos*[`NoHCons]) Patricia.poly
 
-let pp pp_var fmt t =
-  let open Format in
-  let pp_monome fmt (var,coeff) =
-    let coeff = Q.(coeff * t.scaling) in
-    if Q.equal coeff Q.one
-    then fprintf fmt "(%a)" pp_var var
-    else if Q.equal coeff Q.minus_one
-    then fprintf fmt "-(%a)" pp_var var
-    else fprintf fmt "%a·(%a)" Q.pp_print coeff pp_var var
-  in
-  let cst = Q.(t.constant * t.scaling) in
-  let pp_cst s fmt cst = fprintf fmt "%s%a" s Q.pp_print cst in
-  let rec pp_map fmt = function
-    | []             -> pp_cst "" fmt cst
-    | [monome]       -> fprintf fmt "%a%a"
-                          pp_monome monome
-                          (if Q.sign cst>0 then pp_cst "+"
-                           else if Q.sign cst<0 then pp_cst ""
-                           else (fun _ _ -> ()))
-                          cst
-    | monome::(((_,coeff)::_) as coeffs) ->
-      fprintf fmt "%a%s%a"
-        pp_monome monome (if Q.sign coeff>0 then "+" else "") pp_map coeffs
-  in
-  let pp_expr s = fprintf fmt "%a%s" pp_map (VarMap.elements t.coeffs) s in
-  match t.nature with
-  | Other -> fprintf fmt "Not understandable"
-  | Term -> pp_expr ""
-  | Lt -> pp_expr " < 0"
-  | Le -> pp_expr " ≤ 0"
-  | Eq -> pp_expr " = 0"
-  | NEq -> pp_expr " ≠ 0"
+type 'data t = { scaling : Q.t; (* A scaling factor, so that multiplication by a constant
+                                  does not necessitate a traversal of the map *)
+                 coeffs : 'data varmap;  (* The map from variables to coefficients *)
+                 constant: Q.t;      (* The constant term *)
+                 nature : nature }   (* The predicate *)
 
 module PreTS = struct
 
-  type (_,_) t = t'
+  type nonrec ('data,_) t = 'data t
 
   module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
 
-    type t = t'
+    type nonrec t = (Term.datatype,TSet.t) t
 
-    let pp =
-      let pp_var fmt i = Format.fprintf fmt "%i" i in
-      pp pp_var
+    module VarMap = MapNH(struct
+        include Term
+        include EmptyInfo
+        include TypesFromHConsed(Term)
+        type values = Q.t
+      end)
+
+    let pp fmt t =
+      let open Format in
+      let pp_monome fmt (var,coeff) =
+        let coeff = Q.(coeff * t.scaling) in
+        if Q.equal coeff Q.one
+        then fprintf fmt "(%a)" Term.pp var
+        else if Q.equal coeff Q.minus_one
+        then fprintf fmt "-(%a)" Term.pp var
+        else fprintf fmt "%a·(%a)" Q.pp_print coeff Term.pp var
+      in
+      let cst = Q.(t.constant * t.scaling) in
+      let pp_cst s fmt cst = fprintf fmt "%s%a" s Q.pp_print cst in
+      let rec pp_map fmt = function
+        | []             -> pp_cst "" fmt cst
+        | [monome]       -> fprintf fmt "%a%a"
+                              pp_monome monome
+                              (if Q.sign cst>0 then pp_cst "+"
+                               else if Q.sign cst<0 then pp_cst ""
+                               else (fun _ _ -> ()))
+                              cst
+        | monome::(((_,coeff)::_) as coeffs) ->
+          fprintf fmt "%a%s%a"
+            pp_monome monome (if Q.sign coeff>0 then "+" else "") pp_map coeffs
+      in
+      let pp_expr s = fprintf fmt "%a%s" pp_map (VarMap.elements t.coeffs) s in
+      match t.nature with
+      | Other -> fprintf fmt "Not understandable"
+      | Term -> pp_expr ""
+      | Lt -> pp_expr " < 0"
+      | Le -> pp_expr " ≤ 0"
+      | Eq -> pp_expr " = 0"
+      | NEq -> pp_expr " ≠ 0"
 
     let show = Print.stringOf pp
 
@@ -108,16 +104,15 @@ module PreTS = struct
 
     let minus t1 t2 = add t1 (mult Q.minus_one t2)
 
-    let make_var tag =
-      let coeffs = VarMap.singleton tag Q.one in
+    let make_var t =
+      let coeffs = VarMap.singleton t Q.one in
       { scaling = Q.one; coeffs; constant=Q.zero; nature = Term }
 
 
     let build ~proj (t:Term.t) : t =
-      let tag = Terms.id t in
       match Terms.reveal t with
       | Terms.C(symb,l)
-        -> let l = List.map (fun t -> (t |> Terms.data |> proj )) l in
+        -> let l = List.map (Terms.data >> proj) l in
         begin
           match symb, l with
           | Symbols.CstRat n, []
@@ -133,22 +128,22 @@ module PreTS = struct
           | Symbols.Times, [a;b] ->
             if VarMap.is_empty a.coeffs then mult Q.(a.scaling * a.constant) b
             else if VarMap.is_empty b.coeffs then mult Q.(b.scaling * b.constant) a
-            else make_var tag
+            else make_var t
 
           | Symbols.Divide, [a;b] ->
             if VarMap.is_empty b.coeffs then mult Q.(inv(b.scaling * b.constant)) a
-            else make_var tag
+            else make_var t
 
           | _,_ -> 
             match Symbols.arity symb with
-            | Sorts.Rat, _ -> make_var tag
+            | Sorts.Rat, _ -> make_var t
             | _,_ -> other
         end
 
       | Terms.V fv ->
         begin
           match Variables.FreeVar.get_sort fv with
-          | Sorts.Rat -> make_var tag
+          | Sorts.Rat -> make_var t
           | _ -> other
         end
 

@@ -1,4 +1,4 @@
-open Patricia_interfaces
+open Patricia
 open Sums
 
 (***************************************************)
@@ -23,7 +23,7 @@ module MaxInfo(K: sig type t [@@deriving ord] end) : sig
 end
 
 (***************************************************)
-(* Automatic construction of a I:Intern from a HConsed type *)
+(* Automatic construction of a I:Key from a HConsed type *)
                                                        
 module type FromHConsed = sig
   type t 
@@ -31,14 +31,14 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S : FromHConsed) 
-  :sig include Intern with type keys      = S.t
-	              and  type common    = int
-	              and  type branching = int
-       val pequals:common->common->bool
+  :sig include Key with type t      := S.t
+	            and type common = int
+	     and type branching = int
+    val pequals: common Equal.t
   end
   
 (***************************************************)
-(* Automatic construction of a I:Intern from a collection *)
+(* Automatic construction of a I:Key from a collection *)
 
 module type FromCollect = sig
   type keys
@@ -54,47 +54,47 @@ end
 
 module TypesFromCollect(S : FromCollect)
   :sig
-    include Intern with type keys     = S.keys
-		   and type common    = S.t
-		   and type branching = S.e
-    val pequals:common->common->bool
+    include Key with type t      := S.keys
+		 and type common = S.t
+   and type branching = S.e
+    val pequals: common Equal.t
   end
   
 (***************************************************)
-(* Automatic construction of a I:Intern for the product of two sets,
-   given I1:Intern and I2:Intern *)
+(* Automatic construction of a I:Key for the product of two sets,
+   given I1:Key and I2:Key *)
 
 module LexProduct  
   (I1:sig
-     include Intern 
-     val pequals:common->common->bool 
+     include Key 
+     val pequals: common Equal.t
    end)
-  (I2:Intern with type keys=I1.keys)
+  (I2:Key with type t=I1.t)
   :sig
-    include Intern with type keys     = I1.keys
-		   and type common    = I1.common*I2.common
-		   and type branching = (I1.branching,I2.branching) sum
+    include Key with type t      := I1.t
+		 and type common = I1.common*I2.common
+   and type branching = (I1.branching,I2.branching) sum
     val sub: 
       (bool-> I1.common -> I1.common -> I1.branching option -> (unit, I1.branching) almost) ->
       (bool-> I2.common -> I2.common -> I2.branching option -> (unit, I2.branching) almost) ->
       bool-> common -> common -> branching option -> (unit, branching) almost
-    val pequals:(I2.common->I2.common->bool)->common->common->bool
+    val pequals: I2.common Equal.t -> common Equal.t
   end
 
 (***************************************************)
-(* Automatic construction of an Intern for a set extended with a top element,
-   given the I:Intern for the original set *)
+(* Automatic construction of an Key for a set extended with a top element,
+   given the I:Key for the original set *)
 
-module Lift(I:sig include Intern
+module Lift(I:sig include Key
 		  type newkeys 
-		  val project :newkeys->keys option
+		  val project :newkeys -> t option
 	    end)
   :sig
-    include Intern with type keys     = I.newkeys
-		   and type common    = I.common option
-		   and type branching = I.branching option
+    include Key with type t      := I.newkeys
+		 and type common = I.common option
+   and type branching = I.branching option
     val sub: 
       (bool-> I.common -> I.common -> I.branching option -> (unit, I.branching) almost) ->
       bool-> common -> common -> branching option -> (unit, branching) almost
-    val pequals:(I.common->I.common->bool)->common->common->bool
+    val pequals: I.common Equal.t -> common Equal.t
   end

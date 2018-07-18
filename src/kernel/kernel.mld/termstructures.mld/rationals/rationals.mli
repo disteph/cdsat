@@ -1,21 +1,22 @@
 open General
 open Patricia
-open Patricia_interfaces
-open Top.Basic
+open Patricia_tools
+open Top
+open Basic
+open Specs
        
-module VarMap : PatMap
-       with type keys   = int
-        and type values = Q.t
-        and type ('v,'i) param = (int,'v,int,int,'i) poly 
-
+(* Type for the nature of a rational predicate *)
 type nature = Lt | Le | Eq | NEq | Term | Other
 
-type t' = { scaling : Q.t; (* A scaling factor, so that multiplication by a constant
-                              does not necessitate a traversal of the map *)
-            coeffs : VarMap.t;  (* The map from variables to coefficients *)
-            constant: Q.t;      (* The constant term *)
-            nature : nature }   (* The predicate *)            
+(* Type of maps from rational variables to rational coefficients *)
+type 'data varmap = ('data termF, Q.t, int, int, EmptyInfo.infos*[`NoHCons]) Patricia.poly
 
-val pp : (Format.formatter -> int -> unit) -> Format.formatter -> t' -> unit
+type 'data t = { scaling : Q.t; (* A scaling factor, so that multiplication by a constant
+                                  does not necessitate a traversal of the map *)
+                 coeffs : 'data varmap;  (* The map from variables to coefficients *)
+                 constant: Q.t;      (* The constant term *)
+                 nature : nature }   (* The predicate *)
+
+(* val pp : int Format.printer -> t Format.printer *)
             
-module TS : Termstructure.Type with type (_,_) t = t'
+module TS : Termstructure.Type with type ('data,_) t = 'data t

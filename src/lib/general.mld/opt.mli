@@ -10,12 +10,11 @@ val pp_print_option :
   -> unit
 
 val map : ('a -> 'b) -> 'a option -> 'b option
-       
-type some = private S
-type none = private N
+val is_none : 'a option -> bool
+val is_some : 'a option -> bool
 
 type (_,_) gadt = 
-  | Some: 'a -> ('a,some) gadt
-  | None: ('a,none) gadt
+  | Some: 'a -> ('a,[`Some]) gadt
+  | None: ('a,[`None]) gadt
 
 

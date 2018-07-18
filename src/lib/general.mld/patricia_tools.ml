@@ -1,5 +1,5 @@
+open Patricia
 open Sums
-open Patricia_interfaces
 
 module EmptyInfo = struct
   type infos = unit
@@ -40,10 +40,9 @@ module type FromHConsed = sig
 end
 
 module TypesFromHConsed(S:FromHConsed) = struct
-  type keys    = S.t
   type common  = int
   let tag      = S.id
-  let kcompare = Compare.id2compare tag
+  let compare  = Compare.id2compare tag
 
   type branching = int
   let bcompare   = Pervasives.compare
@@ -72,10 +71,9 @@ end
 
 module TypesFromCollect(S: FromCollect) = struct
 
-  type keys          = S.keys
-  type common        = S.t
-  let tag            = S.tag
-  let kcompare t1 t2 = S.compare(tag t1)(tag t2)
+  type common       = S.t
+  let tag           = S.tag
+  let compare t1 t2 = S.compare(tag t1)(tag t2)
     
   type branching = S.e
   let bcompare   = S.compare_e
@@ -95,12 +93,12 @@ end
 
 module LexProduct
   (I1:sig
-     include Intern 
-     val pequals:common->common->bool 
+     include Key
+     val pequals: common Equal.t
    end)
-  (I2:Intern with type keys=I1.keys) = struct
+  (I2:Key with type t=I1.t) = struct
 
-  type keys   = I1.keys
+  let compare = I1.compare
   type common = I1.common*I2.common
 
   let tag s   = (I1.tag s,I2.tag s)
@@ -144,12 +142,13 @@ module LexProduct
 end
 
 
-module Lift(I:sig include Intern
+module Lift(I:sig include Key
 		  type newkeys 
-		  val project :newkeys->keys option
+		  val project :newkeys-> t option
 	    end) = struct
 
-  type keys   = I.newkeys
+  type tmp    = I.t option [@@deriving ord] 
+  let compare a b = compare_tmp (I.project a) (I.project b)
   type common = I.common option
 
   let tag s    = match I.project s with

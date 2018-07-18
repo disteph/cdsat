@@ -1,35 +1,36 @@
 (* This module contains the basic constructions of Patricia trees to
   represent maps and sets *)
 
-open Patricia_interfaces
+include module type of Patricia_sig
 
-type ('keys,'values,'common,'branching,'infos) poly
+type ('k,'v,'common,'branching,'ih) poly constraint 'ih=_*_
 
-module PatMap: sig
+module MapH(I:MapArgH)
+  : MapH with type keys    = I.t
+          and type common  = I.common
+          and type branching = I.branching
+          and type values  = I.values
+          and type infos   = I.infos
+          and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-  module type S = PatMap
+module MapNH(I:MapArgNH)
+  : MapNH with type keys    = I.t
+           and type common  = I.common
+           and type branching = I.branching
+           and type values  = I.values
+           and type infos   = I.infos
+           and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-  module Make
-    (K:MapArg)
-    (I:Intern with type keys=K.t)
-    : S with type keys   = K.t
-        and  type values = K.values
-        and  type infos  = K.infos
-        and  type common = I.common
-        and  type branching = I.branching
-        and  type ('v,'i) param = (K.t,'v,I.common,I.branching,'i) poly
-end
+module SetH(I:SetArgH)
+  : SetH with type e       = I.t
+          and type common  = I.common
+          and type branching = I.branching
+          and type infos   = I.infos
+          and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly
 
-module PatSet: sig
-
-  module type S = PatSet
-
-  module Make
-    (E:SetArg)
-    (I:Intern with type keys=E.t)
-    : S with type e      = E.t
-        and  type infos  = E.infos
-        and  type common = I.common
-        and  type branching = I.branching
-        and  type ('v,'i) param = (E.t,'v,I.common,I.branching,'i) poly
-end
+module SetNH(I:SetArgNH)
+  : SetNH with type e       = I.t
+           and type common  = I.common
+           and type branching = I.branching
+           and type infos   = I.infos
+           and type ('v,'ih)param = (I.t,'v,I.common,I.branching,'ih) poly

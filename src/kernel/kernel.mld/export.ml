@@ -24,6 +24,24 @@ module type GlobalImplem = sig
   end
 end
 
+module type Proof = sig
+
+  type t
+  type assign
+
+  val from_th : t
+  val unsat   : t
+
+  (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
+  val resolve  : t -> t -> t
+
+  (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
+     First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
+  val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
+
+end
+
+
 (* Data-structures used as a result of theory interactions *)
 module type WhiteBoard = sig
 
@@ -34,32 +52,38 @@ module type WhiteBoard = sig
      with the appropiate theory handlers. 
      It's basically a message, together with the set of handlers
      of the theories that signed/contributed to the message *)
-  type 'a t = private WB of unit HandlersMap.t * (unit,'a) Msg.t
-  val pp : Format.formatter -> 'a t -> unit
+  type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) Msg.t * 'proof
+  val pp : Format.formatter -> ('a,'proof) t -> unit
 
-  (* Signing messages: one function for standard theories, one for the equality theory *)
-  val sign    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
-  val sign_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
+  module Make(Proof:Proof) : sig
 
-  (* Turns a propagation message H⊢L into H,~L⊢⊥ *)
-  val unsat    : straight t -> unsat t
-  (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
-  val resolve  : straight t -> 'b propa t -> 'b propa t
-  (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
-     First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
-  val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
+    type nonrec 'a t = ('a,Proof.t) t
+
+    (* Signing messages: one function for standard theories, one for the equality theory *)
+    val sign    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
+    val sign_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
+
+    (* Turns a propagation message H⊢L into H,~L⊢⊥ *)
+    val unsat    : straight t -> unsat t
+    (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
+    val resolve  : straight t -> 'b propa t -> 'b propa t
+    (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
+       First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
+    val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
+
+  end
 
   (* Type where we collect data about theories
      that have said they were happy with the current model *)
   type sat_tmp = private {
-                     assign  : Assign.t; (* The current model *)
-                     sharing : TSet.t;   (* The shared terms *)
-                     (* Handlers of theories that have not said they were happy *)
-                     left    : unit HandlersMap.t;
-                     (* List of sets of Σ-variables of the problem -one set per Σ/theory -
-                        to make sure we have a model, pairwise intersections of these sets
-                        should be included in sharing *)
-                     varlist : TSet.t Lazy.t list }
+    assign  : Assign.t; (* The current model *)
+    sharing : TSet.t;   (* The shared terms *)
+    (* Handlers of theories that have not said they were happy *)
+    left    : unit HandlersMap.t;
+    (* List of sets of Σ-variables of the problem -one set per Σ/theory -
+       to make sure we have a model, pairwise intersections of these sets
+       should be included in sharing *)
+    varlist : TSet.t Lazy.t list }
 
   (* When no theory has yet said that it was happy: left and varlist are empty *)
   val sat_init : Assign.t -> sharing:TSet.t -> sat_tmp
@@ -80,8 +104,8 @@ module type WhiteBoard = sig
     | Done of Assign.t * TSet.t
     | NoModelMatch of Assign.t
     | NoSharingMatch of TSet.t
-                                        
-  val sat : sat t -> sat_tmp -> sat_ans
+
+  val sat : (sat,_) t -> sat_tmp -> sat_ans
 end
 
 type (_,_) proj =
@@ -122,10 +146,10 @@ module type APIext = sig
 
   (* Below:
      checks a CDSAT definitive answer against the problem we are supposed to solve *)
-  type answer = private
-              | UNSAT of unsat WB.t
-              | SAT of WB.DS.Assign.t
-              | NotAnsweringProblem
+  type 'proof answer = private
+    | UNSAT of (unsat,'proof) WB.t
+    | SAT of WB.DS.Assign.t
+    | NotAnsweringProblem
 
-  val answer : (unsat WB.t, WB.sat_ans) sum -> answer
+  val answer : ((unsat,'proof) WB.t, WB.sat_ans) sum -> 'proof answer
 end

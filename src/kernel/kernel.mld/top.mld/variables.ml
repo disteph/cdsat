@@ -1,7 +1,6 @@
 open Format
 
 open General
-open Interfaces_basic
 open Basic
 
 module Meta  = struct
@@ -24,7 +23,7 @@ module FreeVar = struct
   end
 
   include HCons.Make(Arg)
-  include Init(HCons.NoBackIndex)
+  include Init(Arg)
 
   let get_sort fv = match reveal fv with
     | Meta mv  -> Meta.get_sort mv
@@ -47,6 +46,7 @@ module World = struct
   end
 
   include HCons.Make(Arg)
+  open G
 
   type data = {
     last : FreeVar.t option;
@@ -101,7 +101,7 @@ module World = struct
         
   end
 
-  include InitData(HCons.NoBackIndex)(Data)
+  include InitData(Arg)(Data)
 
   let init = build Init
 
@@ -124,7 +124,7 @@ module World = struct
       | Some fv -> fv,res
       | None -> failwith "Successful projection should have a last freevar")
 
-  let equal = Compare.id2equal id
+  let equal = Equal.id2equal id
   let hash = id
 
   let rec prefix w1 w2 =

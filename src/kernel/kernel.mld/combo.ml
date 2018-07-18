@@ -6,7 +6,6 @@ open General
 open Sums
 
 open Top
-open Interfaces_basic
 open Basic
 open Variables
 open Specs
@@ -668,143 +667,151 @@ let make theories : (module API) =
   let theoriesWeq = HandlersMap.add Handlers.Eq () theories in
 
   (module struct
+
     include Make(State)
 
-    module WB = struct
+     module WB = struct
 
-      module DS = DS
+       module DS = DS
+                     
+       open DS
 
-      open DS
+       type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) Msg.t * 'proof
 
-      type 'a t = WB of unit HandlersMap.t * (unit,'a) Msg.t
+       let pp fmt (type a)(type proof) (WB(hdls,msg,_) : (a,proof) t) =
+         match msg with
+         | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
+                        HandlersMap.pp hdls
+                        Msg.pp msg
+         | Sat assign -> Format.fprintf fmt "%a declares %a"
+                           HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
+                           Msg.pp msg
 
-      let pp fmt (type a) (WB(hdls,msg) : a t) =
-        match msg with
-        | Propa _ -> Format.fprintf fmt "%a propagate(s) %a"
-                       HandlersMap.pp hdls
-                       Msg.pp msg
-        | Sat assign -> Format.fprintf fmt "%a declares %a"
-                          HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
-                          Msg.pp msg
+       module Make(Proof:Proof) = struct
 
-      let sign hdl (type a) : (_,a) Msg.t -> a t =
-        let hdl = Handlers.Handler hdl in
-        function
-        | Propa(assign,o) ->
-          if HandlersMap.mem hdl theories
-          then WB(HandlersMap.singleton hdl (),
-                  Messages.propa () assign o)
-          else failwith "Using a theory that is not allowed"
-        | Sat{ assign; sharing; myvars } ->
-          WB(HandlersMap.remove hdl theoriesWeq,
-             Messages.sat () assign ~sharing ~myvars)
-
-      let sign_Eq (type a) : (_,a) Msg.t -> a t = function
-        | Propa(assign,o) ->
-          WB(HandlersMap.singleton Handlers.Eq (),
-             Messages.propa () assign o)
-        | Sat{ assign; sharing; myvars } ->
-          WB(HandlersMap.remove Handlers.Eq theoriesWeq,
-             Messages.sat () assign ~sharing ~myvars)
+         type nonrec 'a t = ('a,Proof.t) t
 
 
-      let resolve
-          (WB(hdls1,Propa(oldset,Straight bassign)))
-          (WB(hdls2,Propa(thset,o)))
-        =
-        let res = Assign.remove (SAssign bassign) thset in
-        WB(HandlersMap.union hdls1 hdls2,
-           Messages.propa () (Assign.union res oldset) o)
+         let sign hdl (type a) : (_,a) Msg.t -> a t =
+           let hdl = Handlers.Handler hdl in
+           function
+           | Propa(assign,o) ->
+             if HandlersMap.mem hdl theories
+             then WB(HandlersMap.singleton hdl (),
+                     Messages.propa () assign o)
+             else failwith "Using a theory that is not allowed"
+           | Sat{ assign; sharing; myvars } ->
+             WB(HandlersMap.remove hdl theoriesWeq,
+                Messages.sat () assign ~sharing ~myvars)
 
-      let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
-        WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
+         let sign_Eq (type a) : (_,a) Msg.t -> a t = function
+           | Propa(assign,o) ->
+             WB(HandlersMap.singleton Handlers.Eq (),
+                Messages.propa () assign o)
+           | Sat{ assign; sharing; myvars } ->
+             WB(HandlersMap.remove Handlers.Eq theoriesWeq,
+                Messages.sat () assign ~sharing ~myvars)
 
-      let curryfy
-          ?(assign = Assign.empty)
-          ?flip
-          (WB(hdls,Propa(thset,Unsat))) =
-        let thset,(t,Values.Boolean b) =
-          match flip with
-          | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
-          | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
-        in
-        let aux (SAssign(term,value) as a) ((thset,clause,b) as sofar) =
-          match value with
-          | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
-            -> Assign.remove a thset,
-               Term.bC Symbols.Imp (if b then [term;clause] else [clause;term]),
-               true                 
-          | Values.Boolean false when Assign.mem a thset
-            -> Assign.remove a thset,
-               Term.bC (if b then Symbols.Or else Symbols.And) [term;clause],
-               b
-          | _ -> sofar
-        in
-        let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
-        WB(hdls,straight () thset (rhs,Values.Boolean b))
 
-      type sat_tmp = { assign  : Assign.t;
-                       sharing : TSet.t;
-                       left    : unit HandlersMap.t;
-                       varlist : TSet.t Lazy.t list }
+         let resolve
+             (WB(hdls1,Propa(oldset,Straight bassign)))
+             (WB(hdls2,Propa(thset,o)))
+           =
+           let res = Assign.remove (SAssign bassign) thset in
+           WB(HandlersMap.union hdls1 hdls2,
+              Messages.propa () (Assign.union res oldset) o)
 
-      let sat_init assign ~sharing = { assign; sharing; left = theoriesWeq; varlist = [] }
+         let unsat (WB(hdls,Propa(thset,Straight(t,b)))) =
+           WB(hdls,unsat () (Assign.add (SAssign(negation(t, b))) thset))
 
-      type sat_ans =
-        | GoOn of sat_tmp
-        | Share of TSet.t
-        | Done of Assign.t * TSet.t
-        | NoModelMatch of Assign.t
-        | NoSharingMatch of TSet.t
+         let curryfy
+             ?(assign = Assign.empty)
+             ?flip
+             (WB(hdls,Propa(thset,Unsat))) =
+           let thset,(t,Values.Boolean b) =
+             match flip with
+             | None -> thset, (Term.bC Symbols.False [], Values.Boolean false)
+             | Some bassign -> Assign.remove (SAssign bassign) thset, bassign
+           in
+           let aux (SAssign(term,value) as a) ((thset,clause,b) as sofar) =
+             match value with
+             | Values.Boolean b' when Assign.mem a thset && [%eq:bool] b b'
+               -> Assign.remove a thset,
+                  Term.bC Symbols.Imp (if b then [term;clause] else [clause;term]),
+                  true                 
+             | Values.Boolean false when Assign.mem a thset
+               -> Assign.remove a thset,
+                  Term.bC (if b then Symbols.Or else Symbols.And) [term;clause],
+                  b
+             | _ -> sofar
+           in
+           let thset,rhs,b = Assign.fold aux assign (thset, t, not b) in
+           WB(hdls,straight () thset (rhs,Values.Boolean b))
 
-      let isnt_var t = match Terms.reveal t with
-        | Terms.V _ -> false
-        | _ -> true
+       end
+       
+       type sat_tmp = { assign  : Assign.t;
+                        sharing : TSet.t;
+                        left    : unit HandlersMap.t;
+                        varlist : TSet.t Lazy.t list }
 
-      (* disjoint_check assign sharing myvars list
-         list is a list of (lazy) sets of terms.
-         Checks whether those sets are pairwise disjoint,
-         ignoring elements that are already in sharing. *)
-      let rec disjoint_check assign sharing myvars = function
-        | [] -> Done(assign, sharing)
-        | myvars'::tail ->
-          let newvars   = TSet.diff (Lazy.force myvars') sharing in
-          let novars    = TSet.filter isnt_var newvars in
-          let newshared = TSet.union novars (TSet.inter newvars myvars) in
-          if TSet.is_empty newshared
-          then
-            let myvars = TSet.union newvars myvars in
-            disjoint_check assign sharing myvars tail
-          else Share newshared
+       let sat_init assign ~sharing = { assign; sharing; left = theoriesWeq; varlist = [] }
 
-      let sat
-          (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'}))
-          { left; assign; sharing; varlist } =
-        if Assign.equal assign assign'
-        then
-          if TSet.equal sharing sharing'
-          then
-            let left = HandlersMap.inter left left' in
-            if HandlersMap.is_empty left
-            then disjoint_check assign sharing TSet.empty varlist
-            else GoOn { assign; sharing; left; varlist = myvars'::varlist }
-          else NoSharingMatch sharing
-        else NoModelMatch assign
+       type sat_ans =
+         | GoOn of sat_tmp
+         | Share of TSet.t
+         | Done of Assign.t * TSet.t
+         | NoModelMatch of Assign.t
+         | NoSharingMatch of TSet.t
 
-    end
+       let isnt_var t = match Terms.reveal t with
+         | Terms.V _ -> false
+         | _ -> true
 
-    let th_modules,vproj = State.modules snd
-        (HasVconv{vinj=(fun x->x);vproj=(fun x -> Some x)})
-        (fun x->x)
-        (module DS)
+       (* disjoint_check assign sharing myvars list
+          list is a list of (lazy) sets of terms.
+          Checks whether those sets are pairwise disjoint,
+          ignoring elements that are already in sharing. *)
+       let rec disjoint_check assign sharing myvars = function
+         | [] -> Done(assign, sharing)
+         | myvars'::tail ->
+            let newvars   = TSet.diff (Lazy.force myvars') sharing in
+            let novars    = TSet.filter isnt_var newvars in
+            let newshared = TSet.union novars (TSet.inter newvars myvars) in
+            if TSet.is_empty newshared
+            then
+              let myvars = TSet.union newvars myvars in
+              disjoint_check assign sharing myvars tail
+            else Share newshared
+            
+       let sat
+             (WB(left',Sat{assign=assign'; sharing=sharing'; myvars=myvars'},_))
+             { left; assign; sharing; varlist } =
+         if Assign.equal assign assign'
+         then
+           if TSet.equal sharing sharing'
+           then
+             let left = HandlersMap.inter left left' in
+             if HandlersMap.is_empty left
+             then disjoint_check assign sharing TSet.empty varlist
+             else GoOn { assign; sharing; left; varlist = myvars'::varlist }
+           else NoSharingMatch sharing
+         else NoModelMatch assign
 
-    module VProj = (val vproj)
-    let vproj = VProj.proj
+     end
 
-    let parse parser input =
-      let ths,termB,_ = Parsers.Register.parse parser input in
-      begin match ths with
-        | Some l when not(HandlersMap.equal (fun ()()->true) theories (Register.get l)) ->
+     let th_modules,vproj = State.modules snd
+                              (HasVconv{vinj=(fun x->x);vproj=(fun x -> Some x)})
+                              (fun x->x)
+                              (module DS)
+
+     module VProj = (val vproj)
+     let vproj = VProj.proj
+
+     let parse parser input =
+       let ths,termB,_ = Parsers.Register.parse parser input in
+       begin match ths with
+       | Some l when not(HandlersMap.equal (fun ()()->true) theories (Register.get l)) ->
           print_endline(Print.toString(fun p ->
               p
                 "Warning: using theories %a but just parsed %a"
