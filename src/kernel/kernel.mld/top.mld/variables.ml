@@ -102,6 +102,7 @@ module World = struct
   end
 
   include InitData(Arg)(Data)
+  let build = build Data.build
 
   let init = build Init
 

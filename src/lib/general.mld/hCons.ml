@@ -6,7 +6,6 @@ include HCons_sig
 
 module EmptyData = struct 
   type t = unit
-  let build _ = ()
 end
 
 module MakePoly(M: sig type ('recurs,'a) t end) = struct
@@ -15,8 +14,9 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
     type 'p t =
         G : { reveal : ('a*'data*'hcons) revealed;
               id     : int;
-              data   : 'data Lazy.t } -> ('a*'data*'hcons) t
-          constraint 'p=_*_*_
+              data   : 'data Lazy.t }
+        -> ('a*'data*'hcons) t
+          constraint 'p=_*_*_[@@ocaml.warning "-62"]
 
     and 'p revealed = ('p t,'a) M.t constraint 'p='a*_*_
   end
@@ -31,14 +31,11 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
   end
 
   let tableid = ref 0
-
+      
   module InitData
       (Par : sig type t end)
       (M   : Arg with type 't t := ('t,Par.t) M.t)
-      (Data: sig
-         type t
-         val build : (Par.t*t*[`HCons]) G.t -> t
-       end)
+      (Data: sig type t end)
   = struct
 
     open G
@@ -51,10 +48,10 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
     type t        = (Par.t*Data.t*[`HCons]) G.t
     type revealed = (Par.t*Data.t*[`HCons]) G.revealed
 
-    let id (G{id})  = id
+    let id (G{id}) = id
     let hash_fold_t = Hash.hash2fold id
     let hash  = id
-    let equal = (==)
+    let equal a b = (=) (id a) (id b)
     let compare a b = Compare.id2compare id a b
 
     module Arg = struct
@@ -80,13 +77,12 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
      *       | Goption.None -> (fun _ _ -> ()),Goption.None
      *   in aux M.backindex *)
 
-    let build reveal =
+    let build data_build reveal =
       (* let f = {reveal =  a; id = !unique; data = None} in *)
       (* try H.find table f *)
       try H.find table reveal
       with Not_found ->
-        let id = !unique in
-        let rec newf = G { reveal; id; data = lazy(Data.build newf)} in
+        let rec newf = G { reveal; id = !unique; data = lazy(data_build newf)} in
         let G{data} = newf in
         let _ = Lazy.force data in
         incr unique;
@@ -104,7 +100,10 @@ module MakePoly(M: sig type ('recurs,'a) t end) = struct
   module Init
       (Par : sig type t end)
       (M   : Arg with type 't t := ('t,Par.t) M.t)
-    = InitData(Par)(M)(EmptyData)
+  = struct
+    include InitData(Par)(M)(EmptyData)
+    let build = build (fun _->()) 
+  end
 
 end
 
@@ -128,10 +127,7 @@ module Make(M: sig type 'a t end) = struct
 
   module InitData
       (Mhash: Arg with type 'a t := 'a M.t)
-      (Data : sig
-         type t
-         val build : (t*[`HCons]) G.t -> t
-       end)
+      (Data : sig type t end)
     = TMP.InitData
       (struct type t = unit end)
       (struct
@@ -141,6 +137,9 @@ module Make(M: sig type 'a t end) = struct
       end)
       (Data)
 
-  module Init(M : Arg with type 'a t := 'a M.t) = InitData(M)(EmptyData)
+  module Init(M : Arg with type 'a t := 'a M.t) = struct
+    include InitData(M)(EmptyData)
+    let build = build (fun _->()) 
+  end
 
 end

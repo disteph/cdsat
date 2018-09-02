@@ -2,10 +2,7 @@
 (* Printing functions *)
 (**********************)
 
-val init : (string * int * bool) list -> unit
-
-val toString : ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> string
-val stringOf : (Format.formatter -> 'a -> unit) -> 'a -> string
-val print : (string * int) list -> ((('a, Format.formatter, unit) format -> 'a) -> 'b) -> unit
-                      
-val wait : unit -> unit
+val init     : (string * int * bool) list -> unit
+val print    : (string * int) list -> ('a Format.spec -> unit) -> unit
+val wait     : unit -> unit
+val stringOf : 'a Format.printer -> 'a -> string

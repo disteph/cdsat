@@ -6,7 +6,6 @@ module type SHCons = sig
   type t [@@deriving eq,ord,hash]
   type revealed
   val id    : t -> int
-  val build : revealed -> t
   val clear : unit -> unit
   (* val backindex: (int -> t,M.backindex) Goption.t *)
 end
@@ -25,8 +24,8 @@ module type PolyS = sig
     type 'p revealed = ('p t,'a) initial constraint 'p='a*_*_
   end
 
-  val reveal  : 'p G.t -> 'p G.revealed
-  val data    : (_*'data*_) G.t -> 'data
+  val reveal : 'p G.t -> 'p G.revealed
+  val data   : (_*'data*_)    G.t -> 'data
 
   module NoHCons : sig
     type 'p t        = ('a*'data*[`NoHCons]) G.t constraint 'p='a*'data
@@ -37,18 +36,21 @@ module type PolyS = sig
   module InitData
       (Par : sig type t end)
       (M   : Arg with type 't t := ('t,Par.t) initial)
-      (Data: sig
-         type t
-         val build : (Par.t*t*[`HCons]) G.t -> t
-       end)
-    : SHCons with type t        = (Par.t*Data.t*[`HCons]) G.t
-              and type revealed = (Par.t*Data.t*[`HCons]) G.revealed
+      (Data: sig type t end)
+    : sig
+      include SHCons with type t        = (Par.t*Data.t*[`HCons]) G.t
+                      and type revealed = (Par.t*Data.t*[`HCons]) G.revealed
+      val build : (t -> Data.t) -> revealed -> t
+    end
 
   module Init
       (Par : sig type t end)
       (M   : Arg with type 't t := ('t,Par.t) initial)
-    : SHCons with type t        = (Par.t*unit*[`HCons]) G.t
-              and type revealed = (Par.t*unit*[`HCons]) G.revealed
+    : sig
+      include SHCons with type t        = (Par.t*unit*[`HCons]) G.t
+                      and type revealed = (Par.t*unit*[`HCons]) G.revealed
+      val build : revealed -> t
+    end
 end
 
 module type S = sig
@@ -71,16 +73,19 @@ module type S = sig
 
   module InitData
       (M   : Arg with type 'a t := 'a initial)
-      (Data: sig
-         type t
-         val build : (t*[`HCons]) G.t -> t
-       end)
-    : SHCons with type t        = (Data.t*[`HCons]) G.t
-              and type revealed = (Data.t*[`HCons]) G.revealed
+      (Data: sig type t end)
+    : sig
+      include SHCons with type t        = (Data.t*[`HCons]) G.t
+                      and type revealed = (Data.t*[`HCons]) G.revealed
+      val build : (t -> Data.t) -> revealed -> t
+    end
 
   module Init(M : Arg with type 'a t := 'a initial)
-    : SHCons with type t        = (unit*[`HCons]) G.t
-              and type revealed = (unit*[`HCons]) G.revealed
+    : sig
+      include SHCons with type t        = (unit*[`HCons]) G.t
+                      and type revealed = (unit*[`HCons]) G.revealed
+      val build : revealed -> t 
+    end
 
 end
 

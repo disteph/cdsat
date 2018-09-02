@@ -1,3 +1,4 @@
+open General
 open Basic
 
 module type Leaf = sig
@@ -5,24 +6,21 @@ module type Leaf = sig
   val get_sort : t -> Sorts.t
 end
 
-module type DataType = sig
-  type ('leaf,'datatype) termF
-  type t
-  type leaf
-  val build : (leaf,'d) termF -> t
+module type Sprim = sig
+  include PHCons
+  val get_sort : t -> Sorts.t
 end
 
-module type S = sig
+module type Sbuild = sig
   type ('leaf,'datatype) termF
-  type termB
   type datatype
   type leaf
-  include PHCons with type t = (leaf,datatype) termF
-  val get_sort : t -> Sorts.t
+  type termB
+  type t
   val bV : leaf -> t
   val bC : Symbols.t -> t list -> t
   val bB : Sorts.t -> termB -> leaf DSubst.t -> t
-  module Homo(Mon: MonadType) : sig
+  module Homo(Mon: Monads.Monad) : sig
     val lift :
       ('a -> leaf Mon.t) -> ('a,_) termF -> (leaf,datatype) termF Mon.t
     val lifttl :
@@ -30,4 +28,9 @@ module type S = sig
   end
   val subst : ('a -> leaf) -> ('a,_) termF -> (leaf,datatype) termF
   val lift : leaf DSubst.t -> termB -> t
+end      
+
+module type S = sig
+  include Sbuild
+  include Sprim with type t := (leaf,datatype) termF
 end

@@ -49,11 +49,3 @@ module type Assign = sig
     val remove: term -> t -> t
   end
 end
-
-(* Type of Monads *)
-
-module type MonadType = sig
-  type 'a t 
-  val return : 'a -> 'a t
-  val bind   : ('a -> 'b t) -> 'a t -> 'b t
-end

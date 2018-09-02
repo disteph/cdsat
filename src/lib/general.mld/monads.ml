@@ -1,14 +1,10 @@
-module type MonadType = sig
-  type 'a t 
-  val return : 'a -> 'a t
-  val bind   : ('a -> 'b t) -> 'a t -> 'b t
-end
-
+include Monads_sig
+    
 module IdMon = (struct
   type 'a t = 'a
   let return a = a
   let bind (f: 'a -> 'b t) a = f a
-end : MonadType with type 'a t = 'a)
+end : Monad with type 'a t = 'a)
 
 module ContMonad(R:sig type t end)
   = (struct
@@ -16,4 +12,17 @@ module ContMonad(R:sig type t end)
     let return a = fun f -> f a
     let bind (f: 'a -> 'b t) (a: 'a t)
         = fun (g:'b -> R.t) -> a (fun x -> f x g)
-  end:MonadType with type 'a t = ('a -> R.t) -> R.t)
+  end:Monad with type 'a t = ('a -> R.t) -> R.t)
+
+module Make_Let(M:Monad) = struct
+
+  open M
+      
+  module Let_syntax = struct
+    let return = return
+    let both x y  = bind (fun x -> bind (fun y -> return(x,y)) y) x
+    let map x ~f  = bind (fun y -> return(f y)) x
+    let bind x ~f = bind f x
+  end
+
+end  

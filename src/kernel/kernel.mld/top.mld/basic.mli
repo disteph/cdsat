@@ -15,8 +15,6 @@ end
 
 module IntMap : Map.S with type key = int
 
-module IdMon : MonadType with type 'a t = 'a
-
 module MakeCollection
          (OT: sig
               type t [@@deriving ord,show,hash]

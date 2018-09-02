@@ -107,12 +107,9 @@ module TermB = struct
 
 end
 
-
-
 (******************************)
-(* Terms with bound variables *)
+(* Terms with other variables *)
 (******************************)
-
                  
 module F = struct
   type ('a,'l) t = ('a, 'l * TermB.t free) xterm
@@ -123,15 +120,11 @@ include HCons.MakePoly(F)
 type ('leaf,'datatype) termF = ('leaf*'datatype*[`HCons]) G.t
                                                  
 
-module Make(Leaf: Leaf)
-    (Data : DataType with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-                      and type leaf := Leaf.t) =
+module Make(Leaf: Leaf)(Data : sig type t end) =
   struct
 
-    type leaf = Leaf.t
-
     module F = struct
-      type 'a t = ('a, leaf) F.t
+      type 'a t = ('a, Leaf.t) F.t
       let equal eqRec = equal
           Leaf.equal
           (FreeFunc(fun x->FreeFunc(TermB.equal x)))
@@ -144,16 +137,7 @@ module Make(Leaf: Leaf)
       let name = "TermF"
     end
 
-    
     include InitData(Leaf)(F)(Data)
-
-    type datatype = Data.t
-
-    let id = id
-    let compare = compare
-    let bV i   = build(V i)
-    let bC f l = build(C(f,l))
-    let bB so t d = build(FB(so,t,d))    
 
     let pp fmt t =
       let rec aux fmt t =
@@ -162,52 +146,66 @@ module Make(Leaf: Leaf)
       in aux fmt t
 
     let show a = Print.stringOf pp a
-                        
+
     let get_sort =
       let rec aux t =
         get_sort Leaf.get_sort (FreeFunc(TermB.get_sort)) aux reveal t
       in aux
 
-    module Homo(Mon: MonadType) = struct
+    module Build(D: sig val build : t -> Data.t end) = struct
 
-      let rec lift update t
-        =
-        match reveal t with
-        | V i    -> Mon.bind (fun v -> Mon.return (bV v)) (update i)
-        | C(f,l) -> Mon.bind (fun l -> Mon.return (bC f l)) (lifttl update l)
-        | FB(so,t,d) -> Mon.bind(fun d -> Mon.return(bB so t d)) (liftd update d)
-      and lifttl update
-        = function
-        | []    -> Mon.return []
-        | t::tl -> let aux t' tl' = Mon.return(t'::tl') in
-                   let aux' t' = Mon.bind (aux t') (lifttl update tl) in
-                   Mon.bind aux' (lift update t)
-      and liftd update
-        = function
-        | []        -> Mon.return []
-        | (t,w)::tl -> let aux t' tl' = Mon.return((t',w)::tl') in
-                       let aux' t' = Mon.bind (aux t') (liftd update tl) in
-                       Mon.bind aux' (update t)
+      type leaf = Leaf.t
+      type datatype = Data.t
+      type termB = TermB.t           
+        
+      let build = build D.build
+
+      let bV i   = build(V i)
+      let bC f l = build(C(f,l))
+      let bB so t d = build(FB(so,t,d))    
+
+      module Homo(Mon: Monads.Monad) = struct
+
+        include Monads.Make_Let(Mon)
+
+        let rec lift update t = match reveal t with
+          | V i    -> let%map v = update i in bV v
+          | C(f,l) -> let%map l = lifttl update l in bC f l
+          | FB(so,t,d) ->
+            let aux (i,w) = Mon.bind(fun sofar -> let%map i' = update i in (i',w)::sofar) in
+            let%map d = List.fold aux d (Mon.return []) in
+            bB so t d
+        and lifttl update l =
+          let aux t = Mon.bind(fun sofar -> let%map t' = lift update t in t'::sofar) in
+          List.fold aux l (Mon.return [])
+
+      end
+
+      module M = Homo(Monads.IdMon)
+      let subst = M.lift
+
+      let get_in_subst d intso = 
+        let fv,_  = BoundVar.get_from_context intso
+            (fun k -> DSubst.get (fun fmt v->pp fmt (bV v)) k d) in
+        fv
+
+      let rec lift d t =
+        match TermB.reveal t with
+        | V i      -> bV (get_in_subst d i)
+        | C(f,l)   -> bC f (List.map (lift d) l)
+        | BB(so,t) -> bB so t d
     end
-
-    module M = Homo(Basic.IdMon)
-    let subst = M.lift
-
-    let get_in_subst d intso = 
-      let fv,_  = BoundVar.get_from_context intso
-                    (fun k -> DSubst.get (fun fmt v->pp fmt (bV v)) k d) in
-      fv
-
-    let rec lift d t =
-      match TermB.reveal t with
-      | V i      -> bV (get_in_subst d i)
-      | C(f,l)   -> bC f (List.map (lift d) l)
-      | BB(so,t) -> bB so t d
-
   end 
 
-module EmptyData(Leaf:Leaf) = struct
-  type t = unit
-  type leaf = Leaf.t
-  let build _ = ()
-end
+
+(***********************)
+(* Terms that are used *)
+(***********************)
+
+module ThTermKey = Keys.Make()
+
+module ThTerm = Hashtbl_hetero.MakeT(ThTermKey)
+
+module Term = Make(FreeVar)(ThTerm)
+
+module TSet = MakePATCollection(Term)

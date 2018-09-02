@@ -15,12 +15,4 @@ let fail_state =
   let suicide = add in
   let propose ?term i = add i in
   Specs.SlotMachine { add; propose; share; clone; suicide }
-                   
-module Pairing(B1: DataType)(B2: DataType)
-       : (DataType with type t = B1.t*B2.t) =
-  struct
-    type t = B1.t*B2.t
-    let build proj term =
-      (B1.build (proj >> fst) term,
-       B2.build (proj >> snd) term)
-  end
+

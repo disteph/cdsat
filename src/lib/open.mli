@@ -59,6 +59,9 @@ module Format : sig
   with type formatter = Format.formatter
    and type symbolic_output_buffer = Format.symbolic_output_buffer
   type 'a printer = formatter -> 'a -> unit
+  type 'a spec = ('a, Format.formatter, unit) format -> 'a
+  val toString : ('a spec -> unit) -> string
+  val stringOf : 'a printer -> 'a -> string
 end
 
 module Boolhashed : sig

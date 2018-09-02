@@ -1,4 +1,6 @@
+open General
 open Basic
+open Variables
 
 include module type of Terms_sig
   
@@ -29,15 +31,29 @@ type ('leaf,'datatype) termF
 val reveal : ('l,'d) termF -> (('l,'d) termF,('l*TermB.t free)) xterm
 val data   : (_,'datatype) termF -> 'datatype
 
-module Make(Leaf: Leaf)
-    (Data : DataType with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-                      and type leaf := Leaf.t)
-  : S with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-       and type termB := TermB.t
-       and type datatype = Data.t
-       and type leaf   = Leaf.t
+module Make(Leaf: Leaf)(Data : sig type t end)
+  : sig
+    include Sprim with type t = (Leaf.t,Data.t) termF
+    module Build(D: sig val build : t -> Data.t end) :
+      Sbuild  with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
+               and type datatype = Data.t
+               and type leaf     = Leaf.t
+               and type termB    = TermB.t
+               and type t := t
+  end
 
-module EmptyData(Leaf: Leaf) : DataType with type ('l,'d) termF := ('l,'d) termF
-                                         and type t = unit
-                                         and type leaf = Leaf.t
+module ThTermKey : Keys.S
 
+module ThTerm : Hashtbl_hetero.T
+
+module Term : sig
+    include Sprim with type t = (FreeVar.t,ThTerm.t) termF
+    module Build(D: sig val build : t -> ThTerm.t end) :
+      Sbuild  with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
+               and type datatype = ThTerm.t
+               and type leaf     = FreeVar.t
+               and type termB    = TermB.t
+               and type t := t
+  end
+
+module TSet : Collection with type e = Term.t

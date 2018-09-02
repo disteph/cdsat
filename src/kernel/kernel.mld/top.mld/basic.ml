@@ -44,12 +44,6 @@ module IntMap = Map.Make(struct
                     type t = int [@@deriving ord]
                   end)
 
-module IdMon = struct
-  type 'a t = 'a
-  let return a = a
-  let bind (f: 'a -> 'b t) a = f a
-end
-
 module MakeCollection
          (OT: sig
               type t [@@deriving ord,show,hash]

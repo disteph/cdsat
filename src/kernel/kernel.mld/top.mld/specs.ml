@@ -18,12 +18,6 @@ module type Term = Terms.S with type ('leaf,'datatype) termF := ('leaf,'datatype
                             and type leaf  := FreeVar.t
 
 type 'd termF = (FreeVar.t,'d) Terms.termF
-                           
-(* module type DataType = Terms.DataType with type leaf := FreeVar.t *)
-module type DataType = sig
-  type t
-  val build : ('d -> t) -> 'd termF -> t
-end
 
 (* Internal representation of objects in the theory module, used
    during parsing. 

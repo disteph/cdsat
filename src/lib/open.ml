@@ -58,6 +58,17 @@ end
 module Format = struct
   include Format
   type 'a printer = formatter -> 'a -> unit
+  type 'a spec = ('a, Format.formatter, unit) format -> 'a
+
+  let toString a =
+    let buf = Buffer.create 255 in
+    let fmt = Format.formatter_of_buffer buf in
+    a (Format.fprintf fmt);
+    Format.fprintf fmt "%!";
+    Buffer.contents buf
+
+  let stringOf f a = toString (fun p->p "%a" f a)
+
 end
 
 module Boolhashed = struct

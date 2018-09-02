@@ -50,9 +50,9 @@ module type MapGenArg = sig
   include MapArgNH
   val kequal : t Equal.t
   type hcons
-  val build     : ((t*values*common*branching)*infos*hcons) G.revealed
-    -> ((t*values*common*branching)*infos*hcons) G.t
-  val equal_opt : ((t*values*common*branching)*infos*hcons) G.t Equal.t option
+  type abbrev = (t*values*common*branching)*infos*hcons
+  val build     : abbrev G.revealed -> abbrev G.t
+  val equal_opt : abbrev G.t Equal.t option
 end
 
 module MapGen(I: MapGenArg) = struct
@@ -527,14 +527,14 @@ module MapH(I:MapArgH) = struct
   end
   module Data = struct
     type t = infos
-    let build t = t |> M.reveal |> II.build I.info_build
   end
   include M.InitData(Par)(P)(Data)
   module B = struct
     include I
     let kequal = II.kequal
     type hcons = [`HCons]
-    let build = build
+    type abbrev = (t*values*common*branching)*infos*hcons
+    let build = build (M.reveal >> II.build I.info_build)
     let equal_opt = Some equal
   end
   include MapGen(B)
@@ -545,6 +545,7 @@ module MapNH(I:MapArgNH) = struct
     include I
     include Init(I)
     type hcons = [`NoHCons]
+    type abbrev = (t*values*common*branching)*infos*hcons
     let build t = M.NoHCons.build t (lazy (build I.info_build t))
     let equal_opt = None
   end
@@ -557,9 +558,9 @@ module type SetGenArg = sig
   include SetArgNH
   val kequal : t Equal.t
   type hcons
-  val build     : ((t*unit*common*branching)*infos*hcons) G.revealed
-    -> ((t*unit*common*branching)*infos*hcons) G.t
-  val equal_opt : ((t*unit*common*branching)*infos*hcons) G.t Equal.t option
+  type abbrev = (t*unit*common*branching)*infos*hcons
+  val build     : abbrev G.revealed -> abbrev G.t
+  val equal_opt : abbrev G.t Equal.t option
 end
 
 (* Construction of a Patricia tree structure for sets, given the above.
@@ -658,7 +659,8 @@ module SetH(I:SetArgH) = struct
     include I
     let kequal = II.kequal
     type hcons = [`HCons]
-    let build = build
+    type abbrev = (t*unit*common*branching)*infos*hcons
+    let build = build Data.build
     let equal_opt = Some equal
   end
   include SetGen(B)
@@ -669,6 +671,7 @@ module SetNH(I:SetArgNH) = struct
     include I
     include Init(I)
     type hcons = [`NoHCons]
+    type abbrev = (t*unit*common*branching)*infos*hcons
     let build t = M.NoHCons.build t (lazy (build I.info_build t))
     let equal_opt = None
   end
