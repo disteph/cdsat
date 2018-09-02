@@ -116,7 +116,8 @@ let make (type t v a s)
       in
       let clone () = machine state in
       let suicide _ = () in
-      Specs.SlotMachine { add; share; clone; suicide }
+      let propose ?term _ = [] in
+      Specs.SlotMachine { add; share; clone; suicide; propose }
 
     let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
     let clear () = ()

@@ -4,7 +4,7 @@
 
 open Top
 open Specs
-open Interfaces_basic
+open Basic
 
 type _ values_opt = private
   | HasValues : (module PH with type t = 'a) -> 'a has_values values_opt

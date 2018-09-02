@@ -1,6 +1,5 @@
 open General
 open Patricia
-open Patricia_interfaces
 open Patricia_tools
 open Sums
        

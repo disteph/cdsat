@@ -100,10 +100,3 @@ module List = struct
     | h :: t -> last t
 
 end
-
-module PolyEq = struct
-  type (_,_) t = NEq : (_,_) t | Eq : ('a,'a) t
-  let pp fmt (type a b) : (a,b) t -> unit = function
-    | NEq -> Format.fprintf fmt "NEq"
-    | Eq  -> Format.fprintf fmt "Eq"
-end

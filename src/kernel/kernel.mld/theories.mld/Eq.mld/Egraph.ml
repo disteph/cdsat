@@ -31,13 +31,15 @@ module Make(DS: GlobalDS) = struct
   module BDest = struct
     type t = bassign [@@deriving ord]
     let id (t,Values.Boolean b) = 2*Term.id t + (if b then 0 else 1)
-    type values = Term.t*Term.t
-    include EmptyInfo
-    let treeHCons = None
   end
                    
   module BMap = struct
-    include PatMap.Make(BDest)(TypesFromHConsed(BDest))
+    include MapNH(struct
+        include BDest
+        include EmptyInfo
+        include TypesFromHConsed(BDest)
+        type values = Term.t*Term.t
+      end)
     let pp_binding fmt (j_neq,_) = pp_bassign fmt j_neq
     let pp = print_in_fmt pp_binding
   end
@@ -61,7 +63,7 @@ module Make(DS: GlobalDS) = struct
         (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
         diseq: BMap.t;
         listening: TVSet.t
-      } [@@deriving eq,show] 
+      } [@@deriving show] 
   end
 
   module REG = RawEgraph.Make(P)

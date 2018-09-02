@@ -1,6 +1,3 @@
-open General
-open Top.Basic
-
 (* module SortSet : Set.S with type elt = Top.Sorts.t *)
 (* module SymbSet : Set.S with type elt = Top.Symbols.t *)
 

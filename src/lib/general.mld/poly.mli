@@ -3,6 +3,7 @@ type (_,_,_) t =
   | Neq: (_,_,[`IsEq]) t
   | Gt : (_,_,[`Ord]) t
   | Lt : (_,_,[`Ord]) t
+[@@deriving show]
 
 type ('a,'b) eq   = ('a,'b,[`Eq]) t
 type ('a,'b) iseq = ('a,'b,[`IsEq]) t

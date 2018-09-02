@@ -82,8 +82,3 @@ module List : sig
   val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val last : 'a t -> 'a
 end
-
-module PolyEq : sig
-  type (_,_) t = NEq : (_,_) t | Eq : ('a,'a) t
-  val pp : Format.formatter -> ('a,'b) t -> unit
-end

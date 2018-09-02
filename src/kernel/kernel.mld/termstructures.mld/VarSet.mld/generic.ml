@@ -8,6 +8,7 @@ module Make(S: sig
 
   include Termstructure.Make(struct
       type (_,'tset) t = 'tset
+      type (_,_) api = unit
 
       module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
 
@@ -19,6 +20,8 @@ module Make(S: sig
             -> List.fold (Terms.data >> proj >> TSet.union) l TSet.empty
           | _ -> TSet.singleton t
 
+        let api = ()
+                  
       end
     end)
 
