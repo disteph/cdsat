@@ -22,7 +22,7 @@ let parse parser input =
   
   (* Now we parse *)
   let i = (module Typing.ForParsing
-                  : Top.Specs.ForParsing with type t = Top.Terms.TermB.t)
+                  : Parser.ForParsing with type t = Top.Terms.TermB.t)
   in
   let parsable, expected = MyParser.parse aft (Typing.forParser i) in
   let parsed =

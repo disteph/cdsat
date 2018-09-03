@@ -37,7 +37,8 @@ module Pervasives = Pervasives
 include Pervasives
 
 let (>>) f g x = x |> f |> g
-  
+let int_pairing x y = let z = y+((x+1)/2) in x+(z*z)
+
 include Ppx_hash_lib.Std.Hash.Builtin
 
 module Hash = struct

@@ -11,4 +11,4 @@ module FVSubst : sig
   val get: int -> t -> FreeVar.t*World.t
 end
        
-val fail_state : (_,_*_*_*_) Specs.slot_machine
+val fail_state : _ Specs.slot_machine

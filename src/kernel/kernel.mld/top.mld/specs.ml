@@ -9,65 +9,8 @@ open Sums
        
 open Basic
 open Variables
+open Terms
 open Sassigns
-       
-(* Abbreviations *)
-
-module type Term = Terms.S with type ('leaf,'datatype) termF := ('leaf,'datatype) Terms.termF
-                            and type termB := Terms.TermB.t
-                            and type leaf  := FreeVar.t
-
-type 'd termF = (FreeVar.t,'d) Terms.termF
-
-(* Internal representation of objects in the theory module, used
-   during parsing. 
-   Similar to the definition of a model structure in logic:
-
-   Type t is the main type, in which all objects are constructed (=
-   support set of a model structure)
-
-   Every symbol is interpreted as a function taking a certain number
-   of arguments in t, and producing an object in t. *)
-
-module type ForParsing = sig
-  type t
-  val bC: Symbols.t -> t list -> t
-  val bV: BoundVar.t -> t
-end
-
-(* This module type is for implementations of the global datastructures
-   for the combination of theory modules *)
-
-module type CValue = sig
-  type value
-  type t [@@deriving eq,ord,show,hash]
-  val none: Sorts.t -> t
-  val inj : value values -> t
-  val merge : t -> t -> (value values*value values,t) Sums.sum
-end
-
-module type GlobalDS = sig
-  module Term   : Term
-  module Value  : PH
-  module CValue : CValue with type value := Value.t
-  type nonrec bassign = (Term.t,Value.t) bassign [@@deriving eq, ord, hash, show]
-  type nonrec sassign = (Term.t,Value.t) sassign [@@deriving eq, ord, hash, show]
-  module Assign : Collection with type e = sassign
-  module TSet   : Collection with type e = Term.t
-  module Msg : sig
-    type ('sign,'b) t = ('sign,Assign.t*bassign*TSet.t,'b) Messages.message
-    val pp : formatter -> _ t -> unit
-  end
-end
-
-(* type version of the above *)
-
-type ('gts,'gv,'cv,'assign,'tset) globalDS
-  = (module GlobalDS with type Term.datatype = 'gts
-                      and type Value.t   = 'gv
-                      and type CValue.t  = 'cv
-                      and type Assign.t  = 'assign
-                      and type TSet.t    = 'tset)
 
 (* Extension of GlobalDS,
    that adds interfacing functions with theory-specific types for terms and values.
@@ -87,43 +30,25 @@ type (_,_) conv =
   | HasNoVconv : (has_no_values,_) conv
 
 module type DSproj = sig
-  include GlobalDS
-  type ts
-  val proj: Term.datatype -> ts
   type values
-  val conv: (values,Value.t) conv
+  val conv: (values,Values.Value.t) conv
 end
 
 (* type version of the above *)
-type ('ts,'v,'gts,'gv,'assign,'tset) dsProj
-  = (module DSproj with type ts = 'ts
-                    and type values   = 'v
-                    and type Term.datatype = 'gts
-                    and type Value.t  = 'gv
-                    and type Assign.t = 'assign
-                    and type TSet.t   = 'tset)
+type 'v dsProj = (module DSproj with type values   = 'v)
 
 (* Standard API that a theory module, kernel-side, may offer to the plugins piloting it. *)
 
-type (_,_) output =
+type _ output =
    | Silence
-   | Msg: ('s,'a*('t termF, 'v) bassign*'tset,_) Messages.message
-          -> ('s,'t*'v*'a*'tset) output
-   (* | Try: ('t termF, 'v) sassign
-    *        -> (_,'t*'v*_*_) output *)
+   | Msg: ('s,_) Messages.message -> 's output
+   (* | Try: sassign -> _ output *)
 
-type (_,_) slot_machine =
+type _ slot_machine =
   SlotMachine : {
-      add     : ('t termF, 'v) sassign option
-                -> ('s,'t*'v*'a*'tset) output
-                   * ('s,'t*'v*'a*'tset) slot_machine;
-      propose :
-        ?term:'t termF
-        -> int
-        -> (('t termF, 'v) sassign * float) list;
-      share   : 'tset
-                -> ('s,'t*'v*'a*'tset) output
-                   * ('s,'t*'v*'a*'tset) slot_machine;
-      clone   : unit -> ('s,'t*'v*'a*'tset) slot_machine;
+      add     : sassign option -> 's output * 's slot_machine;
+      propose : ?term: Term.t -> int -> (sassign * float) list;
+      share   : TSet.t -> 's output * 's slot_machine;
+      clone   : unit -> 's slot_machine;
       suicide : 'a -> unit
-    } -> ('s,'t*'v*'a*'tset) slot_machine
+    } -> 's slot_machine

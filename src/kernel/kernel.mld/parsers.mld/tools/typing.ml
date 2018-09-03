@@ -55,7 +55,7 @@ end
 
                                              
 let forParser (type a)
-      (module I: Specs.ForParsing with type t = a)
+      (module I: ForParsing with type t = a)
       ~decsorts
   =
   let parseSort = Parse.sort ~decsorts in

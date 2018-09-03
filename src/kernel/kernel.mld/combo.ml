@@ -33,11 +33,6 @@ end
 
 type 'v cval = (Boolhashed.t option,'v) sum  [@@deriving eq,ord,show,hash]
 
-(* module type Proj = sig
- *   type cvalue
- *   val proj : ((_*_*_*_)*(_*_*'vopt*_)) Tags.t -> (cvalue,'vopt)proj
- * end *)
-
 type ('a,'b,'c,'d,'cvalue) projtype = {
   proj : 'e 'f 'vopt 'g. (('a*'b*'c*'d)*('e*'f*'vopt*'g)) Tags.t -> ('cvalue,'vopt)proj
 } [@@unboxed]
@@ -60,12 +55,6 @@ module type Vplus = sig
   val trans : (Value.t has_values,'gv) conv
     -> ('cv -> CValue.t)
     -> (old_value,old_cvalue,vopt,'gv,'cv) vplus
-      (* (old_value has_values,'gv) conv
-       *  * (vopt,'gv) conv
-       *  * ('cv -> old_cvalue)
-       *  *( ((_*_*_*_)*(_*_*vopt*_)) Tags.t
-       *     -> (module Proj with type cvalue = 'cv cval)
-       *     -> (module Proj with type cvalue = 'cv cval) ) *)
 end
 
 module Value_add(V : PH)(Vold : VValue) =

@@ -1,5 +1,20 @@
 open Top.Sorts
-       
+
+(* Internal representation of objects used during parsing. 
+   Similar to the definition of a model structure in logic:
+
+   Type t is the main type, in which all objects are constructed (=
+   support set of a model structure)
+
+   Every symbol is interpreted as a function taking a certain number
+   of arguments in t, and producing an object in t. *)
+
+module type ForParsing = sig
+  type t
+  val bC: Top.Symbols.t -> t list -> t
+  val bV: Top.Variables.BoundVar.t -> t
+end
+
 exception ParsingError of string
 
 (* This is a grammar for sorts, just before they are understood as actual sorts:

@@ -1,6 +1,8 @@
 (*****************)
 (* Message types *)
 (*****************)
+open Terms
+open Sassigns
 
 (* Type labels, used in GADTs *)
 type unsat_l    = private CUnsat
@@ -15,28 +17,25 @@ type straight = straight_l propa
 (* Message types *)
 
 (* Type of things that are the conclusion of theory inferences *)
-type (_,_) propagated =
+type _ propagated =
  private
-  | Unsat    : (_,unsat_l) propagated           (* concluding ⊥ (= conflict) *)
-  | Straight : 'b -> ('b,straight_l) propagated (* concluding a proper Boolean assignment *)
+  | Unsat    : unsat_l propagated               (* concluding ⊥ (= conflict) *)
+  | Straight : bassign -> straight_l propagated (* concluding a proper Boolean assignment *)
                                                  
-type (_,_,_) message =
+type (_,_) message =
   private
   (* Message saying a theory module is happy with assignment assign,
      sharing the set of terms sharing, the Σ-variables of assign being myvars;
      This is called "T0-compatibility of [assign] sharing [sharing]" in the CDSAT papers. *)
-  | Sat   : { assign : 'j; sharing:'tset; myvars:'tset Lazy.t } -> (_,'j*_*'tset,sat) message
+  | Sat   : { assign : Assign.t; sharing: TSet.t; myvars: TSet.t Lazy.t} -> (_,sat) message
   (* Propa(H,A) is the theory inference (a.k.a. propagation) H⊢A *)
-  | Propa : 'j * ('b,'l) propagated -> (_,'j*'b*_,'l propa) message
+  | Propa : Assign.t * 'l propagated -> (_,'l propa) message
 
 (* Message construction functions *)
-val sat     : 'sign -> 'j -> sharing:'tset -> myvars:'tset Lazy.t -> ('sign,'j*_*'tset,sat) message
-val propa   : 'sign -> 'j -> ('b,'l) propagated -> ('sign,'j*'b*_,'l propa) message
-val unsat   : 'sign -> 'j                       -> ('sign,'j*_*_,unsat) message
-val straight: 'sign -> 'j -> 'b                 -> ('sign,'j*'b*_,straight) message
+val sat     : 'sign -> Assign.t -> sharing:TSet.t -> myvars:TSet.t Lazy.t -> ('sign,sat) message
+val propa   : 'sign -> Assign.t -> 'l propagated -> ('sign,'l propa) message
+val unsat   : 'sign -> Assign.t                  -> ('sign,unsat) message
+val straight: 'sign -> Assign.t -> bassign       -> ('sign,straight) message
 
 (* Pretty-printing messages *)
-val print_msg_in_fmt: (Format.formatter -> 'j -> unit)
-                      -> (Format.formatter -> 'b -> unit)
-                      -> (Format.formatter -> 'tset -> unit)
-                      -> Format.formatter -> (_,'j*'b*'tset,_)message -> unit
+val print_msg_in_fmt: (_,_) message Format.printer

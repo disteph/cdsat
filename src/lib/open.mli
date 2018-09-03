@@ -36,6 +36,7 @@ module Equal : sig
 end
 
 val (>>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
+val int_pairing : int -> int -> int
 
 include module type of Ppx_hash_lib.Std.Hash.Builtin
                               
@@ -44,7 +45,7 @@ module Hash : sig
   type 'a t      = 'a -> int
   type state     = Hash.state
   type 'a folder = 'a Hash.folder
-  val hash2fold : ('a -> int) -> 'a folder
+  val hash2fold : 'a t -> 'a folder
   val fold2hash : 'a folder -> 'a t
   val fold      : 'a folder
   val pair      :  'a folder -> 'b folder -> ('a*'b) folder
