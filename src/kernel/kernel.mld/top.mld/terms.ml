@@ -208,4 +208,6 @@ module ThTerm = Hashtbl_hetero.MakeT(ThTermKey)
 
 module Term = Make(FreeVar)(ThTerm)
 
+let proj key t = ThTerm.find (data t) key
+
 module TSet = MakePATCollection(Term)

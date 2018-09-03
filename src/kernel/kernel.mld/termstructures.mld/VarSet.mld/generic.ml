@@ -1,28 +1,20 @@
 open Top
 open Basic
-open Specs
+open Terms
 
 module Make(S: sig
     val known : Symbols.t -> bool
+    val name  : string
   end) = struct
 
-  include Termstructure.Make(struct
-      type (_,'tset) t = 'tset
-      type (_,_) api = unit
+  type t = TSet.t [@@deriving show]
 
-      module Make(Term : Term)(TSet : Collection with type e = Term.t) = struct
+  let key = ThTermKey.make(module struct type nonrec t = t let name = S.name end)
 
-        type t = TSet.t [@@deriving show]
-
-        let build ~proj t =
-          match Terms.reveal t with
-          | Terms.C(symb,l) when S.known symb
-            -> List.fold (Terms.data >> proj >> TSet.union) l TSet.empty
-          | _ -> TSet.singleton t
-
-        let api = ()
-                  
-      end
-    end)
+  let build t =
+    match Terms.reveal t with
+    | Terms.C(symb,l) when S.known symb
+      -> List.fold (proj key >> TSet.union) l TSet.empty
+    | _ -> TSet.singleton t
 
 end

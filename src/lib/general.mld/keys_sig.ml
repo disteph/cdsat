@@ -20,6 +20,6 @@ module type S = sig
   val eq     : 'a t -> 'b t -> ('a,'b) Poly.eq
   val coerce : 'a t -> 'b t -> 'a -> 'b
 
-  val create_key: (module NamedType with type t = 'a) -> 'a t
+  val make: (module NamedType with type t = 'a) -> 'a t
 
 end

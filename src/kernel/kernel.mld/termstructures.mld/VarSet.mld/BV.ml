@@ -9,6 +9,7 @@ module Known = struct
       | NEq (Sorts.BV _)
       -> true
     | _ -> false
+  let name = "BV"
 end
              
            

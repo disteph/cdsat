@@ -25,7 +25,7 @@ module type PolyS = sig
   end
 
   val reveal : 'p G.t -> 'p G.revealed
-  val data   : (_*'data*_)    G.t -> 'data
+  val data   : (_*'data*_) G.t -> 'data
 
   module NoHCons : sig
     type 'p t        = ('a*'data*[`NoHCons]) G.t constraint 'p='a*'data

@@ -6,6 +6,7 @@ module Known = struct
     function
     | Eq _ | Select _ | Store _ | Diff _ -> true
     | _ -> false
+  let name = "Arrays"
 end
              
            

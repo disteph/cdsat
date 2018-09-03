@@ -6,6 +6,7 @@ module Known = struct
     function
     | ITE _ -> true
     | _ -> false
+  let name = "ITE"
 end
              
            

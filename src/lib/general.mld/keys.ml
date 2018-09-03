@@ -29,7 +29,7 @@ module Make() = struct
 
   let all_keys = AllKeys.create 17
   
-  let create_key (type a) (module NT : NamedType with type t = a) : a t =
+  let make (type a) (module NT : NamedType with type t = a) : a t =
     let module TMP = struct
       type _ gadt += K : NT.t gadt
     end in
