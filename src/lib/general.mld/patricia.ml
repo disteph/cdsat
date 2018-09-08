@@ -260,36 +260,42 @@ module MapGen(I: MapGenArg) = struct
   end
 
   module Fold2 = struct
+
+    type ('v1,'i1,'v2,'i2,'b) combine = {
+      combineFF : ('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b;
+      combineEF : ('v2,'i2) param -> 'b -> 'b;
+      combineFE : ('v1,'i1) param -> 'b -> 'b
+    }
+
     type ('v1,'i1,'v2,'i2,'a,'b) t = {
       sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
       emptyfull : ('v2,'i2) param -> 'a -> 'b;
       fullempty : ('v1,'i1) param -> 'a -> 'b;
-      combine   : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
-        -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
-           * (('v2,'i2) param -> 'b -> 'b)
-           * (('v1,'i1) param -> 'b -> 'b)
+      combine   :
+        reccall:(('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+        -> ('v1,'i1,'v2,'i2,'b) combine
     }
 
-    let make_combine empty1 empty2 combine reccall =
-      combine reccall,
-      (fun t2 b -> combine reccall empty1 t2 b),
-      (fun t1 b -> combine reccall t1 empty2 b)
+    let make_combine ~empty1 ~empty2 ~combine ~reccall =
+      { combineFF = combine reccall;
+        combineEF = (fun t2 -> combine reccall empty1 t2);
+        combineFE = (fun t1 -> combine reccall t1 empty2) }
 
     let merge2fold2 m = {
-      sameleaf  = (fun k v1 v2 () -> m.Merge.sameleaf k v1 v2);
-      emptyfull = (fun a () -> m.Merge.emptyfull a);
-      fullempty = (fun a () -> m.Merge.fullempty a);
-      combine   = (fun reccall ->
-          (fun a1 a2 b -> m.Merge.combine b (reccall a1 a2())),
-          (fun a b -> m.Merge.combine b (m.Merge.emptyfull a)),
-          (fun a b -> m.Merge.combine b (m.Merge.fullempty a)))
+      sameleaf  = Merge.(fun k v1 v2 () -> m.sameleaf k v1 v2);
+      emptyfull = Merge.(fun a () -> m.emptyfull a);
+      fullempty = Merge.(fun a () -> m.fullempty a);
+      combine   = Merge.(fun ~reccall ->
+          { combineFF = (fun a1 a2 b -> m.combine b (reccall a1 a2()));
+            combineEF = (fun a b -> m.combine b (m.emptyfull a));
+            combineFE = (fun a b -> m.combine b (m.fullempty a)) })
     }
   end
 
   let fold2_trans reccall action s1 s2 seed =
     let open Fold2 in
-    let combine,combineEF,combineFE = action.combine reccall in
-    let disjoint s1 s2 seed = seed |> action.fullempty s1 |> combineEF s2 in
+    let { combineFF; combineEF; combineFE } = action.combine reccall in
+    let disjoint s1 s2 = action.fullempty s1 >> combineEF s2 in
 
     match reveal s1, reveal s2 with
 
@@ -308,7 +314,7 @@ module MapGen(I: MapGenArg) = struct
 	if check tagk m then
 	  seed |> reccall s1 t1 |> combineEF t2
 	else
-          seed |> action.emptyfull t1 |> combine s1 t2
+          seed |> action.emptyfull t1 |> combineFF s1 t2
       else
         seed |> disjoint s1 s2
 
@@ -318,23 +324,23 @@ module MapGen(I: MapGenArg) = struct
 	if check tagk m then 
 	  seed |> reccall t1 s2 |> combineFE t2
 	else
-	  seed |> action.fullempty t1 |> combine t2 s2
+	  seed |> action.fullempty t1 |> combineFF t2 s2
       else
         seed |> disjoint s1 s2
 
     | Branch (p1,m1,l1,r1), Branch (p2,m2,l2,r2) ->
       if (bcompare m1 m2=0) && match_prefix p1 p2 m1 then 
-	seed |> reccall l1 l2 |> combine r1 r2
+	seed |> reccall l1 l2 |> combineFF r1 r2
       else if bcompare m1 m2<0 && match_prefix p2 p1 m1 then
 	if check p2 m1 then
           seed |> reccall l1 s2 |> combineFE r1
 	else
-          seed |> action.fullempty l1 |> combine r1 s2
+          seed |> action.fullempty l1 |> combineFF r1 s2
       else if bcompare m2 m1<0 && match_prefix p1 p2 m2 then
 	if check p1 m2 then
           seed |> reccall s1 l2 |> combineEF r2
 	else
-          seed |> action.emptyfull l2 |> combine s1 r2
+          seed |> action.emptyfull l2 |> combineFF s1 r2
       else
         seed |> disjoint s1 s2
 
@@ -423,10 +429,10 @@ module MapGen(I: MapGenArg) = struct
       sameleaf  = (fun _ x y () -> f x y);
       emptyfull = (fun _ () -> true);
       fullempty = (fun _ () -> false);
-      combine   = fun reccall ->
-        (fun a1 a2 l -> l && reccall a1 a2 ()),
-        (fun _ l    -> l),
-        (fun _ _    -> false)
+      combine   = fun ~reccall ->
+        { combineFF = (fun a1 a2 l -> l && reccall a1 a2 ());
+          combineEF = (fun _ l     -> l);
+          combineFE = (fun _ _     -> false) }
     }
 
   let subset_poly f =

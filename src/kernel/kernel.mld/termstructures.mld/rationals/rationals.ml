@@ -100,8 +100,8 @@ module TS = struct
     { scaling = Q.one; coeffs; constant=Q.zero; nature = Term }
       
   let build (t:Term.t) : t =
-    match Terms.reveal t with
-    | Terms.C(symb,l)
+    match Term.reveal t with
+    | C(symb,l)
       -> let l = List.map (proj key) l in
       begin
         match symb, l with
@@ -130,13 +130,13 @@ module TS = struct
           | _,_ -> other
       end
 
-    | Terms.V fv ->
+    | V fv ->
       begin
         match Variables.FreeVar.get_sort fv with
         | Sorts.Rat -> make_var t
         | _ -> other
       end
 
-    | Terms.FB _ -> other
+    | FB _ -> other
 
 end

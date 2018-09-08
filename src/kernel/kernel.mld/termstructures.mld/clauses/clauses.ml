@@ -123,10 +123,9 @@ module TS = struct
     | _,_ -> build_lit var
 
   let build t =
-    match Terms.reveal t with
-    | Terms.C(symb,l)
-      -> let l = List.map (proj key) l in bC t symb l
-    | Terms.V _
-    | Terms.FB(_,_,_) -> build_lit t
+    match Term.reveal t with
+    | C(symb,l) -> let l = List.map (proj key) l in bC t symb l
+    | V _
+    | FB(_,_,_) -> build_lit t
 
 end

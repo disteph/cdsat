@@ -137,6 +137,8 @@ module Make(Leaf: Leaf)(Data : sig type t end) =
       let name = "TermF"
     end
 
+    let reveal = reveal
+      
     include InitData(Leaf)(F)(Data)
 
     let pp fmt t =
@@ -211,3 +213,15 @@ module Term = Make(FreeVar)(ThTerm)
 let proj key t = ThTerm.find (data t) key
 
 module TSet = MakePATCollection(Term)
+
+module type Readable =
+  ReadablePoly with type t = (FreeVar.t,ThTerm.t) termF
+                and type revealed := ((FreeVar.t,ThTerm.t) termF,(FreeVar.t*TermB.t free)) xterm
+                and type leaf     := FreeVar.t
+
+module type Writable =
+  WritablePoly with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
+                and type termB   := TermB.t
+                and type leaf    := FreeVar.t
+                and type datatype = ThTerm.t
+                and type t := (FreeVar.t,ThTerm.t) termF

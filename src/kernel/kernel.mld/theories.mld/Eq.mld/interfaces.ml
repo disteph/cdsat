@@ -1,9 +1,10 @@
 open General.Sums       
 open Top
-open Specs
 open Sassigns
 open Messages
-       
+open Terms
+open Values
+    
 (* The is the interface for the raw implementation of the egraph, i.e. the union-find structure.
      A pointed component is an EGraph component of a specific node;
      it is pointed because it remembers which node it is the component of. *)
@@ -59,24 +60,21 @@ module type Egraph = sig
   type stop
   exception Conflict of stop
 
-  type term
-  type value
   type info
-  type cval
          
   type t
   val init : t
-  val eq : term -> (term,value values)sum -> ((term,value)bassign,(term,value)sassign)sum
-           -> t -> t*info*((term,value values)sum list)
-  val diseq : term -> term -> (term,value)bassign -> t -> t
+  val eq : Term.t -> (Term.t,Value.t values)sum -> (bassign,sassign)sum
+           -> t -> t*info*((Term.t,Value.t values)sum list)
+  val diseq : Term.t -> Term.t -> bassign -> t -> t
   (* Ask information about the termvalue,
        possibly subscribe (subscribe=true) or unsubscribe (subscribe=false)
        to notifications when the termvalue sees its combined value affected *)
-  val ask : ?subscribe:bool -> (term,value values)sum -> t -> info*t
+  val ask : ?subscribe:bool -> (Term.t,Value.t values)sum -> t -> info*t
 
-  val nf : info -> term
-  val cval : info -> cval
-  val distinct : t -> info -> cval list
+  val nf : info -> Term.t
+  val cval : info -> CValue.t
+  val distinct : t -> info -> CValue.t list
                                                         
 end
 
@@ -85,28 +83,18 @@ end
 module type API = sig
 
   type sign
-  type termdata
-  type value
-  type assign
-  type tset
-  type cval
-
-  type nonrec sassign = (termdata termF,value) sassign
-  type nonrec bassign = (termdata termF,value) bassign
 
   type output =
-    | UNSAT of ((sign, assign*bassign*tset, straight) message list
-                * (sign, assign*bassign*tset, unsat) message)
-    | SAT of (sign, assign*bassign*tset, sat) message
-             * self
+    | UNSAT of ((sign, straight) message list * (sign, unsat) message)
+    | SAT of (sign, sat) message * self
 
    and self = { add : sassign -> output;
-                share :  tset -> output;
+                share : TSet.t -> output;
                 ask : ?subscribe:bool
-                      -> (termdata termF,value values) sum
-                      -> (termdata termF)
-                         * cval
-                         * (unit -> cval list)
+                      -> (Term.t,Value.t values) sum
+                      -> Term.t
+                         * CValue.t
+                         * (unit -> CValue.t list)
                          * self }
                 
   val init : self

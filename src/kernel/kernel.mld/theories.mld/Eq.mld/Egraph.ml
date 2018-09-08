@@ -4,21 +4,20 @@ open Patricia
 open Patricia_tools
 
 open Top
-open Specs
+open Terms
 open Sassigns
+open Values
 open Messages
 
 open Interfaces
        
-module Make(DS: GlobalDS) = struct
+module Make(WTerm: Writable) = struct
   
-  open DS
-
-  type stop = (unit,straight) Msg.t list * (unit,unsat) Msg.t
+  type stop = (unit,straight) message list * (unit,unsat) message
             
   (* Sum type for terms+values *)
   module TermValue = struct
-    type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]                               
+    type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]
   end
                                            
   module TMap = struct
@@ -54,7 +53,7 @@ module Make(DS: GlobalDS) = struct
 
     module Node = TermValue
 
-    type edge = (bassign,sassign)sum [@@deriving show]
+    type edge = (bassign,SAssign.t)sum [@@deriving show]
 
     (* The information we want to keep about each component *)
     type info = {
@@ -81,7 +80,7 @@ module Make(DS: GlobalDS) = struct
 
     let singleton t = {
         nf        = t;
-        cval      = CValue.none (Term.get_sort t);
+        cval      = CValue.create 17;
         diseq     = BMap.empty;
         listening = TVSet.empty
       }
@@ -98,15 +97,15 @@ module Make(DS: GlobalDS) = struct
 
     (* Generates equality inference *)
     let eq_inf j1 j2 =
-      let SAssign(t1,v1) = j1 in
-      let SAssign(t2,v2) = j2 in
+      let SAssign(t1,v1) = SAssign.reveal j1 in
+      let SAssign(t2,v2) = SAssign.reveal j2 in
       let justif = Assign.add j1 (Assign.singleton j2) in
-      let eqterm = Term.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
+      let eqterm = WTerm.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
       let eqassign = eqterm, Values.Boolean (Values.equal Value.equal v1 v2) in
       eqassign,
       straight () justif eqassign
 
-    let pp_path = List.pp (pp_sum pp_bassign pp_sassign)
+    let pp_path = List.pp (pp_sum pp_bassign SAssign.pp)
                
     (* Analyses a path from a term to a termvalue *)
     let treatpath path =
@@ -115,14 +114,14 @@ module Make(DS: GlobalDS) = struct
         | j::tail ->
            match j, last with
            | Case1 bassign, None ->
-              aux propas (Assign.add (SAssign bassign) assigns) tail
+              aux propas (Assign.add (SAssign.bool bassign) assigns) tail
            | Case1 _, Some _ ->
-              failwith(Print.toString (fun p-> p "Path %a is ill-formed" pp_path path))
+              failwith(Format.toString (fun p-> p "Path %a is ill-formed" pp_path path))
            | Case2 sassign, None ->
               aux ~last:sassign propas assigns tail
            | Case2 sassign1, Some sassign2 ->
               let j_eq, p = eq_inf sassign1 sassign2 in
-              aux (p::propas) (Assign.add (SAssign j_eq) assigns) tail
+              aux (p::propas) (Assign.add (SAssign.bool j_eq) assigns) tail
       in
       aux [] Assign.empty path
 
@@ -179,7 +178,7 @@ module Make(DS: GlobalDS) = struct
            let path2 = path (Case1 t4) pc2 eg in
            let path  = List.rev_append path1 (j::path2) in
            let _,propa,assign = treatpath path in
-           let unsat_core = Assign.add (SAssign j_neq) assign in
+           let unsat_core = Assign.add (SAssign.bool j_neq) assign in
            raise(Conflict(propa, unsat () unsat_core))
         | None ->
            (* They were not declared different. Check whether their values can be merged *)
@@ -200,7 +199,7 @@ module Make(DS: GlobalDS) = struct
                  begin match j2 with
                  | Some j2 ->
                     let j_neq,p = eq_inf j1 j2 in
-                    let unsat_core = Assign.add (SAssign j_neq) assign in
+                    let unsat_core = Assign.add (SAssign.bool j_neq) assign in
                     raise(Conflict(p::propa, unsat () unsat_core))
                  | _ -> failwith "Path does not finish on v2"
                  end
@@ -212,7 +211,7 @@ module Make(DS: GlobalDS) = struct
               (* The declared disequalities are the union of the two components. *)
               let diseq = BMap.union (fun _ v -> v) info1.diseq info2.diseq in
               let listening = TVSet.union info1.listening info2.listening in
-              let info = { nf=nf; cval=cval; diseq=diseq; listening = listening } in
+              let info = { nf; cval; diseq; listening } in
               (* We output the resulting egraph, the info of the merged component,
                  and the nodes that were listened to and have seen their values updated *)
               merge pc1 pc2 info j eg,
@@ -234,7 +233,7 @@ module Make(DS: GlobalDS) = struct
       let eg,pc2 = PC.get eg tv2 in
       if PC.equal pc1 pc2 then
         let _,propas,assigns = treatpath(path tv1 pc2 eg) in
-        let unsat_core = Assign.add (SAssign j) assigns in
+        let unsat_core = Assign.add (SAssign.bool j) assigns in
         raise(Conflict(propas, unsat () unsat_core))
       else
         let info1 = PC.get_info pc1 in

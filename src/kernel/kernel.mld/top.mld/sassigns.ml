@@ -49,7 +49,6 @@ let pp_bassign fmt (t,Values.Boolean b) =
   else Format.fprintf fmt "~(%a)" Term.pp t
 let show_bassign = Print.stringOf pp_bassign
 let negation (t,Values.Boolean b) = (t,Values.Boolean(not b))
-let boolassign ?(b=true) t = SAssign(t, Values.Boolean b)
 
 (* Printing functions for sassigns *)
 
@@ -74,6 +73,9 @@ module SAssign = struct
   include Init(F)
   let pp fmt t = pp_sassign fmt (reveal t)
   let show  = Print.stringOf pp
+
+  let bool bassign = build(SAssign bassign)
+  let boolassign ?(b=true) t = build(SAssign(t, Values.Boolean b))
 
 end
 

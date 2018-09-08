@@ -6,17 +6,20 @@ module type Leaf = sig
   val get_sort : t -> Sorts.t
 end
 
-module type Sprim = sig
+module type ReadablePoly = sig
   include PHCons
+  type leaf
+  type revealed
+  val reveal : t -> revealed
   val get_sort : t -> Sorts.t
 end
 
-module type Sbuild = sig
+module type WritablePoly = sig
   type ('leaf,'datatype) termF
-  type datatype
   type leaf
+  type datatype
+  type t = (leaf,datatype) termF
   type termB
-  type t
   val bV : leaf -> t
   val bC : Symbols.t -> t list -> t
   val bB : Sorts.t -> termB -> leaf DSubst.t -> t
@@ -28,9 +31,10 @@ module type Sbuild = sig
   end
   val subst : ('a -> leaf) -> ('a,_) termF -> (leaf,datatype) termF
   val lift : leaf DSubst.t -> termB -> t
-end      
+end
 
 module type S = sig
-  include Sbuild
-  include Sprim with type t := (leaf,datatype) termF
+  include WritablePoly
+  include ReadablePoly with type t := (leaf,datatype) termF
+                        and type leaf := leaf
 end

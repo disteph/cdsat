@@ -12,8 +12,8 @@ module Make(S: sig
   let key = ThTermKey.make(module struct type nonrec t = t let name = S.name end)
 
   let build t =
-    match Terms.reveal t with
-    | Terms.C(symb,l) when S.known symb
+    match Term.reveal t with
+    | C(symb,l) when S.known symb
       -> List.fold (proj key >> TSet.union) l TSet.empty
     | _ -> TSet.singleton t
 

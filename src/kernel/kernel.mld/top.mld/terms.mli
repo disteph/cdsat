@@ -28,8 +28,6 @@ end
 
 type ('leaf,'datatype) termF
 
-val reveal : ('l,'d) termF -> (('l,'d) termF,('l*TermB.t free)) xterm
-
 (* val data   : (_,'datatype) termF -> 'datatype
  * 
  * module Make(Leaf: Leaf)(Data : sig type t end)
@@ -47,15 +45,22 @@ module ThTermKey : Keys.S
 
 module ThTerm : Hashtbl_hetero.T with type 'a key = 'a ThTermKey.t
 
+module type Readable =
+  ReadablePoly with type t = (FreeVar.t,ThTerm.t) termF
+                and type revealed := ((FreeVar.t,ThTerm.t) termF,(FreeVar.t*TermB.t free)) xterm
+                and type leaf     := FreeVar.t
+
+module type Writable =
+  WritablePoly with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
+                and type termB   := TermB.t
+                and type leaf    := FreeVar.t
+                and type datatype = ThTerm.t
+                and type t := (FreeVar.t,ThTerm.t) termF
+
 module Term : sig
-    include Sprim with type t = (FreeVar.t,ThTerm.t) termF
-    module Build(D: sig val build : t -> ThTerm.t end) :
-      Sbuild  with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-               and type datatype = ThTerm.t
-               and type leaf     = FreeVar.t
-               and type termB    = TermB.t
-               and type t := t
-  end
+  include Readable
+  module Build(D: sig val build : t -> ThTerm.t end) : Writable
+end
 
 val proj : 'a ThTermKey.t -> Term.t -> 'a
 

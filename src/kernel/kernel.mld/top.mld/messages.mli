@@ -17,13 +17,11 @@ type straight = straight_l propa
 (* Message types *)
 
 (* Type of things that are the conclusion of theory inferences *)
-type _ propagated =
- private
+type _ propagated = private
   | Unsat    : unsat_l propagated               (* concluding ⊥ (= conflict) *)
   | Straight : bassign -> straight_l propagated (* concluding a proper Boolean assignment *)
-                                                 
-type (_,_) message =
-  private
+
+type (_,_) message = private
   (* Message saying a theory module is happy with assignment assign,
      sharing the set of terms sharing, the Σ-variables of assign being myvars;
      This is called "T0-compatibility of [assign] sharing [sharing]" in the CDSAT papers. *)

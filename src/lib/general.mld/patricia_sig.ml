@@ -87,6 +87,8 @@ module type Map = sig
   type infos
   type hcons
 
+  val is_hcons : bool
+
   type ('v,'i) param constraint 'i = _*_
   type t = (values,infos*hcons) param
 
@@ -110,23 +112,27 @@ module type Map = sig
   val choose : t -> keys * values
 
   module Fold2 : sig
+    type ('v1,'i1,'v2,'i2,'b) combine = {
+      combineFF : ('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b;
+      combineEF : ('v2,'i2) param -> 'b -> 'b;
+      combineFE : ('v1,'i1) param -> 'b -> 'b
+    }
+
     type ('v1,'i1,'v2,'i2,'a,'b) t = {
-        sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
-        emptyfull : ('v2,'i2) param -> 'a -> 'b;
-        fullempty : ('v1,'i1) param -> 'a -> 'b;
-        combine   : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
-                    -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
-                       * (('v2,'i2) param -> 'b -> 'b)
-                       * (('v1,'i1) param -> 'b -> 'b)
-      }
+      sameleaf  : keys -> 'v1 -> 'v2 -> 'a -> 'b;
+      emptyfull : ('v2,'i2) param -> 'a -> 'b;
+      fullempty : ('v1,'i1) param -> 'a -> 'b;
+      combine   :
+        reccall:(('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+        -> ('v1,'i1,'v2,'i2,'b) combine
+    }
     val make_combine :
-      ('v1,'i1) param -> ('v2,'i2) param
-      -> ((('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
-          -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b))
-      -> (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
-      -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b)
-         * (('v2,'i2) param -> 'b -> 'b)
-         * (('v1,'i1) param -> 'b -> 'b)
+      empty1 : ('v1,'i1) param
+      -> empty2 : ('v2,'i2) param
+      -> combine : ((('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+                    -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b))
+      -> reccall : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+      -> ('v1,'i1,'v2,'i2,'b) combine
   end
 
   val fold2_poly : ('v1,'i1,'v2,'i2,'a,'b) Fold2.t

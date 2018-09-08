@@ -18,13 +18,15 @@ val is_Boolean : sassign -> bool
                                     
 type bassign = Term.t * (Values.Value.t,bool) Values.t [@@deriving eq,ord,hash,show]
 val negation : bassign -> bassign
-val boolassign : ?b:bool -> Term.t -> sassign
 
 (* HConsed version of single assignments *)
 
 module SAssign : sig
-  include SHCons with type revealed = sassign
+  include PH
   val reveal : t -> sassign
+  val build  : sassign -> t
+  val bool   : bassign -> t
+  val boolassign : ?b:bool -> Term.t -> t
 end
 
 module Assign : sig
