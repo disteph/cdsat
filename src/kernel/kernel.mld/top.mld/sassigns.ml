@@ -74,8 +74,8 @@ module SAssign = struct
   let pp fmt t = pp_sassign fmt (reveal t)
   let show  = Print.stringOf pp
 
-  let bool bassign = build(SAssign bassign)
-  let boolassign ?(b=true) t = build(SAssign(t, Values.Boolean b))
+  let build s = build(SAssign s)
+  let boolassign ?(b=true) t = build(t, Values.Boolean b)
 
 end
 

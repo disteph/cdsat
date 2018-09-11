@@ -28,7 +28,7 @@ let init
     | Some l, None,_  
       | None,None,Some l -> get l
   in
-  print_endline(Print.toString (fun p->
+  print_endline(Format.toString (fun p->
                     p "Using theories: %a" HandlersMap.pp theories));
 
   (* Now that we know the theories, we build the combined datastructures *)
@@ -38,26 +38,25 @@ let init
      open WB
      let problem = List.fold
                      (fun formula
-                      -> DS.Assign.add (boolassign(DS.Term.lift [] formula)))
+                      -> Assign.add (SAssign.boolassign(W.lift [] formula)))
                      termB
-                     DS.Assign.empty
+                     Assign.empty
 
      let expected = expected
 
      type 'proof answer =
        | UNSAT of (unsat,'proof) WB.t
-       | SAT of WB.DS.Assign.t
+       | SAT of Assign.t
        | NotAnsweringProblem
 
      let answer =
-       let open DS in
        function
        | Case1(WB.WB(_,Propa(assign,Unsat),_) as msg) ->
           if Assign.subset assign problem
           then UNSAT msg
           else
             (print_endline(
-                 Print.toString (fun p->
+                 Format.toString (fun p->
                      p "You said %a but this involves new hypotheses %a"
                        pp msg
                        Assign.pp (Assign.diff assign problem)));
@@ -67,14 +66,14 @@ let init
           if Assign.subset problem assign then SAT assign
           else
             (print_endline(
-                 Print.toString (fun p->
+                 Format.toString (fun p->
                      p "You said %a but this ignores hypotheses %a"
                        Assign.pp assign
                        Assign.pp (Assign.diff problem assign)));
              NotAnsweringProblem)
 
        | Case2 _ ->
-          print_endline(Print.toString (fun p->
+          print_endline(Format.toString (fun p->
                             p "Errr... not all theories agree on model"));
           NotAnsweringProblem
 

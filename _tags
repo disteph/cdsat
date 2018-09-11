@@ -43,6 +43,7 @@ true: debug, optimize(3), unbox_closures
                                  package(ppx_let),\
                                  package(ppx_hash),\
                                  package(ppx_enumerate),\
+                                 package(ppx_fields_conv),\
                                  package(zarith)
 
 <src/kernel/kernel.mld/theories.mld/bitvectors.mld/*.ml{,i,y}> :\

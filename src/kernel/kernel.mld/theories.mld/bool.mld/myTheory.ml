@@ -1,49 +1,30 @@
 open General
-open Patricia
-open Patricia_interfaces
-open Patricia_tools
 open Sums       
 
 open Top
-open Basic
 open Messages
-open Specs
+open Terms
 open Sassigns
-open Termstructures.Literals
-open Termstructures.Clauses
-open Termstructures.VarSet.Generic
-       
+
+open Termstructures
+
+open Theory
+    
 open API
        
 type sign = unit
 
-(* We are not using first-order values *)
-include Theory.HasNoValues
+module T = struct
+  let dskey = Clauses.key
+  let ds  = [DSK dskey]
+  type nonrec sign = sign
+  type api = (module API with type sign = sign)
+  let name = "Bool"
 
-module TS = Termstructures.Clauses.TS
-module Clauses = TS
+  module Make(W : Writable) : API with type sign = sign = struct
 
-type ('t,'v,'a,'s) api = (module API with type sign   = sign
-                                      and type assign = 'a
-                                      and type termdata = 't
-                                      and type value  = 'v
-                                      and type tset   = 's)
-
-let make (type t v a s)
-    ((module DS): ((t,s)TS.t,values,t,v,a,s) dsProj)
-  : (t,v,a,s) api =
-  (module struct
-
-    open DS
+    include Basis
     type nonrec sign = sign
-    type nonrec termdata = Term.datatype
-    type nonrec value = Value.t
-    type nonrec assign = Assign.t
-    type nonrec bassign = bassign
-    type nonrec sassign = sassign
-    type tset = TSet.t
-
-    include Basis.Make(DS)(struct let proj = DS.proj end)
 
     (* state type:
        in order to produce the message Sat(seen),
@@ -59,15 +40,13 @@ let make (type t v a s)
                  sharing = TSet.empty;
                  myvars  = lazy TSet.empty }
 
-    let add_myvars term myvars =
-      let aux is = is |> IntSort.reveal |> fun (i,_) -> TSet.add(Term.term_of_id i) in
-      Termstructures.IntSortSet.fold aux (DS.proj(Terms.data term)).freevar myvars
+    let add_myvars term = (proj term).freevar |> TSet.fold TSet.add 
 
     type interesting =
-      | Falsified of (sign,unsat) Msg.t
-      | Unit      of (sign,straight) Msg.t
+      | Falsified of (sign,unsat) message
+      | Unit      of (sign,straight) message
       | Satisfied
-      | ToWatch   of LSet.t * LitF.t list
+      | ToWatch   of Clauses.VarMap.t * bassign list
 
     let infer c =
       let (t,Values.Boolean b) as bassign = Constraint.bassign c in
@@ -75,11 +54,9 @@ let make (type t v a s)
       | Some(_,[])  ->
         Print.print ["kernel.bool",4] (fun p ->
             p "kernel.bool: %a is falsified" Constraint.pp c);
-        let justif = Assign.add (SAssign bassign) (Constraint.justif c) in
+        let justif = Assign.add (SAssign.build bassign) (Constraint.justif c) in
         Falsified(unsat () justif)
-      | Some(_,[l]) ->
-        let b',id = LitF.reveal l in
-        let term = Term.term_of_id id in
+      | Some(_,[(term,Values.Boolean b')]) ->
         if Term.equal t term
         then
           (Print.print ["kernel.bool",4] (fun p ->
@@ -90,7 +67,7 @@ let make (type t v a s)
           (Print.print ["kernel.bool",4] (fun p ->
                p "kernel.bool: Detected UP for constraint %a (justif %a)"
                  Constraint.pp c Assign.pp (Constraint.justif c));
-           let justif = Assign.add (SAssign bassign) (Constraint.justif c) in
+           let justif = Assign.add (SAssign.build bassign) (Constraint.justif c) in
            Unit(straight () justif (term,Values.Boolean(not([%eq:bool] b b')))))
       | Some(lset,watchable) -> ToWatch(lset,watchable)
       | None   ->
@@ -123,10 +100,10 @@ let make (type t v a s)
     let fromeq state sassign b a1 a2 =
       let f =
         if b then (fun a -> a)
-        else (fun a -> Term.bC Symbols.Neg [a])
+        else (fun a -> W.bC Symbols.Neg [a])
       in
-      let derived1 = Term.bC Symbols.Imp [a1;f a2], Values.Boolean true in
-      let derived2 = Term.bC Symbols.Imp [a2;f a1], Values.Boolean true in
+      let derived1 = W.bC Symbols.Imp [a1;f a2], Values.Boolean true in
+      let derived2 = W.bC Symbols.Imp [a2;f a1], Values.Boolean true in
       let msg1 = straight () (Assign.singleton sassign) derived1 in
       let msg2 = straight () (Assign.singleton sassign) derived2 in
       let propas = [msg1;msg2] in
@@ -135,9 +112,9 @@ let make (type t v a s)
 
     let add sassign state =
       Print.print ["kernel.bool",2] (fun p ->
-          p "kernel.bool receiving %a" pp_sassign sassign);
+          p "kernel.bool receiving %a" SAssign.pp sassign);
       let seen = Assign.add sassign state.seen in
-      let SAssign((term,v) as bassign) = sassign in
+      let SAssign((term,v) as bassign) = SAssign.reveal sassign in
       let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
       let finalise (propas,todo) =
         { state with seen; todo; myvars }, propas
@@ -145,7 +122,7 @@ let make (type t v a s)
       match v with
       | Values.NonBoolean _ -> { state with seen; myvars }, Case1 []
       | Values.Boolean b ->
-        match Terms.reveal term with
+        match Term.reveal term with
         | Terms.C(Symbols.Eq Sorts.Prop, [a1;a2]) ->
           finalise(fromeq state sassign b a1 a2)
         | Terms.C(Symbols.NEq Sorts.Prop, [a1;a2])
@@ -154,17 +131,16 @@ let make (type t v a s)
         | _ ->
           let result =
             match cube bassign with
-            | Some set when LSet.cardinal set > 1 ->
-              let aux lit (sofar,todo) =
-                let b',id = LitF.reveal lit in
-                let derived = Term.term_of_id id,Values.Boolean b' in
+            | Some set when Clauses.VarMap.cardinal set > 1 ->
+              let aux term b' (sofar,todo) =
+                let derived = term,Values.Boolean b' in
                 let msg     = straight () (Assign.singleton sassign) derived in
                 Print.print ["kernel.bool",-1] (fun p ->
-                    p "kernel.bool: conjunction %a" Msg.pp msg);
+                    p "kernel.bool: conjunction %a" pp_message msg);
                 let c       = Constraint.make derived in
                 msg::sofar, c::todo
               in
-              let propas, todo = LSet.fold aux set ([],state.todo) in
+              let propas, todo = Clauses.VarMap.fold aux set ([],state.todo) in
               Case1 propas, todo
             | _ ->
               let c = Constraint.make bassign in
@@ -177,5 +153,10 @@ let make (type t v a s)
       let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
       { state with sharing; myvars }
 
-  end)
+  end
 
+  let make (module W : Writable) : api = (module Make(W))
+
+end
+
+let hdl = register(module T)

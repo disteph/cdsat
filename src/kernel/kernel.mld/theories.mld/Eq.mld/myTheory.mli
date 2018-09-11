@@ -1,6 +1,10 @@
+open Top.Terms
+
 open Theory
 open Interfaces
-       
+    
+val ds : dsKey list
 type sign
-
-val hdl : (sign*(module API with type sign = sign)) Tags.t
+type api = (module API with type sign = sign)
+val make : (module Writable) -> api
+val name : string

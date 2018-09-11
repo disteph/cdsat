@@ -2,11 +2,16 @@ open Top.Terms
 
 open General
 
-                      
-(* Type of maps from rational variables to rational coefficients
-   infos is the cardinal of the set *)
-type varmap = (Term.t, bool, int, int, int*[`NoHCons]) Patricia.poly
-
+module VarMap : sig
+  include Patricia.Map.S_NH
+    with type keys = Term.t
+     and type values = bool
+     and type common = int
+     and type branching = int
+     and type infos = int (* cardinal *)
+  val next : t -> Term.t * bool * t
+  val pp : t Format.printer
+end
      
 (* Representation of terms for boolean reasoning, knowing about
    disjunction, negation, true and false *)
@@ -17,9 +22,13 @@ type varmap = (Term.t, bool, int, int, int*[`NoHCons]) Patricia.poly
    are usually Some a, Some b, with one of a or b being a singleton
    and the other one being non-empty. *)
 
-type t = private
-  { asclause : varmap option; (* None if trivially true *)
-    ascube   : varmap option; (* None if trivially false *)
-    freevar  : TSet.t }
+type nature = private Var | NVar | Other
 
-module TS : Termstructure.Type with type t = t
+type t = private
+  { asclause : VarMap.t option; (* None if trivially true *)
+    ascube   : VarMap.t option; (* None if trivially false *)
+    freevar  : TSet.t;
+    nature   : nature }
+[@@deriving fields]
+
+val key : t Key.t

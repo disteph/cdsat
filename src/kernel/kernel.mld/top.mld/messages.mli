@@ -36,4 +36,4 @@ val unsat   : 'sign -> Assign.t                  -> ('sign,unsat) message
 val straight: 'sign -> Assign.t -> bassign       -> ('sign,straight) message
 
 (* Pretty-printing messages *)
-val print_msg_in_fmt: (_,_) message Format.printer
+val pp_message: (_,_) message Format.printer

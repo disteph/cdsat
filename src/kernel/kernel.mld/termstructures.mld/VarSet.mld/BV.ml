@@ -11,6 +11,5 @@ module Known = struct
     | _ -> false
   let name = "BV"
 end
-             
-           
-include Generic.Make(Known)
+
+let key = Generic.make(module Known)

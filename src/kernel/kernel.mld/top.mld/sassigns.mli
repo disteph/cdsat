@@ -24,8 +24,8 @@ val negation : bassign -> bassign
 module SAssign : sig
   include PH
   val reveal : t -> sassign
-  val build  : sassign -> t
-  val bool   : bassign -> t
+  (* val build  : sassign -> t *)
+  val build      : (Term.t * (Values.Value.t,_) Values.t) -> t
   val boolassign : ?b:bool -> Term.t -> t
 end
 

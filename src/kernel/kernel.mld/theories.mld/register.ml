@@ -53,10 +53,10 @@ let all_theories = List.fold (fun hdl -> HandlersMap.add hdl ()) !all_theories_l
 exception NotFound of string
 
 let parse = function
-  | "LRA"        -> Handlers.Handler LRA.Hdl
-  | "Arrays"     -> Handlers.Handler Arrays.Hdl
-  | "IfThenElse" -> Handlers.Handler IfThenElse.Hdl
-  | "bool"       -> Handlers.Handler Bool.Hdl
+  | "LRA"        -> Handlers.Handler LRA.MyTheory.hdl
+  | "Arrays"     -> Handlers.Handler Arrays.MyTheory.hdl
+  | "IfThenElse" -> Handlers.Handler IfThenElse.MyTheory.hdl
+  | "bool"       -> Handlers.Handler Bool.MyTheory.hdl
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories

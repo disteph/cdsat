@@ -1,8 +1,10 @@
 open Top
-open Specs
+open Terms
 open Messages
 open Sassigns
-       
+
+open Theory
+    
 type sign
 
 module V : sig
@@ -17,10 +19,6 @@ module V : sig
 end
        
 module type API = sig
-  type termdata
-  type value
-  type assign
-  type tset
 
   (* States of the algorithm *)
   type state
@@ -28,26 +26,16 @@ module type API = sig
   val init: state
 
   (* Direct evaluation functions for bit-vector terms and formulae *)
-  val term_eval : (int -> V.t) -> termdata termF -> V.t
-  val form_eval : (int -> V.t) -> termdata termF -> bool
+  val term_eval : (Term.t -> V.t) -> Term.t -> V.t
+  val form_eval : (Term.t -> V.t) -> Term.t -> bool
 
   (* Evaluation function for a formula, given the state of the algorithm.
      Either raises an exception CannotEval,
      or produces a message Propa(assign,boolassign), where
      boolassign is the Boolean assignment saying if the formula evaluates to true or false
      assign are the assignments that were used in the evaluation *)
-  val eval : state -> termdata termF
-             -> (sign, assign * (termdata termF, _)bassign*tset, straight) message
+  val eval : state -> Term.t -> (sign, straight) message
 
-  (* Injection and projections for values and termrepresentations *)
-  val vinj : V.t -> value
-  val vproj : value -> V.t option
-  val proj : termdata termF -> tset
 end
 
-
-include Theory.Type
-  with type ('t,'v,'a,'s) api = (module API with type termdata = 't
-                                             and type value  = 'v
-                                             and type assign = 'a
-                                             and type tset   = 's)
+val hdl : (sign*(module API)) Tags.t

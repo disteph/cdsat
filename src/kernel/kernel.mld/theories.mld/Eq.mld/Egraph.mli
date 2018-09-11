@@ -2,16 +2,13 @@ open General.Sums
 
 open Top
 open Terms
-open Sassigns
 open Messages
 open Values
 
 open Interfaces
        
-module Make(DS: Writable) : sig
+module Make(W: Writable) : sig
   
-  (* open DS *)
-
   (* Abbreviation for single assignments *)
   type stop = (unit,straight) message list * (unit,unsat) message
   
@@ -20,7 +17,7 @@ module Make(DS: Writable) : sig
     type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]          
   end
 
-  module EG : Egraph with type stop  := stop
+  module EG : Egraph with type stop := stop
 end
 
 

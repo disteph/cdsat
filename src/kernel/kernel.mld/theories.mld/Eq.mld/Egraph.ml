@@ -1,6 +1,5 @@
 open General
 open Sums
-open Patricia
 open Patricia_tools
 
 open Top
@@ -33,7 +32,7 @@ module Make(WTerm: Writable) = struct
   end
                    
   module BMap = struct
-    include MapNH(struct
+    include Patricia.Map.MakeNH(struct
         include BDest
         include EmptyInfo
         include TypesFromHConsed(BDest)
@@ -80,7 +79,7 @@ module Make(WTerm: Writable) = struct
 
     let singleton t = {
         nf        = t;
-        cval      = CValue.create 17;
+        cval      = t |> Terms.Term.get_sort |> CValue.none;
         diseq     = BMap.empty;
         listening = TVSet.empty
       }
@@ -114,14 +113,14 @@ module Make(WTerm: Writable) = struct
         | j::tail ->
            match j, last with
            | Case1 bassign, None ->
-              aux propas (Assign.add (SAssign.bool bassign) assigns) tail
+              aux propas (Assign.add (SAssign.build bassign) assigns) tail
            | Case1 _, Some _ ->
               failwith(Format.toString (fun p-> p "Path %a is ill-formed" pp_path path))
            | Case2 sassign, None ->
               aux ~last:sassign propas assigns tail
            | Case2 sassign1, Some sassign2 ->
               let j_eq, p = eq_inf sassign1 sassign2 in
-              aux (p::propas) (Assign.add (SAssign.bool j_eq) assigns) tail
+              aux (p::propas) (Assign.add (SAssign.build j_eq) assigns) tail
       in
       aux [] Assign.empty path
 
@@ -178,7 +177,7 @@ module Make(WTerm: Writable) = struct
            let path2 = path (Case1 t4) pc2 eg in
            let path  = List.rev_append path1 (j::path2) in
            let _,propa,assign = treatpath path in
-           let unsat_core = Assign.add (SAssign.bool j_neq) assign in
+           let unsat_core = Assign.add (SAssign.build j_neq) assign in
            raise(Conflict(propa, unsat () unsat_core))
         | None ->
            (* They were not declared different. Check whether their values can be merged *)
@@ -199,7 +198,7 @@ module Make(WTerm: Writable) = struct
                  begin match j2 with
                  | Some j2 ->
                     let j_neq,p = eq_inf j1 j2 in
-                    let unsat_core = Assign.add (SAssign.bool j_neq) assign in
+                    let unsat_core = Assign.add (SAssign.build j_neq) assign in
                     raise(Conflict(p::propa, unsat () unsat_core))
                  | _ -> failwith "Path does not finish on v2"
                  end
@@ -209,7 +208,7 @@ module Make(WTerm: Writable) = struct
               (* Values could be merged. Creating the info for the merged component. *)
               let nf = info1.nf in (* Normal form is that of t1 (Could be tuned!) *)
               (* The declared disequalities are the union of the two components. *)
-              let diseq = BMap.union (fun _ v -> v) info1.diseq info2.diseq in
+              let diseq = BMap.union (fun _ _ v -> v) info1.diseq info2.diseq in
               let listening = TVSet.union info1.listening info2.listening in
               let info = { nf; cval; diseq; listening } in
               (* We output the resulting egraph, the info of the merged component,
@@ -233,7 +232,7 @@ module Make(WTerm: Writable) = struct
       let eg,pc2 = PC.get eg tv2 in
       if PC.equal pc1 pc2 then
         let _,propas,assigns = treatpath(path tv1 pc2 eg) in
-        let unsat_core = Assign.add (SAssign.bool j) assigns in
+        let unsat_core = Assign.add (SAssign.build j) assigns in
         raise(Conflict(propas, unsat () unsat_core))
       else
         let info1 = PC.get_info pc1 in

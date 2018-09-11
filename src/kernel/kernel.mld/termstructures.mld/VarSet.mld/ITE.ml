@@ -8,6 +8,5 @@ module Known = struct
     | _ -> false
   let name = "ITE"
 end
-             
-           
-include Generic.Make(Known)
+
+let key = Generic.make(module Known)

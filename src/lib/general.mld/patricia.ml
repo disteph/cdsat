@@ -1,6 +1,14 @@
 open Format
 
-include Patricia_sig
+open Patricia_sig
+
+module type Key = Key
+
+type nonrec ('keys,'values,'infos) info_build_type
+  = ('keys,'values,'infos) info_build_type
+  = { empty_info  : 'infos;
+      leaf_info   : 'keys -> 'values -> 'infos;
+      branch_info : 'infos -> 'infos -> 'infos }
 
 let print_nothing _ _ = ()
 let print_dot fmt _ = fprintf fmt "."
@@ -276,10 +284,10 @@ module MapGen(I: MapGenArg) = struct
         -> ('v1,'i1,'v2,'i2,'b) combine
     }
 
-    let make_combine ~empty1 ~empty2 ~combine ~reccall =
-      { combineFF = combine reccall;
-        combineEF = (fun t2 -> combine reccall empty1 t2);
-        combineFE = (fun t1 -> combine reccall t1 empty2) }
+    let make_combine ~empty1 ~empty2 combine ~reccall =
+      { combineFF = combine ~reccall;
+        combineEF = (fun t2 -> combine ~reccall empty1 t2);
+        combineFE = (fun t1 -> combine ~reccall t1 empty2) }
 
     let merge2fold2 m = {
       sameleaf  = Merge.(fun k v1 v2 () -> m.sameleaf k v1 v2);
@@ -385,7 +393,7 @@ module MapGen(I: MapGenArg) = struct
   let union_poly f fullempty emptyfull = merge_poly (union_poly_action f emptyfull fullempty)
 
   let union_action f = Merge.{
-      sameleaf = (fun k v1 v2 -> singleton k (f v1 v2));
+      sameleaf = (fun k v1 v2 -> singleton k (f k v1 v2));
       emptyfull = (fun a -> a);
       fullempty = (fun a -> a);
       combine   = join
@@ -518,47 +526,72 @@ module MapGen(I: MapGenArg) = struct
 
 end
 
+module Map = struct
 
-module MapH(I:MapArgH) = struct
-  open I
-  module II = Init(I)
-  module Par = struct
-    type t = I.t*I.values*I.common*I.branching
+  module type S = sig
+    type keys
+    type common
+    type branching
+    include Map with type keys   := keys
+                 and type common := common
+                 and type branching := branching
+                 and type ('v,'ih)param = (keys,'v,common,branching,'ih) poly
   end
-  module P = struct
-    type 'a t = ('a,Par.t) Poly.t
-    let equal a b = II.equal equal_values a b
-    let hash_fold_t state a = II.hash_fold_t hash_fold_t hash_fold_values state a
-    let name = "Patricia Maps"
+
+  module type ArgH = MapArgH
+  module type S_H  = sig
+    include S with type hcons = [`HCons]
+    val equal    : t Equal.t
+    val hash_fold_t : t Hash.folder
+    val hash     : t Hash.t
+    val compare  : t Compare.t
+    val id       : t -> int
+    val clear    : unit -> unit
   end
-  module Data = struct
-    type t = infos
+
+  module MakeH(I:ArgH) = struct
+    open I
+    module II = Init(I)
+    module Par = struct
+      type t = I.t*I.values*I.common*I.branching
+    end
+    module P = struct
+      type 'a t = ('a,Par.t) Poly.t
+      let equal a b = II.equal equal_values a b
+      let hash_fold_t state a = II.hash_fold_t hash_fold_t hash_fold_values state a
+      let name = "Patricia Maps"
+    end
+    module Data = struct
+      type t = infos
+    end
+    include M.InitData(Par)(P)(Data)
+    module B = struct
+      include I
+      let kequal = II.kequal
+      type hcons = [`HCons]
+      type abbrev = (t*values*common*branching)*infos*hcons
+      let build = build (M.reveal >> II.build I.info_build)
+      let equal_opt = Some equal
+    end
+    include MapGen(B)
   end
-  include M.InitData(Par)(P)(Data)
-  module B = struct
-    include I
-    let kequal = II.kequal
-    type hcons = [`HCons]
-    type abbrev = (t*values*common*branching)*infos*hcons
-    let build = build (M.reveal >> II.build I.info_build)
-    let equal_opt = Some equal
+
+  module type ArgNH = MapArgNH
+  module type S_NH = S with type hcons = [`NoHCons]
+
+  module MakeNH(I:ArgNH) = struct
+    module B = struct
+      include I
+      include Init(I)
+      type hcons = [`NoHCons]
+      type abbrev = (t*values*common*branching)*infos*hcons
+      let build t = M.NoHCons.build t (lazy (build I.info_build t))
+      let equal_opt = None
+    end
+    type t = ((I.t*I.values*I.common*I.branching)*I.infos) M.NoHCons.t
+    include MapGen(B)
   end
-  include MapGen(B)
 end
-
-module MapNH(I:MapArgNH) = struct
-  module B = struct
-    include I
-    include Init(I)
-    type hcons = [`NoHCons]
-    type abbrev = (t*values*common*branching)*infos*hcons
-    let build t = M.NoHCons.build t (lazy (build I.info_build t))
-    let equal_opt = None
-  end
-  type t = ((I.t*I.values*I.common*I.branching)*I.infos) M.NoHCons.t
-  include MapGen(B)
-end
-
 
 module type SetGenArg = sig
   include SetArgNH
@@ -590,7 +623,7 @@ module SetGen(E: SetGenArg) = struct
 
   let singleton k= PM.singleton k ()
   let add k t    = PM.add k (fun _ -> ()) t
-  let union      = PM.union (fun _ () -> ())
+  let union      = PM.union (fun _ () () -> ())
   let inter      = PM.inter (fun _ () () -> ())
   let inter_poly a b = PM.inter_poly (fun _ _ _ -> ()) a b
   let subset a b = PM.subset(fun () () -> true) a b
@@ -644,43 +677,70 @@ module SetGen(E: SetGenArg) = struct
 
 end
 
-module SetH(I:SetArgH) = struct
-  open I
-  module II = Init(I)
-  module Par = struct
-    type t = I.t*unit*I.common*I.branching
-  end
-  module P = struct
-    type 'a t = ('a,Par.t) Poly.t
-    let equal a b = II.equal [%eq:unit] a b
-    let hash_fold_t state a = II.hash_fold_t hash_fold_t [%hash_fold:unit] state a
-    let name = "Patricia Sets"
-  end
-  module Data = struct
-    type t = infos
-    let build t = t |> M.reveal |> II.build I.info_build
-  end
-  include M.InitData(Par)(P)(Data) 
-  module B = struct
-    include I
-    let kequal = II.kequal
-    type hcons = [`HCons]
-    type abbrev = (t*unit*common*branching)*infos*hcons
-    let build = build Data.build
-    let equal_opt = Some equal
-  end
-  include SetGen(B)
-end
+module Set = struct
 
-module SetNH(I:SetArgNH) = struct
-  module B = struct
-    include I
-    include Init(I)
-    type hcons = [`NoHCons]
-    type abbrev = (t*unit*common*branching)*infos*hcons
-    let build t = M.NoHCons.build t (lazy (build I.info_build t))
-    let equal_opt = None
+  module type S = sig
+    type e
+    type common
+    type branching
+    include Set with type e         := e
+                 and type common    := common
+                 and type branching := branching
+                 and type ('v,'ih)param = (e,'v,common,branching,'ih) poly
   end
-  type t = ((I.t*unit*I.common*I.branching)*I.infos) M.NoHCons.t
-  include SetGen(B)
+
+  module type ArgH = SetArgH
+  module type S_H  = sig
+    include S with type hcons = [`HCons]
+    val equal    : t Equal.t
+    val hash_fold_t : t Hash.folder
+    val hash     : t Hash.t
+    val compare  : t Compare.t
+    val id       : t -> int
+    val clear    : unit -> unit
+  end
+
+  module MakeH(I:ArgH) = struct
+    open I
+    module II = Init(I)
+    module Par = struct
+      type t = I.t*unit*I.common*I.branching
+    end
+    module P = struct
+      type 'a t = ('a,Par.t) Poly.t
+      let equal a b = II.equal [%eq:unit] a b
+      let hash_fold_t state a = II.hash_fold_t hash_fold_t [%hash_fold:unit] state a
+      let name = "Patricia Sets"
+    end
+    module Data = struct
+      type t = infos
+      let build = M.reveal >> II.build I.info_build
+    end
+    include M.InitData(Par)(P)(Data) 
+    module B = struct
+      include I
+      let kequal = II.kequal
+      type hcons = [`HCons]
+      type abbrev = (t*unit*common*branching)*infos*hcons
+      let build = build Data.build
+      let equal_opt = Some equal
+    end
+    include SetGen(B)
+  end
+
+  module type ArgNH = SetArgNH
+  module type S_NH = S with type hcons = [`NoHCons]
+
+  module MakeNH(I:ArgNH) = struct
+    module B = struct
+      include I
+      include Init(I)
+      type hcons = [`NoHCons]
+      type abbrev = (t*unit*common*branching)*infos*hcons
+      let build t = M.NoHCons.build t (lazy (build I.info_build t))
+      let equal_opt = None
+    end
+    type t = ((I.t*unit*I.common*I.branching)*I.infos) M.NoHCons.t
+    include SetGen(B)
+  end
 end

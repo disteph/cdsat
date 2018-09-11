@@ -4,36 +4,23 @@ open Patricia
 open Patricia_tools
        
 open Top
-open Interfaces_basic
 open Messages
 open Theories
+open Theory
 open Register
-open Specs
+open Terms
 open Sassigns
        
-(* Datatypes constructed after we know which theories participate to the combination *)
-module type GlobalImplem = sig
-  (* Datatype for hash-consed single assignments (full module SAssign below) *)
-  type sassign_hconsed
-  (* GlobalDS are the global datastructures as specified in top/specs.ml *)
-  include GlobalDS with type Assign.t = (sassign_hconsed,unit,int,int,EmptyInfo.infos) poly
-  module SAssign : sig
-    include PHCons with type t = sassign_hconsed
-    val reveal : t -> sassign
-    val build  : sassign -> t
-  end
-end
-
 module type Proof = sig
 
-  type t
-  type assign
+  type 'a t
 
-  val from_th : t
-  val unsat   : t
+  val from_th : _ propa t
+  val unsat   : unsat t
+  val sat     : sat t
 
   (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
-  val resolve  : t -> t -> t
+  val resolve  : straight t -> 'a propa t -> 'a propa t
 
   (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
      First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
@@ -45,23 +32,22 @@ end
 (* Data-structures used as a result of theory interactions *)
 module type WhiteBoard = sig
 
-  module DS : GlobalImplem
-  open DS
+  module W : Writable
 
   (* Type of theory messages after they have been "signed"
      with the appropiate theory handlers. 
      It's basically a message, together with the set of handlers
      of the theories that signed/contributed to the message *)
-  type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) Msg.t * 'proof
+  type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) message * 'proof
   val pp : Format.formatter -> ('a,'proof) t -> unit
 
   module Make(Proof:Proof) : sig
 
-    type nonrec 'a t = ('a,Proof.t) t
+    type nonrec 'a t = ('a, 'a Proof.t) t
 
     (* Signing messages: one function for standard theories, one for the equality theory *)
-    val sign    : (_*('a*_*_*_)) Tags.t -> ('a, 'b) Msg.t -> 'b t
-    val sign_Eq : (Eq.MyTheory.sign, 'b) Msg.t -> 'b t
+    val sign    : ('a*_) Tags.t -> ('a, 'b) message -> 'b t
+    val sign_Eq : (Eq.MyTheory.sign, 'b) message -> 'b t
 
     (* Turns a propagation message H⊢L into H,~L⊢⊥ *)
     val unsat    : straight t -> unsat t
@@ -108,29 +94,15 @@ module type WhiteBoard = sig
   val sat : (sat,_) t -> sat_tmp -> sat_ans
 end
 
-type (_,_) proj =
-  | Proj : ('cv -> 'v values option) -> ('cv,'v has_values) proj
-  | NoProj : ('cv,has_no_values) proj
-
 (* Kernel's API *)
 module type API = sig
   (* WhiteBoard module as defined above *)
   module WB : WhiteBoard
-  open WB.DS
 
   (* E-graph module *)
   module EGraph : Eq.Interfaces.API with type sign := Eq.MyTheory.sign
-                                     and type termdata := Term.datatype
-                                     and type value  := Value.t
-                                     and type cval   := CValue.t
-                                     and type assign := Assign.t
-                                     and type tset   := TSet.t
   (* List of theory modules - kernel part *)
-  val th_modules : (Term.datatype*Value.t*Assign.t*TSet.t) Modules.t list
-
-  (* Function to extract from a global value a theory-specific value *)
-  val vproj      : (_ * (_ * _ * 'd * _)) Theories.Register.Tags.t
-                   -> (CValue.t, 'd) proj
+  val th_modules : Modules.t list
 
   (* The parsing function - necessarily part of the trusted base *)
   val parse : Parsers.Register.t -> string -> Term.t list
@@ -140,7 +112,7 @@ end
 module type APIext = sig
   include API
   (* Also identifies the problem we are trying to solve as an input assignment *)
-  val problem    : WB.DS.Assign.t
+  val problem    : Assign.t
   (* Expected answer if the above if known *)
   val expected   : bool option
 
@@ -148,7 +120,7 @@ module type APIext = sig
      checks a CDSAT definitive answer against the problem we are supposed to solve *)
   type 'proof answer = private
     | UNSAT of (unsat,'proof) WB.t
-    | SAT of WB.DS.Assign.t
+    | SAT of Assign.t
     | NotAnsweringProblem
 
   val answer : ((unsat,'proof) WB.t, WB.sat_ans) sum -> 'proof answer

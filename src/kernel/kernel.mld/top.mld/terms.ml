@@ -204,24 +204,71 @@ module Make(Leaf: Leaf)(Data : sig type t end) =
 (* Terms that are used *)
 (***********************)
 
-module ThTermKey = Keys.Make()
+module K = Keys.Make()
 
-module ThTerm = Hashtbl_hetero.MakeT(ThTermKey)
-
-module Term = Make(FreeVar)(ThTerm)
-
-let proj key t = ThTerm.find (data t) key
-
-module TSet = MakePATCollection(Term)
+module Data = Hashtbl_hetero.MakeT(K)
+type datatype = Data.t
 
 module type Readable =
-  ReadablePoly with type t = (FreeVar.t,ThTerm.t) termF
-                and type revealed := ((FreeVar.t,ThTerm.t) termF,(FreeVar.t*TermB.t free)) xterm
+  ReadablePoly with type t         = (FreeVar.t,datatype) termF
+                and type revealed := ((FreeVar.t,datatype) termF,
+                                      (FreeVar.t*TermB.t free)) xterm
                 and type leaf     := FreeVar.t
 
 module type Writable =
   WritablePoly with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-                and type termB   := TermB.t
-                and type leaf    := FreeVar.t
-                and type datatype = ThTerm.t
-                and type t := (FreeVar.t,ThTerm.t) termF
+                        and type termB    := TermB.t
+                        and type leaf     := FreeVar.t
+                        and type datatype := datatype
+                        and type t := (FreeVar.t,datatype) termF
+
+
+module Term = Make(FreeVar)(Data)
+
+module type ThTerm = sig
+  type t
+  val build : reccall:(Term.t -> t) -> Term.t -> t
+  val name : string
+end
+
+module Record = Hashtbl_hetero.MakeS(K)
+    (struct type ('a,_) t = Term.t -> 'a end)
+
+let record = Record.create 17
+let proj key t = Data.find (data t) key
+
+module Key = struct
+  include K
+  let make (type a) (module T : ThTerm with type t = a)
+    = let key = make (module T) in
+    let reccall = proj key in
+    Record.add record key  (T.build ~reccall);
+    key
+end
+
+type dsKey = DSK : _ Key.t -> dsKey
+
+module DsKeys = Set.Make(struct
+    type t = dsKey
+    let compare (DSK k1) (DSK k2) = Key.compare k1 k2
+  end)
+
+let build (l: dsKey list) : (module Writable) =
+  let set = List.fold DsKeys.add l DsKeys.empty in
+  let module Arg = struct
+    let build term =
+      let data = Data.create 17 in
+      let aux (DSK key) =
+        Data.add data key (Record.find record key term)
+      in
+      DsKeys.iter aux set;
+      data
+  end
+  in
+  (module Term.Build(Arg))
+
+(*******************************)
+(* Sets of terms that are used *)
+(*******************************)
+
+module TSet = MakePATCollection(Term)

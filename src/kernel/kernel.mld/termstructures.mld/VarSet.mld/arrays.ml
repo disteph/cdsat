@@ -9,5 +9,4 @@ module Known = struct
   let name = "Arrays"
 end
              
-           
-include Generic.Make(Known)
+let key = Generic.make(module Known)

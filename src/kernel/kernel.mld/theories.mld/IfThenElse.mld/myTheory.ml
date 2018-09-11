@@ -2,52 +2,37 @@ open General
 open Top
 open Basic
 open Messages
-open Specs
+open Terms
 open Sassigns
        
 open Termstructures
 
+open Theory
+
 type sign = unit
 
-(* We are using VarSets as alternative term representations *)
-
-module TS = VarSet.ITE
-
-include Theory.HasNoValues
-
 module type API = sig
-  type termdata
-  type value
-  type assign
-  type tset
   type state
   type output = 
-    | Sat   of (sign, assign*(termdata termF,value)bassign*tset,sat) message
-    | Propa of (sign, assign*(termdata termF,value)bassign*tset,straight) message
+    | Sat   of (sign, sat) message
+    | Propa of (sign, straight) message
 
-  val add: (termdata termF, value) sassign -> state -> state
-  val share: tset -> state -> state
+  val add: SAssign.t -> state -> state
+  val share: TSet.t -> state -> state
   val what_now: state -> output option * state
-  val wondering: state -> tset
+  val wondering: state -> TSet.t
   val init: state
 end
 
-type ('t,'v,'a,'s) api = (module API with type termdata = 't
-                                      and type value  = 'v
-                                      and type assign = 'a
-                                      and type tset   = 's)
+module T = struct
+  (* We are using VarSets as alternative term representations *)
+  let dskey = Termstructures.VarSet.ITE.key
+  let ds  = [DSK dskey]
+  type nonrec sign = sign
+  type api = (module API)
+  let name = "ITE"
 
-let make (type t v a s)
-    ((module DS): ((t,s)TS.t,values,t,v,a,s) dsProj)
-    : (t,v,a,s) api =
-  (module struct
-
-    open DS
-
-    type termdata = Term.datatype
-    type value = Value.t
-    type assign = Assign.t
-    type tset = TSet.t
+  module Make(W : Writable) : API = struct
 
     module TMap = struct
       include Map.Make(Term)
@@ -63,12 +48,12 @@ let make (type t v a s)
                    sharing: TSet.t;
                    myvars : TSet.t Lazy.t }
 
-    let add_myvars term myvars =
-      TSet.fold TSet.add (DS.proj(Terms.data term)) myvars
+    let add_myvars = Terms.proj dskey >> TSet.fold TSet.add
 
-    let add ((SAssign(t,v)) as nl) state =
+    let add sassign state =
+      let SAssign(t,v) = SAssign.reveal sassign in
       { state with
-        treated = Assign.add nl state.treated;
+        treated = Assign.add sassign state.treated;
         known   =
           (match v with
            | Values.Boolean b -> TMap.add t b state.known
@@ -82,8 +67,8 @@ let make (type t v a s)
         myvars  = lazy(add_myvars t (Lazy.force state.myvars)) }
 
     type output =
-      | Sat   of (sign,sat) Msg.t
-      | Propa of (sign,straight) Msg.t
+      | Sat   of (sign,sat) message
+      | Propa of (sign,straight) message
 
     let what_now state =
       let rec aux l =
@@ -93,15 +78,15 @@ let make (type t v a s)
                   { state with todo = [] }
         | t::l when TSet.mem t state.solved -> aux l
         | t::l ->
-          match Terms.reveal t with
+          match Term.reveal t with
           | Terms.C(Symbols.ITE so,[c;b1;b2]) 
             ->
             if TMap.mem c state.known
             then
               let b = TMap.find c state.known in
               let br = if b then b1 else b2 in
-              let eq = Term.bC (Symbols.Eq so) [t;br], Values.Boolean true in
-              let justif = Assign.singleton(boolassign ~b c) in
+              let eq = W.bC (Symbols.Eq so) [t;br], Values.Boolean true in
+              let justif = Assign.singleton(SAssign.boolassign ~b c) in
               Print.print ["kernel.ITE",0] (fun p ->
                   p "kernel.ITE: %a ⊢  %a = %a" Assign.pp justif Term.pp t Term.pp br);
               Some(Propa(straight () justif eq)),
@@ -138,5 +123,10 @@ let make (type t v a s)
                  sharing = TSet.empty;
                  myvars  = lazy TSet.empty }
 
-  end)
+  end
 
+  let make (module W : Writable) : api = (module Make(W))
+
+end
+
+let hdl = register(module T)

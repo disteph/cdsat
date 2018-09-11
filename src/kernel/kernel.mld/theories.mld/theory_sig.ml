@@ -1,18 +1,12 @@
 open Top
 open Terms
 open Sassigns
-    
-type dsKey = DSK : _ ThTermKey.t -> dsKey
 
 module type Type = sig
   val ds : dsKey list
   type api
   val make : (module Writable) -> api
   val name : string
-end
-
-module type WithSign = sig
-  include Type
   (* sign is the secret type used by the theory module to label its messages *)
   type sign
 end

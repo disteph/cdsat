@@ -1,40 +1,41 @@
+open Patricia
+
 include Map_hetero_sig
 
 type ('k,'v,'common,'branching,'hcons) poly
   = ('k,'v,'common,'branching,unit*'hcons) Patricia.poly
 
-module Arg(I:MapArgNH) = struct
-  type t = K : _ I.t -> t
-  let compare (K k1) (K k2) = match I.compare k1 k2 with
-    | Poly.Eq -> 0
-    | Poly.Gt -> -1
-    | Poly.Lt -> 1
+module Build(I:ArgNH) = struct
 
-  type common = I.common
-  let tag (K k) = I.tag k
+  module A = struct
+    type t = K : _ I.t -> t
+    let compare (K k1) (K k2) = match I.compare k1 k2 with
+      | Poly.Eq -> 0
+      | Poly.Gt -> -1
+      | Poly.Lt -> 1
 
-  type branching   = I.branching
-  let bcompare     = I.bcompare
-  let check        = I.check
-  let disagree     = I.disagree
-  let match_prefix = I.match_prefix
+    type common = I.common
+    let tag (K k) = I.tag k
 
-  type values = Pair : 'a I.t * 'a I.values -> values
-  include Patricia_tools.EmptyInfo
-end
+    type branching   = I.branching
+    let bcompare     = I.bcompare
+    let check        = I.check
+    let disagree     = I.disagree
+    let match_prefix = I.match_prefix
 
-module Build(I:MapArgNH) = struct
+    type values = Pair : ('a I.t * 'a I.values) -> values [@@unboxed]
+    include Patricia_tools.EmptyInfo
+  end
 
-  module A = Arg(I)
-
-  module From(P: Patricia.Map with type keys   = A.t
-                               and type values = A.values
-                               and type common = I.common
-                               and type branching = I.branching)
+  module From(P: Map.S with type keys   = A.t
+                        and type values = A.values
+                        and type common = I.common
+                        and type branching = I.branching
+                        and type infos = Patricia_tools.EmptyInfo.infos)
   = struct
 
-    type t = P.t
-    type hcons = P.hcons
+    type t         = P.t
+    type hcons     = P.hcons
     type 'a keys   = 'a I.t
     type 'a values = 'a I.values
     type common    = I.common
@@ -73,19 +74,20 @@ module Build(I:MapArgNH) = struct
     let fold_monad ~return ~bind f = f |> fold_aux |> P.fold_monad ~return ~bind
 
     module Fold2 = struct
+
       type 'b combine = {
         combineFF : t -> t -> 'b -> 'b;
         combineEF : t -> 'b -> 'b;
-        combineFE : t -> 'b -> 'b
-      }
+        combineFE : t -> 'b -> 'b }
 
       let combine_from P.Fold2.{combineFF; combineEF; combineFE}
         = {combineFF; combineEF; combineFE}
       let combine_to {combineFF; combineEF; combineFE}
         = P.Fold2.{combineFF; combineEF; combineFE}
 
-      let make_combine ~empty1 ~empty2 ~combine ~reccall =
-        combine_from(P.Fold2.make_combine ~empty1 ~empty2 ~combine ~reccall)
+      let make_combine combine ~reccall =
+        combine_from(P.Fold2.make_combine ~empty1:P.empty ~empty2:P.empty
+                       combine ~reccall)
 
       type nonrec ('a,'b) t = {
         sameleaf  : 'p. 'p keys -> 'p values -> 'p values -> 'a -> 'b;
@@ -141,16 +143,17 @@ module Build(I:MapArgNH) = struct
 
     let merge ?equal fold = P.merge ?equal (Merge.t_to fold)
 
-    type union = {union : 'p. 'p values -> 'p values -> 'p values}
+    type union = {union : 'p. 'p keys -> 'p values -> 'p values -> 'p values} [@@unboxed]
 
     let union {union} =
-      let aux (A.Pair(k1,v1)) (A.Pair(k2,v2)) =
-        let Poly.Eq = I.compare k1 k2 |> Poly.eq in
-        A.Pair(k1,union v1 v2)
+      let aux (A.K k) (A.Pair(k1,v1)) (A.Pair(k2,v2)) =
+        let Poly.Eq = I.compare k k1 |> Poly.eq in
+        let Poly.Eq = I.compare k k2 |> Poly.eq in
+        A.Pair(k,union k v1 v2)
       in
       P.union aux
 
-    type inter = {inter : 'p. 'p keys -> 'p values -> 'p values -> 'p values}
+    type inter = {inter : 'p. 'p keys -> 'p values -> 'p values -> 'p values} [@@unboxed]
 
     let inter {inter} =
       let aux (A.K k) (A.Pair(k1,v1)) (A.Pair(k2,v2)) =
@@ -160,7 +163,7 @@ module Build(I:MapArgNH) = struct
       in
       P.inter aux
 
-    type diff  = {diff : 'p. 'p keys -> 'p values -> 'p values -> t}
+    type diff  = {diff : 'p. 'p keys -> 'p values -> 'p values -> t} [@@unboxed]
 
     let diff {diff} =
       let aux (A.K k) (A.Pair(k1,v1)) (A.Pair(k2,v2)) =
@@ -170,7 +173,7 @@ module Build(I:MapArgNH) = struct
       in
       P.diff aux
 
-    type subset = {subset : 'p. 'p values -> 'p values -> bool}
+    type subset = {subset : 'p. 'p values -> 'p values -> bool} [@@unboxed]
 
     let subset {subset} =
       let aux (A.Pair(k1,v1)) (A.Pair(k2,v2)) =
@@ -179,30 +182,35 @@ module Build(I:MapArgNH) = struct
       in
       P.subset aux
 
+    type print_pair = {print_pair: 'p . ('p keys * 'p values) Format.printer} [@@unboxed]
+
+    let print_in_fmt ?tree ?sep ?wrap {print_pair} =
+      let aux fmt (_,(A.Pair p)) = print_pair fmt p in
+      P.print_in_fmt ?tree ?sep ?wrap aux
   end
 
 end
 
-module MapNH(I:MapArgNH) = struct
+module MakeNH(I:ArgNH) = struct
 
   include Build(I)
-  include From(Patricia.MapNH(A))
+  include From(Map.MakeNH(A))
 
 end
 
-module MapH(I:MapArgH) = struct
+module MakeH(I:ArgH) = struct
 
   include Build(I)
   module AH = struct
     include A
     let hash_fold_t state (K k) = I.hash_fold_t state k
     let hash_fold_values state (Pair(k,v))
-      = Hash.pair I.hash_fold_t I.hash_fold_values state (k,v)
+      = Hash.pair I.hash_fold_t (I.hash_fold_values k) state (k,v)
     let equal_values (Pair(k1,v1)) (Pair(k2,v2)) = match I.compare k1 k2 |> Poly.iseq with
       | Poly.Eq  -> I.equal_values k1 v1 v2
       | Poly.Neq -> false
   end
-  module P = Patricia.MapH(AH)
+  module P = Map.MakeH(AH)
   include From(P)
   let clear       = P.clear
   let id          = P.id

@@ -5,8 +5,6 @@
 open Format
 
 open General
-open Patricia
-open Patricia_tools
 
 include Basic_sig
     
@@ -57,6 +55,9 @@ module MakeCollection
   let show = Print.stringOf pp
 end
 
+open Patricia
+open Patricia_tools
+
 module MakePATCollection(M: PHCons) = struct
 
   module Arg = struct
@@ -65,7 +66,7 @@ module MakePATCollection(M: PHCons) = struct
     include TypesFromHConsed(M)
   end
 
-  include SetH(Arg)
+  include Set.MakeH(Arg)
   let next t = let e = choose t in (e,remove e t)
   let pp = print_in_fmt ~wrap:("","") M.pp
   let show = Print.stringOf pp

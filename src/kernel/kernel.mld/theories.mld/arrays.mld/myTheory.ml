@@ -11,21 +11,18 @@ type sign = unit
 
 module type API = sig
   val init : sign slot_machine
-  val clear: unit -> unit
 end
 
 module T = struct
-  let key = Termstructures.VarSet.Arrays.key
-  let ds  = [DSK key]
+  let dskey = Termstructures.VarSet.Arrays.key
+  let ds  = [DSK dskey]
   type nonrec sign = sign
   type api = (module API)
   let name = "Arrays"
 
   module Make(W : Writable) : API = struct
 
-    open W
-
-    let add_myvars = Terms.proj key >> TSet.fold TSet.add
+    let add_myvars = Terms.proj dskey >> TSet.fold TSet.add
 
     type state = { assign : Assign.t;
                    sharing: TSet.t;
@@ -62,8 +59,6 @@ module T = struct
       Theory.SlotMachine { add; share; clone; suicide; propose }
 
     let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
-    let clear () = ()
-
 
   end
   
@@ -71,4 +66,4 @@ module T = struct
 
 end
 
-let hdl = register (module T)
+let hdl = register(module T)

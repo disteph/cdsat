@@ -129,8 +129,8 @@ module type Map = sig
     val make_combine :
       empty1 : ('v1,'i1) param
       -> empty2 : ('v2,'i2) param
-      -> combine : ((('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
-                    -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b))
+      -> (reccall : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
+          -> (('v1,'i1) param -> ('v2,'i2) param -> 'b -> 'b))
       -> reccall : (('v1,'i1) param -> ('v2,'i2) param -> 'a -> 'b)
       -> ('v1,'i1,'v2,'i2,'b) combine
   end
@@ -169,7 +169,7 @@ module type Map = sig
                     -> ('v1,'i1) param
                     -> ('v2,'i2) param
                     -> t
-  val union      : (values -> values -> values) -> t -> t -> t
+  val union      : (keys -> values -> values -> values) -> t -> t -> t
   val inter      : (keys -> values -> values -> values) -> t -> t -> t
   val inter_poly : (keys -> 'v1 -> 'v2 -> values)  -> ('v1,_)param -> ('v2,_)param -> t
   val diff       : (keys -> values -> values -> t) -> t -> t -> t
@@ -184,30 +184,17 @@ module type Map = sig
   val elements : t -> (keys * values) list
 
   val print_tree_in_fmt:
-    ?common      :(Format.formatter -> common -> unit)
-    -> ?branching:(Format.formatter -> branching -> unit)
-    -> (Format.formatter -> (keys*values) -> unit)
-    -> Format.formatter -> t -> unit
+    ?common      :(common Format.printer)
+    -> ?branching:(branching Format.printer)
+    -> ((keys*values) Format.printer)
+    -> t Format.printer
 
   val print_in_fmt:
-    ?tree:((Format.formatter -> common -> unit)
-           *(Format.formatter -> branching -> unit))
+    ?tree:(common Format.printer * branching Format.printer)
     -> ?sep:string -> ?wrap:string*string
-    -> (Format.formatter -> (keys*values) -> unit)
-    -> Format.formatter -> t -> unit
+    -> ((keys*values) Format.printer)
+    -> t Format.printer
 end
-
-module type MapH = sig
-  include Map with type hcons = [`HCons]
-  val equal    : t Equal.t
-  val hash_fold_t : t Hash.folder
-  val hash     : t Hash.t
-  val compare  : t Compare.t
-  val id       : t -> int
-  val clear    : unit -> unit
-end
-
-module type MapNH = Map with type hcons = [`NoHCons]
 
 module type SetArgNH = sig
 
@@ -282,15 +269,3 @@ module type Set = sig
   val partition : (e -> bool) -> t -> t * t
   val elect   : (e -> e -> e) -> t -> e
 end
-
-module type SetH = sig
-  include Set with type hcons = [`HCons]
-  val equal    : t Equal.t
-  val hash_fold_t : t Hash.folder
-  val hash     : t Hash.t
-  val compare  : t Compare.t
-  val id       : t -> int
-  val clear    : unit -> unit
-end
-
-module type SetNH = Set with type hcons = [`NoHCons]

@@ -2,19 +2,21 @@ open Top
 open Basic
 open Terms
 
-module Make(S: sig
-    val known : Symbols.t -> bool
-    val name  : string
-  end) = struct
-
-  type t = TSet.t [@@deriving show]
-
-  let key = ThTermKey.make(module struct type nonrec t = t let name = S.name end)
-
-  let build t =
-    match Term.reveal t with
-    | C(symb,l) when S.known symb
-      -> List.fold (proj key >> TSet.union) l TSet.empty
-    | _ -> TSet.singleton t
-
+module type Arg = sig
+  (* val ksorts : Sorts.t -> bool *)
+  val known : Top.Symbols.t -> bool
+  val name  : string
 end
+
+let make (module S : Arg) =
+  Terms.Key.make(module struct
+    type t = TSet.t [@@deriving show]
+
+    let build ~reccall t =
+      match Term.reveal t with
+      | C(symb,l) when S.known symb
+        -> List.fold (reccall >> TSet.union) l TSet.empty
+      | _ -> TSet.singleton t
+
+    let name = S.name
+  end)

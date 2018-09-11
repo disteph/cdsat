@@ -22,18 +22,21 @@ module type Value = sig
   val name : string
 end
 
-module Value : PH
-
 module Key : sig
   include Keys.S
-  val make : (module Value with type t = 'a)
-    -> 'a t * ('a -> Value.t) * (Value.t -> 'a option)
+  val make : (module Value with type t = 'a) -> 'a t
 end
 
-module CValue : sig
-  type t[@@deriving show]
-  include Hashtbl_hetero.T with type t := t
-  val pp : t Format.printer
+module Value : sig
+  include PH
+  val inj  : 'a Key.t -> 'a -> t
   val proj : 'a Key.t -> t -> 'a option
 end
 
+module CValue : sig
+  type t[@@deriving eq,show]
+  val none : Sorts.t -> t
+  val proj : 'a Key.t -> t -> 'a values option
+  val inj  : Value.t values -> t
+  val merge : t -> t -> (Value.t values*Value.t values,t) Sums.sum
+end

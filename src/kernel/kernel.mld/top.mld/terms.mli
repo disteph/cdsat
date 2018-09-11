@@ -41,27 +41,48 @@ type ('leaf,'datatype) termF
  *                and type t := t
  *   end *)
 
-module ThTermKey : Keys.S
+(***********************)
+(* Terms that are used *)
+(***********************)
 
-module ThTerm : Hashtbl_hetero.T with type 'a key = 'a ThTermKey.t
-
+type datatype
+  
 module type Readable =
-  ReadablePoly with type t = (FreeVar.t,ThTerm.t) termF
-                and type revealed := ((FreeVar.t,ThTerm.t) termF,(FreeVar.t*TermB.t free)) xterm
+  ReadablePoly with type t         = (FreeVar.t,datatype) termF
+                and type revealed := ((FreeVar.t,datatype) termF,
+                                      (FreeVar.t*TermB.t free)) xterm
                 and type leaf     := FreeVar.t
 
 module type Writable =
   WritablePoly with type ('leaf,'datatype) termF := ('leaf,'datatype) termF
-                and type termB   := TermB.t
-                and type leaf    := FreeVar.t
-                and type datatype = ThTerm.t
-                and type t := (FreeVar.t,ThTerm.t) termF
+                        and type termB    := TermB.t
+                        and type leaf     := FreeVar.t
+                        and type datatype := datatype
+                        and type t := (FreeVar.t,datatype) termF
 
-module Term : sig
-  include Readable
-  module Build(D: sig val build : t -> ThTerm.t end) : Writable
+module Term : Readable
+
+module type ThTerm = sig
+  type t
+  (* Achtung: in (build t),
+     build should NOT call reccall on term t but only on its subterms (if at all),
+     otherwise this gives an infinite loop *)
+  val build : reccall:(Term.t -> t) -> Term.t -> t
+  val name : string
 end
 
-val proj : 'a ThTermKey.t -> Term.t -> 'a
+module Key : sig
+  include Keys.S
+  val make : (module ThTerm with type t = 'a) -> 'a t
+end
+
+type dsKey = DSK : _ Key.t -> dsKey
+
+val build : dsKey list -> (module Writable)
+val proj : 'a Key.t -> Term.t -> 'a
+
+(*******************************)
+(* Sets of terms that are used *)
+(*******************************)
 
 module TSet : Collection with type e = Term.t

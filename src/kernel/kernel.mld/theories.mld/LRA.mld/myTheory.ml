@@ -1,48 +1,32 @@
 open General
 open Sums
 open Patricia
-open Patricia_interfaces
 open Patricia_tools
 
 open Top
 open Basic
 open Messages
-open Specs
+open Terms
 open Sassigns
        
-open Termstructures.Rationals
-       
+open Termstructures
+
+open Theory
+open API
+    
 type sign = unit
 
-(* Values are  *)
-include Theory.HasValues(Qhashed)
+module T = struct
+  let dskey = Rationals.key
+  let ds  = [DSK dskey]
+  type nonrec sign = sign
+  type api = (module API with type sign = sign)
+  let name = "LRA"
 
-(* Our alternative term representation *)
-module TS = Termstructures.Rationals.TS
+  module Make(W : Writable) : API with type sign = sign = struct
 
-open API
-       
-type ('t,'v,'a,'s) api = (module API with type sign   = sign
-                                      and type assign = 'a
-                                      and type termdata = 't
-                                      and type value  = 'v
-                                      and type tset   = 's)
-
-let make (type t v a s)
-    ((module DS): ((t,s)TS.t,values,t,v,a,s) dsProj)
-    : (t,v,a,s) api =
-  (module struct
-
-    open DS
+    include Basis
     type nonrec sign = sign
-    type termdata = Term.datatype
-    type value  = Value.t
-    type assign = Assign.t
-    type tset   = TSet.t
-    type nonrec bassign = bassign
-    type nonrec sassign = sassign
-
-    include Basis.Make(DS)(DS)
 
     (* state type:
        in order to produce the message Sat(seen,sharing,myvars),
@@ -51,7 +35,7 @@ let make (type t v a s)
     type state = { seen      : Assign.t;
                    sharing   : TSet.t;
                    myvars    : TSet.t Lazy.t;
-                   tosatisfy : (Simpl.t,Q.t) Sassigns.sassign list;
+                   tosatisfy : (Simpl.t * Q.t Values.values) list;
                    toevaluate: Simpl.t list }
 
     let init = { seen      = Assign.empty;
@@ -62,13 +46,13 @@ let make (type t v a s)
 
     (* Output type for the evaluation function below *)
     type eval =
-      | Beval   of (sign,straight) Msg.t
+      | Beval   of (sign,straight) message
       | Qeval   of Term.t * Q.t
-      | Unit    of { var         : int;
-                     nature      : nature;
+      | Unit    of { var         : Term.t;
+                     nature      : Rationals.nature;
                      is_coeff_pos: bool;
                      bound       : Q.t }
-      | ToWatch of int list
+      | ToWatch of Term.t list
 
     exception IdontUnderstand
 
@@ -85,7 +69,7 @@ let make (type t v a s)
         Print.print ["kernel.LRA",2] (fun p ->
             p "kernel.LRA: evaluating term in %a gave value %a"
               Simpl.pp c Q.pp_print value);
-        let open TS in
+        let open Rationals in
         begin match Simpl.nature c with
           | Term                      -> Qeval(Simpl.term c, value)
           | Other                     -> raise IdontUnderstand
@@ -109,14 +93,14 @@ let make (type t v a s)
       (* Creates a term for coeff*term, special case if coeff is 1 *)
       let ( * ) coeff term =
         if Q.equal coeff Q.one then term
-        else Term.bC Symbols.Times [Term.bC (Symbols.CstRat coeff) []; term]
+        else W.bC Symbols.Times [W.bC (Symbols.CstRat coeff) []; term]
 
       (* Creates a term for a+b, special cases when a or b is 0 *)
       let ( + ) a b =
-        match Terms.reveal a, Terms.reveal b with
+        match Term.reveal a, Term.reveal b with
         | Terms.C(Symbols.CstRat q,[]),_ when Q.equal q Q.zero -> b
         | _,Terms.C(Symbols.CstRat q,[]) when Q.equal q Q.zero -> a
-        | _ -> Term.bC Symbols.Plus [a; b]
+        | _ -> W.bC Symbols.Plus [a; b]
 
       (* Creates a term for a-b *)
       let ( - ) a b = a + (Q.minus_one * b)
@@ -126,17 +110,17 @@ let make (type t v a s)
     let normal (term,Values.Boolean b) =
       let open Symbols in
       let open Terms in
-      match reveal term with
-      | C(Lt,[a;a']) when not b -> Term.bC Le [a'; a]
-      | C(Le,[a;a']) when not b -> Term.bC Lt [a'; a]
-      | C(Gt,[a;a']) -> if b then Term.bC Lt [a'; a] else Term.bC Le [a; a']
-      | C(Ge,[a;a']) -> if b then Term.bC Le [a'; a] else Term.bC Lt [a; a']
-      | C(Eq Sorts.Rat,[a;a']) when not b -> Term.bC (NEq Sorts.Rat) [a; a']
-      | C(NEq Sorts.Rat,[a;a']) when not b -> Term.bC (Eq Sorts.Rat) [a; a']
+      match Term.reveal term with
+      | C(Lt,[a;a']) when not b -> W.bC Le [a'; a]
+      | C(Le,[a;a']) when not b -> W.bC Lt [a'; a]
+      | C(Gt,[a;a']) -> if b then W.bC Lt [a'; a] else W.bC Le [a; a']
+      | C(Ge,[a;a']) -> if b then W.bC Le [a'; a] else W.bC Lt [a; a']
+      | C(Eq Sorts.Rat,[a;a']) when not b -> W.bC (NEq Sorts.Rat) [a; a']
+      | C(NEq Sorts.Rat,[a;a']) when not b -> W.bC (Eq Sorts.Rat) [a; a']
       | _ -> term
 
     let get_coeff t var =
-      let data = proj(Terms.data t) in
+      let data = proj t in
       Q.(data.scaling * Termstructures.Rationals.VarMap.find var data.coeffs)
 
     (* which indicates whether we want an upper (true) or lower (false) bound for var *)
@@ -144,7 +128,7 @@ let make (type t v a s)
       let coeff = get_coeff term var in
       let open Symbols in
       let open Terms in
-      match reveal term with
+      match Term.reveal term with
       | C(Lt as symb,[a; b]) | C(Le as symb,[a; b]) | C(Eq Sorts.Rat as symb,[a; b])
         when [%eq:bool] which (Q.sign coeff>0) -> a,b,symb,coeff
       | C(Eq Sorts.Rat,[a; b])
@@ -174,8 +158,8 @@ let make (type t v a s)
       let lhs1,rhs1 = coeff2 * lhs1, coeff2 * rhs1 in
       let lhs2,rhs2 = coeff1 * lhs2, coeff1 * rhs2 in
       let lhs,rhs   = lhs1 + lhs2,   rhs1 + rhs2 in
-      let sum = Term.bC (fm_connective(symb1,symb2)) [lhs; rhs] in
-      let justif = Assign.add(SAssign ba2)(Assign.singleton(SAssign ba1)) in
+      let sum = W.bC (fm_connective(symb1,symb2)) [lhs; rhs] in
+      let justif = Assign.add(SAssign.build ba2)(Assign.singleton(SAssign.build ba1)) in
       straight () justif (sum,Values.Boolean true)
 
     let disequal lower diseq upper var =
@@ -186,14 +170,13 @@ let make (type t v a s)
       let l2,r2,diseq_coeff =
         let coeff = get_coeff e2 var in
         let open Terms in
-        match reveal e2 with
+        match Term.reveal e2 with
         | C(Symbols.NEq Sorts.Rat,[a; b]) ->
           if Q.sign coeff>0 then a,b,coeff
           else Q.minus_one * a, Q.minus_one * b, Q.(minus_one*coeff)
         | _ -> failwith "Not a disequality"
       in
       assert ((Q.sign lower_coeff<0)&&(Q.sign upper_coeff>0)&&(Q.sign diseq_coeff>0));
-      let var = Term.term_of_id var in
       let lower_bound = (* lower_bound ≤ |lower_coeff| var *)
         (l1 - r1) - (lower_coeff * var)
       in
@@ -203,27 +186,26 @@ let make (type t v a s)
       let diseq_bound = (* diseq_bound ≠ |diseq_coeff| var *)
         (r2 - l2) + (diseq_coeff * var)
       in
-      let assumption1 = Term.bC (Symbols.Eq Sorts.Rat)
+      let assumption1 = W.bC (Symbols.Eq Sorts.Rat)
           [(Q.abs diseq_coeff) * lower_bound;
            (Q.abs lower_coeff) * diseq_bound]
       in
-      let assumption2 = Term.bC (Symbols.Eq Sorts.Rat)
+      let assumption2 = W.bC (Symbols.Eq Sorts.Rat)
           [(Q.abs diseq_coeff) * upper_bound;
            (Q.abs upper_coeff) * diseq_bound]
       in
-      let justif = Assign.add (SAssign lower)
-          (Assign.add (SAssign diseq)
-             (Assign.add (SAssign upper)
-                (Assign.add (boolassign assumption1)
-                   (Assign.singleton (boolassign assumption2)))))
+      let justif = Assign.add (SAssign.build lower)
+          (Assign.add (SAssign.build diseq)
+             (Assign.add (SAssign.build upper)
+                (Assign.add (SAssign.boolassign assumption1)
+                   (Assign.singleton (SAssign.boolassign assumption2)))))
       in
       assumption1, assumption2, unsat () justif
 
 
-    (* let pp_tosat fmt (Sassigns.SAssign(c,v)) = *)
-    (*   Sassigns.pp_sassign Term.pp Qhashed.pp fmt (Sassigns.SAssign(Simpl.term c,v)) *)
-    let pp_tosat = Sassigns.pp_sassign Simpl.pp Qhashed.pp
-
+    let pp_tosat fmt (c,v) =
+      Format.fprintf fmt "(%a,%a)" Simpl.pp c (Values.pp_values Qhashed.pp) v
+      
     (* Scans the constraints to satisfy and the terms to evaluate
        and removes those that are satisfied/evaluated:
        if nothing is left, creates the Sat(seen,sharing,myvars) message *)
@@ -237,11 +219,11 @@ let make (type t v a s)
           let c = Simpl.simplify model c in
           begin match eval c with
             | Beval(Propa(_,Straight bassign))
-              when Assign.mem (SAssign bassign) state.seen
+              when Assign.mem (SAssign.build bassign) state.seen
                 && Assign.subset (Simpl.justif c) state.seen
               -> aux ([],tail)
             | Qeval(t,q)
-              when Assign.mem (SAssign(t,Values.NonBoolean(vinj q))) state.seen
+              when Assign.mem (SAssign.build(t,Values.NonBoolean(vinj q))) state.seen
                 && Assign.subset (Simpl.justif c) state.seen
               -> aux ([],tail)
             | _ ->
@@ -251,56 +233,53 @@ let make (type t v a s)
               { state with tosatisfy=[]; toevaluate=c::tail }, None
           end
 
-        | (Sassigns.SAssign(c,v)::tail as tosatisfy), toevaluate ->
+        | ((c,v)::tail as tosatisfy), toevaluate ->
           let c = Simpl.simplify model c in
           match eval c, v with
-          | Beval(Propa(_,Straight(_,Values.Boolean b))), Values.Boolean b'
+          | Beval(Propa(_,Straight(_,Values.Boolean b))), Values.(Values(Boolean b'))
             when [%eq : bool] b b' && Assign.subset (Simpl.justif c) state.seen
             -> aux (tail, toevaluate)
-          | Qeval(_,q), Values.NonBoolean q'
+          | Qeval(_,q), Values.(Values(NonBoolean q'))
             when Q.equal q q' && Assign.subset (Simpl.justif c) state.seen
             -> aux (tail, toevaluate)
           | _ ->
             Print.print ["kernel.LRA",2] (fun p ->
                 p "kernel.LRA: not sat, still waiting to satisfy %a"
                   (List.pp pp_tosat) tosatisfy);
-            { state with tosatisfy = Sassigns.SAssign(c,v)::tail; toevaluate }, None
+            { state with tosatisfy = (c,v)::tail; toevaluate }, None
       in
       aux (state.tosatisfy, state.toevaluate)
 
-    let add_myvars term myvars =
-      let aux var _ = TSet.add (Term.term_of_id var) in
-      Termstructures.Rationals.(VarMap.fold aux (DS.proj(Terms.data term)).coeffs myvars)
-
+    let add_myvars = proj >> Rationals.coeffs >> Rationals.VarMap.fold (fun term _ -> TSet.add term)
 
     let add sassign state =
       Print.print ["kernel.bool",2] (fun p ->
-          p "kernel.bool receiving %a" pp_sassign sassign);
+          p "kernel.bool receiving %a" SAssign.pp sassign);
       let seen = Assign.add sassign state.seen in
-      let SAssign(term,v) = sassign in
+      let SAssign(term,v) = SAssign.reveal sassign in
       let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
       match v with
       | Values.Boolean b ->
-        begin match (proj(Terms.data term)).nature with
+        begin match term |> proj |> Rationals.nature with
           | Other -> { state with seen; myvars }, None
           | _ ->
             let c = Simpl.make term in
-            let sassign = Sassigns.SAssign(c,Values.Boolean b) in
-            { state with seen; myvars; tosatisfy = sassign::state.tosatisfy }, Some sassign
+            let tosat = (c,Values.(Values(Boolean b))) in
+            { state with seen; myvars; tosatisfy = tosat::state.tosatisfy }, Some tosat
         end
       | Values.NonBoolean v ->
         match vproj v with
         | None   -> { state with seen; myvars }, None
         | Some q ->
           let c = Simpl.make term in
-          let sassign = Sassigns.SAssign(c,Values.NonBoolean q) in
-          { state with seen; myvars; tosatisfy = sassign::state.tosatisfy }, Some sassign
+          let tosat = (c,Values.(Values(NonBoolean q))) in
+          { state with seen; myvars; tosatisfy = tosat::state.tosatisfy }, Some tosat
 
     let share tset state =
       let sharing = TSet.union tset state.sharing in
       let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
       let aux term toevaluate =
-        match (proj(Terms.data term)).nature with
+        match term |> proj |> Rationals.nature with
         | Other -> toevaluate
         | _ -> (Simpl.make term)::toevaluate
       in
@@ -308,7 +287,10 @@ let make (type t v a s)
       let toevaluate = List.rev_append new2evaluate state.toevaluate in
       { state with sharing; myvars; toevaluate }, new2evaluate
 
-    let clear = VarMap.clear
+  end
 
-  end)
+  let make (module W : Writable) : api = (module Make(W))
 
+end
+
+let hdl = register(module T)

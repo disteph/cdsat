@@ -5,15 +5,19 @@ include Theory_sig
 module K = Keys.Make()
 
 module Tags = struct
-  type 'a t = 'a K.t * ((module Writable) -> 'api) constraint 'a = _*'api
-  let id k = k |> fst |> K.id
+  type 'a t = {
+    key    : 'a K.t;
+    dsKeys : dsKey list;
+    make   : (module Writable) -> 'api
+  } constraint 'a = _*'api
+    [@@deriving fields]
+  
+  let id k = k |> key |> K.id
   let hash = id
-  let compare k1 k2 = K.compare (fst k1) (fst k2)
-  let equal k1 k2   = K.equal (fst k1) (fst k2)
-  let eq k1 k2      = K.eq (fst k1) (fst k2)
-  let coerce k1 k2  = K.coerce (fst k1) (fst k2)
-  let pp fmt = fst >> K.pp fmt
-  let make = snd
+  let compare k1 k2 = K.compare (key k1) (key k2)
+  let equal k1 k2   = K.equal (key k1) (key k2)
+  let eq k1 k2      = K.eq (key k1) (key k2)
+  let pp fmt = key >> K.pp fmt
 end
 
 module Handlers = struct
@@ -37,9 +41,9 @@ end
 let all_theories_list = ref [Handlers.Eq]
 
 let register (type sign) (type api)
-    (module T: WithSign with type sign = sign and type api = api)
-  = let hdl = K.make (module struct include T type t = sign*api end) in
-  let tag = hdl, T.make in
+    (module T: Type with type sign = sign and type api = api)
+  = let key = K.make (module struct include T type t = sign*api end) in
+  let tag = {Tags.key; Tags.dsKeys = T.ds ; Tags.make = T.make} in
   all_theories_list := (Handlers.Handler tag)::!all_theories_list;
   tag
 

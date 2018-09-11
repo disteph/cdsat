@@ -1,5 +1,3 @@
-exception IncoherentMap
-
 module type Key = sig
   (* Implementation of keys and how to compute them.
     Typically for a HConsed keys type, common = int *)
@@ -29,7 +27,7 @@ module type Key = sig
   val match_prefix : common -> common -> branching -> bool
 end
 
-module type MapArgNH = sig
+module type ArgNH = sig
 
   (* Domain of the map (keys) *)
   include Key
@@ -39,17 +37,17 @@ module type MapArgNH = sig
 
 end
 
-module type MapArgH = sig
-  include MapArgNH
+module type ArgH = sig
+  include ArgNH
   (* Do you want the patricia trees hconsed? if so you should provide
     an equal function for values, and hash functions for keys and values *) 
   val hash_fold_t : _ t Hash.folder
-  val hash_fold_values : _ values Hash.folder
+  val hash_fold_values : 'a t -> 'a values Hash.folder
   val equal_values: 'a t -> 'a values Equal.t
 end
 
 
-module type Map = sig
+module type S = sig
   type 'a keys
   type 'a values
   type common
@@ -83,9 +81,7 @@ module type Map = sig
       combineFE : t -> 'b -> 'b
     }
     val make_combine :
-      empty1 : t
-      -> empty2 : t
-      -> combine : ((t -> t -> 'a -> 'b) -> (t -> t -> 'b -> 'b))
+      (reccall : (t -> t -> 'a -> 'b) -> (t -> t -> 'b -> 'b))
       -> reccall : (t -> t -> 'a -> 'b)
       -> 'b combine
     type nonrec ('a,'b) t = {
@@ -112,13 +108,13 @@ module type Map = sig
   end
                    
   val merge  : ?equal:(t -> 'a) -> 'a Merge.t -> t -> t -> 'a
-  type union = {union : 'p. 'p values -> 'p values -> 'p values}
+  type union = {union : 'p. 'p keys -> 'p values -> 'p values -> 'p values} [@@unboxed]
   val union  : union -> t -> t -> t
-  type inter = {inter : 'p. 'p keys -> 'p values -> 'p values -> 'p values}
+  type inter = {inter : 'p. 'p keys -> 'p values -> 'p values -> 'p values} [@@unboxed]
   val inter  : inter -> t -> t -> t
-  type diff  = {diff : 'p. 'p keys -> 'p values -> 'p values -> t}
+  type diff  = {diff : 'p. 'p keys -> 'p values -> 'p values -> t} [@@unboxed]
   val diff   : diff -> t -> t -> t
-  type subset = {subset : 'p. 'p values -> 'p values -> bool}
+  type subset = {subset : 'p. 'p values -> 'p values -> bool} [@@unboxed]
   val subset : subset  -> t -> t -> bool
   (* val make : ('a -> values option -> values) -> (keys * 'a) list -> t *)
   (* val elements : t -> (keys * values) list *)
@@ -128,17 +124,17 @@ module type Map = sig
    *   -> ?branching:(Format.formatter -> branching -> unit)
    *   -> (Format.formatter -> (keys*values) -> unit)
    *   -> Format.formatter -> t -> unit
-   * 
-   * val print_in_fmt:
-   *   ?tree:((Format.formatter -> common -> unit)
-   *          *(Format.formatter -> branching -> unit))
-   *   -> ?sep:string -> ?wrap:string*string
-   *   -> (Format.formatter -> (keys*values) -> unit)
-   *   -> Format.formatter -> t -> unit *)
+  *)
+  type print_pair = {print_pair: 'p . ('p keys * 'p values) Format.printer} [@@unboxed]
+  val print_in_fmt:
+    ?tree:(common Format.printer * branching Format.printer)
+    -> ?sep:string -> ?wrap:string*string
+    -> print_pair
+    -> t Format.printer
 end
 
-module type MapH = sig
-  include Map with type hcons = [`HCons]
+module type S_H = sig
+  include S with type hcons = [`HCons]
   val equal    : t Equal.t
   val hash_fold_t : t Hash.folder
   val hash     : t Hash.t
@@ -147,4 +143,4 @@ module type MapH = sig
   val clear    : unit -> unit
 end
 
-module type MapNH = Map with type hcons = [`NoHCons]
+module type S_NH = S with type hcons = [`NoHCons]

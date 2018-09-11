@@ -64,7 +64,7 @@ module type Egraph = sig
          
   type t
   val init : t
-  val eq : Term.t -> (Term.t,Value.t values)sum -> (bassign,sassign)sum
+  val eq : Term.t -> (Term.t,Value.t values)sum -> (bassign,SAssign.t)sum
            -> t -> t*info*((Term.t,Value.t values)sum list)
   val diseq : Term.t -> Term.t -> bassign -> t -> t
   (* Ask information about the termvalue,
@@ -88,7 +88,7 @@ module type API = sig
     | UNSAT of ((sign, straight) message list * (sign, unsat) message)
     | SAT of (sign, sat) message * self
 
-   and self = { add : sassign -> output;
+   and self = { add : SAssign.t -> output;
                 share : TSet.t -> output;
                 ask : ?subscribe:bool
                       -> (Term.t,Value.t values) sum

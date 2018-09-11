@@ -69,13 +69,13 @@ let dtrue = dtrue man
 let dfalse = dfalse man
 let ithvar = ithvar man
                  
-                    (* let f = MLBDD.ithvar man 79 *)
-                    (* (\* let g = BDD.reveal f *\) *)
-                    (* let () = print_endline(MLBDD.to_string f) *)
-                    (* let _ = MLBDD.id f *)
-                    (* let _ = match MLBDD.inspectb(f) with *)
-                    (*   | MLBDD.BIf(g,i,d) -> MLBDD.inspectb g, MLBDD.inspectb d *)
-                    (*   | _ -> failwith "" *)
+(* let f = MLBDD.ithvar man 79 *)
+(* (\* let g = BDD.reveal f *\) *)
+(* let () = print_endline(MLBDD.to_string f) *)
+(* let _ = MLBDD.id f *)
+(* let _ = match MLBDD.inspectb(f) with *)
+(*   | MLBDD.BIf(g,i,d) -> MLBDD.inspectb g, MLBDD.inspectb d *)
+(*   | _ -> failwith "" *)
 
-                    (* let fmap,_,_ = BDD.compile f *)
-                    (* let _ = BDD.IntMap.cardinal fmap *)
+(* let fmap,_,_ = BDD.compile f *)
+(* let _ = BDD.IntMap.cardinal fmap *)

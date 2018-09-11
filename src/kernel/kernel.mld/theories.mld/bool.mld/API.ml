@@ -1,47 +1,47 @@
 open General
 open Patricia
-open Patricia_interfaces
 open Patricia_tools
 open Sums       
 
 open Top
 open Messages
-open Specs
+open Terms
 open Sassigns
-open Termstructures.Literals
-open Termstructures.Clauses
+open Termstructures
 
 
 module type API = sig
   type sign
-  type assign
-  type termdata
-  type value
-  type tset
-  type nonrec bassign = (termdata termF,value) bassign
-  type nonrec sassign = (termdata termF,value) sassign
 
-  module LMap : PatMap with type keys = LitF.t
-                       and  type values = bassign
-                       and  type ('v,'i) param = (LitF.t,'v,I.common,I.branching,'i) poly
+  module BMap : Map.S_NH with type keys = Term.t
+                          and type values = bool * SAssign.t
+                          and type common = int
+                          and type branching = int
+
   module Model : sig
     type t
     val empty : t
-    val add : bassign -> t -> (LitF.t*t, (sign,assign*bassign*tset,unsat) message) sum
-    val map : t -> LMap.t (* The model as an LMap from true lits to bassign *)
+    val add : SAssign.t -> t -> (t, (unit,unsat) message) sum
+    val map : t -> BMap.t
   end
 
   module Constraint : sig
     type t [@@deriving show]
     val id: t -> int
-    val make    : bassign -> t
+    val make : bassign -> t
     val bassign : t -> bassign
     (* Get simplified form of a constraint:
          seeing it as a clause,
          is None if clause is simplified to True,
          is Some(lset,watched) if lset are unassigned literals of original literals
                                and watched are the first 2 of them (or 0, or 1) *)
-    val simpl: t -> (LSet.t * LitF.t list) option
+    val simpl: t -> (Clauses.VarMap.t * bassign list) option
+    (* Returns the assignments that contribute 
+         to making the constraint simplify to the above *)
+    val justif: t -> Assign.t
+    (* Actually performs the simplification. Note that it is performed lazily:
+         as soon as 2 literals can be watched, the next literals are not even scanned,
+         even if one of them would simplify it to True, for instance *)
     val simplify : Model.t->t->t
   end
 
@@ -49,10 +49,10 @@ module type API = sig
   val init : state
 
   type interesting =
-    | Falsified of (sign,assign*bassign*tset, unsat) message
-    | Unit of (sign, assign*bassign*tset, straight) message
+    | Falsified of (sign, unsat) message
+    | Unit of (sign, straight) message
     | Satisfied
-    | ToWatch   of LSet.t * LitF.t list
+    | ToWatch   of Clauses.VarMap.t * bassign list
 
   (* Looks at simplified form of constraint and outputs
      - Satisfied f if clause is true
@@ -65,8 +65,7 @@ module type API = sig
   val infer : Constraint.t -> interesting
 
   (* Outputs sat message if all terms to satisfy in state have been satisfied *)
-  val sat   : Model.t -> state -> state
-              * (sign, assign*bassign*tset, sat) message option
+  val sat   : Model.t -> state -> state * (sign, sat) message option
 
   (* Adds new assignment to the state. Outputs the new state, together with
      - either None if the Boolean assignment has been recorded as needing to be satisfied
@@ -74,8 +73,7 @@ module type API = sig
        that have been recorded as needing to be satisfied
      (If there is nothing to do, it will be (Some []),
       e.g. if the assignment is not Boolean) *)
-  val add   : sassign -> state -> state
-              * ((sign,assign*bassign*tset,straight) message list,Constraint.t) sum
-  val share : tset -> state -> state
-  val clear: unit -> unit
+  val add   : SAssign.t -> state
+    -> state * ((sign,straight) message list,Constraint.t) sum
+  val share : TSet.t -> state -> state
 end

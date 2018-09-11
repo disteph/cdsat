@@ -55,7 +55,7 @@ let print_msg_in_fmt_utf8 fmt (type a): (_,a)message -> unit = function
   | Propa(justif,Straight b)
     -> fprintf fmt "%a ⊢ %a" Assign.pp justif pp_bassign b
 
-let print_msg_in_fmt fmt = match !Dump.display with
+let pp_message fmt = match !Dump.display with
   | Dump.Latex -> print_msg_in_fmt_latex fmt
   | _ -> print_msg_in_fmt_utf8 fmt
 
