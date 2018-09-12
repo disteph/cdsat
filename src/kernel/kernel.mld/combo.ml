@@ -2,12 +2,7 @@
 (* Theory Combinator *)
 (*********************)
 
-open General
-open Sums
-
 open Top
-open Basic
-open Variables
 open Terms
 open Sassigns
 open Messages
@@ -16,10 +11,9 @@ open Theories
 open Theory
 open Register
 
-open Export
+include Combo_sig
 
-
-let make theories : (module API) =
+let make dsKeys theories : (module API) =
 
   let theoriesWeq = HandlersMap.add Handlers.Eq () theories in
 
@@ -29,7 +23,7 @@ let make theories : (module API) =
       | Handlers.Handler tag -> List.rev_append (Tags.dsKeys tag) sofar
       | Handlers.Eq -> List.rev_append Eq.MyTheory.ds sofar
     in
-    HandlersMap.fold aux theoriesWeq []
+    HandlersMap.fold aux theoriesWeq dsKeys
   in
 
   let (module W) as writable = build dsKeys in
@@ -177,7 +171,7 @@ let make theories : (module API) =
      let th_modules =
        let aux hdl () sofar =
          match hdl with
-         | Handlers.Handler tag -> Modules.Module(tag,Tags.make tag writable)::sofar
+         | Handlers.Handler tag -> (Modules.make writable tag)::sofar
          | Handlers.Eq -> failwith "Eq should not be there"
        in
        HandlersMap.fold aux theories []

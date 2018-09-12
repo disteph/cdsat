@@ -9,7 +9,7 @@ open Terms
 include module type of Theory_sig
 
 module Tags : sig
-  type 'a t constraint 'a = _*_
+  type 'a t
   val compare : _ t -> _ t -> int
   val pp : _ t Format.printer
   val id : _ t -> int
@@ -17,12 +17,12 @@ module Tags : sig
   val equal  : 'a t -> 'b t -> ('a,'b) General.Poly.iseq
   val eq     : 'a t -> 'b t -> ('a,'b) General.Poly.eq
   val make   : (_*'a) t -> (module Terms.Writable) -> 'a
-  val dsKeys : _ t -> dsKey list
+  val dsKeys : (_*_) t -> dsKey list
 end
 
 module Handlers: sig
   type t =
-    | Handler : _ Tags.t -> t
+    | Handler : (_*_) Tags.t -> t
     | Eq
   [@@deriving ord, show]
   val id : t -> int

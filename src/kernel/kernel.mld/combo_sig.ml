@@ -1,15 +1,13 @@
-open General
-open Sums
-open Patricia
-open Patricia_tools
+open General.Sums
        
 open Top
+open Terms
+open Sassigns
 open Messages
+
 open Theories
 open Theory
 open Register
-open Terms
-open Sassigns
        
 module type Proof = sig
 

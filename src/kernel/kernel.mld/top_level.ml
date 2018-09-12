@@ -11,6 +11,7 @@ open Sassigns
 let init
       ?(withtheories=Some[]) (* List of added theories *)
       ?(withouttheories=Some[]) (* List of forbidden theories *)
+      dsKeys
       ~parser
       input
   =
@@ -23,16 +24,16 @@ let init
     | Some l,Some l', Some parsed ->
        HandlersMap.diff (HandlersMap.union (get parsed) (get l)) (get l')
     | None,Some l',_
-      | _,Some l',None   -> HandlersMap.diff all_theories (get l')
-    | None,None,None     -> all_theories
+    | _,Some l',None   -> HandlersMap.diff (all_theories()) (get l')
+    | None,None,None   -> all_theories()
     | Some l, None,_  
-      | None,None,Some l -> get l
+    | None,None,Some l -> get l
   in
   print_endline(Format.toString (fun p->
-                    p "Using theories: %a" HandlersMap.pp theories));
+      p "Using theories: %a" HandlersMap.pp theories));
 
   (* Now that we know the theories, we build the combined datastructures *)
-  let (module C) = Combo.make theories in
+  let (module C) = Combo.make dsKeys theories in
   (module struct
      include C
      open WB
@@ -52,29 +53,29 @@ let init
      let answer =
        function
        | Case1(WB.WB(_,Propa(assign,Unsat),_) as msg) ->
-          if Assign.subset assign problem
-          then UNSAT msg
-          else
-            (print_endline(
-                 Format.toString (fun p->
-                     p "You said %a but this involves new hypotheses %a"
-                       pp msg
-                       Assign.pp (Assign.diff assign problem)));
-             NotAnsweringProblem)    
-                    
+         if Assign.subset assign problem
+         then UNSAT msg
+         else
+           (print_endline(
+               Format.toString (fun p->
+                   p "You said %a but this involves new hypotheses %a"
+                     pp msg
+                     Assign.pp (Assign.diff assign problem)));
+            NotAnsweringProblem)    
+
        | Case2(WB.Done(assign,sharing)) ->
-          if Assign.subset problem assign then SAT assign
-          else
-            (print_endline(
-                 Format.toString (fun p->
-                     p "You said %a but this ignores hypotheses %a"
-                       Assign.pp assign
-                       Assign.pp (Assign.diff problem assign)));
-             NotAnsweringProblem)
+         if Assign.subset problem assign then SAT assign
+         else
+           (print_endline(
+               Format.toString (fun p->
+                   p "You said %a but this ignores hypotheses %a"
+                     Assign.pp assign
+                     Assign.pp (Assign.diff problem assign)));
+            NotAnsweringProblem)
 
        | Case2 _ ->
-          print_endline(Format.toString (fun p->
-                            p "Errr... not all theories agree on model"));
-          NotAnsweringProblem
+         print_endline(Format.toString (fun p->
+             p "Errr... not all theories agree on model"));
+         NotAnsweringProblem
 
-   end : Export.APIext)
+   end : Combo.APIext)

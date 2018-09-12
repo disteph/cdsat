@@ -4,6 +4,7 @@
 
 val init : ?withtheories:string list option
            -> ?withouttheories:string list option
+           -> Top.Terms.dsKey list
            -> parser:Parsers.Register.t
            -> string
-           -> (module Export.APIext)
+           -> (module Combo.APIext)

@@ -6,13 +6,8 @@ open Top.Terms
 open Theory
     
 module Modules = struct
-
   type t = Module : (_*'api) Tags.t * 'api -> t
-
-  let make w = function
-    | Handlers.Handler hdl -> Module(hdl,Tags.make hdl w)
-    | Handlers.Eq -> failwith "TO DO"
-                             
+  let make w hdl = Module(hdl,Tags.make hdl w)
 end
 
 module HandlersMap = struct
@@ -48,7 +43,8 @@ module HandlersMap = struct
 
 end
 
-let all_theories = List.fold (fun hdl -> HandlersMap.add hdl ()) !all_theories_list HandlersMap.empty
+let all_theories () =
+  List.fold (fun hdl -> HandlersMap.add hdl ()) !all_theories_list HandlersMap.empty
 
 exception NotFound of string
 
@@ -59,5 +55,5 @@ let parse = function
   | "bool"       -> Handlers.Handler Bool.MyTheory.hdl
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
-let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l all_theories
+let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l (all_theories())
 let get l = List.fold (fun name -> HandlersMap.add (parse name) ()) l HandlersMap.empty

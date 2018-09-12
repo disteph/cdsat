@@ -4,26 +4,31 @@ include Theory_sig
 
 module K = Keys.Make()
 
+module Arg = struct
+  type ('a,_) t = R :{
+      dsKeys : dsKey list;
+      make   : (module Writable) -> 'api
+    } -> (_*'api,_) t
+end
+
+module Record = Hashtbl_hetero.MakeS(K)(Arg)
+
+let record = Record.create 17
+
 module Tags = struct
-  type 'a t = {
-    key    : 'a K.t;
-    dsKeys : dsKey list;
-    make   : (module Writable) -> 'api
-  } constraint 'a = _*'api
-    [@@deriving fields]
-  
-  let id k = k |> key |> K.id
-  let hash = id
-  let compare k1 k2 = K.compare (key k1) (key k2)
-  let equal k1 k2   = K.equal (key k1) (key k2)
-  let eq k1 k2      = K.eq (key k1) (key k2)
-  let pp fmt = key >> K.pp fmt
+  include K
+  let dsKeys key =
+    let Arg.R{dsKeys} = Record.find record key in
+    dsKeys
+  let make key =
+    let Arg.R{make} = Record.find record key in
+    make
 end
 
 module Handlers = struct
 
   type t =
-    | Handler : _ Tags.t -> t
+    | Handler : (_*_) Tags.t -> t
     | Eq
 
   let id = function
@@ -43,9 +48,9 @@ let all_theories_list = ref [Handlers.Eq]
 let register (type sign) (type api)
     (module T: Type with type sign = sign and type api = api)
   = let key = K.make (module struct include T type t = sign*api end) in
-  let tag = {Tags.key; Tags.dsKeys = T.ds ; Tags.make = T.make} in
-  all_theories_list := (Handlers.Handler tag)::!all_theories_list;
-  tag
+  Record.add record key (Arg.R{dsKeys = T.ds; make = T.make });
+  all_theories_list := (Handlers.Handler key)::!all_theories_list;
+  key
 
 let fail_state =
   let add _ = failwith "Are you dumb? I already told you it was provable" in
