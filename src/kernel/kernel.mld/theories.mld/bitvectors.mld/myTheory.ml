@@ -56,7 +56,7 @@ end
 
 module VMap = struct
   include Map.MakeNH(Arg)
-  let pp_pair fmt (term,v) = pp_sassign fmt (SAssign(term,Values.NonBoolean(vinj v)))
+  let pp_pair fmt (term,v) = pp_sassign Term.pp V.pp fmt (SAssign(term,Values.NonBoolean v))
   let pp = print_in_fmt ~wrap:("{","}") pp_pair
 end
 

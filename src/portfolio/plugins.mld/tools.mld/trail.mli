@@ -5,10 +5,11 @@
 open Async
 
 open Kernel
+open Top.Sassigns
 open Top.Messages
 
 open General
-open Patricia_interfaces
+open Patricia
 open Sums
 
 open Interfaces
@@ -17,7 +18,7 @@ open Interfaces
 
 module Make(WB : WhiteBoardExt) : sig
 
-  open WB.DS
+  open WB
 
   (* type nature indicates the status of each formula accumulated in the trail so far.
 The reason it was added to it was either:
@@ -37,7 +38,7 @@ The reason it was added to it was either:
   val chrono: t -> int
   val chrono_incr: t -> t
   val init  : t
-  val add   : nature:nature -> sassign -> t -> t option
+  val add   : nature:nature -> SAssign.t -> t -> t option
 
   (* Type for the result of the conflict analysis *)
   type analysis =
@@ -46,12 +47,12 @@ The reason it was added to it was either:
                     (* The propagations to perform in the new branch *)
                     propagations   : straight WB.t list;
                     (* Possible decision to make in new branch (for rule UndoDecide) *)
-                    decision       : sassign option }
+                    decision       : SAssign.t option }
 
                                                  
   val analyse : t             (* the trail *)
                 -> unsat WB.t (* the conflict *)
-                -> (unsat WB.t -> WB.sassign -> WB.sassign option -> unit Deferred.t)
+                -> (unsat WB.t -> SAssign.t -> SAssign.t option -> unit Deferred.t)
                 (* a function to which we can pass stuff to learn *)
                 -> analysis Deferred.t
                            

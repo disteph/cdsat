@@ -1,25 +1,20 @@
 open Kernel
-open Export
-open Top.Specs
+open Combo
 open Theories.Register
+open Theories.Theory
 
-type _ sslot_machine =
-  Signed:
-    ('tva*('sign*_*_*_)) Tags.t
-  * ('sign,'tva) slot_machine
-  -> 'tva sslot_machine
+type sslot_machine = Signed: ('sign*_) Tags.t * 'sign slot_machine -> sslot_machine
 
-type ('sign,'tva) pluginTh = {
-    init:('sign,'tva) slot_machine;
+type 'sign pluginTh = {
+    init : 'sign slot_machine;
     clear: unit -> unit
   }
        
 module type Type = sig
   type sign
-  type (_,_,_,_) api
-  module Make(DS: GlobalImplem) : sig
-    open DS
-    val make: (Term.datatype,Value.t,Assign.t,TSet.t) api
-              -> (sign,Term.datatype*Value.t*Assign.t*TSet.t) pluginTh
+  type api
+  val hdl : (sign*api) Tags.t
+  module Make(W: Top.Terms.Writable) : sig
+    val make : api -> sign pluginTh
   end
 end

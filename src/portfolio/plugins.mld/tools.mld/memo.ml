@@ -19,14 +19,13 @@ open Interfaces
 module Make(WB : WhiteBoardExt) = struct
 
   open WB
-  open DS
 
   (* HConsed version of WB's messages *)
   module M = struct
     
     type (_,'a) t = 'a WB.t
 
-    let equal (type a) _ _ (WB(hdls1,msg1):a WB.t) (WB(hdls2,msg2):a WB.t) =
+    let equal (type a) _ (WB(hdls1,msg1,_):a WB.t) (WB(hdls2,msg2,_):a WB.t) =
       if not(HandlersMap.equal (fun () () -> true) hdls1 hdls2)
       then false
       else
@@ -34,15 +33,14 @@ module Make(WB : WhiteBoardExt) = struct
         | Sat m1, Sat m2 -> Assign.equal m1.assign m2.assign
         | Propa(tset1,Unsat), Propa(tset2,Unsat) -> Assign.equal tset1 tset2
         | Propa(tset1,Straight tset1'), Propa(tset2, Straight tset2')
-          -> Assign.equal tset1 tset2 && equal_bassign tset1' tset2'
+          -> Assign.equal tset1 tset2 && BAssign.equal tset1' tset2'
 
-    let hash (type a) (WB(hdls,msg):a WB.t) =
+    let hash_fold_t (type a) _ state (WB(hdls,msg,_):a WB.t) =
       match msg with
-      | Sat{ assign } -> 2*(Assign.hash assign)
-      | Propa(tset,Unsat) -> 1+3*(Assign.hash tset)
-      | Propa(tset,Straight tset') -> 1+7*(Assign.hash tset)+11*(hash_bassign tset')
+      | Sat{ assign } -> [%hash_fold:int*Assign.t] state (2, assign)
+      | Propa(assign,Unsat) -> [%hash_fold:int*Assign.t] state (3,assign)
+      | Propa(assign,Straight bassign) -> [%hash_fold:int*Assign.t*BAssign.t] state (5,assign,bassign)
 
-    let hash_fold_t _ _ = Hash.hash2fold hash
     let name = "WhiteBoardMessages_in_Memo"
   end
   module H = MakePoly(M)
@@ -54,14 +52,14 @@ module Make(WB : WhiteBoardExt) = struct
     let hash_fold_t _ = failwith "Should not be called"
   end
 
-  module H' = H.Init(NoBackIndex)(Bogus)
+  module H' = H.Init(Bogus)(M)
 
   module Fixed : sig
     type t = Assign.t
     val init : t
     val extend : Assign.t -> t -> t
     val notfixed : t -> Assign.t -> Assign.t
-    val is_fixed : sassign -> t -> bool
+    val is_fixed : SAssign.t -> t -> bool
   end = struct
     type t        = Assign.t
     let init      = Assign.empty
@@ -79,26 +77,24 @@ module Make(WB : WhiteBoardExt) = struct
     val simplify : Fixed.t -> t -> t
   end = struct
     type t   = H'.t
-    let id   = H.id
+    let id   = H'.id
     let msg  = H.reveal
     let pp fmt t = WB.pp fmt (msg t)
     let show = Print.stringOf pp
     let make = H'.build
     let assign c =
-      let WB(_,Propa(assign,Unsat)) = msg c in
+      let WB(_,Propa(assign,Unsat),_) = msg c in
       assign
     let simplify _ msg = msg
   end
-
-  module Var = struct
-    type t = sassign [@@deriving ord, show]
-  end
           
+  module Var = SAssign
+
   module Config
-         : (TwoWatchedLits.Config with type Var.t = Var.t
-                                   and type Constraint.t = Constraint.t
-                                   and type fixed = Fixed.t) = struct
-    
+    : (TwoWatchedLits.Config with type Var.t = Var.t
+                              and type Constraint.t = Constraint.t
+                              and type fixed = Fixed.t) = struct
+
     (*******************************************************************)
     (* These are the ingredients to feed the 2-watched literals module *)
     (*******************************************************************)
@@ -106,7 +102,7 @@ module Make(WB : WhiteBoardExt) = struct
     (* Constraints are unsat messages. *)
     module Constraint = Constraint
 
-    module Var = Var
+    module Var = SAssign
 
     type fixed = Fixed.t
                    
@@ -115,43 +111,46 @@ module Make(WB : WhiteBoardExt) = struct
                      
     module Arg = struct
       include SAssign
-      type values = unit
+      include TypesFromHConsed(SAssign)
       include EmptyInfo
-      let treeHCons = None
+      type values = unit [@@deriving eq,hash]
     end
-    module Patricia = PatMap.Make(Arg)(TypesFromHConsed(SAssign))
+
+    module Patricia = Patricia.Map.MakeH(Arg)
 
     let action ideally =
-      Patricia.Fold2.{
-          sameleaf = (fun sassign () () sofar ->
-            let sassign = SAssign.reveal sassign in
-            if Top.Sassigns.is_Boolean sassign then sofar else sassign::sassign::sofar);
-          emptyfull= (fun _ sofar -> sofar);
-          fullempty= (fun assign sofar ->
-            let return x = x in
-            let bind reccall todo sofar =
-              if List.length sofar >=ideally then sofar else reccall todo sofar
-            in
-            let f sassign () sofar = (SAssign.reveal sassign)::sofar in
-            Patricia.fold_monad ~return ~bind f assign sofar);
-          combine  =
-            let aux reccall assign fixed sofar =
-              if List.length sofar >=ideally then sofar else reccall assign fixed sofar
-            in
-            make_combine Assign.empty Assign.empty aux
-      }
+      let open Patricia.Fold2 in
+      let sameleaf sassign () () sofar =
+        if SAssign.is_Boolean sassign then sofar else sassign::sassign::sofar
+      in
+      let emptyfull _ sofar = sofar in
+      let fullempty assign sofar = 
+        let return x = x in
+        let bind reccall todo sofar =
+          if List.length sofar >=ideally then sofar else reccall todo sofar
+        in
+        let f sassign sofar = ((* SAssign.reveal  *)sassign)::sofar in
+        Assign.fold_monad ~return ~bind f assign sofar
+      in
+      let combine = 
+        let aux ~reccall assign fixed sofar =
+          if List.length sofar >=ideally then sofar else reccall assign fixed sofar
+        in
+        make_combine ~empty1:Assign.empty ~empty2:Assign.empty aux
+      in
+      { sameleaf; emptyfull; fullempty; combine }
 
     let pick_another fixed c i previous : Var.t list =
       Print.print ["memo",2] (fun p ->
           p  "Memo: pick_another: was watching %a"
             (List.pp Var.pp) previous);
       let assign = Constraint.assign c in
-      let newlist = Patricia.fold2 (action i) assign fixed [] in
+      let newlist = Patricia.fold2_poly (action i) assign fixed [] in
       Print.print ["memo",2] (fun p ->
           p  "Memo: Have to watch %i terms in %a\nHave chosen %a"
             i Assign.pp assign (List.pp Var.pp) newlist);
       newlist
-        
+
   end 
 
   module P = TwoWatchedLits.Make(Config)
@@ -173,7 +172,7 @@ module Make(WB : WhiteBoardExt) = struct
     let prove tset =
       let watch = P.flush !watchref in
       let fix sassign watch =
-        if Top.Sassigns.is_Boolean sassign then P.fix sassign watch else watch
+        if SAssign.is_Boolean sassign then P.fix sassign watch else watch
       in
       let watch = Assign.fold fix tset watch in
       let fixed = Fixed.extend tset Fixed.init in
@@ -191,11 +190,11 @@ module Make(WB : WhiteBoardExt) = struct
          incr watchcount;
          Print.print ["memo",3] (fun p->
              p "Constraint %a watching %a and %a"
-               Constraint.pp c DS.pp_sassign sassign DS.pp_sassign sassign');
+               Constraint.pp c SAssign.pp sassign SAssign.pp sassign');
          Print.print ["watch",1] (fun p-> p "%i" !watchcount))
 
     let fix sassign =
-      if Top.Sassigns.is_Boolean sassign then watchref := P.fix sassign !watchref else ()
+      if SAssign.is_Boolean sassign then watchref := P.fix sassign !watchref else ()
 
     type t =
       | Nothing
@@ -228,32 +227,36 @@ module Make(WB : WhiteBoardExt) = struct
               watchref := watch;
               Conflict msg
                    
-           | (SAssign(_,Top.Values.NonBoolean _) as last)::_ ->
-              Print.print ["memo",2] (fun p->
-                  p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
-                    WB.pp msg Var.pp last);
-              aux watch
-                  
-           | SAssign((_,Top.Values.Boolean _) as bassign)::_ ->
-              let newmsg = WB.curryfy ~flip:bassign msg in
-              let WB(_,Propa(justif,Straight flipped)) = newmsg in
-              Print.print ["memo",1] (fun p->
-                  p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
-                    WB.pp msg pp_bassign flipped);
-              Print.print ["memo",2] (fun p->
-                  p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
-              (* assert (Assign.subset justif fixed); *)
-              (* assert (not(Assign.mem (SAssign flipped) justif)); *)
-              if Fixed.is_fixed (SAssign flipped) fixed
-              then
-                (Print.print ["memo",2] (fun p->
-                     p "Memo: %a already known" pp_bassign flipped);
-                 aux watch)
-              else
-                (Print.print ["memo",0] (fun p->
-                     p "Memo: useful propagation %a" WB.pp newmsg);
-                 watchref := watch;
-                 UP newmsg)
+           | last::_ ->
+
+             match SAssign.reveal last with
+             | SAssign(_,Top.Values.NonBoolean _)
+               ->
+               Print.print ["memo",2] (fun p->
+                   p "Memo: found memoised conflict %a, with one non-Boolean absentee %a"
+                     WB.pp msg Var.pp last);
+               aux watch
+
+             | SAssign((_,Top.Values.Boolean _) as bassign) ->
+               let newmsg = WB.curryfy ~flip:bassign msg in
+               let WB(_,Propa(justif,Straight flipped),_) = newmsg in
+               Print.print ["memo",1] (fun p->
+                   p "Memo: found memoised conflict %a\nthat gives unit propagation %a"
+                     WB.pp msg BAssign.pp flipped);
+               Print.print ["memo",2] (fun p->
+                   p "Memo: diff is %a" Assign.pp (Assign.diff justif fixed));
+               (* assert (Assign.subset justif fixed); *)
+               (* assert (not(Assign.mem (SAssign flipped) justif)); *)
+               if Fixed.is_fixed (SAssign.build flipped) fixed
+               then
+                 (Print.print ["memo",2] (fun p->
+                      p "Memo: %a already known" BAssign.pp flipped);
+                  aux watch)
+               else
+                 (Print.print ["memo",0] (fun p->
+                      p "Memo: useful propagation %a" WB.pp newmsg);
+                  watchref := watch;
+                  UP newmsg)
 
       in
       aux !watchref
@@ -266,7 +269,7 @@ module Make(WB : WhiteBoardExt) = struct
 
   let suicide msg sassign = function
     | Some sassign'
-         when !Flags.memo && Top.Sassigns.is_Boolean sassign && Top.Sassigns.is_Boolean sassign'
+         when !Flags.memo && SAssign.is_Boolean sassign && SAssign.is_Boolean sassign'
       -> Print.print ["memo",2] (fun p-> p "Memo: Learning that %a" WB.pp msg);
          WR.add (Constraint.make msg) sassign sassign'
     | _ -> ()

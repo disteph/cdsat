@@ -12,8 +12,10 @@ with concurrency, as provided by Jane Street's Async library.
 open Async
        
 open Kernel
-open Top.Messages
+open Top.Terms
 open Top.Sassigns
+open Top.Messages
+open Theories.Theory
 open Theories.Register
 
 open Tools
@@ -46,7 +48,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
   type state = {
       hub      : H.t;                 (* Communication channels with other modules *)
       messages : say answer Pqueue.t; (* The buffer queue for messages *)
-      decision : (sassign*float) list;(* The latest decision proposal *)
+      decision : (SAssign.t*float) list;(* The latest decision proposal *)
       waiting4 : AS.t;                (* The agents from which we await an answer *)
       trail    : T.t                  (* The trail *)
     }
@@ -94,7 +96,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
             Print.print ["concur",2] (fun p->
                 p "Hearing guesses from %a" Agents.pp agent);
             select_msg { state with decision }
-          | Say(WB(_,Sat _)) when chrono < T.chrono state.trail ->
+          | Say(WB(_,Sat _,_)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
                 p "Hearing Sat from %a at old chrono %i, ignoring"
                   Agents.pp agent chrono);
@@ -102,7 +104,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | Say m ->
             let () =
               match m with
-              | WB(_,Sat _) ->
+              | WB(_,Sat _,_) ->
                 Print.print ["concur",2] (fun p->
                     p "Hearing Sat from %a at current chrono %i, and buffering"
                       Agents.pp agent chrono);
@@ -124,7 +126,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     | Try [], state -> failwith "Should not happen"
 
     | Try ((sassign,_)::_), state ->
-       Print.print ["concur",1] (fun p -> p "About to try %a" DS.pp_sassign sassign);
+       Print.print ["concur",1] (fun p -> p "About to try %a" SAssign.pp sassign);
 
        (* We attempt to create the trail extended with the decision *)
        begin match T.add ~nature:T.Decision sassign state.trail with
@@ -139,7 +141,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           Print.print ["concur",1] (fun p ->
               p "Everybody cloned themselves; now starting first branch");
 
-          let assign1   = DS.Assign.add sassign current.assign in
+          let assign1   = Assign.add sassign current.assign in
           let current1  = sat_init assign1 ~sharing:current.sharing in
           let newstate1 = { state with hub = hub1; waiting4 = AS.all; trail } in
           (* In the first branch, we broadcast the guess *)
@@ -171,7 +173,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | _ -> H.kill state.hub; return ans
        end         
 
-    | Say(WB(_,msg) as thmsg), state ->
+    | Say(WB(_,msg,_) as thmsg), state ->
 
        match msg with
          
@@ -186,7 +188,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
        | Propa(old,Straight bassign) ->
           Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
           (* A theory deduced a boolean assignment bassign from assignment old. *)
-          let sassign = SAssign bassign in
+          let sassign = SAssign.build bassign in
           begin match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
           | None -> (* The flip of bassign is in the trail, we have a conflict *)
              let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
@@ -194,7 +196,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | Some trail ->
              (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
-             let assign  = DS.Assign.add sassign current.assign in
+             let assign  = Assign.add sassign current.assign in
              let current = sat_init assign ~sharing:current.sharing in
              let state   = { state with
                              decision = []; (* we cancel remaining decision proposal *)
@@ -215,8 +217,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | Done(assign,sharing) as sat_ans ->
              Print.print ["concur",2] (fun p ->
                  p "All theories were fine with model %a sharing %a"
-                   DS.Assign.pp assign
-                   DS.TSet.pp sharing);
+                   Assign.pp assign
+                   TSet.pp sharing);
              (* rest being empty means that all theories have
              stamped the assignment consset as being consistent with them,
              so we can finish, closing all pipes *)
@@ -225,8 +227,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
           | Share toshare ->
              Print.print ["concur",2] (fun p ->
-                 p "New variables to share: %a" DS.TSet.pp toshare);
-             let sharing = DS.TSet.union toshare current.sharing in
+                 p "New variables to share: %a" TSet.pp toshare);
+             let sharing = TSet.union toshare current.sharing in
              let current = sat_init current.assign ~sharing in
              let state   = { state with
                              decision = []; (* we cancel remaining decision proposal *)
@@ -247,14 +249,14 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | NoModelMatch assign_ref ->
              Print.print ["concur",3] (fun p ->
                  p "Outdated model? saw unexpected %a,\n didn't see expected %a"
-                   DS.Assign.pp (DS.Assign.diff assign assign_ref)
-                   DS.Assign.pp (DS.Assign.diff assign_ref assign));
+                   Assign.pp (Assign.diff assign assign_ref)
+                   Assign.pp (Assign.diff assign_ref assign));
              master_loop current state
 
           | NoSharingMatch sharing_ref ->
              Print.print ["concur",3] (fun p ->
                  p "Outdated sharing? got %a,\n but expected %a"
-                   DS.TSet.pp sharing DS.TSet.pp sharing_ref);
+                   TSet.pp sharing TSet.pp sharing_ref);
              master_loop current state
 
 
@@ -266,7 +268,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | Some trail -> trail, (H.broadcast hub sassign (T.chrono trail))::tasks
       | None -> failwith "Trail should not fail on input"
     in
-    let trail,tasks = DS.Assign.fold treat input (T.init,[]) in
+    let trail,tasks = Assign.fold treat input (T.init,[]) in
     let state = { hub;
                   waiting4 = AS.all;
                   messages = Pqueue.empty();
@@ -275,7 +277,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     in
     Deferred.all_unit tasks;%bind
     Print.print ["concur",2] (fun p -> p "Starting master_loop\n");
-    match%map master_loop (sat_init input ~sharing:DS.TSet.empty) state with
+    match%map master_loop (sat_init input ~sharing:TSet.empty) state with
     | Case1(T.InputConflict conflict) ->
        Print.print ["concur",2] (fun p ->
            p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);

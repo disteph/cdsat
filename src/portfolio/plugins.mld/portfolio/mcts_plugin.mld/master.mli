@@ -13,6 +13,7 @@ open Async
 
 open Kernel
 open Top.Messages
+open Top.Sassigns
 open Theories.Register
 
 open Tools
@@ -30,15 +31,15 @@ module Make(WBEH: WhiteBoard4Master) : sig
                       (* The propagations to perform in the new branch *)
                       propagations   : straight WBE.t list;
                       (* Possible decision to make in new branch (for rule UndoDecide) *)
-                      decision       : sassign option }
+                      decision       : SAssign.t option }
   end
   type state
   type answer    = (T.analysis,WBE.sat_ans) sum
   type saturation_info = NeedsMove | Leaf of answer
   val saturate : state -> (state*saturation_info) Deferred.t
   exception Trail_fail
-  val apply_move : sassign -> state -> (state*saturation_info) Deferred.t
-  val moves : state -> (sassign * float) list
-  val init_state : H.t -> DS.Assign.t -> state Deferred.t
-  val master : H.t -> DS.Assign.t -> (unsat t, sat_ans) sum Deferred.t
+  val apply_move : SAssign.t -> state -> (state*saturation_info) Deferred.t
+  val moves : state -> (SAssign.t * float) list
+  val init_state : H.t -> Assign.t -> state Deferred.t
+  val master : H.t -> Assign.t -> (unsat t, sat_ans) sum Deferred.t
 end

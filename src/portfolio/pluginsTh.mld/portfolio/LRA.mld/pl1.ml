@@ -1,31 +1,27 @@
 open General
-open Sums
 open Patricia
 open Patricia_tools
 
 open Kernel
-open Export
-open Termstructures.Rationals
-open Top.Specs
-open Top.Basic
+open Top.Terms
 open Top.Sassigns
 open Top.Messages
+open Termstructures.Rationals
+open Theories.Theory
 open Theories.LRA
 
 open Tools
        
 type sign = MyTheory.sign
+type api  = (module API.API with type sign = MyTheory.sign)
 
-module Make(DS: GlobalImplem) = struct
-  open DS
-  module Make(K: API.API with type sign   = MyTheory.sign
-                          and type assign = Assign.t
-                          and type termdata= Term.datatype
-                          and type value  = Value.t
-                          and type tset   = TSet.t )
-    = struct
+let hdl = MyTheory.hdl
 
-    module DT = Datatypes.Make(DS)(K)
+module Make(W: Writable) = struct
+
+  module Make(K: API.API with type sign = MyTheory.sign) = struct
+
+    module DT = Datatypes.Make(W)(K)
     open DT
 
     type state = {
@@ -34,8 +30,8 @@ module Make(DS: GlobalImplem) = struct
         watchedB: WLB.t;   (* Watched literals for constraints *)
         watchedQ: WLQ.t;   (* Watched literals for terms to evaluate *)
         domains: Domain.t; (* The set of variables we could fix, with their domains *)
-        propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages to be send*)
-        umsg   : (K.sign,unsat) Msg.t option;      (* The unsat message to be send*)
+        propas : (K.sign,straight) message Pqueue.t; (* The propa messages to be send*)
+        umsg   : (K.sign,unsat) message option;      (* The unsat message to be send*)
         silent : bool      (* Whether we have already sent an unsat message *)
       }
 
@@ -126,7 +122,7 @@ module Make(DS: GlobalImplem) = struct
                let oldrange = Domain.find var state.domains in
                Print.print ["LRA",4] (fun p ->
                    p "LRA: old range for %a is %a"
-                     Term.pp (Term.term_of_id var) Range.pp oldrange);
+                     Term.pp var Range.pp oldrange);
                let range =
                  let is_strict = [%eq: bool] b in
                  let update original =
@@ -135,7 +131,6 @@ module Make(DS: GlobalImplem) = struct
                                 else Range.lower_update
                    in update bound ~is_strict:(is_strict original) bassign oldrange
                  in
-                 let open TS in
                  match nature,b with
                  | Lt,_ -> update true
                  | Le,_ -> update false
@@ -150,8 +145,7 @@ module Make(DS: GlobalImplem) = struct
                match range with
                | Range.Range range ->
                   Print.print ["LRA",4] (fun p ->
-                      p "LRA: new range for %a is %a"
-                        Term.pp (Term.term_of_id var) Range.pp range);
+                      p "LRA: new range for %a is %a" Term.pp var Range.pp range);
                   let domains = Domain.add var (fun _ -> range) state.domains in
                   speak machine { state with watchedB; domains }
 
@@ -195,7 +189,7 @@ module Make(DS: GlobalImplem) = struct
 
           | Some sassign ->
              Print.print ["LRA",2] (fun p ->
-                 p "LRA receiving Some(%a)" pp_sassign sassign);
+                 p "LRA receiving Some(%a)" SAssign.pp sassign);
              (* We ask the kernel to record the new assignment *)
              let kernel, recorded = K.add sassign state.kernel in
              match recorded with
@@ -204,8 +198,8 @@ module Make(DS: GlobalImplem) = struct
                 speak machine { state with kernel }
              | Some(SAssign(c,v)) ->
                 let fixed = K.Model.add sassign state.fixed in
-                let i = Term.id(K.Simpl.term c) in
-                if TS.VarMap.mem i (K.Simpl.coeffs c)
+                let i = K.Simpl.term c in
+                if VarMap.mem i (K.Simpl.coeffs c)
                 then
                   begin
                     Print.print ["LRA",2] (fun p ->
@@ -226,7 +220,7 @@ module Make(DS: GlobalImplem) = struct
                     Print.print ["LRA",2] (fun p ->
                         p "LRA watches %a" Term.pp (K.Simpl.term c));
                     let newvariables =
-                      TS.VarMap.diff_poly (fun _ _ _ -> TS.VarMap.empty)
+                      VarMap.diff_poly (fun _ _ _ -> VarMap.empty)
                         (K.Simpl.coeffs c) (K.Model.map fixed)
                     in
                     let domains = Domain.union_poly
@@ -257,7 +251,7 @@ module Make(DS: GlobalImplem) = struct
           let kernel, new2evaluate = K.share tset state.kernel in
           let aux c (watchedQ,domains) =
             let c = K.Simpl.simplify state.fixed c in
-            WLQ.addconstraintNflag (c,None,Term.id(K.Simpl.term c)) watchedQ,
+            WLQ.addconstraintNflag (c,None,K.Simpl.term c) watchedQ,
             Domain.union_poly
               (fun _ old _ -> old)
               (fun old -> old)
@@ -285,10 +279,10 @@ module Make(DS: GlobalImplem) = struct
         | Some var ->
           let range = Domain.find var state.domains in
           let v = Top.Values.NonBoolean(K.vinj(Range.pick range)) in
-          let sassign = SAssign(Term.term_of_id var,v) in
+          let sassign = SAssign.build(var,v) in
           Print.print ["LRA",2] (fun p ->
               p "LRA: kernel is not fine yet, proposing %a from range %a"
-                pp_sassign sassign Range.pp range);
+                SAssign.pp sassign Range.pp range);
           [sassign,1.0]
       in
 
@@ -303,15 +297,12 @@ module Make(DS: GlobalImplem) = struct
                          umsg   = None;
                          silent = false }
 
-    let clear () =
-      Print.print ["LRA",3] (fun p -> p "LRA: clearing");
-      K.clear ()
+    let clear () = Print.print ["LRA",3] (fun p -> p "LRA: clearing")
 
   end
         
-  let make (k: (Term.datatype,Value.t,Assign.t,TSet.t) MyTheory.api)
-    = let (module K) = k in
-      let module Made = Make(K) in
+  let make (module K : API.API with type sign = MyTheory.sign)
+    = let module Made = Make(K) in
       { PluginTh.init = Made.init;
         PluginTh.clear = Made.clear }
 

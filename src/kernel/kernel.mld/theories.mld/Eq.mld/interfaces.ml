@@ -64,9 +64,9 @@ module type Egraph = sig
          
   type t
   val init : t
-  val eq : Term.t -> (Term.t,Value.t values)sum -> (bassign,SAssign.t)sum
+  val eq : Term.t -> (Term.t,Value.t values)sum -> (BAssign.t,SAssign.t)sum
            -> t -> t*info*((Term.t,Value.t values)sum list)
-  val diseq : Term.t -> Term.t -> bassign -> t -> t
+  val diseq : Term.t -> Term.t -> BAssign.t -> t -> t
   (* Ask information about the termvalue,
        possibly subscribe (subscribe=true) or unsubscribe (subscribe=false)
        to notifications when the termvalue sees its combined value affected *)

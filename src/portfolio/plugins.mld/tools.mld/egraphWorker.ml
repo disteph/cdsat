@@ -5,22 +5,15 @@ open General
 
 open Kernel
 open Top.Messages
-open Top.Specs
-open Theories.Register
+open Theories.Theory
 
 open Interfaces
 
 module Make(WB: WhiteBoardExt)
          (EGraph: Theories.Eq.Interfaces.API
-          with type sign   := Theories.Eq.MyTheory.sign
-           and type termdata := WB.DS.Term.datatype
-           and type value  := WB.DS.Value.t
-           and type cval   := WB.DS.CValue.t
-           and type assign := WB.DS.Assign.t
-           and type tset   := WB.DS.TSet.t) = struct
+          with type sign := Theories.Eq.MyTheory.sign) = struct
 
   open WB
-  open DS
   open EGraph
 
   let rec flush_write writer unsat_msg = function
@@ -94,7 +87,7 @@ module Make(WB: WhiteBoardExt)
           flush ports unsat_msg l ]
 
     | SAT(msg,egraph) ->
-      Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" Msg.pp msg);
+      Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" pp_message msg);
       Deferred.all_unit
         [ Lib.write ports.writer (msg_make msg) ;
           loop_read egraph ports ]

@@ -3,8 +3,12 @@
 (***********************************)
 
 open General
-open TopFlags
 
+open Kernel.Top.Sassigns
+       
+open TopFlags
+open Proofs
+    
 type _ stringOrunit =
   | String : string stringOrunit
   | Unit   : unit stringOrunit
@@ -14,9 +18,9 @@ let run parser input =
 
   (* Setting up the Kernel *)
 
-  let (module K) = Kernel.Top_level.init ~parser input in
+  let (module K) = Kernel.Top_level.init [] (module NoProof) ~parser input in
 
-  print_endline(Print.toString (fun p->
+  print_endline(Format.toString (fun p->
       p "Parsed with parser %a" Kernel.Parsers.Register.pp parser));
 
   (* Getting the result for the run *)
@@ -43,7 +47,7 @@ let run parser input =
 
         open Kernel.Theories.Register
 
-        module Plugin = PluginsTh.Register.Make(WB.DS)
+        module Plugin = PluginsTh.Register.Make(WB.W)
 
         let add_plugin
             (Modules.Module(tag,_) as plugin)
@@ -70,13 +74,13 @@ let run parser input =
       PFlags.decnumb := 0;
       PFlags.decnumbB := 0;
       PFlags.decwidth := 0;
-      let timer = Dump.Timer.newtimer "Global timer" in
-      Dump.Timer.start timer;
+      let timer = Timer.newtimer "Global timer" in
+      Timer.start timer;
       let answer = K.answer(P.solve K.problem) in
-      Dump.Timer.stop timer;
-      print_endline("Global time: "^string_of_float(Dump.Timer.watch timer));
+      Timer.stop timer;
+      print_endline("Global time: "^string_of_float(Timer.watch timer));
       print_endline("Total number of decisions: "^string_of_int !PFlags.decnumb);
-      print_endline("Decisions per second: "^string_of_float((float_of_int !PFlags.decnumb) /. (Dump.Timer.watch timer)));
+      print_endline("Decisions per second: "^string_of_float((float_of_int !PFlags.decnumb) /. (Timer.watch timer)));
       print_endline("Options per decisions: "^string_of_float((float_of_int !PFlags.decwidth) /. (float_of_int !PFlags.decnumbB)));
       if !clear4each then P.clear();
       print_endline(
@@ -106,8 +110,8 @@ let run parser input =
           Dump.display := Dump.Latex;
         let ans =
           match r with
-          | K.UNSAT assign -> Some(Print.toString (fun p->p "%a" K.WB.pp assign))
-          | K.SAT assign -> Some(Print.toString (fun p->p "%a" K.WB.DS.Assign.pp assign))
+          | K.UNSAT answer -> Some(Format.toString (fun p->p "%a" K.WB.pp answer))
+          | K.SAT assign -> Some(Format.toString (fun p->p "%a" Assign.pp assign))
           | K.NotAnsweringProblem -> None
         in
         Dump.display := display;

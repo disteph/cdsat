@@ -19,26 +19,14 @@ module Make(WTerm: Writable) = struct
     type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]
   end
                                            
-  module TMap = struct
-    include Map.Make(Term)
-    let pp x fmt tmap =
-      let ppb fmt (nf,j) = Format.fprintf fmt "(%a->%a)" Term.pp nf x j in
-      List.pp ppb fmt (bindings tmap)
-  end
-
-  module BDest = struct
-    type t = bassign [@@deriving ord]
-    let id (t,Values.Boolean b) = 2*Term.id t + (if b then 0 else 1)
-  end
-                   
   module BMap = struct
     include Patricia.Map.MakeNH(struct
-        include BDest
+        include BAssign
+        include TypesFromHConsed(BAssign)
         include EmptyInfo
-        include TypesFromHConsed(BDest)
         type values = Term.t*Term.t
       end)
-    let pp_binding fmt (j_neq,_) = pp_bassign fmt j_neq
+    let pp_binding fmt (j_neq,_) = BAssign.pp fmt j_neq
     let pp = print_in_fmt pp_binding
   end
 
@@ -52,7 +40,7 @@ module Make(WTerm: Writable) = struct
 
     module Node = TermValue
 
-    type edge = (bassign,SAssign.t)sum [@@deriving show]
+    type edge = (BAssign.t,SAssign.t)sum [@@deriving show]
 
     (* The information we want to keep about each component *)
     type info = {
@@ -104,7 +92,7 @@ module Make(WTerm: Writable) = struct
       eqassign,
       straight () justif eqassign
 
-    let pp_path = List.pp (pp_sum pp_bassign SAssign.pp)
+    let pp_path = List.pp (pp_sum BAssign.pp SAssign.pp)
                
     (* Analyses a path from a term to a termvalue *)
     let treatpath path =
@@ -172,7 +160,7 @@ module Make(WTerm: Writable) = struct
            (* They were declared different by an assignment j_neq - a disequality
               between t3 and t4. Get the path from t1 to t3 and the one from t2 to t4. *)
            Print.print ["kernel.egraph",1] (fun p->
-               p "kernel.egraph: violates %a" pp_bassign j_neq);
+               p "kernel.egraph: violates %a" BAssign.pp j_neq);
            let path1 = path (Case1 t3) pc1 eg in
            let path2 = path (Case1 t4) pc2 eg in
            let path  = List.rev_append path1 (j::path2) in

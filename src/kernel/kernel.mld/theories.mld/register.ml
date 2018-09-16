@@ -55,5 +55,5 @@ let parse = function
   | "bool"       -> Handlers.Handler Bool.MyTheory.hdl
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
-let get_no l = List.fold (fun name -> HandlersMap.remove (parse name)) l (all_theories())
-let get l = List.fold (fun name -> HandlersMap.add (parse name) ()) l HandlersMap.empty
+let get_no l = List.fold (parse >> HandlersMap.remove) l (all_theories())
+let get l = List.fold (parse >> (fun hdl -> HandlersMap.add hdl ())) l HandlersMap.empty

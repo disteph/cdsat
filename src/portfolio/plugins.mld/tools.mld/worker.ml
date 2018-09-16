@@ -5,8 +5,8 @@ open General
        
 open Kernel
 open Top.Messages
-open Top.Specs
-open Theories.Register
+open Top.Terms
+open Theories.Theory
 
 open Plugin
 open Interfaces
@@ -14,7 +14,6 @@ open Interfaces
 module Make(WB: WhiteBoardExt) = struct
 
   open WB
-  open DS
 
   let add     (SlotMachine{add})     = add
   let share   (SlotMachine{share})   = share
@@ -59,7 +58,7 @@ module Make(WB: WhiteBoardExt) = struct
            Deferred.all_unit
              [loop_read hdl cont    ports ;
               loop_read hdl newcont newports ]
-      | KillYourself(WB(_,Propa(assign,Unsat)),_,_) -> return(suicide cont assign)
+      | KillYourself(WB(_,Propa(assign,Unsat),_),_,_) -> return(suicide cont assign)
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["worker",2] (fun p-> p "%a dies" Tags.pp hdl)))
@@ -81,7 +80,7 @@ module Make(WB: WhiteBoardExt) = struct
          ]
 
     | Msg msg ->
-       Print.print ["worker",1] (fun p-> p "%a: Message %a" Tags.pp hdl Msg.pp msg);
+       Print.print ["worker",1] (fun p-> p "%a: Message %a" Tags.pp hdl pp_message msg);
        let msg2pl = Msg(hhdl,Say(WB.sign hdl msg),chrono) in
        Deferred.all_unit
          [

@@ -46,7 +46,7 @@ module T = struct
       | Falsified of (sign,unsat) message
       | Unit      of (sign,straight) message
       | Satisfied
-      | ToWatch   of Clauses.VarMap.t * bassign list
+      | ToWatch   of Clauses.VarMap.t * BAssign.t list
 
     let infer c =
       let (t,Values.Boolean b) as bassign = Constraint.bassign c in

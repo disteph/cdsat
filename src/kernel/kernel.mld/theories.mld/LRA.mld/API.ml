@@ -83,12 +83,12 @@ module type API = sig
 
   (* Fourier-Motzkin resolution of ba1 and ba2 over variable var
      Creates message ba1,ba2 ⊢ FM_resolvant(ba1,ba2) *)
-  val fm    : bassign -> bassign -> Term.t -> (sign, straight) message
+  val fm    : BAssign.t -> BAssign.t -> Term.t -> (sign, straight) message
 
   (* disequal (lower≤x) (x≠diseq) (x≤upper) x
      generates (lower=diseq), (diseq=upper),
      and the message (lower≤x),(x≠diseq),(x≤upper),(lower=diseq),(diseq=upper)⊢ ⊥ *)
-  val disequal : bassign -> bassign -> bassign -> Term.t
+  val disequal : BAssign.t -> BAssign.t -> BAssign.t -> Term.t
                  -> Term.t * Term.t * (sign, unsat) message
 
   (* Outputs sat message if all terms to satisfy/evaluate in state have been so. *)
@@ -96,7 +96,7 @@ module type API = sig
 
   (* Adds a single assignment to the state, return a new state.
      If a new constraint has to be satisfied, it is returned as well. *)
-  val add   : SAssign.t -> state -> state * (Simpl.t * Q.t Values.values) option
+  val add   : SAssign.t -> state -> state * (Simpl.t,Q.t) sassign option
 
   (* Adds to the state a set of terms to share, returning a new state.
      If new terms need values, they are returned as well. *)

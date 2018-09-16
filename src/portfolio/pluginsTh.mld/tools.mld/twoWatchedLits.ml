@@ -1,8 +1,5 @@
 open General
 open Sums
-open Patricia
-open Patricia_interfaces
-open Patricia_tools
 
 module type Config = sig
   module Constraint: sig
@@ -32,13 +29,15 @@ module Make (C : Config) = struct
     let pp fmt vset = List.pp Var.pp fmt (elements vset)
   end
 
+  open Patricia
+  open Patricia_tools
   module I = TypesFromHConsed(Constraint)
                           
   module CSetD = struct
     include Constraint
     let compare      = Compare.id2compare Constraint.id
     include EmptyInfo
-    let treeHCons    = None
+    include I
   end
 
   module CMapD = struct
@@ -47,21 +46,21 @@ module Make (C : Config) = struct
     type values      = VarSet.t
     let pp_binding fmt (c,v) = Format.fprintf fmt "(%a->%a)" pp c VarSet.pp v
     include EmptyInfo
-    let treeHCons    = None
+    include I
   end
 
-  module CSet = PatSet.Make(CSetD)(I)
-  module CMap = PatMap.Make(CMapD)(I)
+  module CSet = Set.MakeNH(CSetD)
+  module CMap = Map.MakeNH(CMapD)
 
   type t = { var2cons: CSet.t VarMap.t;
              cons2var: CMap.t;
-             todo: CSet.t Pqueue.t;
-             newly: VarSet.t Lazy.t }
+             todo    : CSet.t Pqueue.t;
+             newly   : VarSet.t Lazy.t }
 
   let init = { var2cons = VarMap.empty;
                cons2var = CMap.empty;
-               todo = Pqueue.empty();
-               newly = lazy VarSet.empty }
+               todo     = Pqueue.empty();
+               newly    = lazy VarSet.empty }
 
   let flush state = { state with todo = Pqueue.empty() }
                

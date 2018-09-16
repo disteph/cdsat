@@ -21,21 +21,21 @@ module type API = sig
   module Model : sig
     type t
     val empty : t
-    val add : SAssign.t -> t -> (t, (unit,unsat) message) sum
+    val add : SAssign.t -> t -> (t, (sign,unsat) message) sum
     val map : t -> BMap.t
   end
 
   module Constraint : sig
     type t [@@deriving show]
     val id: t -> int
-    val make : bassign -> t
-    val bassign : t -> bassign
+    val make : BAssign.t -> t
+    val bassign : t -> BAssign.t
     (* Get simplified form of a constraint:
          seeing it as a clause,
          is None if clause is simplified to True,
          is Some(lset,watched) if lset are unassigned literals of original literals
                                and watched are the first 2 of them (or 0, or 1) *)
-    val simpl: t -> (Clauses.VarMap.t * bassign list) option
+    val simpl: t -> (Clauses.VarMap.t * BAssign.t list) option
     (* Returns the assignments that contribute 
          to making the constraint simplify to the above *)
     val justif: t -> Assign.t
@@ -52,7 +52,7 @@ module type API = sig
     | Falsified of (sign, unsat) message
     | Unit of (sign, straight) message
     | Satisfied
-    | ToWatch   of Clauses.VarMap.t * bassign list
+    | ToWatch   of Clauses.VarMap.t * BAssign.t list
 
   (* Looks at simplified form of constraint and outputs
      - Satisfied f if clause is true

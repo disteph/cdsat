@@ -2,32 +2,26 @@ open General
 open Sums
 open Patricia
 open Patricia_tools
-open Patricia_interfaces
        
 open Kernel
-open Export
-open Top.Specs
+open Top.Terms
 open Top.Sassigns
 open Top.Messages
-open Termstructures.Literals
 open Termstructures.Clauses
+
+open Theories.Theory
 open Theories.Bool
 
 open Tools
        
 type sign = MyTheory.sign
-              
-module Make(DS: GlobalImplem) = struct
+type api  = (module API.API with type sign = MyTheory.sign)
 
-  open DS
-  module Make(K: API.API with type sign   = MyTheory.sign
-                          and type assign = Assign.t
-                          and type termdata= Term.datatype
-                          and type value  = Value.t
-                          and type tset   = TSet.t )
-    = struct
+let hdl = MyTheory.hdl
 
-    type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
+module Make(W:Writable) = struct
+
+  module Make(K: API.API with type sign = MyTheory.sign) = struct
                                                       
     (* We are implementing VSIDS heuristics for choosing decisions:
        we need to keep a score of each assignment, we need to update the scores,
@@ -36,9 +30,9 @@ module Make(DS: GlobalImplem) = struct
                                              
     module ArgMap = struct
       include SAssign
+      include TypesFromHConsed(SAssign)
       type values    = float
-      let pp_binding fmt (l,f) =
-        Format.fprintf fmt "%a:%f" pp_sassign (SAssign.reveal l) f
+      let pp_binding fmt (l,f) = Format.fprintf fmt "%a:%f" SAssign.pp l f
       type infos     = (SAssign.t*float) option*int
       let info_build = {
           empty_info  = None,0 ;
@@ -54,11 +48,10 @@ module Make(DS: GlobalImplem) = struct
                 c1+c2
             )
         }
-      let treeHCons = None
     end
 
     module BaMap = struct
-      include PatMap.Make(ArgMap)(TypesFromHConsed(ArgMap))
+      include Map.MakeNH(ArgMap)
       let pp = print_in_fmt ArgMap.pp_binding
     end
                      
@@ -71,12 +64,7 @@ module Make(DS: GlobalImplem) = struct
     (* Configuration for the 2-watched literals module *)
     module Config = struct
       module Constraint = K.Constraint
-      module Var = struct
-        include LitF
-        let pp fmt lit =
-          let b,i = LitF.reveal lit in
-          Format.fprintf fmt "%s%a" (if b then "" else "¬") Term.pp (Term.term_of_id i)
-      end
+      module Var = BAssign
       type fixed = K.Model.t
       let simplify fixed = Constraint.simplify fixed
       let pick_another _ c i _ =
@@ -92,7 +80,7 @@ module Make(DS: GlobalImplem) = struct
         kernel : K.state;      (* The state of the kernel *)
         fixed  : K.Model.t;    (* Our Boolean model *)
         watched: WL.t;         (* The state of our watched literals *)
-        propas : (K.sign,straight) Msg.t Pqueue.t; (* The propa messages we need to send*)
+        propas : (K.sign,straight) message Pqueue.t; (* The propa messages we need to send*)
         undetermined : Assign.t; (* The set of assignments we could fix *)
         silent : bool          (* Whether we have already sent an unsat message *)
       }
@@ -134,11 +122,11 @@ module Make(DS: GlobalImplem) = struct
             match infer c with
             | Falsified msg ->
                (* Clause is false and kernel gave us the unsat message to send. *)
-               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
+               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" pp_message msg);
                Msg msg, machine { state with watched; silent = true }
             | Unit msg ->
                (* Clause is unit and kernel gave us the propagation message to send. *)
-               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" Msg.pp msg);
+               Print.print ["bool",4] (fun p -> p "bool: kernel says %a" pp_message msg);
                Msg msg, machine { state with watched }
             | Satisfied ->
                (* Clause is satisfied. We look for something else to say *)
@@ -162,10 +150,10 @@ module Make(DS: GlobalImplem) = struct
 
            | Some a ->
               Print.print ["bool",2] (fun p ->
-                  p "bool receiving Some(%a)" pp_sassign a);
+                  p "bool receiving Some(%a)" SAssign.pp a);
               (* We ask the kernel to record the new assignment *)
               let kernel, recorded = K.add a state.kernel in
-              match a with
+              match SAssign.reveal a with
 
               | SAssign(_,Top.Values.NonBoolean _) ->
                  Print.print ["bool",4] (fun p ->
@@ -176,29 +164,29 @@ module Make(DS: GlobalImplem) = struct
 
               | SAssign((t,Top.Values.Boolean b) as bassign) ->
                  (* We extend our Boolean model with the assignment *)
-                 match K.Model.add bassign state.fixed with
+                 match K.Model.add a state.fixed with
                  | Case2 msg ->
                     (* Model is inconsistent; kernel gives us unsat message *)
                     Print.print ["bool",4] (fun p ->
                         p "Model says this is inconsistent!");
                     Msg msg, machine { state with silent = true }
 
-                 | Case1(l,fixed) ->
+                 | Case1 fixed ->
                     (* Model is consistent. We update the undetermined variables. *)
                     let undetermined =
                       (* If the term was undetermined, we now have a value *)
                       if Assign.mem a state.undetermined
                       then (Print.print ["bool",4] (fun p ->
-                                p "bool: was wondering about %a" pp_sassign a);
+                                p "bool: was wondering about %a" SAssign.pp a);
                             Assign.remove a state.undetermined)
                       else state.undetermined
                     in
                     let undetermined = (* Same with negation *)
-                      let a = boolassign ~b:(not b) t in
+                      let a = SAssign.boolassign ~b:(not b) t in
                       if Assign.mem a undetermined
                       then
                         (Print.print ["bool",4] (fun p ->
-                             p "bool: was also wondering about %a" pp_sassign a);
+                             p "bool: was also wondering about %a" SAssign.pp a);
                          Assign.remove a undetermined)
                       else undetermined
                     in
@@ -206,7 +194,7 @@ module Make(DS: GlobalImplem) = struct
                        that clauses watching l must be checked
                        - remember that clauses are watching 
                        the negations of the literals they contain *)
-                    let watched = WL.fix l state.watched in
+                    let watched = WL.fix bassign state.watched in
                     (* Let's look at what the kernel said. *)
                     match recorded with
                     | Case1 propas ->
@@ -226,12 +214,12 @@ module Make(DS: GlobalImplem) = struct
 
                        | Falsified msg ->
                           Print.print ["bool",4] (fun p ->
-                              p "bool: new constraint - kernel says %a" Msg.pp msg);
+                              p "bool: new constraint - kernel says %a" pp_message msg);
                           Msg msg, machine { state with silent = true }
 
                        | Unit msg ->
                           Print.print ["bool",4] (fun p ->
-                              p "bool: new constraint - kernel says %a" Msg.pp msg);
+                              p "bool: new constraint - kernel says %a" pp_message msg);
                           let propas = Pqueue.push msg state.propas in
                           speak machine { state with kernel; fixed; watched;
                                                      undetermined; propas }
@@ -246,29 +234,26 @@ module Make(DS: GlobalImplem) = struct
 
                           Print.print ["bool",4] (fun p ->
                               p "bool: new constraint - Watching clause %a"
-                                pp_bassign bassign);
+                                BAssign.pp bassign);
                           let watched = WL.addconstraint ~watched:watchable c watched in
                           (* By the way, the constraint's literals that are undetermined
                            need to be recorded, so we can pick one when we do a split *)
                           let newlits =
                             match Config.Constraint.simpl c with
                             | Some(newlits,_) -> newlits
-                            | _ -> LSet.empty
+                            | _ -> VarMap.empty
                           in
                           (* Getting a constraint's literals (and negations)
                              into an Assign.t*)
-                          let aux lit sofar =
-                            if (K.LMap.mem lit (K.Model.map fixed))
-                               || (K.LMap.mem (LitF.negation lit) (K.Model.map fixed))
+                          let aux var _ sofar =
+                            if K.BMap.mem var (K.Model.map fixed)
                             then sofar
                             else
-                              let _,i = LitF.reveal lit in
-                              let t = Term.term_of_id i in
-                              let sassign  = boolassign ~b:true t in
-                              let sassign' = boolassign ~b:false t in
+                              let sassign  = SAssign.boolassign ~b:true t in
+                              let sassign' = SAssign.boolassign ~b:false t in
                               Assign.add sassign (Assign.add sassign' sofar)
                           in
-                          let newlits = LSet.fold aux newlits Assign.empty in
+                          let newlits = VarMap.fold aux newlits Assign.empty in
                           let undetermined = Assign.union newlits undetermined in
                           (* Constraint's literals that we have never seen before
                                  are given score !bump_value. *)
@@ -325,11 +310,10 @@ module Make(DS: GlobalImplem) = struct
         Print.print ["bool",5] (fun p ->
             p "bool: Choosing among %a" BaMap.pp remaining);
         match BaMap.info remaining with
-        | Some(sassignh,_),card ->
-          let sassign = SAssign.reveal sassignh in
+        | Some(sassign,_),card ->
           Print.print ["bool",2] (fun p ->
               p "bool: kernel is not fine yet, proposing %a"
-                pp_sassign sassign);
+                SAssign.pp sassign);
           incr PFlags.decnumbB;
           PFlags.decwidth := !PFlags.decwidth + card;
           [sassign,1.0]
@@ -350,14 +334,12 @@ module Make(DS: GlobalImplem) = struct
 
     let clear () =
       Print.print ["bool",3] (fun p -> p "bool: clearing (including scores)");
-      scores := BaMap.empty;
-      K.clear ()
+      scores := BaMap.empty
 
   end
 
-  let make (k: (Term.datatype,Value.t,Assign.t,TSet.t) MyTheory.api)
-    = let (module K) = k in
-      let module Made = Make(K) in
+  let make (module K : API.API with type sign = sign)
+    = let module Made = Make(K) in
       { PluginTh.init = Made.init;
         PluginTh.clear = Made.clear }
 

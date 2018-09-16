@@ -38,8 +38,8 @@ module Model : sig
   val map : t -> BMap.t
 end
 
-val clause : bassign -> Clauses.VarMap.t option
-val cube   : bassign -> Clauses.VarMap.t option
+val clause : BAssign.t -> Clauses.VarMap.t option
+val cube   : BAssign.t -> Clauses.VarMap.t option
 
 (*******************************************************************)
 (* These are the ingredients to feed the 2-watched literals module *)
@@ -65,14 +65,14 @@ val cube   : bassign -> Clauses.VarMap.t option
 module Constraint : sig
   type t [@@deriving show]
   val id: t -> int
-  val make : bassign -> t
-  val bassign : t -> bassign
+  val make : BAssign.t -> t
+  val bassign : t -> BAssign.t
   (* Get simplified form of a constraint:
        seeing it as a clause,
        is None if clause is simplified to True,
        is Some(lset,watched) if lset are unassigned literals of original literals
                              and watched are the first 2 of them (or 0, or 1) *)
-  val simpl: t -> (Clauses.VarMap.t * bassign list) option
+  val simpl: t -> (Clauses.VarMap.t * BAssign.t list) option
   (* Returns the assignments that contribute 
        to making the constraint simplify to the above *)
   val justif: t -> Assign.t

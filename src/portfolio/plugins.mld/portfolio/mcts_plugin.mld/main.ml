@@ -15,6 +15,7 @@ open General
 open Sums
 
 open Kernel
+open Theories.Theory
 open Theories.Register
 open Tools
 open Lib

@@ -36,7 +36,7 @@ module T = struct
 
     module TMap = struct
       include Map.Make(Term)
-      let pp_binding fmt (t,b) = pp_bassign fmt (t,Values.Boolean b)
+      let pp_binding fmt (t,b) = BAssign.pp fmt (t,Values.Boolean b)
       let pp fmt t = List.pp pp_binding fmt (bindings t)
     end
 

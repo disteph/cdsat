@@ -2,37 +2,28 @@ open Format
        
 open General
 open Patricia
-open Patricia_interfaces
 
 open Kernel
-open Export
-open Theories.LRA
+open Top.Terms
 open Top.Messages
+open Top.Sassigns
+    
+open Theories.LRA
        
 open Tools
        
-module Make(DS: GlobalImplem)
-         (K: API.API with type sign   = MyTheory.sign
-                      and type assign = DS.Assign.t
-                      and type termdata= DS.Term.datatype
-                      and type value  = DS.Value.t
-                      and type tset   = DS.TSet.t ) : sig
+module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) : sig
 
-  open DS
-
-  type datatypes = Term.datatype * Value.t * Assign.t * TSet.t
-
-  module Domain : PatMap
-         with type keys   = int
-          and type values = bassign Range.t
-          and type infos  = int option
+  module Domain : Map.S
+         with type keys   = Term.t
+          and type values = BAssign.t Range.t
+          and type infos  = Term.t option
           and type common = int
           and type branching = int
-          and type ('v,'i) param = (int,'v,int,int,'i) poly
 
   module ConfigB : TwoWatchedLits.Config
          with type Constraint.t = K.Simpl.t * bool
-          and type Var.t = int
+          and type Var.t = Term.t
           and type fixed = K.Model.t
 
   module WLB : sig
@@ -52,8 +43,8 @@ module Make(DS: GlobalImplem)
   end
 
   module ConfigQ : TwoWatchedLits.Config
-         with type Constraint.t = K.Simpl.t * Kernel.Top.Qhashed.t option * int
-          and type Var.t = int
+         with type Constraint.t = K.Simpl.t * Kernel.Top.Qhashed.t option * Term.t
+          and type Var.t = Term.t
           and type fixed = K.Model.t
 
   module WLQ : sig
@@ -72,11 +63,9 @@ module Make(DS: GlobalImplem)
         General.Sums.sum * t
   end
 
-  val pp_beval : Format.formatter -> (K.sign,straight) Msg.t -> unit
-  val pp_fm    : Format.formatter -> (bassign*bassign*Term.t) -> unit
+  val pp_beval : (K.sign,straight) message Format.printer
+  val pp_fm    : (BAssign.t*BAssign.t*Term.t) Format.printer
   val pp_diseq :
-    Format.formatter
-    -> (bassign*bassign*bassign*(K.sign,straight) Msg.t*(K.sign,straight) Msg.t)
-    -> unit
+    (BAssign.t*BAssign.t*BAssign.t*(K.sign,straight) message*(K.sign,straight) message) Format.printer
 
 end

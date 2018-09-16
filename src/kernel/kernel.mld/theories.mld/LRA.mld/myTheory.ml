@@ -35,7 +35,7 @@ module T = struct
     type state = { seen      : Assign.t;
                    sharing   : TSet.t;
                    myvars    : TSet.t Lazy.t;
-                   tosatisfy : (Simpl.t * Q.t Values.values) list;
+                   tosatisfy : (Simpl.t, Q.t) sassign list;
                    toevaluate: Simpl.t list }
 
     let init = { seen      = Assign.empty;
@@ -203,8 +203,8 @@ module T = struct
       assumption1, assumption2, unsat () justif
 
 
-    let pp_tosat fmt (c,v) =
-      Format.fprintf fmt "(%a,%a)" Simpl.pp c (Values.pp_values Qhashed.pp) v
+    let pp_tosat fmt (SAssign(c,v)) =
+      Format.fprintf fmt "(%a,%a)" Simpl.pp c (Values.pp Qhashed.pp) v
       
     (* Scans the constraints to satisfy and the terms to evaluate
        and removes those that are satisfied/evaluated:
@@ -233,20 +233,20 @@ module T = struct
               { state with tosatisfy=[]; toevaluate=c::tail }, None
           end
 
-        | ((c,v)::tail as tosatisfy), toevaluate ->
+        | ((SAssign(c,v))::tail as tosatisfy), toevaluate ->
           let c = Simpl.simplify model c in
           match eval c, v with
-          | Beval(Propa(_,Straight(_,Values.Boolean b))), Values.(Values(Boolean b'))
+          | Beval(Propa(_,Straight(_,Values.Boolean b))), Values.Boolean b'
             when [%eq : bool] b b' && Assign.subset (Simpl.justif c) state.seen
             -> aux (tail, toevaluate)
-          | Qeval(_,q), Values.(Values(NonBoolean q'))
+          | Qeval(_,q), Values.NonBoolean q'
             when Q.equal q q' && Assign.subset (Simpl.justif c) state.seen
             -> aux (tail, toevaluate)
           | _ ->
             Print.print ["kernel.LRA",2] (fun p ->
                 p "kernel.LRA: not sat, still waiting to satisfy %a"
                   (List.pp pp_tosat) tosatisfy);
-            { state with tosatisfy = (c,v)::tail; toevaluate }, None
+            { state with tosatisfy = tosatisfy; toevaluate }, None
       in
       aux (state.tosatisfy, state.toevaluate)
 
@@ -264,7 +264,7 @@ module T = struct
           | Other -> { state with seen; myvars }, None
           | _ ->
             let c = Simpl.make term in
-            let tosat = (c,Values.(Values(Boolean b))) in
+            let tosat = SAssign(c,Values.Boolean b) in
             { state with seen; myvars; tosatisfy = tosat::state.tosatisfy }, Some tosat
         end
       | Values.NonBoolean v ->
@@ -272,7 +272,7 @@ module T = struct
         | None   -> { state with seen; myvars }, None
         | Some q ->
           let c = Simpl.make term in
-          let tosat = (c,Values.(Values(NonBoolean q))) in
+          let tosat = SAssign(c,Values.NonBoolean q) in
           { state with seen; myvars; tosatisfy = tosat::state.tosatisfy }, Some tosat
 
     let share tset state =

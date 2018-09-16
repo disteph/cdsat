@@ -22,40 +22,37 @@ module type Proof = sig
 
   (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
      First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
-  val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
+  val curryfy  : ?assign:Assign.t -> ?flip:BAssign.t -> unsat t -> straight t
 
 end
-
 
 (* Data-structures used as a result of theory interactions *)
 module type WhiteBoard = sig
 
   module W : Writable
 
+  type 'a proof
+
   (* Type of theory messages after they have been "signed"
      with the appropiate theory handlers. 
      It's basically a message, together with the set of handlers
      of the theories that signed/contributed to the message *)
-  type ('a,'proof) t = private WB of unit HandlersMap.t * (unit,'a) message * 'proof
-  val pp : Format.formatter -> ('a,'proof) t -> unit
+  type 'a t = private WB of unit HandlersMap.t * (unit,'a) message * 'a proof
+  val pp : 'a t Format.printer
 
-  module Make(Proof:Proof) : sig
+  (* Signing messages: one function for standard theories, one for the equality theory *)
+  val sign    : ('a*_) Tags.t -> ('a, 'b) message -> 'b t
+  val sign_Eq : (Eq.MyTheory.sign, 'b) message -> 'b t
 
-    type nonrec 'a t = ('a, 'a Proof.t) t
+  (* Turns a propagation message H⊢L into H,~L⊢⊥ *)
+  val unsat    : straight t -> unsat t
 
-    (* Signing messages: one function for standard theories, one for the equality theory *)
-    val sign    : ('a*_) Tags.t -> ('a, 'b) message -> 'b t
-    val sign_Eq : (Eq.MyTheory.sign, 'b) message -> 'b t
+  (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
+  val resolve  : straight t -> 'b propa t -> 'b propa t
 
-    (* Turns a propagation message H⊢L into H,~L⊢⊥ *)
-    val unsat    : straight t -> unsat t
-    (* Resolves H⊢L and H',L⊢A into H∪H'⊢A *)
-    val resolve  : straight t -> 'b propa t -> 'b propa t
-    (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
-       First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
-    val curryfy  : ?assign:Assign.t -> ?flip:bassign -> unsat t -> straight t
-
-  end
+  (* Turns H,H',L⊢⊥ into (essentially) H⊢H'⇒~L
+     First argument is H' (empty if not given), second is L (⊤↦true if not given) *)
+  val curryfy  : ?assign:Assign.t -> ?flip:BAssign.t -> unsat t -> straight t
 
   (* Type where we collect data about theories
      that have said they were happy with the current model *)
@@ -69,9 +66,6 @@ module type WhiteBoard = sig
        should be included in sharing *)
     varlist : TSet.t Lazy.t list }
 
-  (* When no theory has yet said that it was happy: left and varlist are empty *)
-  val sat_init : Assign.t -> sharing:TSet.t -> sat_tmp
-
   (* When a new theory says it is happy with the model,
      we update the data with function sat below; it outputs
      - GoOn(updated data)  if all went well but some theories still need to speak up;
@@ -82,6 +76,7 @@ module type WhiteBoard = sig
      if theory says it is happy with another model than it should (i.e. than assign)
      - NoSharingMatch sharing if it is happy with the expected model
        but thinks the shared terms are not what they should be (i.e. sharing) *)
+
   type sat_ans = private
     | GoOn of sat_tmp
     | Share of TSet.t
@@ -89,14 +84,18 @@ module type WhiteBoard = sig
     | NoModelMatch of Assign.t
     | NoSharingMatch of TSet.t
 
-  val sat : (sat,_) t -> sat_tmp -> sat_ans
+  (* When no theory has yet said that it was happy: left and varlist are empty *)
+  val sat_init : Assign.t -> sharing:TSet.t -> sat_tmp
+
+  val sat : sat t -> sat_tmp -> sat_ans
 end
 
 (* Kernel's API *)
 module type API = sig
+
   (* WhiteBoard module as defined above *)
   module WB : WhiteBoard
-
+    
   (* E-graph module *)
   module EGraph : Eq.Interfaces.API with type sign := Eq.MyTheory.sign
   (* List of theory modules - kernel part *)
@@ -104,22 +103,4 @@ module type API = sig
 
   (* The parsing function - necessarily part of the trusted base *)
   val parse : Parsers.Register.t -> string -> Term.t list
-end
-
-(* Extended API *)
-module type APIext = sig
-  include API
-  (* Also identifies the problem we are trying to solve as an input assignment *)
-  val problem    : Assign.t
-  (* Expected answer if the above if known *)
-  val expected   : bool option
-
-  (* Below:
-     checks a CDSAT definitive answer against the problem we are supposed to solve *)
-  type 'proof answer = private
-    | UNSAT of (unsat,'proof) WB.t
-    | SAT of Assign.t
-    | NotAnsweringProblem
-
-  val answer : ((unsat,'proof) WB.t, WB.sat_ans) sum -> 'proof answer
 end

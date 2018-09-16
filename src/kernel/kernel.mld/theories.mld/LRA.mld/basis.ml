@@ -29,7 +29,7 @@ end
 
 module QMap = struct
   include Map.MakeNH(Arg)
-  let pp_pair fmt (term,(v,_)) = pp_sassign fmt (SAssign(term,Values.NonBoolean(vinj v)))
+  let pp_pair fmt (term,(v,_)) = pp_sassign Term.pp Qhashed.pp fmt (SAssign(term,Values.NonBoolean v))
   let pp = print_in_fmt ~wrap:("{","}") pp_pair
 end
 

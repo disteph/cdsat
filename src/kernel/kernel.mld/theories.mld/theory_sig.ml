@@ -25,5 +25,5 @@ type _ slot_machine =
       propose : ?term: Term.t -> int -> (SAssign.t * float) list;
       share   : TSet.t -> 's output * 's slot_machine;
       clone   : unit -> 's slot_machine;
-      suicide : 'a -> unit
+      suicide : Assign.t -> unit
     } -> 's slot_machine

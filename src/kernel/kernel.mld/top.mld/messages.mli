@@ -19,7 +19,7 @@ type straight = straight_l propa
 (* Type of things that are the conclusion of theory inferences *)
 type _ propagated = private
   | Unsat    : unsat_l propagated               (* concluding ⊥ (= conflict) *)
-  | Straight : bassign -> straight_l propagated (* concluding a proper Boolean assignment *)
+  | Straight : BAssign.t -> straight_l propagated (* concluding a proper Boolean assignment *)
 
 type (_,_) message = private
   (* Message saying a theory module is happy with assignment assign,
@@ -33,7 +33,7 @@ type (_,_) message = private
 val sat     : 'sign -> Assign.t -> sharing:TSet.t -> myvars:TSet.t Lazy.t -> ('sign,sat) message
 val propa   : 'sign -> Assign.t -> 'l propagated -> ('sign,'l propa) message
 val unsat   : 'sign -> Assign.t                  -> ('sign,unsat) message
-val straight: 'sign -> Assign.t -> bassign       -> ('sign,straight) message
+val straight: 'sign -> Assign.t -> BAssign.t     -> ('sign,straight) message
 
 (* Pretty-printing messages *)
 val pp_message: (_,_) message Format.printer

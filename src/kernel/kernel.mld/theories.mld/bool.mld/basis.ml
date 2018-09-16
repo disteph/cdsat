@@ -102,15 +102,15 @@ let cube (t,Values.Boolean b) =
 module Constraint : sig
   type t [@@deriving show]
   val id: t -> int
-  val make : bassign -> t
-  val bassign : t -> bassign
-  val simpl   : t -> (Clauses.VarMap.t * bassign list) option
+  val make : BAssign.t -> t
+  val bassign : t -> BAssign.t
+  val simpl   : t -> (Clauses.VarMap.t * BAssign.t list) option
   val justif  : t -> Assign.t
   val simplify: Model.t->t->t
 end = struct
 
-  type simpl = (Clauses.VarMap.t * bassign list) option
-  type t = { bassign : bassign;
+  type simpl = (Clauses.VarMap.t * BAssign.t list) option
+  type t = { bassign : BAssign.t;
              simpl   : simpl;
              justif  : Assign.t; } [@@deriving fields]
 
@@ -128,10 +128,7 @@ end = struct
     let simpl = clause bassign |> Opt.map (fun c -> c,pick2 c []) in
     { bassign; simpl; justif = Assign.empty }
 
-  let id c =
-    let t,Values.Boolean b = c.bassign in
-    2*(Term.id t)+(if b then 1 else 0)
-
+  let id = bassign >> BAssign.id
 
   (* simplify model c
      simplifies clause c according to the
@@ -187,14 +184,14 @@ end = struct
       | Some(c',watched) ->
         Print.print ["kernel.bool",4] (fun p ->
             p "kernel.bool: Constraint %a is simplified to %a watching %a (justified by %a, adding to %a)"
-              pp_bassign constr.bassign
+              BAssign.pp constr.bassign
               Clauses.VarMap.pp c'
-              (List.pp pp_bassign) watched
+              (List.pp BAssign.pp) watched
               Assign.pp justif
               Assign.pp constr.justif );
         { constr with simpl; justif = Assign.union constr.justif justif }
       | None -> { constr with simpl; justif }
 
-  let pp fmt t = Format.fprintf fmt "%a" pp_bassign t.bassign
+  let pp fmt t = Format.fprintf fmt "%a" BAssign.pp t.bassign
   let show = Print.stringOf pp
 end

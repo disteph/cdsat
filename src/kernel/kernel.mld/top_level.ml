@@ -8,10 +8,13 @@ open Top
 open Messages
 open Sassigns
 
+include Top_level_sig
+
 let init
       ?(withtheories=Some[]) (* List of added theories *)
       ?(withouttheories=Some[]) (* List of forbidden theories *)
       dsKeys
+      proof
       ~parser
       input
   =
@@ -33,10 +36,12 @@ let init
       p "Using theories: %a" HandlersMap.pp theories));
 
   (* Now that we know the theories, we build the combined datastructures *)
-  let (module C) = Combo.make dsKeys theories in
+  let (module C) = Combo.make dsKeys theories proof in
   (module struct
      include C
+
      open WB
+
      let problem = List.fold
                      (fun formula
                       -> Assign.add (SAssign.boolassign(W.lift [] formula)))
@@ -45,14 +50,14 @@ let init
 
      let expected = expected
 
-     type 'proof answer =
-       | UNSAT of (unsat,'proof) WB.t
+     type answer =
+       | UNSAT of unsat t
        | SAT of Assign.t
        | NotAnsweringProblem
 
      let answer =
        function
-       | Case1(WB.WB(_,Propa(assign,Unsat),_) as msg) ->
+       | Case1(WB(_,Propa(assign,Unsat),_) as msg) ->
          if Assign.subset assign problem
          then UNSAT msg
          else
@@ -63,7 +68,7 @@ let init
                      Assign.pp (Assign.diff assign problem)));
             NotAnsweringProblem)    
 
-       | Case2(WB.Done(assign,sharing)) ->
+       | Case2(Done(assign,sharing)) ->
          if Assign.subset problem assign then SAT assign
          else
            (print_endline(
@@ -78,4 +83,4 @@ let init
              p "Errr... not all theories agree on model"));
          NotAnsweringProblem
 
-   end : Combo.APIext)
+   end : APIext)

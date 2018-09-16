@@ -13,6 +13,7 @@ open Async
 
 open Kernel
 open Top.Messages
+open Top.Sassigns
 open Theories.Register
 
 open Tools
@@ -23,5 +24,5 @@ open General.Sums
 module Make(WBEH: WhiteBoard4Master) : sig
   open WBEH
   open WBE
-  val master : H.t -> DS.Assign.t -> (unsat t, sat_ans) sum Deferred.t
+  val master : H.t -> Assign.t -> (unsat t, sat_ans) sum Deferred.t
 end

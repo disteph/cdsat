@@ -22,7 +22,7 @@ type straight = straight_l propa
 
 type _ propagated =
   | Unsat    : unsat_l propagated
-  | Straight : bassign -> straight_l propagated
+  | Straight : BAssign.t -> straight_l propagated
                                                  
 type (_,_) message =
   | Sat   : { assign : Assign.t; sharing: TSet.t; myvars: TSet.t Lazy.t} -> (_,sat) message
@@ -44,7 +44,7 @@ let print_msg_in_fmt_latex fmt (type a): (_,a)message -> unit = function
   | Propa(justif,Unsat)
     -> fprintf fmt "%a\\vdash\\bot" Assign.pp justif
   | Propa(justif,Straight b)
-    -> fprintf fmt "%a\\vdash %a" Assign.pp justif pp_bassign b
+    -> fprintf fmt "%a\\vdash %a" Assign.pp justif BAssign.pp b
 
 let print_msg_in_fmt_utf8 fmt (type a): (_,a)message -> unit = function
   | Sat { assign; sharing; myvars }
@@ -53,7 +53,7 @@ let print_msg_in_fmt_utf8 fmt (type a): (_,a)message -> unit = function
   | Propa(justif,Unsat)
     -> fprintf fmt "%a ⊢ ⊥" Assign.pp justif
   | Propa(justif,Straight b)
-    -> fprintf fmt "%a ⊢ %a" Assign.pp justif pp_bassign b
+    -> fprintf fmt "%a ⊢ %a" Assign.pp justif BAssign.pp b
 
 let pp_message fmt = match !Dump.display with
   | Dump.Latex -> print_msg_in_fmt_latex fmt

@@ -12,15 +12,12 @@ open Messages
 
 open General
 open Patricia
-open Patricia_interfaces
 open Patricia_tools
 open Sums
 
 (* This module implements conflict analysis *)
 
-module Make(WB : Export.WhiteBoard) = struct
-
-  open WB.DS
+module Make(WB : Combo.WhiteBoard) = struct
          
   (* type nature indicates the status of each single assignment
      accumulated in the trail so far.
@@ -62,7 +59,7 @@ The reason it was added to the trail was either:
 
   type max = { level : int;
                chrono : int;
-               sassign: unit -> sassign;
+               sassign: unit -> SAssign.t;
                nature : unit -> nature;
                is_uip : unit -> bool; }
 
@@ -70,6 +67,7 @@ The reason it was added to the trail was either:
 
   module DestWInfo = struct
     include SAssign
+    include TypesFromHConsed(SAssign)
     type values  = int*int*nature
     type infos   = max
 
@@ -84,7 +82,7 @@ The reason it was added to the trail was either:
         leaf_info = (fun x (i,j,v) ->
           { level = i;
             chrono = j;
-            sassign= (fun()-> SAssign.reveal x);
+            sassign= (fun()-> x);
             nature = (fun()-> v);
             is_uip = (fun()-> true); }
         );
@@ -100,19 +98,17 @@ The reason it was added to the trail was either:
         );
       }
                        
-    let treeHCons  = None (* Some(LitF.id,Terms.id,Terms.equal) *)
-
   end
 
   (* We now create the data-structure for Trail Maps *)
-  module TrailMap = PatMap.Make(DestWInfo)(TypesFromHConsed(SAssign))
+  module TrailMap = Map.MakeNH(DestWInfo)
 
   (* Extracts from a trail map the fragment that is used in the left-hand
   side of a propa message, from which we removed semsplit. I.e. the
   formulae in semsplit do not end up in the extraction. *)
                      
   let get_data trailmap ?(semsplit=Assign.empty) msg =
-    let WB.WB(_,Propa(tset,_)) = msg in
+    let WB.WB(_,Propa(tset,_),_) = msg in
     let map = TrailMap.inter_poly (fun _ v () ->v) trailmap (Assign.diff tset semsplit) in
     TrailMap.info map
 
@@ -120,8 +116,8 @@ The reason it was added to the trail was either:
 
   let has_guess data =
     if data.level < 0 then false
-    else match data.nature(), data.sassign() with
-         | Decision,SAssign(_, Values.NonBoolean _) -> true
+    else match data.nature() with
+         | Decision when not(SAssign.is_Boolean (data.sassign())) -> true
          | _ -> false
 
   (* Now we define the type for trails *)
@@ -163,10 +159,11 @@ The reason it was added to the trail was either:
                last_chrono = 0;
                late = [] }
 
-  let is_contradicting (SAssign pair) trail =
+  let is_contradicting sassign trail =
+    let (SAssign pair) = SAssign.reveal sassign in
     match pair with
     | t,Values.Boolean b ->
-       let sassign = SAssign.build(SAssign(negation pair)) in
+       let sassign = SAssign.build(negation pair) in
        if TrailMap.mem sassign trail.map
        then Some sassign
        else None
@@ -179,12 +176,12 @@ The reason it was added to the trail was either:
     let map level =
       Print.print ["trail",1] (fun p ->
           p "Trail adding %a at level %i and chrono %i as %a"
-            pp_sassign sassign
+            SAssign.pp sassign
             level
             (trail.last_chrono+1)
             pp_nature nature);
       TrailMap.add
-        (SAssign.build sassign)
+        sassign
         (function
          | None -> level,trail.last_chrono,nature
          | Some triple -> triple)
@@ -218,7 +215,7 @@ The reason it was added to the trail was either:
     | InputConflict of unsat WB.t
     | Backjump of { backjump_level : int;
                     propagations   : straight WB.t list;
-                    decision       : sassign option }
+                    decision       : SAssign.t option }
                     
   let analyse trail conflict learn =
     
@@ -237,38 +234,39 @@ The reason it was added to the trail was either:
 
       (* We analyse the nature of the latest assignment contributing to the conflict *)
       try
-        match data.nature(),data.sassign() with
+        let sassign = data.sassign() in
+        match data.nature(), SAssign.reveal sassign with
 
-        | Input,sassign when (Assign.is_empty semsplit) (* We are not in semsplit *) ->
+        | Input, _ when (Assign.is_empty semsplit) (* We are not in semsplit *) ->
            (* It's an assignment of the original problem, and so is the whole conflict.
             We stop. *)
            Print.print ["trail",1] (fun p ->
                p "Assignment %a in the conflict is part of the original problem, and so are the others. We stop."
-                 pp_sassign sassign);
+                 SAssign.pp sassign);
            return(InputConflict conflict)
 
         | _,SAssign((_,Values.Boolean _) as bassign)
              (* This is a Backjump situation if the following condition is true *)
-             when (Assign.is_empty semsplit) (* We are not in semsplit *)
-                  && (data.is_uip())       (* and data.term() is a UIP *)
-                  && level > 0             (* and conflict is not of level 0 *)
+          when (Assign.is_empty semsplit) (* We are not in semsplit *)
+            && (data.is_uip())            (* and data.term() is a UIP *)
+            && level > 0                  (* and conflict is not of level 0 *)
           -> (* ...we use that UIP to switch branches *)
 
-           let msg = WB.curryfy ~flip:bassign conflict in
-           (* First computing the assignments we need for the branch we backjump to *)
-           let highest  = data.sassign() in
-           let next     = get_data map msg in
-           let highest2 = if next.level > -1 then Some(next.sassign()) else None in
-           Print.print ["trail",1] (fun p ->
-               p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
-                 data.level
-                 pp_sassign highest
-                 next.level
-                 WB.pp msg
-             );
+          let msg = WB.curryfy ~flip:bassign conflict in
+          (* First computing the assignments we need for the branch we backjump to *)
+          let highest  = data.sassign() in
+          let next     = get_data map msg in
+          let highest2 = if next.level > -1 then Some(next.sassign()) else None in
+          Print.print ["trail",1] (fun p ->
+              p "Conflict level: %i; first term: %a; second level: %i; inferred propagation:\n %a"
+                data.level
+                SAssign.pp highest
+                next.level
+                WB.pp msg
+            );
 
-           (* We learn the conflict, watching first and second highest assignment *)
-           learn conflict highest highest2;%map
+          (* We learn the conflict, watching first and second highest assignment *)
+          learn conflict highest highest2;%map
 
            (* Now jumping to level of second formula contributing to conflict *)
            Backjump { backjump_level = Compare.max [%ord:int] 0 next.level;
@@ -276,12 +274,12 @@ The reason it was added to the trail was either:
                       decision       = None }
 
                     
-        | Deduction msg, sassign when data.level = level ->
+        | Deduction msg, _ when data.level = level ->
            (* The latest assignment in the conflict has been propagated *)
            Print.print ["trail",1] (fun p ->
-               let level,chrono,_ = TrailMap.find (SAssign.build sassign) map in
+               let level,chrono,_ = TrailMap.find sassign map in
                p "Explaining %a of level %i and chrono %i, using message\n %a"
-                 pp_sassign (data.sassign()) level chrono WB.pp msg);
+                 SAssign.pp (data.sassign()) level chrono WB.pp msg);
 
            (* We compute the conflict and the semsplit for the recursive call *)
            let conflict,semsplit =
@@ -309,7 +307,7 @@ The reason it was added to the trail was either:
           match Assign.is_empty semsplit with
           | true -> (* This is an Undo case *)
             Print.print ["trail",1] (fun p ->
-                p "Reached decision %a: Undo case" pp_sassign (data.sassign()));
+                p "Reached decision %a: Undo case" SAssign.pp (data.sassign()));
             return None
 
           | false -> (* This is an UndoDecide case *)

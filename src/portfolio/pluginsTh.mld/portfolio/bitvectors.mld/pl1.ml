@@ -1,38 +1,30 @@
-open General
-open Sums
-open Patricia
-open Patricia_tools
-
 open Kernel
-open Export
-open Top.Specs
-open Top.Basic
-open Top.Sassigns
-open Top.Messages
+
+open Top.Terms
+
+open Theories
+open Theory
 open Theories.Bitvectors
-       
+
+open Datatypes
+    
 type sign = MyTheory.sign
+type api  = (module MyTheory.API)
 
-module Make(DS: GlobalImplem) = struct
-  open DS
-  module Make(K: MyTheory.API with type assign = Assign.t
-                               and type termdata= Term.datatype
-                               and type tset   = TSet.t )
-    = struct
+let hdl = MyTheory.hdl
 
-    module DT = Datatypes.Make(DS)(K)
-    open DT
+module Make(W: Writable) = struct
+
+  module Make(K: MyTheory.API) = struct
 
     type state = {
         kernel : K.state;  (* The state of the kernel *)
         domains: Domain.t; (* The set of variables we could fix, with their domains *)
         silent : bool      (* Whether we have already sent an unsat message *)
       }
-
-
                                   
     (* This is the main loop. *)                   
-    let rec machine state : (sign,(Term.datatype*Value.t*Assign.t*TSet.t)) slot_machine =
+    let rec machine state : sign slot_machine =
 
       let add a = failwith "TODO"
       in
@@ -40,8 +32,7 @@ module Make(DS: GlobalImplem) = struct
       let share =
         (* If we have already sent an unsat message, we shut up. *)
         if state.silent then fun _ -> Silence, machine state
-        else
-          fun tset -> failwith "TODO"
+        else fun tset -> failwith "TODO"
       in
       
       let clone () = machine state in
@@ -60,9 +51,8 @@ module Make(DS: GlobalImplem) = struct
 
   end
         
-  let make (k: (Term.datatype,Value.t,Assign.t,TSet.t) MyTheory.api)
-    = let (module K) = k in
-      let module Made = Make(K) in
+  let make (module K: MyTheory.API)
+    = let module Made = Make(K) in
       { PluginTh.init = Made.init;
         PluginTh.clear = Made.clear }
 

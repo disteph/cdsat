@@ -2,28 +2,27 @@ open Async
 
 open General.Sums
 open Kernel
-open Top.Messages
-open Top.Specs
-open Top.Sassigns
+open Top
+open Terms
+open Values
+open Sassigns
+open Messages
+
+open Theories.Theory
 open Theories.Register
 open Interfaces
                              
-module Make(WB: Export.WhiteBoard) = struct
+module Make(WB: Combo.WhiteBoard) = struct
 
   open WB
-  open DS
-  type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
-  type term      = Term.t
-  type vvalue    = Value.t values
-  type cval      = CValue.t
-  type nonrec sassign = sassign
+  type vvalue = Value.t values
                                   
   type ack = private AckL
   type say = private MsgL
 
   type _ answer = Ack :            ack answer
                 | Say : _ t     -> say answer
-                | Try : (sassign*float) list -> say answer
+                | Try : (SAssign.t*float) list -> say answer
     
   type msg2pl = Msg : Handlers.t option * _ answer * int -> msg2pl
       
@@ -37,23 +36,22 @@ module Make(WB: Export.WhiteBoard) = struct
     }
    and _ eports =
      | EPorts      : egraph eports
-     | RegularPorts: (term,vvalue) sum Pipe.Writer.t -> regular eports
+     | RegularPorts: (Term.t,vvalue) sum Pipe.Writer.t -> regular eports
    and _ msg2th =
-     | MsgStraight : sassign*int         -> _ msg2th
-     | MsgSharing  : TSet.t*int          -> _ msg2th
-     | MsgPropose  : term option*int*int -> _ msg2th
+     | MsgStraight : SAssign.t*int         ->  _ msg2th
+     | MsgSharing  : TSet.t*int            ->  _ msg2th
+     | MsgPropose  : Term.t option*int*int ->  _ msg2th
      | MsgSpawn    : 'a ports            -> 'a msg2th
-     | Infos       : (term,vvalue) sum*term*cval*(unit->cval list) -> regular msg2th
-     | TheoryAsk   : (regular msg2th Pipe.Writer.t)
-                     * ((term,vvalue) sum)
-                     -> egraph msg2th
-     | KillYourself: unsat t * sassign * sassign option -> _ msg2th
+     | Infos       : (Term.t,vvalue) sum*Term.t*CValue.t*(unit->CValue.t list)
+       -> regular msg2th
+     | TheoryAsk   : (regular msg2th Pipe.Writer.t) * ((Term.t,vvalue) sum) -> egraph msg2th
+     | KillYourself: unsat t * SAssign.t * SAssign.t option -> _ msg2th
 
   let pp_tv = General.Sums.pp_sum Term.pp (pp_values Value.pp)
                                                              
   let pp_msg2th fmt (type a) : a msg2th -> unit = function
     | MsgStraight(assign,chrono)
-      -> Format.fprintf fmt "MsgStraight_%i %a" chrono pp_sassign assign
+      -> Format.fprintf fmt "MsgStraight_%i %a" chrono SAssign.pp assign
     | MsgSharing(tset,chrono)
       -> Format.fprintf fmt "MsgSharing_%i %a" chrono TSet.pp tset
     | MsgPropose(_,number,chrono)
@@ -68,7 +66,4 @@ module Make(WB: Export.WhiteBoard) = struct
     | KillYourself(_,_,_)
       -> Format.fprintf fmt "KillYourself"
 
-  type 'a ioutput       = ('a, datatypes) output
-  type 'a islot_machine = ('a, datatypes) slot_machine
-  type isslot_machine   = datatypes PluginsTh.PluginTh.sslot_machine
 end

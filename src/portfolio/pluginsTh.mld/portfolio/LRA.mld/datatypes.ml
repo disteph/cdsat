@@ -5,37 +5,25 @@ open Patricia
 open Patricia_tools
 
 open Kernel
-open Export
-open Theories.LRA
+open Top.Terms
 open Top.Sassigns
 open Top.Messages
+open Theories.LRA
        
 open Tools
        
-module Make(DS: GlobalImplem)
-         (K: API.API with type sign   = MyTheory.sign
-                      and type assign = DS.Assign.t
-                      and type termdata= DS.Term.datatype
-                      and type value  = DS.Value.t
-                      and type tset   = DS.TSet.t )
-  = struct
-
-  open DS
-  type datatypes = Term.datatype*Value.t*Assign.t*TSet.t
-
+module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
   module QVar = struct
-    type t = int [@@deriving ord]
-    let id i = i
-    let pp fmt i = Term.pp fmt (Term.term_of_id i)
-    type values = bassign Range.t
-    include MaxInfo(struct type t = int [@@deriving ord] end)
-    let treeHCons = None
+    include Term
+    include TypesFromHConsed(Term)
+    type values = BAssign.t Range.t
+    include MaxInfo(Term)
   end
 
   module Domain = struct
 
-    include PatMap.Make(QVar)(TypesFromHConsed(QVar))
+    include Map.MakeNH(QVar)
 
     let pp fmt domains =
       let pp_binding fmt (var,range) =
@@ -59,11 +47,7 @@ module Make(DS: GlobalImplem)
         2*(Term.id t)+(if b then 1 else 0)
     end
 
-    module Var = struct
-      type t = int [@@deriving ord]
-      let pp fmt i = Term.pp fmt (Term.term_of_id i)
-      let show = Print.stringOf pp
-    end
+    module Var = Term
 
     type fixed = K.Model.t
 
@@ -73,8 +57,7 @@ module Make(DS: GlobalImplem)
       Print.print ["LRA",2] (fun p ->
           p "LRA: WLB picks variables for %a, gets %a"
             K.Simpl.pp c
-            (List.pp Term.pp)
-            (List.map Term.term_of_id (K.Simpl.watchable c)));
+            (List.pp Term.pp) (K.Simpl.watchable c));
       K.Simpl.watchable c
   end
 
@@ -84,15 +67,11 @@ module Make(DS: GlobalImplem)
   module ConfigQ = struct
 
     module Constraint = struct
-      type t = K.Simpl.t * (Top.Qhashed.t option) * int [@@deriving show]
-      let id (_,_,i) = i
+      type t = K.Simpl.t * (Top.Qhashed.t option) * Term.t [@@deriving show]
+      let id (_,_,t) = Term.id t
     end
 
-    module Var = struct
-      type t = int [@@deriving ord]
-      let pp fmt i = Term.pp fmt (Term.term_of_id i)
-      let show = Print.stringOf pp
-    end
+    module Var = Term
 
     type fixed = K.Model.t
 
@@ -102,8 +81,7 @@ module Make(DS: GlobalImplem)
       Print.print ["LRA",2] (fun p ->
           p "LRA: WLQ picks variables for %a, gets %a"
             K.Simpl.pp c
-            (List.pp Term.pp)
-            (List.map Term.term_of_id (K.Simpl.watchable c)));
+            (List.pp Term.pp) (K.Simpl.watchable c));
       K.Simpl.watchable c
   end
 
@@ -115,7 +93,7 @@ module Make(DS: GlobalImplem)
     fprintf fmt "%a ⊢ %a"
       Assign.pp justif
       (Top.Sassigns.pp_sassign K.Simpl.pp Q.pp_print)
-      (SAssign(K.Simpl.make t,Top.Values.Boolean b))      
+      (SAssign(K.Simpl.make t,Top.Values.Boolean b))
 
   let pp_fm fmt (ba1,ba2,t) =
     let t1, Top.Values.Boolean b1 = ba1 in

@@ -1,41 +1,41 @@
-(* This is the register of all generic plugins in Psyche *)
+open General.Hashtbl_hetero
 
 open Kernel
-open Export
-open Top.Specs
+open Top.Terms
+open Theories.Theory
 open Theories.Register.Modules
-       
-module Make(DS: GlobalImplem) = struct
-  open DS
+open PluginTh
 
-  let make (Module(tag,k): (Term.datatype*Value.t*Assign.t*TSet.t) t) =
-    let aux make = 
-      let open PluginTh in
+let all_pluginTh : (module Type) list =
+  [ (module Bool.Pl1); 
+    (module Arrays.Pl1);
+    (module LRA.Pl1);
+    (module IfThenElse.Pl1) ]
+  
+module Buildable = struct
+  type ('a,_) t = Buildable : ('api -> 'sign pluginTh) -> ('sign*'api,_) t [@@unboxed]
+end
+
+module PluginMap = MakeS(Tags)(Buildable)
+
+exception NoPluginTh of Handlers.t
+
+module Make(W: Writable) = struct
+
+  let pluginMap = PluginMap.create 17
+
+  let add2map (module Pl:Type) =
+    let module PlBuilt = Pl.Make(W) in
+    PluginMap.add pluginMap Pl.hdl (Buildable PlBuilt.make)
+
+  let () = List.iter add2map all_pluginTh
+
+  let make (Module(hdl,k)) =
+    if PluginMap.mem pluginMap hdl
+    then
+      let Buildable.Buildable make = PluginMap.find pluginMap hdl in
       let o = make k in
-      Signed(tag,o.init),
-      o.clear
-    in
-    let open Theories.Register.Tags in
-      match tag with
-
-      | Bool  ->
-         let module M = Bool.Pl1.Make(DS) in
-         aux M.make
-
-      (* | CC    -> *)
-      (*    let module M = CC_pl1.Make(WB) in *)
-      (*    aux M.make *)
-
-      | Arrays->
-         let module M = Arrays.Pl1.Make(DS) in
-         aux M.make
-
-      | LRA   ->
-         let module M = LRA.Pl1.Make(DS) in
-         aux M.make
-
-      | IfThenElse ->
-         let module M = IfThenElse.Pl1.Make(DS) in
-         aux M.make
-
+      Signed(hdl,o.init), o.clear
+    else
+      raise (NoPluginTh(Handlers.Handler hdl))
 end
