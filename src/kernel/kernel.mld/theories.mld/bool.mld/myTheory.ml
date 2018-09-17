@@ -40,7 +40,7 @@ module T = struct
                  sharing = TSet.empty;
                  myvars  = lazy TSet.empty }
 
-    let add_myvars term = (proj term).freevar |> TSet.fold TSet.add 
+    let add_myvars = proj >> Clauses.freevar >> TSet.fold TSet.add 
 
     type interesting =
       | Falsified of (sign,unsat) message
@@ -116,9 +116,7 @@ module T = struct
       let seen = Assign.add sassign state.seen in
       let SAssign((term,v) as bassign) = SAssign.reveal sassign in
       let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
-      let finalise (propas,todo) =
-        { state with seen; todo; myvars }, propas
-      in
+      let finalise (propas,todo) = { state with seen; todo; myvars }, propas in
       match v with
       | Values.NonBoolean _ -> { state with seen; myvars }, Case1 []
       | Values.Boolean b ->

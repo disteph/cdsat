@@ -1,6 +1,6 @@
 (*********************************************************************)
 (* Main plugin, implementing the combination of decision procedures
-with concurrency, as provided by Jane Street's Async library.
+   with concurrency, as provided by Jane Street's Async library.
 
    This is a master-slaves architecture.
 
@@ -10,14 +10,14 @@ with concurrency, as provided by Jane Street's Async library.
 (*********************************************************************)
 
 open Async
-       
+
 open Kernel
 open Top.Terms
 open Top.Sassigns
 open Top.Messages
 open Theories.Theory
 open Theories.Register
-       
+
 open Tools
 open Interfaces
 
@@ -26,7 +26,7 @@ open Sums
 open Lib
 
 module Make(WB4M: WhiteBoard4Master) = struct
-             
+
   open WB4M
   open WBE
 
@@ -38,7 +38,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | None -> Format.fprintf fmt "Memo"
       | Some hdl -> Format.fprintf fmt "%a" Handlers.pp hdl
   end
-                    
+
   module AS = struct
     include Set.Make(Agents)
     let all = theories_fold (fun hdl -> add(Some hdl)) (singleton None)
@@ -54,13 +54,13 @@ module Make(WB4M: WhiteBoard4Master) = struct
   end
 
   type state = {
-      trail    : T.t;                 (* The trail *)
-      moves    : (SAssign.t*float) list;(* The set of available moves *)
-      hub      : H.t;                 (* Communication channels with other modules *)
-      messages : say answer Pqueue.t; (* The buffer queue for messages that are not decisions *)
-      waiting4 : AS.t;                (* The agents from which we await an answer *)
-      current  : sat_tmp
-    }
+    trail    : T.t;                 (* The trail *)
+    moves    : (SAssign.t*float) list;(* The set of available moves *)
+    hub      : H.t;                 (* Communication channels with other modules *)
+    messages : say answer Pqueue.t; (* The buffer queue for messages that are not decisions *)
+    waiting4 : AS.t;                (* The agents from which we await an answer *)
+    current  : sat_tmp
+  }
 
   let moves state = state.moves
 
@@ -68,8 +68,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
      reads input channel and selects a message to process;
      buffers branching requests and makes sure every agent has
      finished talking before processing one of the buffered branching requests
-   *)
-      
+  *)
+
   let rec select_msg state : (say answer * state) option Deferred.t =
     match Pqueue.pop state.messages with
 
@@ -124,7 +124,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
   type answer    = (T.analysis,sat_ans) sum
   type saturation_info = NeedsMove | Leaf of answer
-    
+
   (* Main loop of the master thread *)
   let rec saturate state : (state*saturation_info) Deferred.t =
 
@@ -225,7 +225,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
   let apply_move sassign state =
     Print.print ["concur",1] (fun p -> p "About to apply move %a" SAssign.pp sassign);
-
+    incr PFlags.decnumb;
     (* We attempt to create the trail extended with the decision *)
     match T.add ~nature:T.Decision sassign state.trail with
     | None -> (* The flip of the decision is in the trail, we miserably fail *)
@@ -245,7 +245,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                             waiting4 = AS.all;
                             trail;
                             current = sat_init assign1 ~sharing:state.current.sharing }
-        
+
   (* In the first branch, we broadcast the guess *)
   (* (\* First recursive call *\)
    * let%bind ans = master_loop current1 newstate1 in
@@ -290,7 +290,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     in
     Deferred.all_unit tasks;%map
     state
-    
+
   let master hub input =
     failwith "MCTS to plug in"
     (* match%map master_loop state with
@@ -300,5 +300,5 @@ module Make(WB4M: WhiteBoard4Master) = struct
      *    Case1 conflict
      * | Case1(T.Backjump _) -> failwith "Should not come back to level -1 with a propagation"
      * | Case2 msg -> Case2 msg *)
-                         
+
 end

@@ -233,8 +233,9 @@ module Make(W:Writable) = struct
                        | ToWatch(_,watchable) ->
 
                           Print.print ["bool",4] (fun p ->
-                              p "bool: new constraint - Watching clause %a"
-                                BAssign.pp bassign);
+                             p "bool: new constraint - Watching %a in clause %a"
+                               (List.pp BAssign.pp) watchable
+                               BAssign.pp bassign);
                           let watched = WL.addconstraint ~watched:watchable c watched in
                           (* By the way, the constraint's literals that are undetermined
                            need to be recorded, so we can pick one when we do a split *)
@@ -249,8 +250,8 @@ module Make(W:Writable) = struct
                             if K.BMap.mem var (K.Model.map fixed)
                             then sofar
                             else
-                              let sassign  = SAssign.boolassign ~b:true t in
-                              let sassign' = SAssign.boolassign ~b:false t in
+                              let sassign  = SAssign.boolassign ~b:true var in
+                              let sassign' = SAssign.boolassign ~b:false var in
                               Assign.add sassign (Assign.add sassign' sofar)
                           in
                           let newlits = VarMap.fold aux newlits Assign.empty in

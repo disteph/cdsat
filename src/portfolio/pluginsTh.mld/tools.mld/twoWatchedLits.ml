@@ -97,6 +97,7 @@ module Make (C : Config) = struct
   (* Adding or updating a constraint before we know the variables to watch *)
       
   let treat_one fixed ?howmany c t =
+    Print.print ["watch",1] (fun p-> p "watch: changing watch list for %a" Constraint.pp c);
     (* c is constraint for which we want to pick watched vars *)
     (* Here are the vars currently watched by c *)
     let oldwatched = CMap.find c t.cons2var in

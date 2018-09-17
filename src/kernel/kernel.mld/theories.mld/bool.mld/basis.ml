@@ -55,7 +55,7 @@ end = struct
       then
         let b',sassign' = BMap.find term m in
         if [%eq:bool] b b'
-        then failwith "Trying to record the same assignment twice"
+        then Case1 m (* failwith "Trying to record the same assignment twice" *)
         else
           begin
             Print.print ["kernel.bool",5]
@@ -65,7 +65,7 @@ end = struct
       else
         begin
           Print.print ["kernel.bool",5]
-            (fun p->p "Term %a not alredy set" Term.pp term);
+            (fun p->p "Term %a not already set" Term.pp term);
           Case1(BMap.add term (fun _ -> b,sassign) m)
         end
 
@@ -101,11 +101,11 @@ let cube (t,Values.Boolean b) =
 
 module Constraint : sig
   type t [@@deriving show]
-  val id: t -> int
-  val make : BAssign.t -> t
+  val id      : t -> int
   val bassign : t -> BAssign.t
   val simpl   : t -> (Clauses.VarMap.t * BAssign.t list) option
   val justif  : t -> Assign.t
+  val make    : BAssign.t -> t
   val simplify: Model.t->t->t
 end = struct
 

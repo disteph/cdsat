@@ -1,6 +1,6 @@
 (*********************************************************************)
 (* Main plugin, implementing the combination of decision procedures
-with concurrency, as provided by Jane Street's Async library.
+   with concurrency, as provided by Jane Street's Async library.
 
    This is a master-slaves architecture.
 
@@ -10,7 +10,7 @@ with concurrency, as provided by Jane Street's Async library.
 (*********************************************************************)
 
 open Async
-       
+
 open Kernel
 open Top.Terms
 open Top.Sassigns
@@ -26,7 +26,7 @@ open Sums
 open Lib
 
 module Make(WB4M: WhiteBoard4Master) = struct
-             
+
   open WB4M
   open WBE
 
@@ -38,7 +38,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | None -> Format.fprintf fmt "Memo"
       | Some hdl -> Format.fprintf fmt "%a" Handlers.pp hdl
   end
-                    
+
   module AS = struct
     include Set.Make(Agents)
     let all = theories_fold (fun hdl -> add(Some hdl)) (singleton None)
@@ -46,20 +46,20 @@ module Make(WB4M: WhiteBoard4Master) = struct
   end
 
   type state = {
-      hub      : H.t;                 (* Communication channels with other modules *)
-      messages : say answer Pqueue.t; (* The buffer queue for messages *)
-      decision : (SAssign.t*float) list;(* The latest decision proposal *)
-      waiting4 : AS.t;                (* The agents from which we await an answer *)
-      trail    : T.t                  (* The trail *)
-    }
+    hub      : H.t;                 (* Communication channels with other modules *)
+    messages : say answer Pqueue.t; (* The buffer queue for messages *)
+    decision : (SAssign.t*float) list;(* The latest decision proposal *)
+    waiting4 : AS.t;                (* The agents from which we await an answer *)
+    trail    : T.t                  (* The trail *)
+  }
 
 
   (* Select message function:
      reads input channel and selects a message to process;
      buffers branching requests and makes sure every agent has
      finished talking before processing one of the buffered branching requests
-   *)
-      
+  *)
+
   let rec select_msg state : (say answer * state) Deferred.t =
     match Pqueue.pop state.messages with
 
@@ -126,13 +126,14 @@ module Make(WB4M: WhiteBoard4Master) = struct
     | Try [], state -> failwith "Should not happen"
 
     | Try ((sassign,_)::_), state ->
-       Print.print ["concur",1] (fun p -> p "About to try %a" SAssign.pp sassign);
 
-       (* We attempt to create the trail extended with the decision *)
-       begin match T.add ~nature:T.Decision sassign state.trail with
-       | None -> (* The flip of the decision is in the trail, we ignore the decision *)
+      Print.print ["concur",1] (fun p -> p "About to try %a" SAssign.pp sassign);
+      incr PFlags.decnumb;
+      (* We attempt to create the trail extended with the decision *)
+      begin match T.add ~nature:T.Decision sassign state.trail with
+        | None -> (* The flip of the decision is in the trail, we ignore the decision *)
           master_loop current state
-       | Some trail ->
+        | Some trail ->
           (* This is a branching point where we tell all slave workers:
               "Please, clone yourself; here are the new pipes to be used
               for your clone to communicate with me." *)
@@ -171,93 +172,93 @@ module Make(WB4M: WhiteBoard4Master) = struct
             master_loop current newstate2
 
           | _ -> H.kill state.hub; return ans
-       end         
+      end         
 
     | Say(WB(_,msg,_) as thmsg), state ->
 
-       match msg with
-         
-       | Propa(tset,Unsat) -> 
-          Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
-          (* A theory found a proof. We stop and close all pipes. *)
-          (* let g = Let_syntax.bind in *)
-          let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
-          H.kill state.hub;
-          Case1 ans
+      match msg with
 
-       | Propa(old,Straight bassign) ->
-          Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
-          (* A theory deduced a boolean assignment bassign from assignment old. *)
-          let sassign = SAssign.build bassign in
-          begin match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
+      | Propa(tset,Unsat) -> 
+        Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
+        (* A theory found a proof. We stop and close all pipes. *)
+        (* let g = Let_syntax.bind in *)
+        let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
+        H.kill state.hub;
+        Case1 ans
+
+      | Propa(old,Straight bassign) ->
+        Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
+        (* A theory deduced a boolean assignment bassign from assignment old. *)
+        let sassign = SAssign.build bassign in
+        begin match T.add ~nature:(T.Deduction thmsg) sassign state.trail with
           | None -> (* The flip of bassign is in the trail, we have a conflict *)
-             let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
-             master_loop current { state with messages }
+            let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
+            master_loop current { state with messages }
           | Some trail ->
-             (* A theory deduced a boolean assignment newa from assignment
+            (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
-             let assign  = Assign.add sassign current.assign in
-             let current = sat_init assign ~sharing:current.sharing in
-             let state   = { state with
-                             decision = []; (* we cancel remaining decision proposal *)
-                             waiting4 = AS.all;
-                             trail }
-             in
-             H.broadcast state.hub sassign (T.chrono state.trail);%bind
-             master_loop current state
-          end
+            let assign  = Assign.add sassign current.assign in
+            let current = sat_init assign ~sharing:current.sharing in
+            let state   = { state with
+                            decision = []; (* we cancel remaining decision proposal *)
+                            waiting4 = AS.all;
+                            trail }
+            in
+            H.broadcast state.hub sassign (T.chrono state.trail);%bind
+            master_loop current state
+        end
 
-       | Sat {assign; sharing} -> 
-          (* A theory found a counter-model newtset. If it is the
-                same as the current one, then it means the theory has stamped the
-                model for which we were collecting stamps. If not, now
-                all other theories need to stamp newtset. *)
+      | Sat {assign; sharing} -> 
+        (* A theory found a counter-model newtset. If it is the
+              same as the current one, then it means the theory has stamped the
+              model for which we were collecting stamps. If not, now
+              all other theories need to stamp newtset. *)
 
-          match sat thmsg current with
-          | Done(assign,sharing) as sat_ans ->
-             Print.print ["concur",2] (fun p ->
-                 p "All theories were fine with model %a sharing %a"
-                   Assign.pp assign
-                   TSet.pp sharing);
-             (* rest being empty means that all theories have
+        match sat thmsg current with
+        | Done(assign,sharing) as sat_ans ->
+          Print.print ["concur",2] (fun p ->
+              p "All theories were fine with model %a sharing %a"
+                Assign.pp assign
+                TSet.pp sharing);
+          (* rest being empty means that all theories have
              stamped the assignment consset as being consistent with them,
              so we can finish, closing all pipes *)
-             H.kill state.hub;
-             return(Case2 sat_ans)
+          H.kill state.hub;
+          return(Case2 sat_ans)
 
-          | Share toshare ->
-             Print.print ["concur",2] (fun p ->
-                 p "New variables to share: %a" TSet.pp toshare);
-             let sharing = TSet.union toshare current.sharing in
-             let current = sat_init current.assign ~sharing in
-             let state   = { state with
-                             decision = []; (* we cancel remaining decision proposal *)
-                             waiting4 = AS.all;
-                             trail    = T.chrono_incr state.trail }
-             in
-             H.share state.hub toshare (T.chrono state.trail);%bind
-             master_loop current state
+        | Share toshare ->
+          Print.print ["concur",2] (fun p ->
+              p "New variables to share: %a" TSet.pp toshare);
+          let sharing = TSet.union toshare current.sharing in
+          let current = sat_init current.assign ~sharing in
+          let state   = { state with
+                          decision = []; (* we cancel remaining decision proposal *)
+                          waiting4 = AS.all;
+                          trail    = T.chrono_incr state.trail }
+          in
+          H.share state.hub toshare (T.chrono state.trail);%bind
+          master_loop current state
 
-          | GoOn current ->
-             Print.print ["concur",2] (fun p ->
-                 p " still waiting for %a" HandlersMap.pp current.left);
-             (* some theories still haven't stamped that assignment
+        | GoOn current ->
+          Print.print ["concur",2] (fun p ->
+              p " still waiting for %a" HandlersMap.pp current.left);
+          (* some theories still haven't stamped that assignment
              as being consistent with them,
              so we read what the theories have to tell us *)
-             master_loop current state
+          master_loop current state
 
-          | NoModelMatch assign_ref ->
-             Print.print ["concur",3] (fun p ->
-                 p "Outdated model? saw unexpected %a,\n didn't see expected %a"
-                   Assign.pp (Assign.diff assign assign_ref)
-                   Assign.pp (Assign.diff assign_ref assign));
-             master_loop current state
+        | NoModelMatch assign_ref ->
+          Print.print ["concur",3] (fun p ->
+              p "Outdated model? saw unexpected %a,\n didn't see expected %a"
+                Assign.pp (Assign.diff assign assign_ref)
+                Assign.pp (Assign.diff assign_ref assign));
+          master_loop current state
 
-          | NoSharingMatch sharing_ref ->
-             Print.print ["concur",3] (fun p ->
-                 p "Outdated sharing? got %a,\n but expected %a"
-                   TSet.pp sharing TSet.pp sharing_ref);
-             master_loop current state
+        | NoSharingMatch sharing_ref ->
+          Print.print ["concur",3] (fun p ->
+              p "Outdated sharing? got %a,\n but expected %a"
+                TSet.pp sharing TSet.pp sharing_ref);
+          master_loop current state
 
 
   let master hub input =
@@ -279,10 +280,10 @@ module Make(WB4M: WhiteBoard4Master) = struct
     Print.print ["concur",2] (fun p -> p "Starting master_loop\n");
     match%map master_loop (sat_init input ~sharing:TSet.empty) state with
     | Case1(T.InputConflict conflict) ->
-       Print.print ["concur",2] (fun p ->
-           p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);
-       Case1 conflict
+      Print.print ["concur",2] (fun p ->
+          p "Came here for a conflict. Was not disappointed.\n %a" pp conflict);
+      Case1 conflict
     | Case1(T.Backjump _) -> failwith "Should not come back to level -1 with a propagation"
     | Case2 msg -> Case2 msg
-                         
+
 end

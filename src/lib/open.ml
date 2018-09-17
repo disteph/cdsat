@@ -77,7 +77,9 @@ module Boolhashed = struct
 end
 
 module Stringhashed = struct
-  type t = string [@@deriving eq,ord,hash,show]
+  type t = string [@@deriving eq,ord,hash]
+  let pp fmt s = Format.fprintf fmt "%s" s
+  let show = Format.stringOf pp
 end
 
 module Floathashed = struct

@@ -55,8 +55,8 @@ let show t = Print.stringOf pp t
 
 let build_lit var b = Some(VarMap.singleton var b)
 
-let build_var var = { asclause = build_lit var true;
-                      ascube   = build_lit var false;
+let build_var var = { asclause = build_lit var false;
+                      ascube   = build_lit var true;
                       freevar  = TSet.singleton var;
                       nature   = Var }
 
