@@ -18,8 +18,11 @@ Compiling and Installing
 
 In the main directory: run
 
-    opam pin add cdsat-libs .
+    opam pin add ppx_let https://github.com/disteph/ppx_let/archive/v0.11.119.00+92.tar.gz
+    opam pin add --no-action cdsat-libs .
+    opam pin install --deps-only cdsat-libs
     oasis setup
+    make libs
     make cdsat build
 
 The first line installs the CDSAT dependencies and the CDSAT libraries via opam.
