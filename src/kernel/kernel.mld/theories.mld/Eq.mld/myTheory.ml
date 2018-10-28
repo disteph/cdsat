@@ -9,7 +9,10 @@ open Sassigns
 open Messages
 
 open Theory
-open Interfaces
+
+open Egraph
+    
+include MyTheory_sig
 
 type sign = unit
 
@@ -26,34 +29,9 @@ module Make(W : Writable) = struct
 
   type nonrec sign = sign
 
-  include Egraph.Make(W)
-
-  module TMap = struct
-    include Map.Make(Term)
-    let pp x fmt tmap =
-      let aux fmt (nf,j) = Format.fprintf fmt "(%a->%a)" Term.pp nf x j in
-      List.pp aux fmt (bindings tmap)
-  end
+  module EG = Make(W)
 
   module TVMap = Map.Make(TermValue)
-
-  module TVSet = struct
-    include Set.Make(TermValue)
-    let pp fmt tvset = List.pp TermValue.pp fmt (elements tvset)
-  end                
-
-  type output =
-    | UNSAT of stop
-    | SAT of (sign, sat) message * self
-
-  and self = { add : SAssign.t -> output;
-               share : TSet.t  -> output;
-               ask : ?subscribe:bool
-                 -> (Term.t, Value.t values) sum
-                 -> Term.t
-                    * CValue.t
-                    * (unit -> CValue.t list)
-                    * self }
 
   type state = { egraph : EG.t;
                  treated: Assign.t;
@@ -75,15 +53,14 @@ module Make(W : Writable) = struct
         let egraph,info,tvset =
           EG.eq term (Case2(Values value)) (Case2 sassign) state.egraph
         in
-        Print.print ["kernel.egraph",1] (fun p->
-            p "kernel.egraph eq finished");
+        Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq finished");
         let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
         let aux t1 t2 value =
           let egraph,info,tvset = EG.eq t1 (Case1 t2) (Case1(term,value)) egraph in
           let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
           egraph, tvmap
         in
-        let egraph, tvmap =
+        let egraph, tmap =
           match Term.reveal term, value with
           | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
           | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
@@ -98,7 +75,7 @@ module Make(W : Writable) = struct
         SAT(sat () treated ~sharing:state.sharing ~myvars,
             machine { state with egraph; treated; myvars })
       with
-        EG.Conflict(propa,conflict) ->
+        Conflict(propa,conflict) ->
         Print.print ["kernel.egraph",0] (fun p->
             p "kernel.egraph detected conflict:\n %a\n leads to %a"
               (List.pp pp_message) propa
@@ -113,6 +90,11 @@ module Make(W : Writable) = struct
           machine { state with sharing; myvars })
     in
 
+    let watchfind key n tset =
+      let egraph,watched = EG.watchfind key n tset state.egraph in
+      watched, machine { state with egraph }
+    in
+    
     let ask =
       let ask ?subscribe tv =
         let info,egraph = EG.ask ?subscribe tv state.egraph in
@@ -122,7 +104,7 @@ module Make(W : Writable) = struct
         machine { state with egraph }
       in ask
 
-    in { add; share; ask }
+    in { add; share; watchfind; ask }
 
   let init = machine { egraph  = EG.init;
                        treated = Assign.empty;

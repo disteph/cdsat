@@ -1,7 +1,8 @@
 open Top.Terms
 
 open Theory
-open Interfaces
+
+include module type of MyTheory_sig
     
 val ds : dsKey list
 type sign

@@ -1,4 +1,4 @@
-include HardCaml.Comb.Make(HardCaml.Transform.MakeCombGates(Signal))
+module M = HardCaml.Comb.Make(HardCaml.Transform.MakeCombGates(Signal))
 
 (* let un = consti 4 1 *)
 (* let () = print_endline(to_bstr un) *)

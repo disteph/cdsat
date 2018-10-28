@@ -97,7 +97,7 @@ module type API = sig
   module WB : WhiteBoard
     
   (* E-graph module *)
-  module EGraph : Eq.Interfaces.API with type sign := Eq.MyTheory.sign
+  module EGraph : Eq.MyTheory.API with type sign := Eq.MyTheory.sign
   (* List of theory modules - kernel part *)
   val th_modules : Modules.t list
 

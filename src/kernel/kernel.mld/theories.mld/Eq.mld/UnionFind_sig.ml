@@ -1,20 +1,18 @@
 open General.Sums       
-open Top
-open Sassigns
-open Messages
-open Terms
-open Values
-    
+
 (* The is the interface for the raw implementation of the egraph, i.e. the union-find structure.
      A pointed component is an EGraph component of a specific node;
      it is pointed because it remembers which node it is the component of. *)
-
-module type RawEgraph = sig
+       
+module type S = sig
   type node
   type edge
   type info
+  type termmap
   type _ egraph
   type t = EGraph : _ egraph -> t
+
+  val extract : t -> termmap
 
   module PC : sig
     type _ t
@@ -43,8 +41,18 @@ module type RawEgraph = sig
      provides path from t' to t, where pc is "the component of t' "
      (i.e. pc has been obtained by a call of PC.get on t').
      t is assumed to belong to component pc, otherwise this function breaks.
-   *)
+  *)
   val path  : node -> 'a PC.t -> 'a egraph -> edge list
+end
+
+module type NodeMap = sig
+  type t
+  type node
+  type value
+  val empty : t
+  val mem   : node -> t -> bool
+  val find  : node -> t -> value
+  val add   : node -> value -> t -> t
 end
 
 module type Parameters = sig
@@ -53,50 +61,15 @@ module type Parameters = sig
   end
   type edge [@@deriving show]
   type info
-end
-
-module type Egraph = sig
-
-  type stop
-  exception Conflict of stop
-
-  type info
-         
-  type t
-  val init : t
-  val eq : Term.t -> (Term.t,Value.t values)sum -> (BAssign.t,SAssign.t)sum
-           -> t -> t*info*((Term.t,Value.t values)sum list)
-  val diseq : Term.t -> Term.t -> BAssign.t -> t -> t
-  (* Ask information about the termvalue,
-       possibly subscribe (subscribe=true) or unsubscribe (subscribe=false)
-       to notifications when the termvalue sees its combined value affected *)
-  val ask : ?subscribe:bool -> (Term.t,Value.t values)sum -> t -> info*t
-
-  val nf : info -> Term.t
-  val cval : info -> CValue.t
-  val distinct : t -> info -> CValue.t list
-                                                        
-end
-
-(* API for plugin. So far, let's pretend it's empty *)
-
-module type API = sig
-
-  type sign
-
-  type output =
-    | UNSAT of ((sign, straight) message list * (sign, unsat) message)
-    | SAT of (sign, sat) message * self
-
-   and self = { add : SAssign.t -> output;
-                share : TSet.t -> output;
-                ask : ?subscribe:bool
-                      -> (Term.t,Value.t values) sum
-                      -> Term.t
-                         * CValue.t
-                         * (unit -> CValue.t list)
-                         * self }
-                
-  val init : self
+  (* Parent element in e-graph, compressing paths.
+     Root representative is mapped to the component information, to which we add:
+     the id of the component and its size *)
+  module NodeMapCompress : NodeMap with type node := Node.t
+                                    and type value := (Node.t,int*int*info) sum
+  (* Parent element, without path compression. Root is mapped to None.
+     Used to produce explanations. *)
+  module NodeMapProof : NodeMap with type node := Node.t
+                                 and type value := (Node.t*edge) option
 
 end
+

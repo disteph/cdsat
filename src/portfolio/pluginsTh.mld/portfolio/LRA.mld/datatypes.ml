@@ -12,7 +12,7 @@ open Theories.LRA
        
 open Tools
        
-module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) = struct
+module Make(_: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
   module QVar = struct
     include Term

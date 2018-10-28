@@ -85,4 +85,11 @@ val proj : 'a Key.t -> Term.t -> 'a
 (* Sets of terms that are used *)
 (*******************************)
 
-module TSet : Collection with type e = Term.t
+module TSet : sig
+  include General.Patricia.Set.S_H with type e = Term.t
+                                    and type common = int
+                                    and type branching = int
+  val pp : t Format.printer 
+  val show : t -> string
+  val next : t -> e*t
+end

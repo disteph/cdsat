@@ -8,67 +8,150 @@ open Sassigns
 open Values
 open Messages
 
-open Interfaces
-       
+include Egraph_sig
+
+(* The E-graph is a union-find structure where the nodes are either terms or values *)
+
+(* Sum type for terms+values *)
+module TermValue = struct
+  type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]
+end
+
+(* Valuations are term -> values maps extracted from the Egraph *)
+module Valuation = struct
+  (* We define a notion of valuation,
+     as a map from terms to the combined values found in the egraph. *)
+  module Arg = struct
+    include Term
+    include TypesFromHConsed(Term)
+    include EmptyInfo
+    type values = CValue.t * (Assign.t*int) Lazy.t
+  end
+
+  module Revealed = struct
+    open Patricia
+    include Map.MakeNH(Arg)
+    let pp_pair fmt (term,(cval,_)) =
+      Format.fprintf fmt "(%a↦ %a)" Term.pp term CValue.pp cval
+    let pp = print_in_fmt ~wrap:("{","}") pp_pair
+  end
+
+  include Revealed
+
+  let reveal t = t
+
+end
+
+(* Each E-graph component should know which other components they should never
+   be equal to / merged with. We maintain for each component a set of disequalities 
+   that are imposed on it. *)
+
+module Diseq = struct
+  include Patricia.Map.MakeNH(struct
+      include BAssign
+      include TypesFromHConsed(BAssign)
+      include EmptyInfo
+      type values = Term.t*Term.t
+    end)
+  let pp_binding fmt (j_neq,_) = BAssign.pp fmt j_neq
+  let pp = print_in_fmt pp_binding
+end
+
+
+(* Sets of terms and values: those whose changes are listened to *)
+module TVSet = struct
+  include Set.Make(TermValue)
+  let pp fmt tvset = List.pp TermValue.pp fmt (elements tvset)
+end
+
+
+(* Parameter module for UnionFind *)
+module P = struct
+
+  module Node = TermValue
+
+  type edge = (BAssign.t,SAssign.t)sum [@@deriving show]
+
+  (* The information we want to keep about each component *)
+  type info = {
+    nf  : Term.t;   (* Normal form *)
+    cval: CValue.t; (* Combined value *)
+    (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following Diseq contains a binding j_neq -> (t1,t2) *)
+    diseq: Diseq.t;
+    listening: TVSet.t
+  } [@@deriving show] 
+
+  let pp_binding keys_pp fmt (key,parent) =
+    match parent with
+    | Case1 parent -> Format.fprintf fmt "(%a → %a)" keys_pp key TermValue.pp parent
+    | Case2 (id,size,info) -> Format.fprintf fmt "(%a → %i,%i,%a)"
+                                keys_pp key id size pp_info info
+
+  (* Following 2 modules: maps from terms to their parents in union find *)
+
+  module TermMapArg = struct
+    include Term
+    include TypesFromHConsed(Term)
+    include EmptyInfo
+    type values = (Node.t, int * int * info) sum
+  end
+
+  module TermMap = struct
+    include Patricia.Map.MakeNH(TermMapArg)
+    let pp = print_in_fmt (pp_binding Term.pp)
+  end
+
+  (* Following 2 modules: maps from values to their parents in union find *)
+
+  module ValueMapArg = struct
+    type t = Value.t values [@@deriving eq,ord,show,hash]
+  end
+
+  module ValueMap = struct
+    include Map.Make(ValueMapArg)
+    let pp fmt m = List.pp (pp_binding ValueMapArg.pp) fmt (bindings m)
+  end
+
+  module NodeMapCompress = struct
+    type t = TermMap.t * TermMap.values ValueMap.t
+    let empty = TermMap.empty, ValueMap.empty
+    let mem node (mterm,mval) = match node with
+      | Case1 t -> TermMap.mem t mterm
+      | Case2 v -> ValueMap.mem v mval
+    let find node (mterm,mval) = match node with
+      | Case1 t -> TermMap.find t mterm
+      | Case2 v -> ValueMap.find v mval
+    let add node parent (mterm,mval) = match node with
+      | Case1 t -> TermMap.add t (fun _ -> parent) mterm, mval
+      | Case2 v -> mterm, ValueMap.add v parent mval
+  end
+
+  module NodeMapProof = struct
+    module TMP = Map.Make(TermValue)
+    type t = (Node.t * edge) option TMP.t
+    let empty = TMP.empty
+    let mem = TMP.mem
+    let find = TMP.find
+    let add = TMP.add
+  end
+
+end
+
+module UF = UnionFind.Make(P)
+
 module Make(WTerm: Writable) = struct
-  
-  type stop = (unit,straight) message list * (unit,unsat) message
-            
-  (* Sum type for terms+values *)
-  module TermValue = struct
-    type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]
-  end
-                                           
-  module BMap = struct
-    include Patricia.Map.MakeNH(struct
-        include BAssign
-        include TypesFromHConsed(BAssign)
-        include EmptyInfo
-        type values = Term.t*Term.t
-      end)
-    let pp_binding fmt (j_neq,_) = BAssign.pp fmt j_neq
-    let pp = print_in_fmt pp_binding
-  end
-
-  module TVSet = struct
-    include Set.Make(TermValue)
-    let pp fmt tvset = List.pp TermValue.pp fmt (elements tvset)
-  end
-
-  (* Parameter module for the Raw EGraph *)
-  module P = struct
-
-    module Node = TermValue
-
-    type edge = (BAssign.t,SAssign.t)sum [@@deriving show]
-
-    (* The information we want to keep about each component *)
-    type info = {
-        nf  : Term.t;   (* Normal form *)
-        cval: CValue.t; (* Combined value *)
-        (* If a disequality j_neq, namely t1<>t2, was recorded with t1 in this component, the following BMap contains a binding j_neq -> (t1,t2) *)
-        diseq: BMap.t;
-        listening: TVSet.t
-      } [@@deriving show] 
-  end
-
-  module REG = RawEgraph.Make(P)
-
-  module EG = struct
 
     open P
-    open REG
+    open UF
     type info = P.info
-    type t = REG.t
+    type t = UF.t
 
     let init = init
-                 
-    exception Conflict of stop
 
     let singleton t = {
         nf        = t;
         cval      = t |> Terms.Term.get_sort |> CValue.none;
-        diseq     = BMap.empty;
+        diseq     = Diseq.empty;
         listening = TVSet.empty
       }
 
@@ -79,7 +162,7 @@ module Make(WTerm: Writable) = struct
         let _, pc = PC.get eg (Case1 term) in
         (PC.get_info pc).cval::sofar
       in
-      BMap.fold aux i.diseq []
+      Diseq.fold aux i.diseq []
 
 
     (* Generates equality inference *)
@@ -128,7 +211,7 @@ module Make(WTerm: Writable) = struct
           | Case1 t2' -> singleton t2'
           | Case2 v   -> {nf = t;
                           cval = CValue.inj v;
-                          diseq = BMap.empty;
+                          diseq = Diseq.empty;
                           listening = TVSet.empty }
         in
         add t2 info eg
@@ -144,7 +227,7 @@ module Make(WTerm: Writable) = struct
       then EGraph eg, info1, []
       else
         (* First: check whether the 2 components have not been declared different *)
-        let merge_par = BMap.Merge.{
+        let merge_par = Diseq.Merge.{
             sameleaf = (fun bassign pair _ -> Some(bassign,pair));
             emptyfull= (fun _ -> None);
             fullempty= (fun _ -> None);
@@ -155,7 +238,7 @@ module Make(WTerm: Writable) = struct
               | None, None -> None)
           }
         in
-        match BMap.merge merge_par info1.diseq info2.diseq with
+        match Diseq.merge merge_par info1.diseq info2.diseq with
         | Some(j_neq,(t3,t4)) ->
            (* They were declared different by an assignment j_neq - a disequality
               between t3 and t4. Get the path from t1 to t3 and the one from t2 to t4. *)
@@ -196,7 +279,7 @@ module Make(WTerm: Writable) = struct
               (* Values could be merged. Creating the info for the merged component. *)
               let nf = info1.nf in (* Normal form is that of t1 (Could be tuned!) *)
               (* The declared disequalities are the union of the two components. *)
-              let diseq = BMap.union (fun _ _ v -> v) info1.diseq info2.diseq in
+              let diseq = Diseq.union (fun _ _ v -> v) info1.diseq info2.diseq in
               let listening = TVSet.union info1.listening info2.listening in
               let info = { nf; cval; diseq; listening } in
               (* We output the resulting egraph, the info of the merged component,
@@ -225,11 +308,11 @@ module Make(WTerm: Writable) = struct
       else
         let info1 = PC.get_info pc1 in
         let EGraph eg =
-          update pc1 {info1 with diseq = BMap.add j (fun _ -> (t1,t2)) info1.diseq } eg
+          update pc1 {info1 with diseq = Diseq.add j (fun _ -> (t1,t2)) info1.diseq } eg
         in
         let eg,pc2 = PC.get eg tv2 in
         let info2 = PC.get_info pc2 in
-        update pc2 {info2 with diseq = BMap.add j (fun _ -> (t2,t1)) info2.diseq } eg
+        update pc2 {info2 with diseq = Diseq.add j (fun _ -> (t2,t1)) info2.diseq } eg
 
                
     let ask ?subscribe tv (EGraph eg) =
@@ -248,5 +331,67 @@ module Make(WTerm: Writable) = struct
          let info = { info with listening = TVSet.remove tv info.listening } in
          info, (update pc info eg)
 
+    (* Picking n terms in a tset, or the maximum thereof *)
+    let pick n =
+      TSet.fold_monad
+        ~return:(fun watchable -> watchable)
+        ~bind:(fun reccall todo watchable ->
+            if List.length watchable < n
+            then reccall todo watchable
+            else watchable)
+        (fun var watchable -> var::watchable)
+
+    let watchfind key n tset eg =
+      let tm,_ = UF.extract eg in
+      let action =
+        (* Variable var is assigned in the model, can't pick it to watch *)
+        let sameleaf var () parent (EGraph eg, fixed, watchable) =
+          let eg,info = match parent with
+            | Case1 tv ->
+              let eg,pc = UF.PC.get eg tv in
+              (EGraph eg : UF.t), UF.PC.get_info pc
+            | Case2(_,_,info) ->
+              (EGraph eg : UF.t),info
+          in
+          eg,
+          let cv = cval info in
+          match CValue.proj key cv with
+          | None   -> { fixed;
+                        unknown = TSet.singleton var;
+                        watchable = var::watchable}
+          | Some _ -> { fixed = Valuation.add
+                            var (fun _ -> (cv,lazy (failwith "TODO"))) fixed;
+                        unknown = TSet.empty;
+                        watchable }
+        in
+        (* No variable in this part of the exploration *)
+        let emptyfull _ (eg, fixed, watchable) =
+          eg, { fixed; unknown = TSet.empty; watchable }
+        in
+        (* All vars in this part of the constraint are unassigned.
+               we try to complete watchable to n terms: *)
+        let fullempty tset (eg, fixed, watchable) =
+          eg, { fixed; unknown = tset; watchable = pick n tset watchable }
+        in
+
+        (* Constraint is split in two, ans1 is the result from the left exploration.
+                 (reccall rset rmodel) is the job to do for the right exploration. *)
+        let combine ~reccall rset rmodel (eg,ans1) =
+          if List.length ans1.watchable < n
+          then
+            let eg,ans2 = reccall rset rmodel (eg, ans1.fixed, ans1.watchable) in
+            eg, { watchable = ans2.watchable;
+                  fixed     = ans2.fixed;
+                  unknown   = TSet.union ans1.unknown ans2.unknown }
+          else
+            eg, { ans1 with unknown = TSet.union ans1.unknown rset }
+        in
+        TermMap.Fold2.{ sameleaf; emptyfull; fullempty;
+                        combine = make_combine
+                            ~empty1:TSet.empty
+                            ~empty2:TermMap.empty
+                            combine }
+      in
+      TermMap.fold2_poly action tset tm (eg, Valuation.empty, [])
+
   end
-end
