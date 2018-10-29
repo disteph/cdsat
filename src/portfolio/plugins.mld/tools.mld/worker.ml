@@ -9,10 +9,10 @@ open Top.Terms
 open Theories.Theory
 
 open Plugin
-open Interfaces
 
-module Make(WB: WhiteBoardExt) = struct
+module Make(WB: WhiteBoardExt.S) = struct
 
+  open WhiteBoardExt
   open WB
 
   let add     (SlotMachine{add})     = add
@@ -39,15 +39,18 @@ module Make(WB: WhiteBoardExt) = struct
     let aux msg =
       Print.print ["worker",1] (fun p-> p "%a reads %a" Tags.pp hdl pp_msg2th msg);
       match msg with
-      | MsgStraight(sassign,chrono)
+      | MsgStraight{ sassign; chrono }
         -> loop_write hdl (add cont (Some sassign)) chrono ports
-      | MsgSharing(tset,chrono)
+      | MsgSharing{ tset; chrono }
         -> loop_write hdl (share cont tset) chrono ports
-      | MsgPropose(_,number,chrono)
+      | MsgPropose{ howmany; chrono }
         ->
-        let decisions = propose cont number in
+        let decisions = propose cont howmany in
         Print.print ["worker",1] (fun p-> p "%a: Proposing" Tags.pp hdl);
-        let msg2pl = Msg(Some(Handlers.Handler hdl),Try decisions,chrono) in
+        let msg2pl = Msg{ handler = Some(Handlers.Handler hdl);
+                          answer  = Try decisions;
+                          chrono }
+        in
         Deferred.all_unit
          [ Lib.write ports.writer msg2pl ;
            loop_read hdl cont ports ]
@@ -58,7 +61,7 @@ module Make(WB: WhiteBoardExt) = struct
            Deferred.all_unit
              [loop_read hdl cont    ports ;
               loop_read hdl newcont newports ]
-      | KillYourself(WB(_,Propa(assign,Unsat),_),_,_) -> return(suicide cont assign)
+      | KillYourself{ conflict = WB(_,Propa(assign,Unsat),_) } -> return(suicide cont assign)
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["worker",2] (fun p-> p "%a dies" Tags.pp hdl)))
@@ -66,7 +69,7 @@ module Make(WB: WhiteBoardExt) = struct
 
   and loop_write hdl (say,cont) chrono ports =
 
-    let hhdl = Some(Handlers.Handler hdl) in
+    let handler = Some(Handlers.Handler hdl) in
 
     Print.print ["worker",1] (fun p-> p "%a looks at its output_msg" Tags.pp hdl);
 
@@ -75,13 +78,13 @@ module Make(WB: WhiteBoardExt) = struct
        Print.print ["worker",1] (fun p-> p "%a: Silence" Tags.pp hdl);
        Deferred.all_unit
          [
-           Lib.write ports.writer (Msg(hhdl,Ack,chrono)) ;
+           Lib.write ports.writer (Msg{ handler; answer = Ack; chrono }) ;
            loop_read hdl cont ports
          ]
 
     | Msg msg ->
        Print.print ["worker",1] (fun p-> p "%a: Message %a" Tags.pp hdl pp_message msg);
-       let msg2pl = Msg(hhdl,Say(WB.sign hdl msg),chrono) in
+       let msg2pl = Msg{ handler; answer = Say(WB.sign hdl msg); chrono } in
        Deferred.all_unit
          [
            Lib.write ports.writer msg2pl ;

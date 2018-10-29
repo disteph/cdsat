@@ -1,8 +1,7 @@
 open Async
 
-open Interfaces
-       
-module Make(WB : WhiteBoardExt) : sig
+module Make(WB : WhiteBoardExt.S) : sig
+  open WhiteBoardExt
   open WB
   val make  : regular ports -> unit Deferred.t
   val clear : unit -> unit

@@ -6,13 +6,13 @@ open General
 open Kernel
 open Top.Messages
 open Theories.Theory
-
-open Interfaces
-
-module Make(WB: WhiteBoardExt)
-         (EGraph: Theories.Eq.Interfaces.API
+open Theories.Eq.MyTheory
+       
+module Make(WB: WhiteBoardExt.S)
+         (EGraph: Theories.Eq.MyTheory.API
           with type sign := Theories.Eq.MyTheory.sign) = struct
 
+  open WhiteBoardExt
   open WB
   open EGraph
 
@@ -39,25 +39,26 @@ module Make(WB: WhiteBoardExt)
     in
     Lib.read ports.reader aux
 
+  let handler = Some Handlers.Eq
 
   let rec loop_read egraph ports = 
     let aux msg =
       Print.print ["egraph",1] (fun p-> p "The E-graph reads %a" pp_msg2th msg);
       match msg with
-      | MsgStraight(sassign,chrono)
-        -> loop_write (egraph.add sassign) chrono ports
-      | MsgSharing(tset,chrono)
+      | MsgStraight{ sassign; level; chrono }
+        -> loop_write (egraph.add sassign ~level) chrono ports
+      | MsgSharing{ tset; chrono }
         -> loop_write (egraph.share tset) chrono ports
-      | MsgPropose(_,number,chrono)
+      | MsgPropose{ chrono }
         ->
         Print.print ["egraph",1] (fun p-> p "E-graph: I have nothing to propose");
         Deferred.all_unit
-             [ Lib.write ports.writer (Msg(Some Handlers.Eq,Try [],chrono)) ;
+          [ Lib.write ports.writer (Msg{ handler; answer  = Try []; chrono }) ;
                loop_read egraph ports ]
-      | TheoryAsk(address,tv)
-        -> let nf,cval,distinct,egraph = egraph.ask tv in
+      | TheoryAsk{ reply_to; node }
+        -> let normal_form, values, forbidden, egraph = egraph.ask node in
         Deferred.all_unit
-          [ Lib.write address (Infos(tv,nf,cval,distinct));
+          [ Lib.write reply_to (Infos{ node; normal_form; values; forbidden });
             loop_read egraph ports ]
       | MsgSpawn newports
         -> Deferred.all_unit
@@ -71,8 +72,7 @@ module Make(WB: WhiteBoardExt)
 
   and loop_write output chrono ports =
 
-    let hhdl = Some Handlers.Eq in
-    let msg_make msg = Msg(hhdl,Say(WB.sign_Eq msg),chrono) in
+    let msg_make msg = Msg{ handler; answer = Say(WB.sign_Eq msg); chrono } in
 
     Print.print ["egraph",1] (fun p-> p "E-graph looks at its output_msg");
 
@@ -80,8 +80,8 @@ module Make(WB: WhiteBoardExt)
     | UNSAT(propas,conflict) -> 
       Print.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
 
-      let unsat_msg = msg_make conflict in
-      let l = List.map msg_make propas in
+      let unsat_msg = conflict |> fst |> msg_make in
+      let l = List.map (fst >> msg_make) propas in
       Deferred.all_unit
         [ flush_write ports.writer unsat_msg l ;
           flush ports unsat_msg l ]

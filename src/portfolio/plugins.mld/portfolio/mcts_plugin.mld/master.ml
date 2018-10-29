@@ -19,14 +19,16 @@ open Theories.Theory
 open Theories.Register
 
 open Tools
-open Interfaces
 
 open General
 open Sums
 open Lib
 
+include Master_sig
+
 module Make(WB4M: WhiteBoard4Master) = struct
 
+  open WhiteBoardExt
   open WB4M
   open WBE
 
@@ -83,11 +85,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
       then match state.moves with
         | _::_ -> return None
         | [] ->
-          H.propose state.hub 1 (T.chrono state.trail);%bind
+          H.propose state.hub ~howmany:1 ~chrono:(T.chrono state.trail);%bind
           select_msg { state with waiting4 = AS.all }
       else match%bind Pipe.read (H.reader state.hub) with
         | `Eof -> failwith "Eof"
-        | `Ok(Msg(agent,msg,chrono)) ->
+        | `Ok(Msg{ handler = agent; answer = msg; chrono }) ->
           let state =
             if (chrono = T.chrono state.trail)&&(AS.mem agent state.waiting4)
             then { state with waiting4 = AS.remove agent state.waiting4 }
@@ -102,6 +104,10 @@ module Make(WB4M: WhiteBoard4Master) = struct
             Print.print ["concur",2] (fun p->
                 p "Hearing guesses from %a" Agents.pp agent);
             select_msg { state with moves = List.append decisions state.moves }
+          | Quid term -> 
+            Print.print ["concur",2] (fun p->
+                p "Hearing \"What about %a?\" from %a" Term.pp term Agents.pp agent);
+            select_msg { state with messages = Pqueue.push msg state.messages }
           | Say(WB(_,Sat _,_)) when chrono < T.chrono state.trail ->
             Print.print ["concur",2] (fun p->
                 p "Hearing Sat from %a at old chrono %i, ignoring"
@@ -134,6 +140,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
 
     | None -> return(state,NeedsMove)
 
+    | Some(Quid term, state) ->
+      H.propose state.hub
+        ~whatabout:term ~howmany:1 ~chrono:(T.chrono state.trail) ;%bind
+      saturate state
+
     | Some(Try _,_) -> failwith "Probably in situation of UndoDecide"
 
     | Some(Say(WB(_,msg,_) as thmsg), state) ->
@@ -154,7 +165,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
           | None -> (* The flip of bassign is in the trail, we have a conflict *)
             let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
             saturate { state with messages }
-          | Some trail ->
+          | Some(trail,level) ->
             (* A theory deduced a boolean assignment newa from assignment
                old. We broadcast it to all theories *)
             let assign  = Assign.add sassign state.current.assign in
@@ -165,7 +176,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
                             trail;
                             current }
             in
-            H.broadcast state.hub sassign (T.chrono state.trail);%bind
+            H.broadcast state.hub sassign ~level ~chrono:(T.chrono state.trail);%bind
             saturate state
         end
 
@@ -230,7 +241,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
     match T.add ~nature:T.Decision sassign state.trail with
     | None -> (* The flip of the decision is in the trail, we miserably fail *)
       raise Trail_fail
-    | Some trail ->
+    | Some(trail,level) ->
       (* This is a branching point where we tell all slave workers:
           "Please, clone yourself; here are the new pipes to be used
           for your clone to communicate with me." *)
@@ -239,7 +250,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
       Print.print ["concur",1] (fun p ->
           p "Everybody cloned themselves; now returning first child state");
 
-      H.broadcast hub1 sassign (T.chrono trail);%bind
+      H.broadcast hub1 sassign ~level ~chrono:(T.chrono trail);%bind
       let assign1 = Assign.add sassign state.current.assign in
       saturate { state with hub = hub1;
                             waiting4 = AS.all;
@@ -277,7 +288,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
   let init_state hub input =
     let treat sassign (trail,tasks) =
       match T.add ~nature:T.Input sassign trail with
-      | Some trail -> trail, (H.broadcast hub sassign (T.chrono trail))::tasks
+      | Some(trail,level) ->
+        trail, (H.broadcast hub sassign ~level ~chrono:(T.chrono trail))::tasks
       | None -> failwith "Trail should not fail on input"
     in
     let trail,tasks = Assign.fold treat input (T.init,[]) in

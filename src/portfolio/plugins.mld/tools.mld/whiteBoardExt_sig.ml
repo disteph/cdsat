@@ -1,22 +1,30 @@
 open Async
 
 open General.Sums
+       
 open Kernel
 open Top
+open Messages
 open Terms
 open Values
 open Sassigns
-open Messages
-
 open Theories.Theory
 open Theories.Register
 
-include WhiteBoardExt_sig
-                             
-module Make(WB: Combo.WhiteBoard) = struct
+(* Useful type abbreviations *)
+type vvalue = Value.t values
 
-  open WB
-  
+type ack = private AckL
+type say = private MsgL
+type regular = private RegularL
+type egraph  = private EGraphL
+
+type 'a level = Irrelevant : sat level | Level : int -> _ propa level
+
+module type Extra = sig
+
+  type _ t (* WB's main type *)
+
   type _ answer = Ack  :                           ack answer
                 | Say  : _ t                    -> say answer
                 | Quid : Term.t                 -> say answer
@@ -54,25 +62,11 @@ module Make(WB: Combo.WhiteBoard) = struct
                        watch1   : SAssign.t;
                        watch2   : SAssign.t option }         -> _ msg2th
 
-  let pp_tv = General.Sums.pp_sum Term.pp (pp_values Value.pp)
-                                                             
-  let pp_msg2th fmt (type a) : a msg2th -> unit = function
-    | MsgStraight{sassign; level; chrono}
-      -> Format.fprintf fmt "MsgStraight_%i@%i %a" chrono level SAssign.pp sassign
-    | MsgSharing{tset; chrono}
-      -> Format.fprintf fmt "MsgSharing_%i %a" chrono TSet.pp tset
-    | MsgPropose{whatabout = Some term; howmany; chrono}
-      -> Format.fprintf fmt "MsgPropose_%i %a %i" chrono Term.pp term howmany
-    | MsgPropose{whatabout = None; howmany; chrono}
-      -> Format.fprintf fmt "MsgPropose_%i %i" chrono howmany
-    | MsgSpawn _
-      -> Format.fprintf fmt "MsgSpawn"
-    | Infos{ node; normal_form; values; forbidden }
-      -> Format.fprintf fmt "Infos for %a:\nNormal form is %a\nValues are %a\nDistinct values are %a"
-           pp_tv node Term.pp normal_form CValue.pp values (List.pp CValue.pp) (forbidden())
-    | TheoryAsk{ node }
-      -> Format.fprintf fmt "Asking about %a" pp_tv node
-    | KillYourself{ conflict }
-      -> Format.fprintf fmt "KillYourself"
+  val pp_msg2th : _ msg2th Format.printer
 
+end
+
+module type S = sig
+  include Combo.WhiteBoard
+  include Extra with type 'a t := 'a t
 end

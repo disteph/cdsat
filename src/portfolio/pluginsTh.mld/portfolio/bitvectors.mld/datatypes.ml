@@ -32,28 +32,3 @@ module Domain = struct
 
 end
 
-module ConfigB = struct
-
-  module Constraint = struct
-    type t = {
-      sassign   : SAssign.t;
-      variables : TSet.t [@opaque]
-    } [@@deriving show]
-    let id {sassign} = SAssign.id sassign
-  end
-
-  module Var = Term
-
-  type fixed = K.Model.t
-
-  let simplify fixed (c,b) = K.Simpl.simplify fixed c, b
-
-  let pick_another _ (c,_) i _ =
-    Print.print ["LRA",2] (fun p ->
-        p "LRA: WLB picks variables for %a, gets %a"
-          K.Simpl.pp c
-          (List.pp Term.pp) (K.Simpl.watchable c));
-    K.Simpl.watchable c
-end
-
-module WLB = TwoWatchedLits.Make(ConfigB)

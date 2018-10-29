@@ -1,6 +1,6 @@
 (*********************************************************************)
 (* Main plugin, implementing the combination of decision procedures
-with concurrency, as provided by Jane Street's Async library.
+   with concurrency, as provided by Jane Street's Async library.
 
    This is a master-slaves architecture.
 
@@ -9,21 +9,17 @@ with concurrency, as provided by Jane Street's Async library.
    exchanging messages with the master thread, whose code is below.  *)
 (*********************************************************************)
 
-open Async
-
-open Kernel
-open Top.Messages
-open Top.Sassigns
-open Theories.Register
+open Kernel.Theories.Theory
 
 open Tools
 
-open General.Sums
+module type WhiteBoard4Master = sig
 
-include module type of Master_sig
+  module WBE : WhiteBoardExt.S
 
-module Make(WBEH: WhiteBoard4Master) : sig
-  open WBEH
-  open WBE
-  val master : H.t -> Assign.t -> (unsat t, sat_ans) sum Deferred.t
+  module H : Hub.S with type 'a wb  := 'a WBE.t
+                    and type msg2pl := WBE.msg2pl
+
+  val theories_fold : (Handlers.t -> 'a -> 'a) -> 'a -> 'a
+
 end

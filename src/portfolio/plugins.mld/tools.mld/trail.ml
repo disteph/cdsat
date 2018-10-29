@@ -188,13 +188,16 @@ The reason it was added to the trail was either:
         trail.map
     in
     match nature with
-    | Input -> Some { trail with map = map 0;
-                                 last_chrono = trail.last_chrono+1 }
+    | Input -> Some( { trail with map = map 0;
+                                  last_chrono = trail.last_chrono+1 },
+                     0)
     | Decision ->
        begin match is_contradicting sassign trail with
        | Some sassign_neg -> None
-       | None -> Some { trail with map = map (infos.level+1);
-                                   last_chrono = trail.last_chrono+1 }
+       | None ->
+         let level = infos.level+1 in
+         Some( { trail with map = map level;
+                            last_chrono = trail.last_chrono+1 }, level)
        end
     | Deduction msg ->
        begin match is_contradicting sassign trail with
@@ -203,12 +206,14 @@ The reason it was added to the trail was either:
           let level = Pervasives.max (get_data trail.map msg).level 0 in
           if level < infos.level (* Late propagation ! *)
           then 
-            Some { map  = map level;
-                   late = (msg,infos.level,level)::trail.late;
-                   last_chrono = trail.last_chrono+1 }
+            Some( { map  = map level;
+                    late = (msg,infos.level,level)::trail.late;
+                    last_chrono = trail.last_chrono+1 },
+                  level)
           else
-            Some { trail with map = map level;
-                              last_chrono = trail.last_chrono+1  }
+            Some( { trail with map = map level;
+                               last_chrono = trail.last_chrono+1  },
+                  level)
        end
 
   type analysis =

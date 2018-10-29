@@ -17,10 +17,11 @@ open Top.Sassigns
 open Theories.Register
 
 open Tools
-open Interfaces
 
 open General.Sums
 
+include module type of Master_sig
+  
 module Make(WBEH: WhiteBoard4Master) : sig
   open WBEH
   open WBE

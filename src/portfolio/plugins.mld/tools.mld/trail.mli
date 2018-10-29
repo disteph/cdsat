@@ -11,13 +11,12 @@ open Top.Messages
 open General
 open Patricia
 open Sums
-
-open Interfaces
        
 (* This module implements conflict analysis *)
 
-module Make(WB : WhiteBoardExt) : sig
+module Make(WB : WhiteBoardExt.S) : sig
 
+  open WhiteBoardExt
   open WB
 
   (* type nature indicates the status of each formula accumulated in the trail so far.
@@ -38,7 +37,7 @@ The reason it was added to it was either:
   val chrono: t -> int
   val chrono_incr: t -> t
   val init  : t
-  val add   : nature:nature -> SAssign.t -> t -> t option
+  val add   : nature:nature -> SAssign.t -> t -> (t*int) option
 
   (* Type for the result of the conflict analysis *)
   type analysis =

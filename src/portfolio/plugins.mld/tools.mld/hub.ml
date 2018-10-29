@@ -1,9 +1,11 @@
 open Async
 
 open Kernel.Theories.Register
-open Interfaces
-  
-module Make(WB: WhiteBoardExt) = struct
+
+include Hub_sig
+
+module Make(WB: WhiteBoardExt.S) = struct
+  open WhiteBoardExt
   open WB
 
   type t = {
@@ -20,7 +22,7 @@ module Make(WB: WhiteBoardExt) = struct
     let reader_a, writer_a = Pipe.create () in
     Pipe.transfer reader_a writer_b ~f, writer_a
 
-  let th2egraph address tv = TheoryAsk(address,tv)
+  let th2egraph reply_to node = TheoryAsk{ reply_to; node }
 
   let common egraph memo hdlsmap =
     let read2pl, write2pl         = Pipe.create () in
@@ -113,20 +115,20 @@ module Make(WB: WhiteBoardExt) = struct
     Deferred.all_unit
       (HandlersMap.fold aux hub.others [send2egraph; send2memo])
                
-  let broadcast hub sassign ~chrono =
-    let msg = MsgStraight(sassign,chrono) in
+  let broadcast hub sassign ~level ~chrono =
+    let msg = MsgStraight{ sassign; level; chrono } in
     send hub msg msg
 
   let share hub tset ~chrono =
-    let msg = MsgSharing(tset,chrono) in
+    let msg = MsgSharing{ tset; chrono } in
     send hub msg msg
 
-  let suicide hub msg a a' =
-    let msg = KillYourself(msg,a,a') in
+  let suicide hub conflict watch1 watch2 =
+    let msg = KillYourself{ conflict; watch1; watch2 } in
     send hub msg msg
 
-  let propose hub ?term number ~chrono =
-    let msg = MsgPropose(term,number,chrono) in
+  let propose ?whatabout hub ~howmany ~chrono =
+    let msg = MsgPropose{ whatabout; howmany; chrono } in
     send hub msg msg
 
 end
