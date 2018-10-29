@@ -420,7 +420,7 @@ module Make(WTerm: Writable) = struct
             else watchable)
         (fun var watchable -> var::watchable)
 
-    let watchfind key n tset eg =
+    let watchfind key ~howmany tset eg =
       let tm,_ = UF.extract eg in
       let action =
         (* Variable var is assigned in the model, can't pick it to watch *)
@@ -438,10 +438,25 @@ module Make(WTerm: Writable) = struct
           | None   -> { fixed;
                         unknown = TSet.singleton var;
                         watchable = var::watchable}
-          | Some _ -> { fixed = Valuation.add
-                            var (fun _ -> (cv,lazy (failwith "TODO"))) fixed;
-                        unknown = TSet.empty;
-                        watchable }
+          | Some v ->
+            let add_aux = function
+              | Some a -> a
+              | None   ->
+                cv,
+                lazy
+                  begin
+                    let EGraph eg = eg in
+                    let _,pc = UF.PC.get eg (Case1 var) in
+                    let path = UF.path (Case2(Values.inj key v)) pc eg in
+                    let aux ({sassign;level},_,_) (assign,levelsofar) =
+                      Assign.add sassign assign, max level levelsofar
+                    in
+                    List.fold aux path (Assign.empty,-1)
+                  end
+            in
+            { fixed   = Valuation.add var add_aux fixed;
+              unknown = TSet.empty;
+              watchable }
         in
         (* No variable in this part of the exploration *)
         let emptyfull _ (eg, fixed, watchable) =
@@ -450,13 +465,13 @@ module Make(WTerm: Writable) = struct
         (* All vars in this part of the constraint are unassigned.
                we try to complete watchable to n terms: *)
         let fullempty tset (eg, fixed, watchable) =
-          eg, { fixed; unknown = tset; watchable = pick n tset watchable }
+          eg, { fixed; unknown = tset; watchable = pick howmany tset watchable }
         in
 
         (* Constraint is split in two, ans1 is the result from the left exploration.
                  (reccall rset rmodel) is the job to do for the right exploration. *)
         let combine ~reccall rset rmodel (eg,ans1) =
-          if List.length ans1.watchable < n
+          if List.length ans1.watchable < howmany
           then
             let eg,ans2 = reccall rset rmodel (eg, ans1.fixed, ans1.watchable) in
             eg, { watchable = ans2.watchable;

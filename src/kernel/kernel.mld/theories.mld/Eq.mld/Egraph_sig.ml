@@ -44,6 +44,6 @@ module type S = sig
 
   type valuation
 
-  val watchfind : 'a Values.Key.t -> int -> TSet.t -> t -> t * valuation watch
+  val watchfind : 'a Values.Key.t -> howmany:int -> TSet.t -> t -> t * valuation watch
   
 end

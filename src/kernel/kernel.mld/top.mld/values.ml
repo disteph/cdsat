@@ -99,6 +99,10 @@ module Value = struct
 
 end
 
+let inj key = function
+  | Values(Boolean b) -> Values(Boolean b)
+  | Values(NonBoolean value) -> Values(NonBoolean(Value.inj key value))
+
 module CValue = struct
   module Arg = struct
     type 'a t = 'a Key.t

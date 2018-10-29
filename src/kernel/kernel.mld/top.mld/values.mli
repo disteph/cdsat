@@ -33,6 +33,8 @@ module Value : sig
   val proj : 'a Key.t -> t -> 'a option
 end
 
+val inj : 'a Key.t -> 'a values -> Value.t values
+  
 module CValue : sig
   type t[@@deriving eq,show]
   val none : Sorts.t -> t
