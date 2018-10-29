@@ -29,6 +29,8 @@ type (_,_) message = private
   (* Propa(H,A) is the theory inference (a.k.a. propagation) H⊢A *)
   | Propa : Assign.t * 'l propagated -> (_,'l propa) message
 
+type ('sign,'t) imessage = ('sign,'t) message * int
+
 (* Message construction functions *)
 val sat     : 'sign -> Assign.t -> sharing:TSet.t -> myvars:TSet.t Lazy.t -> ('sign,sat) message
 val propa   : 'sign -> Assign.t -> 'l propagated -> ('sign,'l propa) message
@@ -37,3 +39,4 @@ val straight: 'sign -> Assign.t -> BAssign.t     -> ('sign,straight) message
 
 (* Pretty-printing messages *)
 val pp_message: (_,_) message Format.printer
+val pp_imessage: (_,_) imessage Format.printer

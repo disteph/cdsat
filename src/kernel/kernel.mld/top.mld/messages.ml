@@ -28,6 +28,8 @@ type (_,_) message =
   | Sat   : { assign : Assign.t; sharing: TSet.t; myvars: TSet.t Lazy.t} -> (_,sat) message
   | Propa : Assign.t * 'l propagated -> (_,'l propa) message
 
+type ('sign,'t) imessage = ('sign,'t) message * int
+
 (* Message construction functions *)
 
 let sat _ assign ~sharing ~myvars = Sat{ assign; sharing; myvars }
@@ -59,3 +61,4 @@ let pp_message fmt = match !Dump.display with
   | Dump.Latex -> print_msg_in_fmt_latex fmt
   | _ -> print_msg_in_fmt_utf8 fmt
 
+let pp_imessage fmt (msg,i) = Format.fprintf fmt "%a at level %i" pp_message msg i

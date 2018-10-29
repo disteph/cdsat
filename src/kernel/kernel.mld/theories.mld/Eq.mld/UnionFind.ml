@@ -138,8 +138,15 @@ module Make(P : Parameters) = struct
         
   module H = Hashtbl.Make(Node)
 
+  let rec path_rev_append l1 l2 =
+    match l1 with
+    | [] -> l2
+    | (e,n1,n2)::l1 -> path_rev_append l1 ((e,n2,n1)::l2)
+
   exception DiffComp
-    
+
+  type path = (edge*Node.t*Node.t) list [@@deriving show]
+  
   let path t pc eg =
     Print.print ["kernel.egraph",3] (fun p ->
         p "Starting path search between %a and %a" Node.pp t Node.pp PC.(pc.pointed));
@@ -150,33 +157,32 @@ module Make(P : Parameters) = struct
     
     let rec aux t1 accu1 taccu b =
       Print.print ["kernel.egraph",5] (fun p ->
-          p "path_aux: t1=%a accu1=%a b=%b" Node.pp t1 (List.pp pp_edge) accu1 b);
+          p "path_aux: t1=%a accu1=%a b=%b" Node.pp t1 pp_path accu1 b);
       let table1,table2 = (if b then table,table_pc else table_pc,table) in
       if H.mem table2 t1
       then
         let accu2 = H.find table2 t1 in
-        if b then List.rev_append accu2 accu1
-        else List.rev_append accu1 accu2
+        if b then path_rev_append accu2 accu1
+        else path_rev_append accu1 accu2
       else
         match NodeMapProof.find t1 eg.parent with
-        | Some(t1',e)
-          ->
-           Print.print ["kernel.egraph",5] (fun p ->
-               p "path_aux: found parent for %a: it's %a" Node.pp t1 Node.pp t1');
-           let accu1 = e::accu1 in
-             H.add table1 t1' accu1;
-             begin match taccu with
-             | Some(t2,accu2) -> aux t2 accu2 (Some(t1',accu1)) (not b)
-             | None -> aux t1' accu1 taccu b
-             end
-        | None
-          -> match taccu with
-             | Some(t2,accu2) -> aux t2 accu2 None (not b)
-             | None -> raise DiffComp
+        | Some(t1',e) ->
+          Print.print ["kernel.egraph",5] (fun p ->
+              p "path_aux: found parent for %a: it's %a" Node.pp t1 Node.pp t1');
+          let accu1 = (e,t1',t1)::accu1 in
+          H.add table1 t1' accu1;
+          begin match taccu with
+            | Some(t2,accu2) -> aux t2 accu2 (Some(t1',accu1)) (not b)
+            | None -> aux t1' accu1 taccu b
+          end
+        | None ->
+          match taccu with
+          | Some(t2,accu2) -> aux t2 accu2 None (not b)
+          | None -> raise DiffComp
                          
     in
     let l = aux t [] (Some(PC.(pc.pointed),[])) true in
-    Print.print ["kernel.egraph",5] (fun p -> p "%a" (List.pp pp_edge) l);
+    Print.print ["kernel.egraph",5] (fun p -> p "%a" pp_path l);
     l    
 
 end

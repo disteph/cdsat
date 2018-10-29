@@ -37,12 +37,16 @@ module type S = sig
      If it exists, returns the original graph. *)
   val add   : node -> info -> _ egraph -> t
 
+  type path = (edge*node*node) list [@@deriving show]
+
+  val path_rev_append : path -> path -> path
+
   (* path t pc eg
      provides path from t' to t, where pc is "the component of t' "
      (i.e. pc has been obtained by a call of PC.get on t').
      t is assumed to belong to component pc, otherwise this function breaks.
   *)
-  val path  : node -> 'a PC.t -> 'a egraph -> edge list
+  val path  : node -> 'a PC.t -> 'a egraph -> path
 end
 
 module type NodeMap = sig

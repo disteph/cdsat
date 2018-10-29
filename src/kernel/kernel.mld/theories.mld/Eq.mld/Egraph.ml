@@ -48,12 +48,13 @@ end
 
 module Diseq = struct
   include Patricia.Map.MakeNH(struct
-      include BAssign
-      include TypesFromHConsed(BAssign)
+      include SAssign
+      include TypesFromHConsed(SAssign)
       include EmptyInfo
-      type values = Term.t*Term.t
+      type values = int*Term.t*Term.t
     end)
-  let pp_binding fmt (j_neq,_) = BAssign.pp fmt j_neq
+  let pp_binding fmt (j_neq,(i,_,_)) =
+    Format.fprintf fmt "%a since level %i" SAssign.pp j_neq i
   let pp = print_in_fmt pp_binding
 end
 
@@ -70,7 +71,8 @@ module P = struct
 
   module Node = TermValue
 
-  type edge = (BAssign.t,SAssign.t)sum [@@deriving show]
+  type edge = {sassign   : SAssign.t;
+               level     : int } [@@deriving show]
 
   (* The information we want to keep about each component *)
   type info = {
@@ -158,7 +160,7 @@ module Make(WTerm: Writable) = struct
     let nf i = i.nf
     let cval i = i.cval
     let distinct (EGraph eg) i =
-      let aux j (_,term) sofar =
+      let aux j (_,_,term) sofar =
         let _, pc = PC.get eg (Case1 term) in
         (PC.get_info pc).cval::sofar
       in
@@ -166,43 +168,116 @@ module Make(WTerm: Writable) = struct
 
 
     (* Generates equality inference *)
-    let eq_inf j1 j2 =
-      let SAssign(t1,v1) = SAssign.reveal j1 in
-      let SAssign(t2,v2) = SAssign.reveal j2 in
-      let justif = Assign.add j1 (Assign.singleton j2) in
+    let eq_inf edge1 edge2 =
+      let SAssign(t1,v1) = SAssign.reveal edge1.sassign in
+      let SAssign(t2,v2) = SAssign.reveal edge2.sassign in
+      let justif = Assign.add edge1.sassign (Assign.singleton edge2.sassign) in
+      let level  = max edge1.level edge2.level in
       let eqterm = WTerm.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
       let eqassign = eqterm, Values.Boolean (Values.equal Value.equal v1 v2) in
-      eqassign,
-      straight () justif eqassign
+      eqassign, straight () justif eqassign, level
 
-    let pp_path = List.pp (pp_sum BAssign.pp SAssign.pp)
-               
+    let trans_inf justif t1 t2 =
+      let eqterm = WTerm.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
+      eqterm, Values.Boolean true
+      
+    let rec path_level = function
+      | []            -> failwith "Paths should have at least one edge"
+      | [{level},t,_] -> level
+      | ({level},t,_)::path -> max level (path_level path)
+
+    let path_fst_term = function
+      | (_,Case1 t,_)::_ -> t
+      | (_,Case2 _,_)::_
+      | []         -> failwith "Paths should have at least one edge"
+      
     (* Analyses a path from a term to a termvalue *)
     let treatpath path =
-      let rec aux ?last propas assigns = function
-        | []      -> last, propas, assigns
-        | j::tail ->
-           match j, last with
-           | Case1 bassign, None ->
-              aux propas (Assign.add (SAssign.build bassign) assigns) tail
-           | Case1 _, Some _ ->
-              failwith(Format.toString (fun p-> p "Path %a is ill-formed" pp_path path))
-           | Case2 sassign, None ->
-              aux ~last:sassign propas assigns tail
-           | Case2 sassign1, Some sassign2 ->
-              let j_eq, p = eq_inf sassign1 sassign2 in
-              aux (p::propas) (Assign.add (SAssign.build j_eq) assigns) tail
+      (* Global level of the path *)
+      let pathlevel = path_level path in
+      (* In the next function aux:
+         assigns and current work together,
+         representing the compressed path from the original origin (a term)
+         to the last term that has been seen.
+         The compressed path is made of segments
+         (each segment is made of edges of level < pathlevel,
+         or of level exactly pathlevel).
+         Finished segments are in assigns in the form of equalities
+         (between the term starting the segment and the term finishing the segment).
+         The current segment is in current, as a 4-tuple
+         (assign, term starting the segment, last term to be seen, level of segment).
+         last: present if the last node we have seen is a value
+         path: the rest of the path to treat
+         propas: propagations justifying the path compressions so far, with their levels.
+      *)
+      let segment_close current =
+        let assign, t1, t1', level = current in
+        if Assign.is_empty assign
+        then None
+        else
+          let eqassign = trans_inf assign t1 t1' in
+          Some(SAssign.build eqassign, (straight () assign eqassign,level))
       in
-      aux [] Assign.empty path
+
+      let rec aux assigns current ?last path propas =
+        match last, path with
+        | _,[]      ->
+          begin
+            (* We close the current segment *)
+            match segment_close current with
+            | None                -> last, propas, assigns, pathlevel
+            | Some(sassign,propa) -> last, propa::propas, Assign.add sassign assigns, pathlevel
+          end
+
+        | None, (edge, Case1 t, Case2 v)::path ->
+          (* The last node we saw was a term (must be t) & its edge now goes to a value. 
+             We load it in "last". *)
+          aux assigns current ~last:(edge, t, v) path propas
+
+        | None, (edge, Case1 t, Case1 t')::path ->
+          (* The last node we saw was a term (must be t) & its edge now goes to a term. 
+             We test whether it should be in the same segment as current. *)
+          let assign, t1, t1', level = current in
+          assert(Term.equal t1' t);
+          if [%eq:bool] (edge.level = pathlevel) (level = pathlevel)
+          then (* Same segment: we add the edge to the current segment *)
+            let current = Assign.add edge.sassign assign, t1, t', max level edge.level in
+            aux assigns current path propas
+          else (* Different segment: we close the current segment and start a new one. *)
+            let newcurrent = Assign.singleton edge.sassign, t, t', edge.level in
+            begin (* We close the current segment *)
+              match segment_close current with
+              | None                ->
+                aux assigns newcurrent path propas
+              | Some(sassign,propa) ->
+                aux (Assign.add sassign assigns) newcurrent path (propa::propas)
+            end
+
+        | Some(edge1, t1, v1), (edge2, Case2 v2, (Case1 t2 as tv2))::path ->
+          (* assert (Values.equal Value.equal v1 v2); *)
+          let eqassign, propa, level = eq_inf edge1 edge2 in
+          let edge = { sassign = SAssign.build eqassign; level } in
+          aux assigns current ((edge,Case1 t1,tv2)::path) propas
+
+        | _, (_, Case2 _, Case2 _)::_ (* We shouldn't have an edge between 2 values *)
+        | Some _, (_, Case1 _, _)::_ (* Edge2value must be followed by edge from value *)
+        | None, (_, Case2 _, _)::_   (* Edge from value must be preceeded by edge2value *)
+          -> failwith(Format.toString (fun p-> p "Path %a is ill-formed" pp_path path))
+
+      in
+      let fst_term = path_fst_term path in
+      aux Assign.empty (Assign.empty, fst_term, fst_term, pathlevel) path [] 
 
            
     let eq   (* make two things equal in the E-graph *)
           t  (* a term *)
           t2 (* a term or value *)
-          j  (* The single assignment justifying this merge *)
+          sassign (* The single assignment justifying this merge *)
+          ~level  (* The level of this assignment *)
           (EGraph eg) (* the E-graph *)
       =
       let t1 = Case1 t in (* We turn t into an E-graph node *)
+      let newedge = { sassign; level } in
       (* We add t1 as its own E-graph component
          (will not change the E-graph if node exists) *)
       let EGraph eg = add t1 (singleton t) eg in 
@@ -239,17 +314,17 @@ module Make(WTerm: Writable) = struct
           }
         in
         match Diseq.merge merge_par info1.diseq info2.diseq with
-        | Some(j_neq,(t3,t4)) ->
+        | Some(j_neq,(level,t3,t4)) ->
            (* They were declared different by an assignment j_neq - a disequality
               between t3 and t4. Get the path from t1 to t3 and the one from t2 to t4. *)
            Print.print ["kernel.egraph",1] (fun p->
-               p "kernel.egraph: violates %a" BAssign.pp j_neq);
-           let path1 = path (Case1 t3) pc1 eg in
-           let path2 = path (Case1 t4) pc2 eg in
-           let path  = List.rev_append path1 (j::path2) in
-           let _,propa,assign = treatpath path in
-           let unsat_core = Assign.add (SAssign.build j_neq) assign in
-           raise(Conflict(propa, unsat () unsat_core))
+               p "kernel.egraph: violates %a" SAssign.pp j_neq);
+           let path1 = path (Case1 t3) pc1 eg in (* path from t1 to t3*)
+           let path2 = path (Case1 t4) pc2 eg in (* path from t2 to t4*)
+           let path  = path_rev_append path1 ((newedge,t1,t2)::path2) in (* path from t3 to t4 *)
+           let _,propa,assign,pathlevel = treatpath path in
+           let unsat_core = Assign.add j_neq assign in
+           raise(Conflict(propa, (unsat () unsat_core, max pathlevel level)))
         | None ->
            (* They were not declared different. Check whether their values can be merged *)
            match CValue.merge info1.cval info2.cval with
@@ -260,20 +335,22 @@ module Make(WTerm: Writable) = struct
               Print.print ["kernel.egraph",1] (fun p->
                   p "kernel.egraph: violation: get 2 values %a and %a"
                     (pp_values Value.pp) v1 (pp_values Value.pp) v2);
-              let path1 = path (Case2 v1) pc1 eg in
-              let path2 = path (Case2 v2) pc2 eg in
-              let path = List.rev_append path1 (j::path2) in
+              let path1 = path (Case2 v1) pc1 eg in (* path from t1 to v1*)
+              let path2 = path (Case2 v2) pc2 eg in (* path from t2 to v2*)
+              let path = List.rev_append path1 ((newedge,t1,t2)::path2) in (* path from v1 to v2 *)
               begin match path with
-              | (Case2 j1)::path ->
-                 let j2,propa,assign = treatpath path in
+              | (edge1,Case2 vv1,Case1 tt1)::path when equal_values Value.equal vv1 v1 ->
+                 let j2,propa,assign,pathlevel = treatpath path in
                  begin match j2 with
-                 | Some j2 ->
-                    let j_neq,p = eq_inf j1 j2 in
+                 | Some(edge2, tt2, vv2) when equal_values Value.equal vv2 v2  ->
+                    let j_neq,p,level = eq_inf edge1 edge2 in
                     let unsat_core = Assign.add (SAssign.build j_neq) assign in
-                    raise(Conflict(p::propa, unsat () unsat_core))
-                 | _ -> failwith "Path does not finish on v2"
+                    raise(Conflict((p,max edge1.level edge2.level)::propa,
+                                   (unsat () unsat_core,
+                                    max pathlevel level)))
+                 | _ -> failwith "Path does not finish with v2"
                  end
-              | _ -> failwith "Path does not finish on v1"
+              | _ -> failwith "Path does not start with v1"
               end
            | Case2 cval ->
               (* Values could be merged. Creating the info for the merged component. *)
@@ -284,7 +361,7 @@ module Make(WTerm: Writable) = struct
               let info = { nf; cval; diseq; listening } in
               (* We output the resulting egraph, the info of the merged component,
                  and the nodes that were listened to and have seen their values updated *)
-              merge pc1 pc2 info j eg,
+              merge pc1 pc2 info newedge eg,
               info,
               let l1 = if CValue.equal cval info1.cval then TVSet.empty
                        else info1.listening in
@@ -294,7 +371,7 @@ module Make(WTerm: Writable) = struct
               TVSet.fold (fun t sofar -> t::sofar) l2 l
                        
                        
-    let diseq t1 t2 j (EGraph eg) =
+    let diseq t1 t2 j ~level (EGraph eg) =
       let tv1 = Case1 t1 in
       let tv2 = Case1 t2 in
       let EGraph eg = add tv1 (singleton t1) eg in
@@ -302,17 +379,19 @@ module Make(WTerm: Writable) = struct
       let eg,pc1 = PC.get eg tv1 in
       let eg,pc2 = PC.get eg tv2 in
       if PC.equal pc1 pc2 then
-        let _,propas,assigns = treatpath(path tv1 pc2 eg) in
-        let unsat_core = Assign.add (SAssign.build j) assigns in
-        raise(Conflict(propas, unsat () unsat_core))
+        let _,propas,assigns,pathlevel = treatpath(path tv1 pc2 eg) in
+        let unsat_core = Assign.add j assigns in
+        raise(Conflict(propas,
+                       (unsat () unsat_core,
+                        max pathlevel level)))
       else
         let info1 = PC.get_info pc1 in
         let EGraph eg =
-          update pc1 {info1 with diseq = Diseq.add j (fun _ -> (t1,t2)) info1.diseq } eg
+          update pc1 {info1 with diseq = Diseq.add j (fun _ -> (level,t1,t2)) info1.diseq } eg
         in
         let eg,pc2 = PC.get eg tv2 in
         let info2 = PC.get_info pc2 in
-        update pc2 {info2 with diseq = Diseq.add j (fun _ -> (t2,t1)) info2.diseq } eg
+        update pc2 {info2 with diseq = Diseq.add j (fun _ -> (level,t2,t1)) info2.diseq } eg
 
                
     let ask ?subscribe tv (EGraph eg) =
