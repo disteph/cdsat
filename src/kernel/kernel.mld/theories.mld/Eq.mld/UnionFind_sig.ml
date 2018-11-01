@@ -1,52 +1,54 @@
-open General.Sums       
+open General
+open Monads
+open Sums
 
 (* The is the interface for the raw implementation of the egraph, i.e. the union-find structure.
      A pointed component is an EGraph component of a specific node;
      it is pointed because it remembers which node it is the component of. *)
        
 module type S = sig
+
+  module EMonad : Monad
+  module Let_syntax : Let_syntax with type 'a t := 'a EMonad.t
   type node
   type edge
   type info
   type termmap
-  type _ egraph
-  type t = EGraph : _ egraph -> t
 
-  val extract : t -> termmap
+  type t
 
-  module PC : sig
-    type _ t
-    val equal : 'a t -> 'a t -> bool
-    (* Getting the pointed component of a node.
-       Fails if node does not exist. *)
-    val get   : 'a egraph -> node -> 'a egraph * 'a t
-    (* Get info of pointed component *)
-    val get_info  : _ t -> info
-  end
+  val extract : termmap EMonad.t
 
   val init  : t
+  val force : 'a EMonad.t -> t -> 'a*t
+
+  val get_info  : node -> info EMonad.t
+
+  (* See if two nodes are in the same component *)
+  val are_connected : node -> node -> bool EMonad.t
 
   (* Update info of pointed component *)
-  val update : 'a PC.t -> info -> 'a egraph -> t
+  val update : node -> info -> unit EMonad.t
 
   (* Merge 2 pointed components, adding edge between the 2 points,
      using info for merged component *)
-  val merge : 'a PC.t -> 'a PC.t -> info -> edge -> 'a egraph -> t
+  val merge : node -> node -> info -> edge -> unit EMonad.t
 
   (* Add new singleton component.
      If it exists, returns the original graph. *)
-  val add   : node -> info -> _ egraph -> t
+  val add   : node -> info -> unit EMonad.t
 
   type path = (edge*node*node) list [@@deriving show]
 
   val path_rev_append : path -> path -> path
 
-  (* path t pc eg
-     provides path from t' to t, where pc is "the component of t' "
-     (i.e. pc has been obtained by a call of PC.get on t').
+  (* path t t' eg
+     provides path from t to t'.
      t is assumed to belong to component pc, otherwise this function breaks.
   *)
-  val path  : node -> 'a PC.t -> 'a egraph -> path
+  val get_path : node -> node -> path EMonad.t
+
+  val elazy : 'a EMonad.t -> 'a Lazy.t EMonad.t
 end
 
 module type NodeMap = sig

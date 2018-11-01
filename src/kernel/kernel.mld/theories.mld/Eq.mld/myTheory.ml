@@ -30,7 +30,9 @@ module Make(W : Writable) = struct
   type nonrec sign = sign
 
   module EG = Make(W)
-
+  module EMonad     = EG.EMonad
+  module Let_syntax = EG.Let_syntax
+  
   type state = { egraph : EG.t;
                  treated: Assign.t;
                  sharing : TSet.t;
@@ -46,34 +48,34 @@ module Make(W : Writable) = struct
       let SAssign(term,value) = SAssign.reveal sassign in
       let myvars  = lazy(add_myvars term (Lazy.force state.myvars)) in
       let treated = Assign.add sassign state.treated in
-      try
-        Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq starting");
-        let egraph,info,tvset =
-          EG.eq term (Case2(Values value)) sassign ~level state.egraph
-        in
+      Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq starting");
+      let tlist = 
+        let%bind info,tvset = EG.eq term (Case2(Values value)) sassign ~level in
         Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq finished");
         let aux = function Case1 x -> fun sofar -> x::sofar | Case2 _ -> fun i -> i in
         let tlist = List.fold aux tvset [] in
         let aux t1 t2 value =
-          let egraph,info,tvset = EG.eq t1 (Case1 t2) sassign ~level egraph in
+          let%map info,tvset = EG.eq t1 (Case1 t2) sassign ~level in
           let tlist = List.fold aux tvset tlist in
-          egraph, tlist
+          tlist
         in
-        let egraph, tlist =
-          match Term.reveal term, value with
-          | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
-          | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
-          | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
-            -> EG.diseq t1 t2 sassign ~level egraph, tlist
-          | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
-            -> EG.diseq t1 t2 sassign ~level egraph, tlist
-          | _ -> egraph, tlist
-        in
+        match Term.reveal term, value with
+        | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
+        | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
+        | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
+          -> EG.diseq t1 t2 sassign ~level;%map tlist
+        | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
+          -> EG.diseq t1 t2 sassign ~level;%map tlist
+        | _ -> EMonad.return tlist
+      in
+      try
+        let tlist, egraph = EG.force tlist state.egraph in
         Print.print ["kernel.egraph",1] (fun p->
             p "kernel.egraph is fine with %a" Assign.pp treated);
         SAT(sat () treated ~sharing:state.sharing ~myvars,
             tlist,
             machine { state with egraph; treated; myvars })
+  
       with
         Conflict(propa,conflict) ->
         Print.print ["kernel.egraph",0] (fun p->
@@ -92,16 +94,18 @@ module Make(W : Writable) = struct
     in
 
     let watchfind key ~howmany tset =
-      let egraph,watched = EG.watchfind key howmany tset state.egraph in
+      let watched = EG.watchfind key howmany tset in
+      let watched,egraph = EG.force watched state.egraph in
       watched, machine { state with egraph }
     in
     
     let ask =
       let ask ?subscribe tv =
-        let info,egraph = EG.ask ?subscribe tv state.egraph in
+        let info = EG.ask ?subscribe tv in
+        let info,egraph = EG.force info state.egraph in
         EG.nf info,
         EG.cval info,
-        (fun () -> EG.distinct egraph info),
+        (fun () -> EG.force (EG.distinct info) egraph |> fst),
         machine { state with egraph }
       in ask
 

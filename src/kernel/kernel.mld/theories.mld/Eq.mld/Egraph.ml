@@ -119,11 +119,8 @@ module UF = UnionFind.Make(P)
 module Make(WTerm: Writable) = struct
 
     open P
-    open UF
     type info = P.info
-    type t = UF.t
-
-    let init = init
+    include UF
 
     let singleton t = {
         nf        = t;
@@ -134,12 +131,13 @@ module Make(WTerm: Writable) = struct
 
     let nf i = i.nf
     let cval i = i.cval
-    let distinct (EGraph eg) i =
+    let distinct i =
       let aux j (_,_,term) sofar =
-        let _, pc = PC.get eg (Case1 term) in
-        (PC.get_info pc).cval::sofar
+        let%bind sofar = sofar in
+        let%map info   = get_info (Case1 term) in
+        info.cval::sofar
       in
-      Diseq.fold aux i.diseq []
+      Diseq.fold aux i.diseq (EMonad.return [])
 
 
     (* Generates equality inference *)
@@ -243,38 +241,31 @@ module Make(WTerm: Writable) = struct
       let fst_term = path_fst_term path in
       aux Assign.empty (Assign.empty, fst_term, fst_term, pathlevel) path [] 
 
-           
+
     let eq   (* make two things equal in the E-graph *)
           t  (* a term *)
           t2 (* a term or value *)
           sassign (* The single assignment justifying this merge *)
           ~level  (* The level of this assignment *)
-          (EGraph eg) (* the E-graph *)
       =
       let t1 = Case1 t in (* We turn t into an E-graph node *)
       let newedge = { sassign; level } in
       (* We add t1 as its own E-graph component
          (will not change the E-graph if node exists) *)
-      let EGraph eg = add t1 (singleton t) eg in 
-      let EGraph eg = (* Same with t2 *)
-        let info = match t2 with
-          | Case1 t2' -> singleton t2'
-          | Case2 v   -> {nf = t;
-                          cval = CValue.inj v;
-                          diseq = Diseq.empty;
-                          listening = TVSet.empty }
-        in
-        add t2 info eg
+      add t1 (singleton t);%bind
+      let info = match t2 with
+        | Case1 t2' -> singleton t2'
+        | Case2 v   -> {nf = t;
+                        cval = CValue.inj v;
+                        diseq = Diseq.empty;
+                        listening = TVSet.empty }
       in
-      (* We get the components of t1 and t2,
-         and extract the compnent information for both *)
-      let eg, pc1 = PC.get eg t1 in
-      let eg, pc2 = PC.get eg t2 in
-      let info1 = PC.get_info pc1 in
-      let info2 = PC.get_info pc2 in
+      add t2 info;%bind
+      let%bind info1 = get_info t1 in
+      let%bind info2 = get_info t2 in
       (* Already in the same class? Do nothing. *)
-      if PC.equal pc1 pc2
-      then EGraph eg, info1, []
+      if%bind are_connected t1 t2
+      then EMonad.return (info1, [])
       else
         (* First: check whether the 2 components have not been declared different *)
         let merge_par = Diseq.Merge.{
@@ -294,9 +285,9 @@ module Make(WTerm: Writable) = struct
               between t3 and t4. Get the path from t1 to t3 and the one from t2 to t4. *)
            Print.print ["kernel.egraph",1] (fun p->
                p "kernel.egraph: violates %a" SAssign.pp j_neq);
-           let path1 = path (Case1 t3) pc1 eg in (* path from t1 to t3*)
-           let path2 = path (Case1 t4) pc2 eg in (* path from t2 to t4*)
-           let path  = path_rev_append path1 ((newedge,t1,t2)::path2) in (* path from t3 to t4 *)
+           let%bind path1 = get_path t1 (Case1 t3) in (* path from t1 to t3*)
+           let%bind path2 = get_path t2 (Case1 t4) in (* path from t2 to t4*)
+           let path = path_rev_append path1 ((newedge,t1,t2)::path2) in (* path from t3 to t4 *)
            let _,propa,assign,pathlevel = treatpath path in
            let unsat_core = Assign.add j_neq assign in
            raise(Conflict(propa, (unsat () unsat_core, max pathlevel level)))
@@ -310,8 +301,8 @@ module Make(WTerm: Writable) = struct
               Print.print ["kernel.egraph",1] (fun p->
                   p "kernel.egraph: violation: get 2 values %a and %a"
                     (pp_values Value.pp) v1 (pp_values Value.pp) v2);
-              let path1 = path (Case2 v1) pc1 eg in (* path from t1 to v1*)
-              let path2 = path (Case2 v2) pc2 eg in (* path from t2 to v2*)
+              let%bind path1 = get_path t1 (Case2 v1) in (* path from t1 to v1*)
+              let%bind path2 = get_path t2 (Case2 v2) in (* path from t2 to v2*)
               let path = List.rev_append path1 ((newedge,t1,t2)::path2) in (* path from v1 to v2 *)
               begin match path with
               | (edge1,Case2 vv1,Case1 tt1)::path when equal_values Value.equal vv1 v1 ->
@@ -336,7 +327,7 @@ module Make(WTerm: Writable) = struct
               let info = { nf; cval; diseq; listening } in
               (* We output the resulting egraph, the info of the merged component,
                  and the nodes that were listened to and have seen their values updated *)
-              merge pc1 pc2 info newedge eg,
+              merge t1 t2 info newedge;%map
               info,
               let l1 = if CValue.equal cval info1.cval then TVSet.empty
                        else info1.listening in
@@ -345,45 +336,47 @@ module Make(WTerm: Writable) = struct
               let l = TVSet.fold (fun t sofar -> t::sofar) l1 [] in
               TVSet.fold (fun t sofar -> t::sofar) l2 l
                        
-                       
-    let diseq t1 t2 j ~level (EGraph eg) =
+
+    let diseq t1 t2 j ~level =
       let tv1 = Case1 t1 in
       let tv2 = Case1 t2 in
-      let EGraph eg = add tv1 (singleton t1) eg in
-      let EGraph eg = add tv2 (singleton t2) eg in
-      let eg,pc1 = PC.get eg tv1 in
-      let eg,pc2 = PC.get eg tv2 in
-      if PC.equal pc1 pc2 then
-        let _,propas,assigns,pathlevel = treatpath(path tv1 pc2 eg) in
-        let unsat_core = Assign.add j assigns in
-        raise(Conflict(propas,
-                       (unsat () unsat_core,
-                        max pathlevel level)))
+      add tv1 (singleton t1);%bind
+      add tv2 (singleton t2);%bind
+      if%bind are_connected tv1 tv2 then
+        let%bind path = get_path tv1 tv2 in
+        let last,propas,assigns,pathlevel = treatpath path in
+        match last with
+        | Some _ -> failwith "Should be None"
+        | None ->
+          let unsat_core = Assign.add j assigns in
+          raise(Conflict(propas,
+                         (unsat () unsat_core,
+                          max pathlevel level)))
       else
-        let info1 = PC.get_info pc1 in
-        let EGraph eg =
-          update pc1 {info1 with diseq = Diseq.add j (fun _ -> (level,t1,t2)) info1.diseq } eg
-        in
-        let eg,pc2 = PC.get eg tv2 in
-        let info2 = PC.get_info pc2 in
-        update pc2 {info2 with diseq = Diseq.add j (fun _ -> (level,t2,t1)) info2.diseq } eg
-
+        let%bind info1 = get_info tv1 in
+        let diseq = Diseq.add j (fun _ -> (level,t1,t2)) info1.diseq in
+        update tv1 {info1 with diseq };%bind
+        let%bind info2 = get_info tv2 in
+        let diseq = Diseq.add j (fun _ -> (level,t2,t1)) info2.diseq in
+        update tv2 {info2 with diseq };%map
+        ()
                
-    let ask ?subscribe tv (EGraph eg) =
-      let EGraph eg = match tv with
-        | Case1 t -> add tv (singleton t) eg
-        | Case2 v -> EGraph eg
-      in
-      let eg,pc = PC.get eg tv in
-      let info = PC.get_info pc in
+    let ask ?subscribe tv =
+      begin match tv with
+        | Case1 t -> add tv (singleton t)
+        | Case2 v -> EMonad.return ()
+      end;%bind
+      let%bind info = get_info tv in
       match subscribe with
-      | None -> info, EGraph eg
+      | None -> EMonad.return info
       | Some true ->
-         let info = { info with listening = TVSet.add tv info.listening } in
-         info, (update pc info eg)
+        let info = { info with listening = TVSet.add tv info.listening } in
+        update tv info;%map
+        info
       | Some false ->
-         let info = { info with listening = TVSet.remove tv info.listening } in
-         info, (update pc info eg)
+        let info = { info with listening = TVSet.remove tv info.listening } in
+        update tv info;%map
+        info
 
     (* Picking n terms in a tset, or the maximum thereof *)
     let pick n =
@@ -395,73 +388,69 @@ module Make(WTerm: Writable) = struct
             else watchable)
         (fun var watchable -> var::watchable)
 
-    let watchfind key ~howmany tset eg =
-      let tm,_ = UF.extract eg in
+    let watchfind key ~howmany tset =
+      let%bind (tm,_) = extract in
       let action =
         (* Variable var is assigned in the model, can't pick it to watch *)
-        let sameleaf var () parent (EGraph eg, fixed, watchable) =
-          let eg,info = match parent with
-            | Case1 tv ->
-              let eg,pc = UF.PC.get eg tv in
-              (EGraph eg : UF.t), UF.PC.get_info pc
-            | Case2(_,_,info) ->
-              (EGraph eg : UF.t),info
+        let sameleaf var () parent (fixed, watchable) =
+          let%bind info = match parent with
+            | Case1 tv        -> get_info tv
+            | Case2(_,_,info) -> EMonad.return info
           in
-          eg,
           let cv = cval info in
           match CValue.proj key cv with
-          | None   -> { fixed;
-                        unknown = TSet.singleton var;
-                        watchable = var::watchable}
+          | None   -> EMonad.return { fixed;
+                                      unknown = TSet.singleton var;
+                                      watchable = var::watchable}
           | Some v ->
+            let%map assign = elazy
+              begin
+                let%map path = get_path (Case1 var) (Case2(Values.inj key v)) in
+                let aux ({sassign;level},_,_) (assign,levelsofar) =
+                  Assign.add sassign assign, max level levelsofar
+                in
+                List.fold aux path (Assign.empty,-1)
+              end
+            in
             let add_aux = function
               | Some a -> a
-              | None   ->
-                cv,
-                lazy
-                  begin
-                    let EGraph eg = eg in
-                    let _,pc = UF.PC.get eg (Case1 var) in
-                    let path = UF.path (Case2(Values.inj key v)) pc eg in
-                    let aux ({sassign;level},_,_) (assign,levelsofar) =
-                      Assign.add sassign assign, max level levelsofar
-                    in
-                    List.fold aux path (Assign.empty,-1)
-                  end
+              | None   -> cv, assign
+                
             in
             { fixed   = Valuation.add var add_aux fixed;
               unknown = TSet.empty;
               watchable }
         in
         (* No variable in this part of the exploration *)
-        let emptyfull _ (eg, fixed, watchable) =
-          eg, { fixed; unknown = TSet.empty; watchable }
+        let emptyfull _ (fixed, watchable) =
+          EMonad.return { fixed; unknown = TSet.empty; watchable }
         in
         (* All vars in this part of the constraint are unassigned.
-               we try to complete watchable to n terms: *)
-        let fullempty tset (eg, fixed, watchable) =
-          eg, { fixed; unknown = tset; watchable = pick howmany tset watchable }
+           we try to complete watchable to n terms: *)
+        let fullempty tset (fixed, watchable) =
+          EMonad.return { fixed; unknown = tset; watchable = pick howmany tset watchable }
         in
 
         (* Constraint is split in two, ans1 is the result from the left exploration.
-                 (reccall rset rmodel) is the job to do for the right exploration. *)
-        let combine ~reccall rset rmodel (eg,ans1) =
+           (reccall rset rmodel) is the job to do for the right exploration. *)
+        let combine ~reccall rset rmodel ans1 =
           if List.length ans1.watchable < howmany
           then
-            let eg,ans2 = reccall rset rmodel (eg, ans1.fixed, ans1.watchable) in
-            eg, { watchable = ans2.watchable;
-                  fixed     = ans2.fixed;
-                  unknown   = TSet.union ans1.unknown ans2.unknown }
+            let%map ans2 = reccall rset rmodel (ans1.fixed, ans1.watchable) in
+            { watchable = ans2.watchable;
+              fixed     = ans2.fixed;
+              unknown   = TSet.union ans1.unknown ans2.unknown }
           else
-            eg, { ans1 with unknown = TSet.union ans1.unknown rset }
+            EMonad.return { ans1 with unknown = TSet.union ans1.unknown rset }
         in
+        let combine ~reccall rset rmodel = EMonad.bind (combine ~reccall rset rmodel) in
         TermMap.Fold2.{ sameleaf; emptyfull; fullempty;
                         combine = make_combine
                             ~empty1:TSet.empty
                             ~empty2:TermMap.empty
                             combine }
       in
-      let eg, result = TermMap.fold2_poly action tset tm (eg, Valuation.empty, []) in
-      eg, { result with fixed = Valuation.build () result.fixed }
+      let%map result = TermMap.fold2_poly action tset tm (Valuation.empty, []) in
+      { result with fixed = Valuation.build () result.fixed }
 
   end

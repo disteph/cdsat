@@ -11,4 +11,4 @@ module TermValue : sig
   type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]          
 end
 
-module Make(W: Writable) : S
+module Make(W: Writable) : S with type termvalue := TermValue.t

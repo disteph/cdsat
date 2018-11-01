@@ -24,6 +24,7 @@ module Make_Let(M:Monad) = struct
   open M
       
   module Let_syntax = struct
+    type 'a t = 'a M.t
     let return = return
     let both x y  = bind (fun x -> bind (fun y -> return(x,y)) y) x
     let map x ~f  = bind (fun y -> return(f y)) x
