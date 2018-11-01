@@ -11,13 +11,13 @@ module ContMonad(R:sig type t end) = (struct
   let return a = fun f -> f a
   let bind (f: 'a -> 'b t) (a: 'a t)
     = fun (g:'b -> R.t) -> a (fun x -> f x g)
-end:Monad with type 'a t = ('a -> R.t) -> R.t)
+end : Monad with type 'a t = ('a -> R.t) -> R.t)
 
 module StateMonad(State:sig type t end) = (struct
   type 'a t = State.t -> 'a * State.t
   let return a = fun state -> a,state
   let bind (f: 'a -> 'b t) (a: 'a t) = a >> fun (a,state) -> f a state
-end:Monad with type 'a t = State.t -> 'a * State.t)
+end : Monad with type 'a t = State.t -> 'a * State.t)
 
 module Make_Let(M:Monad) = struct
 
