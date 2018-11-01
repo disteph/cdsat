@@ -7,16 +7,6 @@ open Terms
 open Values
 open Messages
 
-module type Valuation = sig
-  module Revealed : Patricia.Map.S_NH with type keys   = Term.t
-                                       and type values = CValue.t * (Assign.t*int) Lazy.t
-                                       and type common = int
-                                       and type branching = int
-  type t
-  val reveal : t -> Revealed.t
-end
-
-
 type stop = (unit,straight) imessage list * (unit,unsat) imessage
 exception Conflict of stop
 
@@ -42,8 +32,6 @@ module type S = sig
   val cval     : info -> CValue.t
   val distinct : t -> info -> CValue.t list
 
-  type valuation
-
-  val watchfind : 'a Values.Key.t -> howmany:int -> TSet.t -> t -> t * valuation watch
+  val watchfind : 'a Values.Key.t -> howmany:int -> TSet.t -> t -> t * unit Valuation.signed watch
   
 end

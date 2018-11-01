@@ -17,31 +17,6 @@ module TermValue = struct
   type t = (Term.t,Value.t values) sum [@@deriving eq,ord,show,hash]
 end
 
-(* Valuations are term -> values maps extracted from the Egraph *)
-module Valuation = struct
-  (* We define a notion of valuation,
-     as a map from terms to the combined values found in the egraph. *)
-  module Arg = struct
-    include Term
-    include TypesFromHConsed(Term)
-    include EmptyInfo
-    type values = CValue.t * (Assign.t*int) Lazy.t
-  end
-
-  module Revealed = struct
-    open Patricia
-    include Map.MakeNH(Arg)
-    let pp_pair fmt (term,(cval,_)) =
-      Format.fprintf fmt "(%a↦ %a)" Term.pp term CValue.pp cval
-    let pp = print_in_fmt ~wrap:("{","}") pp_pair
-  end
-
-  include Revealed
-
-  let reveal t = t
-
-end
-
 (* Each E-graph component should know which other components they should never
    be equal to / merged with. We maintain for each component a set of disequalities 
    that are imposed on it. *)
@@ -486,6 +461,7 @@ module Make(WTerm: Writable) = struct
                             ~empty2:TermMap.empty
                             combine }
       in
-      TermMap.fold2_poly action tset tm (eg, Valuation.empty, [])
+      let eg, result = TermMap.fold2_poly action tset tm (eg, Valuation.empty, []) in
+      eg, { result with fixed = Valuation.build () result.fixed }
 
   end

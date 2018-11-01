@@ -8,6 +8,15 @@ open Top.Messages
 open Theories.Theory
 open Theories.Eq.MyTheory
        
+let handler = Some Handlers.Eq
+
+let rec flush_write writer unsat_msg = function
+  | [] ->
+    Lib.write writer unsat_msg
+  | msg::l ->
+    Lib.write writer msg;%bind
+    flush_write writer unsat_msg l
+
 module Make(WB: WhiteBoardExt.S)
          (EGraph: Theories.Eq.MyTheory.API
           with type sign := Theories.Eq.MyTheory.sign) = struct
@@ -16,13 +25,6 @@ module Make(WB: WhiteBoardExt.S)
   open WB
   open EGraph
 
-  let rec flush_write writer unsat_msg = function
-    | [] ->
-       Lib.write writer unsat_msg
-    | msg::l ->
-       Lib.write writer msg;%bind
-       flush_write writer unsat_msg l
-         
   let rec flush ports unsat_msg l =
     let aux (incoming : egraph msg2th) =
       match incoming with
@@ -38,8 +40,6 @@ module Make(WB: WhiteBoardExt.S)
       | KillYourself _ -> return()
     in
     Lib.read ports.reader aux
-
-  let handler = Some Handlers.Eq
 
   let rec loop_read egraph ports = 
     let aux msg =
@@ -86,7 +86,7 @@ module Make(WB: WhiteBoardExt.S)
         [ flush_write ports.writer unsat_msg l ;
           flush ports unsat_msg l ]
 
-    | SAT(msg,egraph) ->
+    | SAT(msg,_,egraph) ->
       Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" pp_message msg);
       Deferred.all_unit
         [ Lib.write ports.writer (msg_make msg) ;

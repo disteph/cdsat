@@ -31,8 +31,6 @@ module Make(W : Writable) = struct
 
   module EG = Make(W)
 
-  module TVMap = Map.Make(TermValue)
-
   type state = { egraph : EG.t;
                  treated: Assign.t;
                  sharing : TSet.t;
@@ -54,25 +52,27 @@ module Make(W : Writable) = struct
           EG.eq term (Case2(Values value)) sassign ~level state.egraph
         in
         Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq finished");
-        let tvmap = List.fold (fun x -> TVMap.add x info) tvset TVMap.empty in
+        let aux = function Case1 x -> fun sofar -> x::sofar | Case2 _ -> fun i -> i in
+        let tlist = List.fold aux tvset [] in
         let aux t1 t2 value =
           let egraph,info,tvset = EG.eq t1 (Case1 t2) sassign ~level egraph in
-          let tvmap = List.fold (fun x -> TVMap.add x info) tvset tvmap in
-          egraph, tvmap
+          let tlist = List.fold aux tvset tlist in
+          egraph, tlist
         in
-        let egraph, tmap =
+        let egraph, tlist =
           match Term.reveal term, value with
           | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value
           | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean false -> aux t1 t2 value
           | Terms.C(Symbols.NEq s,[t1;t2]), Values.Boolean true
-            -> EG.diseq t1 t2 sassign ~level egraph, tvmap
+            -> EG.diseq t1 t2 sassign ~level egraph, tlist
           | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean false
-            -> EG.diseq t1 t2 sassign ~level egraph, tvmap
-          | _ -> egraph, tvmap
+            -> EG.diseq t1 t2 sassign ~level egraph, tlist
+          | _ -> egraph, tlist
         in
         Print.print ["kernel.egraph",1] (fun p->
             p "kernel.egraph is fine with %a" Assign.pp treated);
         SAT(sat () treated ~sharing:state.sharing ~myvars,
+            tlist,
             machine { state with egraph; treated; myvars })
       with
         Conflict(propa,conflict) ->
@@ -87,6 +87,7 @@ module Make(W : Writable) = struct
       let sharing = TSet.union tset state.sharing in
       let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
       SAT(sat () state.treated ~sharing ~myvars,
+          [],
           machine { state with sharing; myvars })
     in
 
