@@ -82,6 +82,7 @@ let run parser input =
       print_endline("Total number of decisions: "^string_of_int !PFlags.decnumb);
       print_endline("Decisions per second: "^string_of_float((float_of_int !PFlags.decnumb) /. (Timer.watch timer)));
       print_endline("Options per decisions: "^string_of_float((float_of_int !PFlags.decwidth) /. (float_of_int !PFlags.decnumbB)));
+      print_endline("Total number of conflicts: "^string_of_int !PFlags.conflictnumb);
       if !clear4each then P.clear();
       print_endline(
         match K.expected, answer with

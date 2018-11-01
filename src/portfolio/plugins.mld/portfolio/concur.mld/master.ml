@@ -193,6 +193,7 @@ module Make(WB4M: WhiteBoard4Master) = struct
         Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
         (* A theory found a proof. We stop and close all pipes. *)
         (* let g = Let_syntax.bind in *)
+        incr PFlags.conflictnumb;
         let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
         H.kill state.hub;
         Case1 ans

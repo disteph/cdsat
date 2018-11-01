@@ -170,55 +170,71 @@ module Make(P : Parameters) = struct
         
   module H = Hashtbl.Make(Node)
 
-  let rec path_rev_append l1 l2 =
-    match l1 with
-    | [] -> l2
-    | (e,n1,n2)::l1 -> path_rev_append l1 ((e,n2,n1)::l2)
+  type path = { first : Node.t;
+                tail  : (edge*Node.t) list } [@@deriving show]
+
+  let path_tail {tail} =
+    match tail with
+    | [] -> failwith "tail of empty path!"
+    | (e,first)::tail -> {first;tail}
+
+  let path_cons (e,node1,node2) {first; tail} =
+    assert(Node.equal node2 first);
+    { first = node1; tail = (e,node2)::tail }
+
+  let rec path_rev_append p1 p2 =
+    assert(Node.equal p1.first p2.first);
+    match p1.tail with
+    | [] -> p2
+    | (e,first)::l1 -> path_rev_append { first; tail = l1 } { first; tail = (e,p2.first)::p2.tail }
 
   exception DiffComp
-
-  type path = (edge*Node.t*Node.t) list [@@deriving show]
   
-  let get_path node1 node2 = (* we assume t and node1 are connected *)
+  let get_path node1 node2 = (* we assume node1 and node2 are connected *)
     let%bind pc = get node1 in
     fun eg ->
       Print.print ["kernel.egraph",3] (fun p ->
           p "Starting path search between %a and %a" Node.pp node1 Node.pp node2);
       let table1 = H.create (3*PC.(pc.size)) in
       let table2 = H.create (3*PC.(pc.size)) in
-      H.add table1 node1 [];
-      H.add table2 node2 [];
+      let init1 = { first = node1; tail = [] } in
+      let init2 = { first = node2; tail = [] } in
+      H.add table1 node1 init1;
+      H.add table2 node2 init2;
+      (* tablei is a map that maps a node to a path from that node to nodei *)
 
-      let rec aux t1 accu1 taccu b =
+      (* Pre-condition: accu1 is path to node_i,
+         symmetric, if present, is a path accu2 to node_j
+         (i,j)=(1,2) if b, (i,j)=(2,1) if not *)
+      let rec aux accu1 ?symmetric b =
         Print.print ["kernel.egraph",5] (fun p ->
-            p "path_aux: t1=%a accu1=%a b=%b" Node.pp t1 pp_path accu1 b);
-        let table1,table2 = (if b then table2,table1 else table1,table2) in
+            p "get_path_aux: accu1=%a b=%b" pp_path accu1 b);
+        let table1,table2 = (if b then table1,table2 else table2,table1) in
+        let t1 = accu1.first in
         if H.mem table2 t1
         then
           let accu2 = H.find table2 t1 in
-          if b then path_rev_append accu2 accu1
-          else path_rev_append accu1 accu2
+          if b then path_rev_append accu1 accu2
+          else path_rev_append accu2 accu1
         else
           match NodeMapProof.find t1 eg.parent with
           | Some(t1',e) ->
             Print.print ["kernel.egraph",5] (fun p ->
                 p "path_aux: found parent for %a: inode1s %a" Node.pp t1 Node.pp t1');
-            let accu1 = (e,t1',t1)::accu1 in
+            let accu1 = path_cons (e,t1',t1) accu1 in
             H.add table1 t1' accu1;
-            begin match taccu with
-              | Some(t2,accu2) -> aux t2 accu2 (Some(t1',accu1)) (not b)
-              | None -> aux t1' accu1 taccu b
+            begin match symmetric with
+              | Some accu2 -> aux accu2 ~symmetric:accu1 (not b) (* We swap *)
+              | None       -> aux accu1 b (* We don't swap *)
             end
           | None ->
-            match taccu with
-            | Some(t2,accu2) -> aux t2 accu2 None (not b)
+            match symmetric with
+            | Some accu2 -> aux accu2 (not b)
             | None -> raise DiffComp
 
       in
-      let l = aux node2 [] (Some(node1,[])) true in
+      let l = aux init1 ~symmetric:init2 true in
       Print.print ["kernel.egraph",5] (fun p -> p "%a" pp_path l);
-      H.clear table1;
-      H.clear table2;
       l,eg
 
 end

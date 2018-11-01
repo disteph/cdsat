@@ -51,7 +51,6 @@ module Make(W : Writable) = struct
       Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq starting");
       let tlist = 
         let%bind info,tvset = EG.eq term (Case2(Values value)) sassign ~level in
-        Print.print ["kernel.egraph",1] (fun p-> p "kernel.egraph eq finished");
         let aux = function Case1 x -> fun sofar -> x::sofar | Case2 _ -> fun i -> i in
         let tlist = List.fold aux tvset [] in
         let aux t1 t2 value =
@@ -82,7 +81,7 @@ module Make(W : Writable) = struct
             p "kernel.egraph detected conflict:\n %a\n leads to %a"
               (List.pp pp_imessage) propa
               pp_imessage conflict);
-        UNSAT(propa,conflict)
+        UNSAT(List.rev propa,conflict)
     in
 
     let share tset =

@@ -38,8 +38,11 @@ module type S = sig
      If it exists, returns the original graph. *)
   val add   : node -> info -> unit EMonad.t
 
-  type path = (edge*node*node) list [@@deriving show]
+  type path = private { first : node;
+                        tail  : (edge*node) list } [@@deriving show]
 
+  val path_tail : path -> path
+  val path_cons : (edge*node*node) -> path -> path
   val path_rev_append : path -> path -> path
 
   (* path t t' eg

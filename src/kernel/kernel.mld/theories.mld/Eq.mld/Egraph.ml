@@ -154,20 +154,11 @@ module Make(WTerm: Writable) = struct
       let eqterm = WTerm.bC (Symbols.Eq(Term.get_sort t1)) [t1;t2] in
       eqterm, Values.Boolean true
       
-    let rec path_level = function
-      | []            -> failwith "Paths should have at least one edge"
-      | [{level},t,_] -> level
-      | ({level},t,_)::path -> max level (path_level path)
 
-    let path_fst_term = function
-      | (_,Case1 t,_)::_ -> t
-      | (_,Case2 _,_)::_
-      | []         -> failwith "Paths should have at least one edge"
-      
     (* Analyses a path from a term to a termvalue *)
-    let treatpath path =
+    let treatpath ({first; tail} as path) =
       (* Global level of the path *)
-      let pathlevel = path_level path in
+      let pathlevel = List.fold (fun ({level},_) -> max level) tail 0 in
       (* In the next function aux:
          assigns and current work together,
          representing the compressed path from the original origin (a term)
@@ -192,9 +183,9 @@ module Make(WTerm: Writable) = struct
           Some(SAssign.build eqassign, (straight () assign eqassign,level))
       in
 
-      let rec aux assigns current ?last path propas =
-        match last, path with
-        | _,[]      ->
+      let rec aux assigns current ?last first tail propas =
+        match last, first, tail with
+        | _,_,[] ->
           begin
             (* We close the current segment *)
             match segment_close current with
@@ -202,44 +193,45 @@ module Make(WTerm: Writable) = struct
             | Some(sassign,propa) -> last, propa::propas, Assign.add sassign assigns, pathlevel
           end
 
-        | None, (edge, Case1 t, Case2 v)::path ->
+        | None, Case1 t, (edge, (Case2 v as tv'))::tail ->
           (* The last node we saw was a term (must be t) & its edge now goes to a value. 
              We load it in "last". *)
-          aux assigns current ~last:(edge, t, v) path propas
+          aux assigns current ~last:(edge, t, v) tv' tail propas
 
-        | None, (edge, Case1 t, Case1 t')::path ->
+        | None, Case1 t, (edge, (Case1 t' as tv'))::tail ->
           (* The last node we saw was a term (must be t) & its edge now goes to a term. 
              We test whether it should be in the same segment as current. *)
           let assign, t1, t1', level = current in
           assert(Term.equal t1' t);
           if [%eq:bool] (edge.level = pathlevel) (level = pathlevel)
           then (* Same segment: we add the edge to the current segment *)
-            let current = Assign.add edge.sassign assign, t1, t', max level edge.level in
-            aux assigns current path propas
+            let newcurrent = Assign.add edge.sassign assign, t1, t', max level edge.level in
+            aux assigns newcurrent tv' tail propas
           else (* Different segment: we close the current segment and start a new one. *)
             let newcurrent = Assign.singleton edge.sassign, t, t', edge.level in
             begin (* We close the current segment *)
               match segment_close current with
               | None                ->
-                aux assigns newcurrent path propas
+                aux assigns newcurrent tv' tail propas
               | Some(sassign,propa) ->
-                aux (Assign.add sassign assigns) newcurrent path (propa::propas)
+                aux (Assign.add sassign assigns) newcurrent tv' tail (propa::propas)
             end
 
-        | Some(edge1, t1, v1), (edge2, Case2 v2, (Case1 t2 as tv2))::path ->
+        | Some(edge1, t1, v1), Case2 v2, (edge2, (Case1 t2 as tv2))::path ->
           (* assert (Values.equal Value.equal v1 v2); *)
           let eqassign, propa, level = eq_inf edge1 edge2 in
           let edge = { sassign = SAssign.build eqassign; level } in
-          aux assigns current ((edge,Case1 t1,tv2)::path) propas
+          aux assigns current (Case1 t1) ((edge,tv2)::path) propas
 
-        | _, (_, Case2 _, Case2 _)::_ (* We shouldn't have an edge between 2 values *)
-        | Some _, (_, Case1 _, _)::_ (* Edge2value must be followed by edge from value *)
-        | None, (_, Case2 _, _)::_   (* Edge from value must be preceeded by edge2value *)
+        | _, Case2 _, (_, Case2 _)::_ (* We shouldn't have an edge between 2 values *)
+        | Some _, Case1 _, _::_    (* Edge2value must be followed by edge from value *)
+        | None  , Case2 _ , _::_   (* Edge from value must be preceeded by edge2value *)
           -> failwith(Format.toString (fun p-> p "Path %a is ill-formed" pp_path path))
 
       in
-      let fst_term = path_fst_term path in
-      aux Assign.empty (Assign.empty, fst_term, fst_term, pathlevel) path [] 
+      match first with
+      | Case1 t -> aux Assign.empty (Assign.empty, t, t, 0) first tail []
+      | Case2 _ -> failwith "treatpath should only be called on a path that start with a term"
 
 
     let eq   (* make two things equal in the E-graph *)
@@ -287,7 +279,8 @@ module Make(WTerm: Writable) = struct
                p "kernel.egraph: violates %a" SAssign.pp j_neq);
            let%bind path1 = get_path t1 (Case1 t3) in (* path from t1 to t3*)
            let%bind path2 = get_path t2 (Case1 t4) in (* path from t2 to t4*)
-           let path = path_rev_append path1 ((newedge,t1,t2)::path2) in (* path from t3 to t4 *)
+           let path = path_rev_append path1 (path_cons (newedge,t1,t2) path2) in
+           (* path from t3 to t4 *)
            let _,propa,assign,pathlevel = treatpath path in
            let unsat_core = Assign.add j_neq assign in
            raise(Conflict(propa, (unsat () unsat_core, max pathlevel level)))
@@ -303,10 +296,11 @@ module Make(WTerm: Writable) = struct
                     (pp_values Value.pp) v1 (pp_values Value.pp) v2);
               let%bind path1 = get_path t1 (Case2 v1) in (* path from t1 to v1*)
               let%bind path2 = get_path t2 (Case2 v2) in (* path from t2 to v2*)
-              let path = List.rev_append path1 ((newedge,t1,t2)::path2) in (* path from v1 to v2 *)
-              begin match path with
-              | (edge1,Case2 vv1,Case1 tt1)::path when equal_values Value.equal vv1 v1 ->
-                 let j2,propa,assign,pathlevel = treatpath path in
+              let path = path_rev_append path1 (path_cons (newedge,t1,t2) path2) in
+              (* path from v1 to v2 *)
+              begin match path.first, path.tail with
+              | Case2 vv1, (edge1,Case1 tt1)::_ when equal_values Value.equal vv1 v1 ->
+                 let j2,propa,assign,pathlevel = treatpath (path_tail path) in
                  begin match j2 with
                  | Some(edge2, tt2, vv2) when equal_values Value.equal vv2 v2  ->
                     let j_neq,p,level = eq_inf edge1 edge2 in
@@ -406,10 +400,10 @@ module Make(WTerm: Writable) = struct
             let%map assign = elazy
               begin
                 let%map path = get_path (Case1 var) (Case2(Values.inj key v)) in
-                let aux ({sassign;level},_,_) (assign,levelsofar) =
+                let aux ({sassign;level},_) (assign,levelsofar) =
                   Assign.add sassign assign, max level levelsofar
                 in
-                List.fold aux path (Assign.empty,-1)
+                List.fold aux path.tail (Assign.empty,-1)
               end
             in
             let add_aux = function
