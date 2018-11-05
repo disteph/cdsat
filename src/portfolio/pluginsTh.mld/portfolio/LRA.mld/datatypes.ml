@@ -40,6 +40,8 @@ module Make(_: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
   module ConfigB = struct
 
+    module M = TwoWatchedLits.StdMonad(struct type t = K.Model.t end)
+                 
     module Constraint = struct
       type t = K.Simpl.t * bool [@@deriving show]
       let id (c,b) =
@@ -49,11 +51,9 @@ module Make(_: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
     module Var = Term
 
-    type fixed = K.Model.t
+    let simplify (c,b) fixed = K.Simpl.simplify c fixed, b
 
-    let simplify fixed (c,b) = K.Simpl.simplify fixed c, b
-
-    let pick_another _ (c,_) i _ =
+    let pick_another (c,_) i _ _ =
       Print.print ["LRA",2] (fun p ->
           p "LRA: WLB picks variables for %a, gets %a"
             K.Simpl.pp c
@@ -66,6 +66,8 @@ module Make(_: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
   module ConfigQ = struct
 
+    module M = TwoWatchedLits.StdMonad(struct type t = K.Model.t end)
+                 
     module Constraint = struct
       type t = K.Simpl.t * (Top.Qhashed.t option) * Term.t [@@deriving show]
       let id (_,_,t) = Term.id t
@@ -73,11 +75,9 @@ module Make(_: Writable)(K: API.API with type sign = MyTheory.sign) = struct
 
     module Var = Term
 
-    type fixed = K.Model.t
+    let simplify (c,v,i) fixed = K.Simpl.simplify c fixed,v,i
 
-    let simplify fixed (c,v,i) = K.Simpl.simplify fixed c,v,i
-
-    let pick_another _ (c,_,_) i _ =
+    let pick_another (c,_,_) i _ _ =
       Print.print ["LRA",2] (fun p ->
           p "LRA: WLQ picks variables for %a, gets %a"
             K.Simpl.pp c

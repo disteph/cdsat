@@ -79,6 +79,6 @@ module Constraint : sig
   (* Actually performs the simplification. Note that it is performed lazily:
        as soon as 2 literals can be watched, the next literals are not even scanned,
        even if one of them would simplify it to True, for instance *)
-  val simplify : Model.t->t->t
+  val simplify : t->Model.t->t
 end
 

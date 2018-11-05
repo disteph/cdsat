@@ -1,27 +1,20 @@
 open General
 open Sums
+open Monads
+    
+include TwoWatchedLits_sig
 
-module type Config = sig
-  module Constraint: sig
-    type t [@@deriving show]
-    val id : t -> int
-  end              
-  module Var: sig
-    type t [@@deriving ord,show]
-  end
-  type fixed
-  val simplify    : fixed -> Constraint.t -> Constraint.t
-  val pick_another: fixed
-                    -> Constraint.t
-                    -> int
-                    -> Var.t list
-                    -> Var.t list
+module StdMonad(Fixed: sig type t end) = struct
+  type 'a t = Fixed.t -> 'a
+  let return a _ = a
+  let bind f a fixed = f (a fixed) fixed
 end
-
 
 module Make (C : Config) = struct
 
   open C
+
+  include Make_Let(M)
 
   module VarMap = Map.Make(Var)
   module VarSet = struct
@@ -96,7 +89,7 @@ module Make (C : Config) = struct
 
   (* Adding or updating a constraint before we know the variables to watch *)
       
-  let treat_one fixed ?howmany c t =
+  let treat_one ?howmany c t =
     Print.print ["watch",1] (fun p-> p "watch: changing watch list for %a" Constraint.pp c);
     (* c is constraint for which we want to pick watched vars *)
     (* Here are the vars currently watched by c *)
@@ -109,8 +102,8 @@ module Make (C : Config) = struct
       | None -> List.length watchedlist
     in
     (* Let's simplify constraint c according to the currently fixed vars *)
-    let c' = simplify fixed c in
-    let varlist = pick_another fixed c' number watchedlist in
+    let%bind c' = simplify c in
+    let%map varlist = pick_another c' number watchedlist in
     if List.length varlist < number then Some(c',varlist), t
     else
       let varset = VarSet.of_list varlist in
@@ -122,24 +115,25 @@ module Make (C : Config) = struct
      that need to update their watch list.
      We range through cset and update the watchlists until we find a problem. *)
 
-  let return t = None, t
+  let return t = M.return(None, t)
   let bind reccall cset (sofar,t) =
     match sofar with
     | None -> reccall cset t
-    | Some _ -> sofar, {t with todo = Pqueue.push cset t.todo}
-      
-  let treat fixed ?howmany = CSet.fold_monad ~return ~bind (treat_one fixed ?howmany)
+    | Some _ -> M.return(sofar, {t with todo = Pqueue.push cset t.todo})
+  let bind reccall cset = M.bind (bind reccall cset)
+  
+  let treat ?howmany = CSet.fold_monad ~return ~bind (treat_one ?howmany)
 
-  let rec next fixed ?howmany t = 
+  let rec next ?howmany t = 
     match Pqueue.pop t.todo with
     | None ->
        Print.print ["watch",1] (fun p-> p "watch: todo is done");
-       Case1(VarSet.elements(Lazy.force t.newly)),
-       { t with newly = lazy VarSet.empty }
+       M.return(Case1(VarSet.elements(Lazy.force t.newly)),
+                { t with newly = lazy VarSet.empty } )
     | Some(cset,todo) -> 
-       match treat fixed ?howmany cset { t with todo } with
-       | None, t -> next fixed ?howmany t
-       | Some ans, t -> Case2 ans, t
+       match%bind treat ?howmany cset { t with todo } with
+       | None, t     -> next ?howmany t
+       | Some ans, t -> M.return(Case2 ans, t)
 
   let addconstraint constr ~watched t =
     addconstraint constr (VarSet.of_list watched) t

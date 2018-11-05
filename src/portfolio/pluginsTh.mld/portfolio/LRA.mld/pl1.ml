@@ -47,11 +47,11 @@ module Make(W: Writable) = struct
       | None, Some msg      -> Msg msg, machine { state with silent = true }
       | None, None ->
 
-         let output,watchedB = WLB.next state.fixed ~howmany:2 state.watchedB in
+         let output,watchedB = WLB.next ~howmany:2 state.watchedB state.fixed in
          match output with
          | Case1 _ ->
 
-            let output,watchedQ = WLQ.next state.fixed ~howmany:1 state.watchedQ in
+            let output,watchedQ = WLQ.next ~howmany:1 state.watchedQ state.fixed in
             begin match output with
             | Case1 _ ->
                Print.print ["LRA",4] (fun p -> p "LRA: Watched literals are done");
@@ -151,7 +151,7 @@ module Make(W: Writable) = struct
 
                | Range.FourierMotzkin(ba1,ba2) ->
                   let (Propa(_,Straight(t,_))) as msg = fm ba1 ba2 var in
-                  let c = Simpl.simplify state.fixed (Simpl.make t) in
+                  let c = Simpl.simplify (Simpl.make t) state.fixed in
                   Print.print ["LRA",0] (fun p -> p "%a" pp_fm (ba1,ba2,t));
                   (match eval c with
                    | Beval msg_semantic ->
@@ -163,8 +163,8 @@ module Make(W: Writable) = struct
                   
                | Range.DisEqual(ba1,ba2,ba3) ->
                   let a1, a2, msg = disequal ba1 ba2 ba3 var in
-                  let a1' = Simpl.simplify state.fixed (Simpl.make a1) in
-                  let a2' = Simpl.simplify state.fixed (Simpl.make a2) in
+                  let a1' = Simpl.simplify (Simpl.make a1) state.fixed in
+                  let a2' = Simpl.simplify (Simpl.make a2) state.fixed in
                   match eval a1', eval a2' with
                   | Beval msg1, Beval msg2 ->
                      Print.print ["LRA",0] (fun p ->
@@ -216,7 +216,7 @@ module Make(W: Writable) = struct
                   end
                 else
                   begin
-                    let c = K.Simpl.simplify state.fixed c in
+                    let c = K.Simpl.simplify c state.fixed in
                     Print.print ["LRA",2] (fun p ->
                         p "LRA watches %a" Term.pp (K.Simpl.term c));
                     let newvariables =
@@ -250,7 +250,7 @@ module Make(W: Writable) = struct
           fun tset ->
           let kernel, new2evaluate = K.share tset state.kernel in
           let aux c (watchedQ,domains) =
-            let c = K.Simpl.simplify state.fixed c in
+            let c = K.Simpl.simplify c state.fixed in
             WLQ.addconstraintNflag (c,None,K.Simpl.term c) watchedQ,
             Domain.union_poly
               (fun _ old _ -> old)

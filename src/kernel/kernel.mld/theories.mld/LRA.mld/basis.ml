@@ -83,7 +83,7 @@ module Simpl = struct
       (fun var _ watchable -> var::watchable)
 
 
-  (* simplify model c
+  (* simplify c model
      simplifies constraint c according to the currently fixed vars, given as model.
      This operation selects 2 vars to watch and stops as soon as 2 have been found.
      the assignments that have simplified the constraint, are added to c.justif
@@ -132,7 +132,7 @@ module Simpl = struct
                                  ~empty2:Model.empty
                                  combine }
 
-  let simplify model c =
+  let simplify c model =
     let simpl = Rationals.VarMap.fold2_poly action c.simpl.coeffs model [] in
     { c with simpl = { simpl with
                        constant = Q.(c.simpl.constant + simpl.constant);

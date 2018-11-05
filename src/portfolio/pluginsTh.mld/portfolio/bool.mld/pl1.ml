@@ -63,11 +63,11 @@ module Make(W:Writable) = struct
                        
     (* Configuration for the 2-watched literals module *)
     module Config = struct
+      module M = TwoWatchedLits.StdMonad(struct type t = K.Model.t end)
       module Constraint = K.Constraint
       module Var = BAssign
-      type fixed = K.Model.t
-      let simplify fixed = Constraint.simplify fixed
-      let pick_another _ c i _ =
+      let simplify = Constraint.simplify
+      let pick_another c i _ _ =
         match Constraint.simpl c with
         | Some(_,watchable) -> watchable
         | None -> []
@@ -95,7 +95,7 @@ module Make(W:Writable) = struct
       | None -> 
          (* With no propagation message we ask the watched literals
             if a clause is weird *)
-         let output,watched = WL.next state.fixed ~howmany:2 state.watched in
+         let output,watched = WL.next ~howmany:2 state.watched state.fixed in
          match output with
          | Case1 newlits ->
             (* All clauses seem fine. Maybe the problem is sat ? *)
@@ -208,7 +208,7 @@ module Make(W:Writable) = struct
                        (* Asignment was of a disjunctive kind.
                            We simplify the constraint according to our current model,
                            and give it to the watched literals *)
-                       let c = Config.Constraint.simplify fixed c in
+                       let c = Config.Constraint.simplify c fixed in
                        let open K in
                        match infer c with
 

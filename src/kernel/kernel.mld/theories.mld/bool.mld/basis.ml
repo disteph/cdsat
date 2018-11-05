@@ -106,7 +106,7 @@ module Constraint : sig
   val simpl   : t -> (Clauses.VarMap.t * BAssign.t list) option
   val justif  : t -> Assign.t
   val make    : BAssign.t -> t
-  val simplify: Model.t->t->t
+  val simplify: t -> Model.t -> t
 end = struct
 
   type simpl = (Clauses.VarMap.t * BAssign.t list) option
@@ -130,7 +130,7 @@ end = struct
 
   let id = bassign >> BAssign.id
 
-  (* simplify model c
+  (* simplify c model
      simplifies clause c according to the
      currently fixed literals, given as model.
      This operation selects 2 literals to watch and stops as soon as 2 have been found.
@@ -175,7 +175,7 @@ end = struct
              | None -> ans1 ) 
     }
 
-  let simplify model constr =
+  let simplify constr model =
     match constr.simpl with
     | None -> constr
     | Some(c,watched) ->

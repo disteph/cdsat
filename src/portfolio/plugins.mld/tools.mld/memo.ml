@@ -74,7 +74,7 @@ module Make(WB : WhiteBoardExt.S) = struct
     val msg    : t -> unsat WB.t
     val make   : unsat WB.t -> t
     val assign : t -> Assign.t
-    val simplify : Fixed.t -> t -> t
+    val simplify : t -> Fixed.t -> t
   end = struct
     type t   = H'.t
     let id   = H'.id
@@ -85,26 +85,23 @@ module Make(WB : WhiteBoardExt.S) = struct
     let assign c =
       let WB(_,Propa(assign,Unsat),_) = msg c in
       assign
-    let simplify _ msg = msg
+    let simplify msg _ = msg
   end
           
   module Var = SAssign
 
-  module Config
-    : (TwoWatchedLits.Config with type Var.t = Var.t
-                              and type Constraint.t = Constraint.t
-                              and type fixed = Fixed.t) = struct
+  module Config = struct
 
     (*******************************************************************)
     (* These are the ingredients to feed the 2-watched literals module *)
     (*******************************************************************)
 
     (* Constraints are unsat messages. *)
+    module M = TwoWatchedLits.StdMonad(struct type t = Fixed.t end)
+                 
     module Constraint = Constraint
 
     module Var = SAssign
-
-    type fixed = Fixed.t
                    
     let simplify = Constraint.simplify
 
@@ -130,7 +127,7 @@ module Make(WB : WhiteBoardExt.S) = struct
       in
       { sameleaf; emptyfull; fullempty; combine }
 
-    let pick_another (fixed:Fixed.t) c i previous : Var.t list =
+    let pick_another c i previous (fixed:Fixed.t) : Var.t list =
       Print.print ["memo",2] (fun p ->
           p  "Memo: pick_another: was watching %a"
             (List.pp Var.pp) previous);
@@ -152,7 +149,7 @@ module Make(WB : WhiteBoardExt.S) = struct
       | Nothing
       | Conflict of unsat WB.t
       | UP of straight WB.t
-    val speak : Config.fixed -> t
+    val speak : Fixed.t -> t
     val clear : unit -> unit
   end = struct
     
@@ -166,7 +163,7 @@ module Make(WB : WhiteBoardExt.S) = struct
       in
       let watch = Assign.fold fix tset watch in
       let fixed = Fixed.map (fun _ () -> -1) tset in
-      match P.next fixed ~howmany:1 watch with
+      match P.next ~howmany:1 watch fixed with
       | Case1 _,_ -> false
       | Case2 _,_ ->
          Print.print ["watch",1] (fun p-> p "Already know");
@@ -193,7 +190,7 @@ module Make(WB : WhiteBoardExt.S) = struct
 
     let speak fixed =
       let rec aux watch =
-        let msg, watch = P.next ~howmany:2 fixed watch in
+        let msg, watch = P.next ~howmany:2 watch fixed in
         match msg with
         | Case1 _ ->
            watchref := watch;

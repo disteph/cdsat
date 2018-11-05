@@ -83,7 +83,7 @@ module T = struct
         | [] -> { state with todo=[] },
                 Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
         | (c::rest) as todo ->
-          let c = Constraint.simplify model c in
+          let c = Constraint.simplify c model in
           match Constraint.simpl c with
           | None ->
             if Assign.subset (Constraint.justif c) state.seen

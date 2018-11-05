@@ -1,5 +1,6 @@
 open General
 open Sums
+open Monads
 open Patricia
 open Patricia_tools
        
@@ -46,7 +47,7 @@ module Constraint : sig
   val watched   : t -> Term.t list
   val valuation : t -> sign Valuation.signed
   val make    : 'a Key.t -> 'a -> _ Top.Values.Key.t -> howmany:int -> among:TSet.t -> t
-  val simplify: kstate -> t -> t
+  val simplify: t -> kstate -> t*kstate
 end = struct
 
   let next_id = ref 0
@@ -81,12 +82,13 @@ end = struct
   let watchstruct (type a) (k : a Key.t) (WatchStruct{ key; watchstruct }) : a =
     let Poly.Eq = Key.eq k key in watchstruct
 
-  let simplify state (WatchStruct ws) =
+  let simplify (WatchStruct ws) state =
     let { fixed; unknown; watchable }, state =
       state.watchfind ws.vkey ~howmany:ws.howmany ws.among in
     WatchStruct { ws with among     = unknown;
                           watched   = watchable;
-                          valuation = fixed::ws.valuation } 
+                          valuation = fixed::ws.valuation },
+    state
 
   let make key watchstruct vkey ~howmany ~among =
     let id = !next_id in
@@ -97,11 +99,12 @@ end
 
 (* Configuration for the 2-watched literals module *)
 module Config = struct
+  module M = StateMonad(struct type t = kstate end)
   module Constraint = Constraint
   module Var = Term
   type fixed = kstate
   let simplify = Constraint.simplify
-  let pick_another _ c i _ = Constraint.watched c
+  let pick_another c i _ state = Constraint.watched c,state
 end
 
 (* 2-watched literals module *)
@@ -134,7 +137,7 @@ let add sassign ~level = wrap (fun kstate -> kstate.add sassign ~level)
 
 let share tset = wrap (fun kstate -> kstate.share tset)
 
-let watchthis key watchstruct vkey ~howmany ~among state = function
+let watchthis key watchstruct vkey ~howmany ~among = function
   | UNSAT _ | Done as state -> state
   | Unknown{ kstate; wstate; sat } ->
     let c = Constraint.make key watchstruct vkey ~howmany ~among in

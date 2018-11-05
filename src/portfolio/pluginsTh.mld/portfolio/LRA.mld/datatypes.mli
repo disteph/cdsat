@@ -11,7 +11,7 @@ open Top.Sassigns
 open Theories.LRA
        
 open Tools
-       
+
 module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) : sig
 
   module Domain : Map.S
@@ -24,7 +24,7 @@ module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) : sig
   module ConfigB : TwoWatchedLits.Config
          with type Constraint.t = K.Simpl.t * bool
           and type Var.t = Term.t
-          and type fixed = K.Model.t
+          and type 'a M.t = K.Model.t -> 'a
 
   module WLB : sig
     type t
@@ -35,17 +35,16 @@ module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) : sig
     val addconstraintNflag :
       ConfigB.Constraint.t -> ?ifpossible:ConfigB.Var.t list -> t -> t
     val next :
-      ConfigB.fixed ->
       ?howmany:int ->
       t ->
-      (ConfigB.Var.t list, ConfigB.Constraint.t * ConfigB.Var.t list)
-        General.Sums.sum * t
+      ((ConfigB.Var.t list, ConfigB.Constraint.t * ConfigB.Var.t list)
+        General.Sums.sum * t) ConfigB.M.t
   end
 
   module ConfigQ : TwoWatchedLits.Config
          with type Constraint.t = K.Simpl.t * Kernel.Top.Qhashed.t option * Term.t
           and type Var.t = Term.t
-          and type fixed = K.Model.t
+          and type 'a M.t = K.Model.t -> 'a
 
   module WLQ : sig
     type t
@@ -56,11 +55,10 @@ module Make(W: Writable)(K: API.API with type sign = MyTheory.sign) : sig
     val addconstraintNflag :
       ConfigQ.Constraint.t -> ?ifpossible:ConfigQ.Var.t list -> t -> t
     val next :
-      ConfigQ.fixed ->
       ?howmany:int ->
       t ->
-      (ConfigQ.Var.t list, ConfigQ.Constraint.t * ConfigQ.Var.t list)
-        General.Sums.sum * t
+      ((ConfigQ.Var.t list, ConfigQ.Constraint.t * ConfigQ.Var.t list)
+        General.Sums.sum * t) ConfigQ.M.t
   end
 
   val pp_beval : (K.sign,straight) message Format.printer

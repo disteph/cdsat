@@ -33,6 +33,6 @@ module Simpl : sig
   val constant  : t -> Q.t
   val watchable : t -> Term.t list
   val justif  : t -> Assign.t
-  val simplify: Model.t-> t-> t
+  val simplify: t-> Model.t-> t
   val make    : Term.t -> t
 end

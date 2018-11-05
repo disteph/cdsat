@@ -216,7 +216,7 @@ module T = struct
           Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
 
         | [],(c::tail as toevaluate) ->
-          let c = Simpl.simplify model c in
+          let c = Simpl.simplify c model in
           begin match eval c with
             | Beval(Propa(_,Straight bassign))
               when Assign.mem (SAssign.build bassign) state.seen
@@ -234,7 +234,7 @@ module T = struct
           end
 
         | ((SAssign(c,v))::tail as tosatisfy), toevaluate ->
-          let c = Simpl.simplify model c in
+          let c = Simpl.simplify c model in
           match eval c, v with
           | Beval(Propa(_,Straight(_,Values.Boolean b))), Values.Boolean b'
             when [%eq : bool] b b' && Assign.subset (Simpl.justif c) state.seen
