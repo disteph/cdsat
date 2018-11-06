@@ -91,9 +91,9 @@ module Make(WB : WhiteBoardExt) = struct
   module Var = SAssign
 
   module Config
-    : (TwoWatchedLits.Config with type Var.t = Var.t
-                              and type Constraint.t = Constraint.t
-                              and type fixed = Fixed.t) = struct
+    : (TwoWatchedLitsForLemmas.Config with type Var.t = Var.t
+                                       and type Constraint.t = Constraint.t
+                                       and type fixed = Fixed.t) = struct
 
     (*******************************************************************)
     (* These are the ingredients to feed the 2-watched literals module *)
@@ -153,7 +153,7 @@ module Make(WB : WhiteBoardExt) = struct
 
   end 
 
-  module P = TwoWatchedLits.Make(Config)
+  module P = TwoWatchedLitsForLemmas.Make(Config)
 
   module WR : sig
     val add : Constraint.t -> Var.t -> Var.t -> unit
@@ -254,8 +254,8 @@ module Make(WB : WhiteBoardExt) = struct
                   aux watch)
                else
                  (Print.print ["memo",0] (fun p->
-                      p "Memo: useful propagation %a" WB.pp newmsg);
-                  watchref := watch;
+                      p "Memo: useful propagation %a, score %d" WB.pp newmsg (P.getscore constr watch));
+                  watchref := P.incrscore constr watch;
                   UP newmsg)
 
       in
