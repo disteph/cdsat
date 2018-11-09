@@ -102,9 +102,17 @@ module Config = struct
   module M = StateMonad(struct type t = kstate end)
   module Constraint = Constraint
   module Var = Term
-  type fixed = kstate
   let simplify = Constraint.simplify
-  let pick_another c i _ state = Constraint.watched c,state
+
+  let subscribe b term state = 
+    let _,_,_,state = state.ask ~subscribe:b (Case1 term) in
+    state
+  
+  let pick_another c i oldwatch state =
+    let newwatch = Constraint.watched c in
+    let state = List.fold (subscribe false) oldwatch state in
+    let state = List.fold (subscribe true) newwatch state in
+    newwatch, state
 end
 
 (* 2-watched literals module *)
@@ -118,7 +126,7 @@ type state =
     }
   | UNSAT of {
       propas : (sign,straight) imessage list; (* The propa messages we need to send*)
-      unsat  : (sign,unsat) imessage option;  (* Unsat message to send *)
+      unsat  : (sign,unsat) imessage;         (* Unsat message to send *)
     }
   | Done
 
@@ -128,7 +136,7 @@ let wrap f = function
     match f kstate with
     | MyTheory.UNSAT(propas,unsat)  ->
       let propas = List.rev propas in
-      UNSAT{ propas; unsat = Some unsat }
+      UNSAT{ propas; unsat }
     | MyTheory.SAT(sat,terms,kstate) ->
       let wstate = List.fold WL.fix terms wstate in
       Unknown{ sat = Some sat; kstate; wstate}
@@ -145,7 +153,27 @@ let watchthis key watchstruct vkey ~howmany ~among = function
     let rec randomwatch n = if n = 0 then [] else randomterm::(randomwatch (n-1)) in
     let wstate = WL.addconstraintNflag c ~ifpossible:(randomwatch howmany) wstate in
     Unknown{ kstate; wstate; sat }
+
+type speak =
+  | Nothing
+  | IMsg : (sign,_) imessage -> speak
+  | Detect : Constraint.t -> speak
+    
+let speak = function
+  | Done -> failwith "Should not ask me to speak when I'm done"
+  | UNSAT{ propas=[]; unsat }          -> IMsg unsat, Done
+  | UNSAT{ propas=msg::propas; unsat } -> IMsg msg, UNSAT{ propas; unsat }
+  | Unknown{ kstate; wstate; sat } ->
+    let (res,wstate), kstate = WL.next wstate kstate in
+    begin
+      match res with
+      | Case1 _    -> Nothing 
+      | Case2(c,_) -> Detect c
+    end,
+    Unknown{ kstate; wstate; sat } 
       
+
+  
 module Make(K: API with type sign = MyTheory.sign) = struct
   
   let init = Unknown{ kstate = K.init; wstate = WL.init; sat = None }

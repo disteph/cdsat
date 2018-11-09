@@ -96,7 +96,7 @@ module Make (C : Config) = struct
     let oldwatched = CMap.find c t.cons2var in
     (* Same thing as a list *)
     let watchedlist = VarSet.elements oldwatched in
-    (* How many do we need to watch outside fixed? *)
+    (* How many do we need to watch? *)
     let number = match howmany with
       | Some i -> i
       | None -> List.length watchedlist
