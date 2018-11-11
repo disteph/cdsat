@@ -50,6 +50,7 @@ let options =
     ("-skipunknown", Set skipunknown,                 "skips instances without any result expectation");
     ("-bool_decay",  String(fun s-> 
                          bool_decay := float_of_string s), "sets the VSIDS decay factor (default 1.3)");
+    ("-keeplemmas", Clear forgetlemmas, "does not forget any lemma"); 
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],

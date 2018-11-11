@@ -4,15 +4,15 @@
 (****************************************************)
 
 module type Pervasives = sig
-  val (=) : int -> int -> bool
-  val (<>) : int -> int -> bool
-  val (<) : int -> int -> bool
-  val (>) : int -> int -> bool
-  val (<=) : int -> int -> bool
-  val (>=) : int -> int -> bool
-  val compare : int -> int -> int
-  val max: int -> int -> int
-  val min: int -> int -> int
+  val (=) : 'a -> 'a -> bool
+  val (<>) : 'a -> 'a -> bool
+  val (<) : 'a -> 'a -> bool
+  val (>) : 'a -> 'a -> bool
+  val (<=) : 'a -> 'a -> bool
+  val (>=) : 'a -> 'a -> bool
+  val compare : 'a -> 'a -> int
+  val max: 'a -> 'a -> 'a
+  val min: 'a -> 'a -> 'a
 end
 
 module Pervasives : sig

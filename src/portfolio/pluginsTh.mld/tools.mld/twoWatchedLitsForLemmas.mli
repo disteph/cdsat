@@ -100,7 +100,7 @@ module Make(C : Config) : sig
 
   (* addconstraint constraint ~ifpossible whowatcheswhat
 
-     Same as above but schedules constr for new watched variable picking,
+     Same as above but schedules constr for new watched variable pickingx,
      if possible reusing ifpossible *)
   val addconstraintNflag : Constraint.t -> ?ifpossible:(Var.t list) -> t -> t                                                                   
 
@@ -124,8 +124,11 @@ module Make(C : Config) : sig
   val incrscore : Constraint.t -> t -> t
 
   (* getscore constr whowatcheswhat *)
-  val getscore : Constraint.t -> t -> int
-    
+  val getscore : Constraint.t -> t -> float
+
+  (* forget (watchcount, whowatcheswhat) *)
+  val forget : t -> t
+                                        
 end
 
 val pick_another_make

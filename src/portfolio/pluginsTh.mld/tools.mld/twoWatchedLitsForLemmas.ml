@@ -1,3 +1,4 @@
+
 open General
 open Sums
 
@@ -28,14 +29,11 @@ module Make (C : Config) = struct
     include Set.Make(Var)
     let pp fmt vset = List.pp Var.pp fmt (elements vset)
   end
-
+                    
   module MetaVarSet = struct
-    type t = { score : int;
-               input : bool;
+    type t = { mutable score : float;
                varset: VarSet.t }
-    let init varset = { score = 0;
-                        input = false;
-                        varset }
+    let init varset score = { score; varset }
   end
 
   open Patricia
@@ -64,18 +62,32 @@ module Make (C : Config) = struct
   type t = { var2cons: CSet.t VarMap.t;
              cons2var: CMap.t;
              todo    : CSet.t Pqueue.t;
-             newly   : VarSet.t Lazy.t }
+             newly   : VarSet.t Lazy.t;
+             curcount: int;
+             totcount: int;
+             maxcount: int;
+             decay   : float;
+             thrshld : float;
+             incrmt  : float;
+            }
 
   let init = { var2cons = VarMap.empty;
                cons2var = CMap.empty;
                todo     = Pqueue.empty();
-               newly    = lazy VarSet.empty }
+               newly    = lazy VarSet.empty;
+               curcount = 0;
+               totcount = 0;
+               maxcount = 1000;
+               decay    = 1.01; (*FH: to be modified*)
+               thrshld  = 1.;
+               incrmt   = 1.05;
+             }
 
   let flush state = { state with todo = Pqueue.empty() }
                
   (* Adding or updating a constraint once we know the variables it will watch *)
 
-  let addconstraint c ?(oldwatched=VarSet.empty) newwatched t =
+  let addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) newwatched t =
     (* Those that are really old *)
     let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really new *)
@@ -100,9 +112,14 @@ module Make (C : Config) = struct
       VarMap.add var varwatch var2cons
     in
     let var2cons = VarSet.fold aux reallynew var2cons in
-    let m_newwatched = MetaVarSet.init newwatched in 
+    let newscore = match score with
+        None   -> t.incrmt
+      | Some s -> s
+    in let m_newwatched = MetaVarSet.init newwatched newscore in
     { t with newly; var2cons;
-             cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var }
+             cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var;
+             curcount = t.curcount + 1;
+             totcount = t.totcount + 1; }
 
   (* Adding or updating a constraint before we know the variables to watch *)
       
@@ -126,7 +143,7 @@ module Make (C : Config) = struct
     else
       let varset = VarSet.of_list varlist in
       let t = { t with cons2var = CMap.remove c t.cons2var }
-      in None, addconstraint c' ~oldwatched varset t (*[FH] prendre en compte la simplification ?*)
+      in None, addconstraint_ c' ~oldwatched varset t
       
   (* Now we say what to do with a set cset of constraints
      that need to update their watch list.
@@ -146,13 +163,15 @@ module Make (C : Config) = struct
        Print.print ["watch",1] (fun p-> p "watch: todo is done");
        Case1(VarSet.elements(Lazy.force t.newly)),
        { t with newly = lazy VarSet.empty }
-    | Some(cset,todo) -> 
-       match treat fixed ?howmany cset { t with todo } with
-       | None, t -> next fixed ?howmany t
-       | Some ans, t -> Case2 ans, t
-
+    | Some(cset,todo) ->
+       let treated = try treat fixed ?howmany cset { t with todo }
+                     with Not_found -> None, { t with todo }
+       in match treated with
+          | None, t -> next fixed ?howmany t
+          | Some ans, t -> Case2 ans, t
+                                        
   let addconstraint constr ~watched t =
-    addconstraint constr (VarSet.of_list watched) t
+    addconstraint_ constr (VarSet.of_list watched) t
 
   let addconstraintNflag constr ?(ifpossible=[]) t =
     let t = addconstraint constr ~watched:ifpossible t in
@@ -167,12 +186,37 @@ module Make (C : Config) = struct
   (* Incrementing the score of a constraint *)
   let incrscore constr t =
     let v = CMap.find constr t.cons2var in
-    let v = { v with score = v.score + 1 } in
+    v.score <- v.score +. t.incrmt;
     {t with cons2var = CMap.add constr (fun _ -> v) t.cons2var}
 
   let getscore constr t =
     (CMap.find constr t.cons2var).score
-      
+
+  (* Lemma-forgetting *)
+  let forgetone constr (v:MetaVarSet.t) new_t =
+    if v.score > new_t.thrshld 
+    then addconstraint_ constr v.varset ~score:(Some v.score) new_t
+    else new_t
+
+  let testprint constr (v:MetaVarSet.t) =
+    Print.print ["watch",0] (fun p->p "watch: %f" v.score)
+           
+  let rec forget t =
+    Print.print ["watch",1] (fun p-> p "watch: %d constraints memoized" t.curcount);
+    if t.curcount > t.maxcount
+    then (Print.print ["watch",0] (fun p-> p "watch: %d > %d constraints memoized, forgetting some, increment=%f, threshold=%f" t.curcount t.maxcount t.incrmt t.thrshld);
+          let my_new_t = { t with var2cons = VarMap.empty;
+                                  cons2var = CMap.empty;
+                                  curcount = 0 } in
+          let my_new_t = CMap.fold forgetone t.cons2var my_new_t in
+          Print.print ["watch",0] (fun p->p "watch: %d/%d constraints remaining" my_new_t.curcount t.totcount);
+          if my_new_t.curcount > t.maxcount
+          then CMap.iter testprint my_new_t.cons2var;
+          forget { my_new_t with totcount = t.totcount;
+                                 incrmt   = t.incrmt *. t.decay;
+                                 thrshld  = t.thrshld *. t.decay })
+    else t
+   
 end
 
 let pick_another_make ~is_empty ~mem ~next ~remove left = 

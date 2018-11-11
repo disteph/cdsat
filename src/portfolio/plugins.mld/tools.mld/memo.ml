@@ -105,9 +105,8 @@ module Make(WB : WhiteBoardExt) = struct
     module Var = SAssign
 
     type fixed = Fixed.t
-                   
+      
     let simplify = Constraint.simplify
-
                      
     module Arg = struct
       include SAssign
@@ -167,7 +166,6 @@ module Make(WB : WhiteBoardExt) = struct
   end = struct
     
     let watchref = ref P.init
-    let watchcount = ref 0
 
     let prove tset =
       let watch = P.flush !watchref in
@@ -186,12 +184,13 @@ module Make(WB : WhiteBoardExt) = struct
       let tset = Constraint.assign c in
       if not(prove tset)
       then
-        (watchref := P.addconstraint c ~watched:[sassign;sassign'] !watchref;
-         incr watchcount;
+        (let re = if !PFlags.forgetlemmas
+                  then P.forget !watchref
+                  else !watchref in
+         watchref := P.addconstraint c ~watched:[sassign;sassign'] re;
          Print.print ["memo",3] (fun p->
              p "Constraint %a watching %a and %a"
-               Constraint.pp c SAssign.pp sassign SAssign.pp sassign');
-         Print.print ["watch",1] (fun p-> p "%i" !watchcount))
+               Constraint.pp c SAssign.pp sassign SAssign.pp sassign');)
 
     let fix sassign =
       if SAssign.is_Boolean sassign then watchref := P.fix sassign !watchref else ()
@@ -254,7 +253,7 @@ module Make(WB : WhiteBoardExt) = struct
                   aux watch)
                else
                  (Print.print ["memo",0] (fun p->
-                      p "Memo: useful propagation %a, score %d" WB.pp newmsg (P.getscore constr watch));
+                      p "Memo: useful propagation %a, score %f" WB.pp newmsg (P.getscore constr watch));
                   watchref := P.incrscore constr watch;
                   UP newmsg)
 
@@ -263,7 +262,6 @@ module Make(WB : WhiteBoardExt) = struct
         
     let clear() =
       watchref := P.init;
-      watchcount := 0
 
   end
 
