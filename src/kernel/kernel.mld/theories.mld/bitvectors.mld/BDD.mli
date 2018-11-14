@@ -1,3 +1,5 @@
+include module type of MLBDD
+(*
 type var = int
 type t = MLBDD.t
 type support = MLBDD.support
@@ -52,11 +54,11 @@ module type WHS =
     val length : 'a t -> int
   end
 module WeakHash = MLBDD.WeakHash
-
+*)
 val dtrue : t
 val dfalse : t
 val ithvar : var -> t
-  
+
 (* Printing a BDD in Latex.
 Takes as parameter the printing function for a BDD node,
 which in the implementation is just an int *)

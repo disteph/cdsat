@@ -1,4 +1,6 @@
 include HardCaml.Comb.Make(HardCaml.Transform.MakeCombGates(Signal))
+(**TODO: Make cooresponding .mli  **)
+
 
 (* let un = consti 4 1 *)
 (* let () = print_endline(to_bstr un) *)
