@@ -32,5 +32,3 @@ val register :
   (module Type with type api = 'api and type sign = 'sign) -> ('sign*'api) Tags.t
 
 val all_theories_list : Handlers.t list ref
-
-val fail_state : _ slot_machine

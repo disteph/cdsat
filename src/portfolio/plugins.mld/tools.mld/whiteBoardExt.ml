@@ -10,6 +10,10 @@ open Messages
 
 open Theories.Theory
 open Theories.Register
+open Theories.Eq.MyTheory
+
+open PluginsTh
+open PluginsTh.Tools
 
 include WhiteBoardExt_sig
                              
@@ -33,7 +37,7 @@ module Make(WB: Combo.WhiteBoard) = struct
     }
    and _ eports =
      | EPorts      : egraph eports
-     | RegularPorts: (Term.t,vvalue) sum Pipe.Writer.t -> regular eports
+     | RegularPorts: node Pipe.Writer.t -> regular eports
    and _ msg2th =
      | MsgStraight : { sassign : SAssign.t;
                        level : int;
@@ -44,15 +48,18 @@ module Make(WB: Combo.WhiteBoard) = struct
                        howmany   : int;
                        chrono    : int }                     ->  _ msg2th
      | MsgSpawn    : 'a ports                                -> 'a msg2th
-     | Infos       : { node        : (Term.t,vvalue) sum;
-                       normal_form : Term.t;
-                       values      : CValue.t;
-                       forbidden   : unit -> CValue.t list } -> regular msg2th
-     | TheoryAsk   : { reply_to : regular msg2th Pipe.Writer.t;
-                       node : (Term.t,vvalue) sum }          -> egraph msg2th
      | KillYourself: { conflict : unsat t;
                        watch1   : SAssign.t;
                        watch2   : SAssign.t option }         -> _ msg2th
+     | TheoryAsk   : { reply_to : regular msg2th Pipe.Writer.t;
+                       node     : node }                     -> egraph msg2th
+     | Infos       : { node        : node;
+                       normal_form : Term.t;
+                       values      : CValue.t;
+                       forbidden   : unit -> CValue.t list } -> regular msg2th
+     | WatchThis   : { reply_to : regular msg2th Pipe.Writer.t;
+                       constr   : Constraint.t }          -> egraph msg2th
+     | WatchFailed : Constraint.t                         -> regular msg2th
 
   let pp_tv = General.Sums.pp_sum Term.pp (pp_values Value.pp)
                                                              
@@ -74,5 +81,9 @@ module Make(WB: Combo.WhiteBoard) = struct
       -> Format.fprintf fmt "Asking about %a" pp_tv node
     | KillYourself{ conflict }
       -> Format.fprintf fmt "KillYourself"
+    | WatchThis { constr }
+      -> Format.fprintf fmt "WatchThis(%a)" Constraint.pp constr
+    | WatchFailed constr
+      -> Format.fprintf fmt "WatchFailed(%a)" Constraint.pp constr
 
 end

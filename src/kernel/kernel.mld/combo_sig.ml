@@ -38,6 +38,8 @@ module type WhiteBoard = sig
      It's basically a message, together with the set of handlers
      of the theories that signed/contributed to the message *)
   type 'a t = private WB of unit HandlersMap.t * (unit,'a) message * 'a proof
+  type any = Any : _ t -> any [@@unboxed] [@@deriving show]
+
   val pp : 'a t Format.printer
 
   (* Signing messages: one function for standard theories, one for the equality theory *)

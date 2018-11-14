@@ -2,96 +2,111 @@ open Async
 open Lib
 
 open General
+open Patricia
+open Patricia_tools
 
 open Kernel
 open Top.Messages
 open Theories.Theory
 open Theories.Eq.MyTheory
-       
+
+open PluginsTh
+open PluginsTh.Tools
+    
 let handler = Some Handlers.Eq
 
-let rec flush_write writer unsat_msg = function
-  | [] ->
-    Lib.write writer unsat_msg
-  | msg::l ->
-    Lib.write writer msg;%bind
-    flush_write writer unsat_msg l
 
-module Make(WB: WhiteBoardExt.S)
-         (EGraph: Theories.Eq.MyTheory.API
-          with type sign := Theories.Eq.MyTheory.sign) = struct
+module Make
+    (WB: WhiteBoardExt.S)
+    (Kern: Theories.Eq.MyTheory.API
+     with type sign := Theories.Eq.MyTheory.sign) = struct
 
   open WhiteBoardExt
   open WB
-  open EGraph
+  open PluginsTh.Eq.Pl1
 
-  let rec flush ports unsat_msg l =
-    let aux (incoming : egraph msg2th) =
-      match incoming with
-      | MsgStraight _ | MsgSharing _ | MsgPropose _ | TheoryAsk _ -> flush ports unsat_msg l
-      | MsgSpawn newports -> 
-         Deferred.all_unit
-           [
-             flush_write ports.writer unsat_msg l;
-             flush_write newports.writer unsat_msg l;
-             flush ports unsat_msg l;
-             flush newports unsat_msg l
-           ]
-      | KillYourself _ -> return()
-    in
-    Lib.read ports.reader aux
+  module Arg = struct
+    include Constraint
+    include TypesFromHConsed(Constraint)
+    include EmptyInfo
+    type values = regular msg2th Pipe.Writer.t
+  end
 
-  let rec loop_read egraph ports = 
+  module Clients = Map.MakeNH(Arg)
+
+  let rec loop_read state clients ports = 
     let aux msg =
       Print.print ["egraph",1] (fun p-> p "The E-graph reads %a" pp_msg2th msg);
       match msg with
       | MsgStraight{ sassign; level; chrono }
-        -> loop_write (egraph.add sassign ~level) chrono ports
+        -> loop_write (add sassign ~level state) clients chrono ports
       | MsgSharing{ tset; chrono }
-        -> loop_write (egraph.share tset) chrono ports
+        -> loop_write (share tset state) clients chrono ports
       | MsgPropose{ chrono }
         ->
         Print.print ["egraph",1] (fun p-> p "E-graph: I have nothing to propose");
         Deferred.all_unit
-          [ Lib.write ports.writer (Msg{ handler; answer  = Try []; chrono }) ;
-               loop_read egraph ports ]
-      | TheoryAsk{ reply_to; node }
-        -> let normal_form, values, forbidden, egraph = egraph.ask node in
-        Deferred.all_unit
-          [ Lib.write reply_to (Infos{ node; normal_form; values; forbidden });
-            loop_read egraph ports ]
+          [ Lib.write ports.writer (Msg{ handler; answer = Try []; chrono }) ;
+            loop_read state clients ports ]
       | MsgSpawn newports
         -> Deferred.all_unit
-             [loop_read egraph ports ;
-              loop_read egraph newports ]
+             [loop_read state clients ports ;
+              loop_read state clients newports ]
       | KillYourself _ -> return()
+      | WatchThis { reply_to; constr }
+        ->
+        let aux = function None -> reply_to | Some _ -> failwith "clients" in
+        let clients = Clients.add constr aux clients in
+        loop_read state clients ports
+      | TheoryAsk{ reply_to; node }
+        -> let ans, state = ask node state in
+        begin
+          match ans with
+          | None -> loop_read state clients ports
+          | Some(normal_form, values, forbidden) ->
+            Deferred.all_unit
+              [ Lib.write reply_to (Infos{ node; normal_form; values; forbidden });
+                loop_read state clients ports ]
+        end
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["egraph",2] (fun p-> p "E-graph dies")))
       ports.reader aux
 
-  and loop_write output chrono ports =
+  and loop_write state clients chrono ports =
 
     let msg_make msg = Msg{ handler; answer = Say(WB.sign_Eq msg); chrono } in
 
+    let output, state = speak state in
     Print.print ["egraph",1] (fun p-> p "E-graph looks at its output_msg");
 
     match output with
-    | UNSAT(propas,conflict) -> 
-      Print.print ["egraph",1] (fun p-> p "E-graph: UNSAT discovered");
-
-      let unsat_msg = conflict |> fst |> msg_make in
-      let l = List.map (fst >> msg_make) propas in
+    | Nothing ->
+      let msg = Msg{ handler; answer = Ack; chrono } in
       Deferred.all_unit
-        [ flush_write ports.writer unsat_msg l ;
-          flush ports unsat_msg l ]
+      [ Lib.write ports.writer msg ;
+        loop_read state clients ports ]
 
-    | SAT(msg,_,egraph) ->
+    | Quid t -> 
+      let msg = Msg{ handler; answer = Quid t; chrono } in
+      Deferred.all_unit
+        [ Lib.write ports.writer msg ;
+          loop_read state clients ports ]
+    
+    | IMsg(msg,_) -> 
       Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" pp_message msg);
       Deferred.all_unit
         [ Lib.write ports.writer (msg_make msg) ;
-          loop_read egraph ports ]
+          loop_read state clients ports ]
+      
+    | Detect c ->
+      let port = Clients.find c clients in
+      let clients = Clients.remove c clients in
+      Deferred.all_unit
+        [ Lib.write port (WatchFailed c) ;
+          loop_read state clients ports ]
 
-  let make = loop_read EGraph.init
+  module EGraph = Make(Kern)
+  let make = loop_read EGraph.init Clients.empty
 
 end

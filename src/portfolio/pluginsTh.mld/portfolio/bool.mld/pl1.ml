@@ -12,6 +12,7 @@ open Termstructures.Clauses
 open Theories.Theory
 open Theories.Bool
 
+open PluginTh
 open Tools
        
 type sign = MyTheory.sign

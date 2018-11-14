@@ -10,9 +10,10 @@ open Values
 open Sassigns
 open Theories.Theory
 open Theories.Register
-
-(* Useful type abbreviations *)
-type vvalue = Value.t values
+open Theories.Eq.MyTheory
+       
+open PluginsTh
+open PluginsTh.Tools
 
 type ack = private AckL
 type say = private MsgL
@@ -41,7 +42,7 @@ module type Extra = sig
     }
    and _ eports =
      | EPorts      : egraph eports
-     | RegularPorts: (Term.t,vvalue) sum Pipe.Writer.t -> regular eports
+     | RegularPorts: node Pipe.Writer.t -> regular eports
    and _ msg2th =
      | MsgStraight : { sassign : SAssign.t;
                        level : int;
@@ -52,16 +53,19 @@ module type Extra = sig
                        howmany   : int;
                        chrono    : int }                     ->  _ msg2th
      | MsgSpawn    : 'a ports                                -> 'a msg2th
-     | Infos       : { node        : (Term.t,vvalue) sum;
-                       normal_form : Term.t;
-                       values      : CValue.t;
-                       forbidden   : unit -> CValue.t list } -> regular msg2th
-     | TheoryAsk   : { reply_to : regular msg2th Pipe.Writer.t;
-                       node : (Term.t,vvalue) sum }          -> egraph msg2th
      | KillYourself: { conflict : unsat t;
                        watch1   : SAssign.t;
                        watch2   : SAssign.t option }         -> _ msg2th
-
+     | TheoryAsk   : { reply_to : regular msg2th Pipe.Writer.t;
+                       node     : node }                     -> egraph msg2th
+     | Infos       : { node        : node;
+                       normal_form : Term.t;
+                       values      : CValue.t;
+                       forbidden   : unit -> CValue.t list } -> regular msg2th
+     | WatchThis   : { reply_to : regular msg2th Pipe.Writer.t;
+                       constr   : Constraint.t }          -> egraph msg2th
+     | WatchFailed : Constraint.t                         -> regular msg2th
+   
   val pp_msg2th : _ msg2th Format.printer
 
 end

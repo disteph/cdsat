@@ -9,6 +9,7 @@ open Top.Terms
 open Theories.Theory
 
 open Plugin
+open PluginsTh.PluginTh
 
 module Make(WB: WhiteBoardExt.S) = struct
 
@@ -23,7 +24,8 @@ module Make(WB: WhiteBoardExt.S) = struct
 
   let rec flush ports msg =
     let aux = function
-      | MsgStraight _ | MsgSharing _ | MsgPropose _ | Infos _ -> flush ports msg
+      | MsgStraight _ | MsgSharing _ | MsgPropose _
+      | Infos _ | WatchFailed _ -> flush ports msg
       | MsgSpawn newports -> 
          Deferred.all_unit
            [ Lib.write ports.writer msg;
@@ -62,6 +64,7 @@ module Make(WB: WhiteBoardExt.S) = struct
              [loop_read hdl cont    ports ;
               loop_read hdl newcont newports ]
       | KillYourself{ conflict = WB(_,Propa(assign,Unsat),_) } -> return(suicide cont assign)
+      | WatchFailed c -> loop_read hdl cont ports
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["worker",2] (fun p-> p "%a dies" Tags.pp hdl)))

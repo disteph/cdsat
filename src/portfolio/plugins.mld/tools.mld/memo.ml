@@ -265,7 +265,8 @@ module Make(WB : WhiteBoardExt.S) = struct
     Print.print ["memo",2] (fun p-> p "Memo enters flush");
     let aux (incoming : regular msg2th) =
       match incoming with
-      | MsgStraight _ | MsgSharing _ | MsgPropose _ | Infos _ -> flush ports msg
+      | MsgStraight _ | MsgSharing _ | MsgPropose _
+      | Infos _ | WatchFailed _ -> flush ports msg
       | MsgSpawn newports -> 
          Deferred.all_unit
            [
@@ -301,6 +302,7 @@ module Make(WB : WhiteBoardExt.S) = struct
              loop_read fixed newports ]
       | Infos _ -> loop_read fixed ports
       | KillYourself{ conflict; watch1; watch2 } -> return(suicide conflict watch1 watch2)
+      | WatchFailed c -> loop_read fixed ports
     in
     Lib.read ~onkill:(fun ()->return(Print.print ["memo",2] (fun p-> p "Memo thread dies")))
       ports.reader aux

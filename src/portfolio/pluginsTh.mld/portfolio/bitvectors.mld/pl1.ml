@@ -6,6 +6,7 @@ open Theories
 open Theory
 open Theories.Bitvectors
 
+open PluginTh
 open Datatypes
     
 type sign = MyTheory.sign
@@ -53,7 +54,7 @@ module Make(W: Writable) = struct
         
   let make (module K: MyTheory.API)
     = let module Made = Make(K) in
-      { PluginTh.init = Made.init;
-        PluginTh.clear = Made.clear }
+      { init = Made.init;
+        clear = Made.clear }
 
 end

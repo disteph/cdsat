@@ -38,6 +38,7 @@ let make dsKeys theories (module Proof:Proof) : (module API) =
       type 'a proof = 'a Proof.t
         
       type 'a t = WB of unit HandlersMap.t * (unit,'a) message * 'a proof
+      type any = Any : _ t -> any [@@unboxed]
 
       let pp fmt (type a)(type proof) (WB(hdls,msg,_) : a t) =
         match msg with
@@ -48,6 +49,9 @@ let make dsKeys theories (module Proof:Proof) : (module API) =
                           HandlersMap.pp (HandlersMap.diff theoriesWeq hdls)
                           pp_message msg
 
+      let pp_any fmt (Any msg) = pp fmt msg
+      let show_any = Format.stringOf pp_any
+      
       let sign hdl (type a) : (_,a) message -> a t =
         let hdl = Handlers.Handler hdl in
         function

@@ -1,4 +1,3 @@
-open General.Sums       
 open Top
 open Sassigns
 open Messages
@@ -7,6 +6,8 @@ open Values
 
 (* API for plugin. *)
 
+type node = Egraph.TermValue.t
+              
 type 'a watch = 'a Egraph.watch = { fixed     : 'a;
                                     unknown   : TSet.t;
                                     watchable : Term.t list }
@@ -23,7 +24,7 @@ and 'sign self = { add   : SAssign.t -> level:int -> 'sign output;
                      TSet.t -> 'sign Valuation.signed watch * 'sign self;
 
                    ask : ?subscribe:bool
-                     -> (Term.t,Value.t values) sum
+                     -> node
                      -> Term.t
                         * CValue.t
                         * (unit -> CValue.t list)

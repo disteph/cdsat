@@ -51,9 +51,3 @@ let register (type sign) (type api)
   Record.add record key (Arg.R{dsKeys = T.ds; make = T.make });
   all_theories_list := (Handlers.Handler key)::!all_theories_list;
   key
-
-let fail_state =
-  let add _ = failwith "Are you dumb? I already told you it was provable" in
-  let share, clone, suicide = add, add, add in
-  let propose ?term i = add i in
-  SlotMachine { add; propose; share; clone; suicide }

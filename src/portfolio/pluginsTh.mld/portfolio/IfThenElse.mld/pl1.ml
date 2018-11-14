@@ -5,6 +5,7 @@ open Terms
 open Sassigns
 open Theories.Theory
 open Theories.IfThenElse
+open PluginTh
 
 type sign = MyTheory.sign
 type api  = (module MyTheory.API)

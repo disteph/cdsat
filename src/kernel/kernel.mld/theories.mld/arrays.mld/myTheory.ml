@@ -9,8 +9,16 @@ open Theory
 
 type sign = unit
 
+type state = { assign : Assign.t;
+               sharing: TSet.t;
+               myvars : TSet.t Lazy.t }
+
+module Monad = Monads.StateMonad(struct type t = state end)
+
 module type API = sig
-  val init : sign slot_machine
+  val add   : SAssign.t option -> (sign,sat) message option Monad.t
+  val share : TSet.t -> (sign,sat) message option Monad.t
+  val init  : state
 end
 
 module T = struct
@@ -24,41 +32,31 @@ module T = struct
 
     let add_myvars = Terms.proj dskey >> TSet.fold TSet.add
 
-    type state = { assign : Assign.t;
-                   sharing: TSet.t;
-                   myvars : TSet.t Lazy.t }
-
-    let rec machine state =
-      let add = function
-        | None ->
-          Print.print ["kernel.arrays",2] (fun p ->
-              p "kernel.arrays receiving None");
-          Silence, machine state
-        | Some sassign ->
-          Print.print ["kernel.arrays",2] (fun p ->
-              p "kernel.arrays receiving Some(%a)" SAssign.pp sassign);
-          let assign = Assign.add sassign state.assign in
-          let SAssign(term,_) = SAssign.reveal sassign in
-          let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
-          let state = { state with assign; myvars } in
-          Msg(sat () state.assign ~sharing:state.sharing ~myvars ),
-          machine state
-      in
-      let share tset = 
+    let add sassign state = match sassign with
+      | None ->
         Print.print ["kernel.arrays",2] (fun p ->
-            p "kernel.arrays notified than %a are shared" TSet.pp tset);
-        let sharing = TSet.union tset state.sharing in
-        let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
-        let state = { state with sharing; myvars } in
-        Msg(sat () state.assign ~sharing ~myvars),
-        machine state
-      in
-      let clone () = machine state in
-      let suicide _ = () in
-      let propose ?term _ = [] in
-      Theory.SlotMachine { add; share; clone; suicide; propose }
+            p "kernel.arrays receiving None");
+        None, state
+      | Some sassign ->
+        Print.print ["kernel.arrays",2] (fun p ->
+            p "kernel.arrays receiving Some(%a)" SAssign.pp sassign);
+        let assign = Assign.add sassign state.assign in
+        let SAssign(term,_) = SAssign.reveal sassign in
+        let myvars = lazy(add_myvars term (Lazy.force state.myvars)) in
+        let state = { state with assign; myvars } in
+        Some(sat () state.assign ~sharing:state.sharing ~myvars ),
+        state
 
-    let init = machine { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
+    let share tset state = 
+      Print.print ["kernel.arrays",2] (fun p ->
+          p "kernel.arrays notified than %a are shared" TSet.pp tset);
+      let sharing = TSet.union tset state.sharing in
+      let myvars = lazy(TSet.fold add_myvars tset (Lazy.force state.myvars)) in
+      let state = { state with sharing; myvars } in
+      Some(sat () state.assign ~sharing ~myvars),
+      state
+
+    let init = { assign=Assign.empty; sharing=TSet.empty; myvars=lazy TSet.empty }
 
   end
   

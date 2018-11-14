@@ -10,6 +10,7 @@ open Termstructures.Rationals
 open Theories.Theory
 open Theories.LRA
 
+open PluginTh
 open Tools
        
 type sign = MyTheory.sign
