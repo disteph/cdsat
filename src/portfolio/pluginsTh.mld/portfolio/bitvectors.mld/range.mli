@@ -11,4 +11,5 @@ type 'a update =
   | Singleton of MyTheory.V.t
   | Empty of 'a list
 
+(* val update : Signal.t -> 'a -> 'a t -> 'a update *)
 val update : Signal.t -> 'a -> 'a t -> 'a update

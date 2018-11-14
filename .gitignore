@@ -10,3 +10,4 @@ makefile.data
 *~
 
 *.code-workspace
+node_modules/

@@ -21,24 +21,6 @@ let init n = {width = n; bdd = BDD.dtrue; history =[]}
  *)
  (* TODO: use list MyTheory.V.constibl , plus robuste *)
 let pick {width; bdd} =
-  (* Tail-recursive fast exponent helper thanks to https://stackoverflow.com/questions/16950687/integer-exponentiation-in-ocaml *)
-  (*
-  let pow base exponent =
-    if exponent < 0 then invalid_arg "exponent can not be negative" else
-    let rec aux accumulator base = function
-      | 0 -> accumulator
-      | 1 -> base * accumulator
-      | e when is_even e -> aux accumulator (base * base) (e / 2)
-      | e -> aux (base * accumulator) (base * base) ((e - 1) / 2) in
-    aux 1 base exponent
-  in
-  match BDD.sat bdd with
-    |None -> failwith "EMPTY"
-    |Some(alist) -> begin
-        MyTheory.V.consti width (List.fold_left 
-          (fun base (bl, i) -> if bl then base + (pow 2 i) else base) 0 alist)
-        end
-  *)
   let construct_list width pair_list =
     let aux plist w_acc l_acc = if w_acc = width then l_acc else match plist with
       | [] -> aux plist (w_acc+1) (0::l_acc)
@@ -55,7 +37,16 @@ let pick {width; bdd} =
     )
 
 (* test si valeur est dans l'ensemble : membership *)
-let mem assignement {} = "List.map V.to_int (MyTheory.V.bits a)" failwith "TODO"
+let mem assignement {width; bdd} =
+let one = MyTheory.V.consti 1 1 in
+let bitArray = Array.of_list (List.map (fun w -> w = one) (MyTheory.V.bits assignement)) in
+  let iter_bdd tree flip = match BDD.inspectb tree with
+    | BDD.False -> if flip then BDD.True else BDD.False
+    | BDD.True -> if flip then BDD.False else BDD.True
+    | Not t -> iter_bdd t (!flip)
+    | If (left, var, right) -> iter_bdd (if bitArray.(var) then right else left) flip
+  in
+  iter_bdd bdd false
 
 type 'a update =
   | Range of 'a t
@@ -68,4 +59,13 @@ La contrainte est le arg 2
 prend un range
 founri le range updaté
 *)
-let update _ _ _ = failwith "TODO"
+(* TODO: VERIFY *)
+(* TODO: parcourir new_bdd en profondeur en vérifiant que exactement 1 des fils est BFalse, utilisez API standard*)
+let update signal formula ({width; bdd; history} as old_range) =
+  let new_bdd = BBD.dand bdd signal.(0) in
+  if (BDD.equal new_bdd bdd) then
+    match BDD.allsat new_bdd with
+    | a::b::t -> Range {width = width; bdd = new_bdd; history = formula::history}
+    | a::[] -> Singleton a (* TODO: convertir, cf au dessus *)
+    | [] -> Empty formula::history
+  else old_range
