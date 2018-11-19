@@ -1,3 +1,5 @@
+open Kernel.Theories.Bitvectors
+
 exception NotConstantSig
 
 type t = BDD.t array (* Most significant bit is the first cell of array *)
@@ -58,3 +60,25 @@ let (^:) = Array.map2 BDD.xor
 let bit i v = v.(Array.length v -i -1)
 
 let isT a = (width a == 1)&&(BDD.is_true a.(0))
+
+let cast v = 
+  const (MyTheory.V.to_string v)
+
+let id n =
+  let toBDD = function '0' -> BDD.dfalse
+                     | '1' -> BDD.dtrue
+                     | _   -> failwith "invalid constant"
+  in
+  let rec const b i v = 
+    if n = i then b 
+    else const (toBDD v.[i] :: b) (i+1) v
+  in
+  let bddconst v =
+    Array.of_list(List.rev (const [] 0 v))
+  in
+  let intToBinString j =
+    let hex="" in
+    hex
+  in
+  bddconst (intToBinString 0)
+ 
