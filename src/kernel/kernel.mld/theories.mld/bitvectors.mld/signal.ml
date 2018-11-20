@@ -60,7 +60,7 @@ let bit i v = v.(Array.length v -i -1)
 let isT a = (width a == 1)&&(BDD.is_true a.(0))
 
 let cast v = 
-  const (BDValues.V.to_string v)
+  const (V.to_string v)
 
 let id n =
   let rec revid b i = 

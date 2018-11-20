@@ -12,8 +12,6 @@ open Values
 open Sassigns
 
 open Theory
-
-open BDValues
     
 type sign = unit
               
