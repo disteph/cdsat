@@ -1,17 +1,13 @@
-(*Contains functions to create HardCaml signals*)
-include HardCaml.Signal.Comb
-      
+(*Contains functions to create HardCaml signals*)    
 open Top
 open Terms
 open Messages
 open Sassigns
 
 open Theory
-    
-type sign
 
-module V : sig
-  include HardCaml.Comb.S
+module Sgn : sig
+  include module type of Circuit
   val isT : t -> bool
   val equal : t -> t -> bool
   val compare : t -> t -> int
@@ -21,24 +17,17 @@ module V : sig
   val show : t -> string
 end
        
-module type API = sig
-
-  (* States of the algorithm *)
-  type state
-  (* Initial state of the algorithm *)
-  val init: state
+module T : sig
 
   (* Direct evaluation functions for bit-vector terms and formulae *)
-  val term_eval : (Term.t -> V.t) -> Term.t -> V.t
-  val form_eval : (Term.t -> V.t) -> Term.t -> bool
+  val term_eval : (Term.t -> BDValues.V.t option) -> Term.t -> Sgn.t
+  val form_eval : (Term.t -> BDValues.V.t option) -> Term.t -> bool
 
   (* Evaluation function for a formula, given the state of the algorithm.
      Either raises an exception CannotEval,
      or produces a message Propa(assign,boolassign), where
      boolassign is the Boolean assignment saying if the formula evaluates to true or false
      assign are the assignments that were used in the evaluation *)
-  val eval : state -> Term.t -> (sign, straight) message
+  val eval : Assign.t -> (Term.t -> BDValues.V.t option) -> Term.t -> (unit, straight) message
 
 end
-
-val hdl : (sign*(module API)) Tags.t

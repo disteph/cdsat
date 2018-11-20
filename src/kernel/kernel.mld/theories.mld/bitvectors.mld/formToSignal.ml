@@ -31,12 +31,11 @@ module Sgn = struct
     in
     aux fmt (List.map isT (bits a))
   let show = Print.stringOf pp
-  let name = "BV"
 end
            
 
 module T = struct
-
+  
   (* evaluation of a term *)
   let term_eval valuation term =
     let rec aux term =
@@ -52,8 +51,10 @@ module T = struct
          Sgn.constb s
       | _ -> let v = valuation term in
              match v with
-             | None -> Signal.id (*n*) (*n is the dimension of the bitvector, unknown for now*)
-             | vv -> Signal.cast v
+             | Some v -> Signal.cast v
+             | None -> match Term.get_sort term with
+                       | BV n -> Signal.id n
+                       | _ -> failwith "Not a bitvector."
     in aux term
 
   (* Exception that we raise if we cannot evaluate a bitvector formula *)
