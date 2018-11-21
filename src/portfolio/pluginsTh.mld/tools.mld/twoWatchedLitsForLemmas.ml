@@ -77,10 +77,10 @@ module Make (C : Config) = struct
                newly    = lazy VarSet.empty;
                curcount = 0;
                totcount = 0;
-               maxcount = 1000;
+               maxcount = !PFlags.lemmasmax;
                decay    = 1.01; (*FH: to be modified*)
                thrshld  = 1.;
-               incrmt   = 1.05;
+               incrmt   = !PFlags.lemmasincrmt;
              }
 
   let flush state = { state with todo = Pqueue.empty() }

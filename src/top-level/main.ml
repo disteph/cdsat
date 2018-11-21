@@ -50,7 +50,11 @@ let options =
     ("-skipunknown", Set skipunknown,                 "skips instances without any result expectation");
     ("-bool_decay",  String(fun s-> 
                          bool_decay := float_of_string s), "sets the VSIDS decay factor (default 1.3)");
-    ("-keeplemmas", Clear forgetlemmas, "does not forget any lemma"); 
+    ("-keeplemmas", Clear forgetlemmas, "does not forget any lemma");
+    ("-lemmasincrmt",  String(fun s-> 
+                           lemmasincrmt := float_of_string s), "sets the lemmas increment factor (default 1.1)");
+    ("-lemmasmax",  String(fun s-> 
+                        lemmasmax := int_of_string s), "sets the max lemma count (default 1000)");
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],
