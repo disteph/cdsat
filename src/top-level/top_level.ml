@@ -130,10 +130,15 @@ let parseNrun input =
       begin
 	try 
           run parser input
-        with Kernel.Parsers.Parser.ParsingError s
-           | Kernel.Parsers.Typing.TypingError s ->
-          Print.print ["top",1] (fun p->
+        with 
+        | Kernel.Parsers.Parser.ParsingError s
+          -> Print.print ["top",1] (fun p->
               p "Parser %a could not parse input, because \n%s"
+                Kernel.Parsers.Register.pp parser s);
+          trying other_parsers
+        | Kernel.Parsers.Typing.TypingError s ->
+          Print.print ["top",1] (fun p->
+              p "Parser %a could not type input, because \n%s"
                 Kernel.Parsers.Register.pp parser s);
           trying other_parsers
       end

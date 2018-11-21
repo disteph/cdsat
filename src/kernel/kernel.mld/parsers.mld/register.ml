@@ -1,3 +1,5 @@
+open Top
+
 (* This is the register of all parsers in Psyche *)
 
 type t =
@@ -22,11 +24,10 @@ let parse parser input =
   
   (* Now we parse *)
   let i = (module Typing.ForParsing
-                  : Parser.ForParsing with type t = Top.Terms.TermB.t)
+                  : Parser.ForParsing with type t = Terms.TermB.t)
   in
-  let parsable, expected = MyParser.parse aft (Typing.forParser i) in
-  let parsed =
-    List.map (fun f -> f Top.Sorts.Prop) parsable
-  in
-  (* print_endline("We want to prove: "^List.show Top.Terms.TermB.pp parsed); *)
+  let parsed, expected = MyParser.parse aft (Typing.forParser i) in
+  let aux formula = assert(Sorts.equal (Terms.TermB.get_sort formula) Sorts.Prop) in
+  List.iter aux parsed;
+  (* print_endline("We want to prove: "^List.show Terms.TermB.pp parsed); *)
   MyParser.guessThDecProc aft,parsed,expected

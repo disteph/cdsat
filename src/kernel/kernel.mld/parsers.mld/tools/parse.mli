@@ -6,4 +6,4 @@ val sort      : decsorts:string list -> sort -> Top.Sorts.t
 
 val multiary  : Top.Symbols.t -> 'a Multiary.multiary option
     
-val symbol    : decsorts:string list -> string -> Top.Symbols.t list
+val symbol    : decsorts:string list -> string -> Top.Sorts.t list -> Top.Symbols.t

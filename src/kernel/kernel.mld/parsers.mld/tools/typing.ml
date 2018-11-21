@@ -50,56 +50,46 @@ module ForParsing = struct
 
 end
 
-
-
-
                                              
-let forParser (type a)
-      (module I: ForParsing with type t = a)
+let forParser
+      (module I: ForParsing with type t = Terms.TermB.t)
       ~decsorts
   =
   let parseSort = Parse.sort ~decsorts in
   let parseSymb = Parse.symbol ~decsorts in
   (module struct
      
-     type t = Sorts.t -> I.t
+     type t = I.t
 
-     let sigsymb s =
-       let rec aux = function
-         | sym::k ->
-           fun l expsort ->
-             begin
-               try symb I.bC sym l expsort with
-               | MultiaryError msg
-               | TypingError msg
-                 -> Print.print ["typing",1] (fun p->
-                     p "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
-	         aux k l expsort
-             end
-         | []   -> raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol"))
-       in aux (parseSymb s)
-
+     let sigsymb s l =
+       let lsorts = List.map Terms.TermB.get_sort l in
+       let symb = parseSymb s lsorts in
+       I.bC symb l
+     (* try symb I.bC sym l expsort with
+        | MultiaryError msg
+        | TypingError msg
+        -> Print.print ["typing",1] (fun p->
+        "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
+       raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol")) *)
+       
      let decsymb s ((decsort:sort),(decarg:sort list)) =
        let arit = (parseSort decsort, List.map parseSort decarg) in
-       symb I.bC (Symbols.User(s,arit))
+       I.bC (Symbols.User(s,arit))
 
-     let boundsymb db decsort expsort =
+     let boundsymb db decsort =
        let pdecsort = parseSort decsort in
-       if Sorts.equal expsort pdecsort then I.bV (Variables.BoundVar.build(db,expsort))
-       else raise (TypingError ("TypingError: De Bruijn's index "^(string_of_int db)^" bound with sort"^Print.stringOf Sorts.pp pdecsort
-                                ^" but expecting sort"^Print.stringOf Sorts.pp expsort))
+       I.bV (Variables.BoundVar.build(db,pdecsort))
 
      let quantif b l sf =
-       let sfc = sf Sorts.Prop in
+       let recsort = Terms.TermB.get_sort sf in
+       if Sorts.equal recsort Sorts.Prop
+       then raise (TypingError ("TypingError: quantifier expects subterm of sort `Prop but got sort "^Print.stringOf Sorts.pp recsort));
        let rec aux = function
-         | []     -> sfc
+         | []     -> sf
          | so::l' -> let s = parseSort so in
                      let sym = (if b then Symbols.Forall s else Symbols.Exists s) in
                      I.bC sym [aux l']
        in
-       function expsort ->
-                if Sorts.equal expsort Sorts.Prop then aux l
-                else raise (TypingError ("TypingError: quantifier produces inhabitant of sort `Prop but expecting sort "
-                                         ^Print.stringOf Sorts.pp expsort))
+       aux l
                            
-   end : InterpretType with type t = Sorts.t -> a)
+   end : InterpretType with type t = Terms.TermB.t)

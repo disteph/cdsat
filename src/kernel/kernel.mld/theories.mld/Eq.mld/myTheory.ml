@@ -55,8 +55,7 @@ module Make(W : Writable) = struct
         let tlist = List.fold aux tvset [] in
         let aux t1 t2 value =
           let%map info,tvset = EG.eq t1 (Case1 t2) sassign ~level in
-          let tlist = List.fold aux tvset tlist in
-          tlist
+          List.fold aux tvset tlist
         in
         match Term.reveal term, value with
         | Terms.C(Symbols.Eq s,[t1;t2]), Values.Boolean true -> aux t1 t2 value

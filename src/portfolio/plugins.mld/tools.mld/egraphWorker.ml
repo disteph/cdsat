@@ -93,12 +93,18 @@ module Make
         [ Lib.write ports.writer msg ;
           loop_read state clients ports ]
     
-    | IMsg(msg,_) -> 
+    | Propa(msg,_) -> 
       Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" pp_message msg);
       Deferred.all_unit
         [ Lib.write ports.writer (msg_make msg) ;
           loop_read state clients ports ]
-      
+
+    | Sat msg -> 
+      Print.print ["egraph",1] (fun p-> p "E-graph: Message %a" pp_message msg);
+      Deferred.all_unit
+        [ Lib.write ports.writer (msg_make msg) ;
+          loop_read state clients ports ]
+
     | Detect c ->
       let port = Clients.find c clients in
       let clients = Clients.remove c clients in

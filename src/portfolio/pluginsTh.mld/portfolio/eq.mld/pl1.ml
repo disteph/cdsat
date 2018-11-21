@@ -85,21 +85,25 @@ let watchthis c = function
 type speak =
   | Nothing
   | Quid    : Term.t -> speak
-  | IMsg    : (sign,_) imessage -> speak
+  | Propa   : (sign,_ propa) imessage -> speak
+  | Sat     : (sign,sat) message -> speak
   | Detect  : Constraint.t -> speak
     
 let speak = function
   | Done -> Nothing, Done
-  | UNSAT{ propas=[]; unsat }          -> IMsg unsat, Done
-  | UNSAT{ propas=msg::propas; unsat } -> IMsg msg, UNSAT{ propas; unsat }
-  | Unknown{ kstate; wstate; quid; sat } ->
+  | UNSAT{ propas=[]; unsat }          -> Propa unsat, Done
+  | UNSAT{ propas=msg::propas; unsat } -> Propa msg, UNSAT{ propas; unsat }
+  | Unknown{ kstate; wstate; quid; sat } as state ->
     let (res,wstate), (kstate,quid) = WL.next wstate (kstate,quid) in
     match res with
     | Case2(c,_) -> Detect c, Unknown{ kstate; wstate; quid; sat }
     | Case1 _    ->
       match quid with
-      | []      -> Nothing, Unknown{ kstate; wstate; quid; sat }
       | t::quid -> Quid t,  Unknown{ kstate; wstate; quid; sat }
+      | []      ->
+        match sat with
+        | Some sat -> Sat sat, state
+        | None     -> Nothing, state
   
 module Make(Kern: API with type sign := MyTheory.sign) = struct
   
