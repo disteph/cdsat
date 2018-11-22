@@ -78,6 +78,8 @@ module T = struct
                uni = Assign.union }
 
     (* evaluation of a term *)
+    (* Returns the valueation (bool) AND the part of the model with was used for the valuation
+      For instance, if G |- e1 == e2, find the subpart of G which suffice for e1 == e2 *)
     let term_eval_by by valuation term =
       let rec aux term =
         match Term.reveal term with
@@ -92,6 +94,7 @@ module T = struct
           V.constb s, by.cst
         | _ -> let v = valuation term in
           v, by.sgl term v
+          (**TODO: other operation than concatenation/extraction/constant are unknown for now**)
       in aux term
 
     (* Exception that we raise if we cannot evaluate a bitvector formula *)

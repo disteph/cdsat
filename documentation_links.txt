@@ -1,0 +1,2 @@
+MLBDD: https://github.com/arlencox/mlbdd/blob/master/MLBDD.mli
+HardCaml: http://www.ujamjar.com/hardcaml/

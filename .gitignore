@@ -8,3 +8,6 @@ setup.data
 setup.log
 makefile.data
 *~
+
+*.code-workspace
+node_modules/
