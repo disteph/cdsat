@@ -202,16 +202,15 @@ module Make (C : Config) = struct
     Print.print ["watch",0] (fun p->p "watch: %f" v.score)
            
   let rec forget t =
-    Print.print ["watch",1] (fun p-> p "watch: %d constraints memoized" t.curcount);
+    Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
     if t.curcount > t.maxcount
-    then (Print.print ["watch",0] (fun p-> p "watch: %d > %d constraints memoized, forgetting some, increment=%f, threshold=%f" t.curcount t.maxcount t.incrmt t.thrshld);
+    then (Print.print ["forget",1] (fun p-> p "forget: curcount=%d, increment=%f, threshold=%f => let's forget!" t.curcount t.incrmt t.thrshld);
           let my_new_t = { t with var2cons = VarMap.empty;
                                   cons2var = CMap.empty;
                                   curcount = 0 } in
           let my_new_t = CMap.fold forgetone t.cons2var my_new_t in
-          Print.print ["watch",0] (fun p->p "watch: %d/%d constraints remaining" my_new_t.curcount t.totcount);
-          if my_new_t.curcount > t.maxcount
-          then CMap.iter testprint my_new_t.cons2var;
+          Print.print ["forget",0] (fun p->p "forget: %d/%d constraints remaining so far" my_new_t.curcount t.totcount);
+          CMap.iter testprint t.cons2var;
           forget { my_new_t with totcount = t.totcount;
                                  incrmt   = t.incrmt *. t.decay;
                                  thrshld  = t.thrshld *. t.decay })
