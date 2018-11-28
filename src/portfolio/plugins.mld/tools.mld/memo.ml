@@ -187,7 +187,7 @@ module Make(WB : WhiteBoardExt) = struct
         (let re = if !PFlags.forgetlemmas
                   then P.forget !watchref
                   else !watchref in
-         watchref := P.addconstraint c ~watched:[sassign;sassign'] re;
+         watchref := P.incrcount (P.addconstraint c ~watched:[sassign;sassign'] re);
          Print.print ["memo",3] (fun p->
              p "Constraint %a watching %a and %a"
                Constraint.pp c SAssign.pp sassign SAssign.pp sassign');)

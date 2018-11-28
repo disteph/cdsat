@@ -126,6 +126,12 @@ module Make(C : Config) : sig
   (* getscore constr whowatcheswhat *)
   val getscore : Constraint.t -> t -> float
 
+  (* getcurcount whowatcheswhat *)
+  val getcurcount : t -> int
+
+  (* incrcurcount whowhatcheswhat *)
+  val incrcount : t -> t
+
   (* forget (watchcount, whowatcheswhat) *)
   val forget : t -> t
                                         
