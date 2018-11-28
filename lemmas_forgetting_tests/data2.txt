@@ -1,0 +1,13 @@
+Number of files : 3
+Number of steps : 2
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+hole6.cnf 2.468234 577 233.770379956 43.0883882149
+dubois100.cnf 14.407542 18951 1315.35275066 366.736531054
+bf1355-075.cnf 4.562864 452 99.0605900154 1729.99557522
+===========================
+Increment=3000.0
+hole6.cnf 2.023923 599 295.959875944 42.570951586
+dubois100.cnf 9.07339 10810 1191.39593911 371.024976873
+bf1355-075.cnf 4.474374 452 101.019718066 1729.99557522
