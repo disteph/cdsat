@@ -77,7 +77,7 @@ module Make (C : Config) = struct
                newly    = lazy VarSet.empty;
                curcount = 0;
                totcount = 0;
-               maxcount = !PFlags.lemmasmax;
+               maxcount = !PFlags.lemmasstep;
                decay    = 1.01; (*FH: to be modified*)
                thrshld  = 1.;
                incrmt   = !PFlags.lemmasincrmt;
@@ -117,9 +117,7 @@ module Make (C : Config) = struct
       | Some s -> s
     in let m_newwatched = MetaVarSet.init newwatched newscore in
     { t with newly; var2cons;
-             cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var;
-             curcount = t.curcount + 1;
-             totcount = t.totcount + 1; }
+             cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var }
 
   (* Adding or updating a constraint before we know the variables to watch *)
       
@@ -192,28 +190,33 @@ module Make (C : Config) = struct
   let getscore constr t =
     (CMap.find constr t.cons2var).score
 
+  let getcurcount t =
+    t.curcount
+
+  let incrcount t =
+    { t with curcount = t.curcount + 1;
+             totcount = t.totcount + 1}
+
   (* Lemma-forgetting *)
   let forgetone constr (v:MetaVarSet.t) new_t =
     if v.score > new_t.thrshld 
-    then addconstraint_ constr v.varset ~score:(Some v.score) new_t
+    then let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
+         { my_new_t with curcount = new_t.curcount + 1 }
     else new_t
 
-  let testprint constr (v:MetaVarSet.t) =
-    Print.print ["watch",0] (fun p->p "watch: %f" v.score)
-           
-  let rec forget t =
+  let forgetcount constr _ newc = newc + 1
+
+  let forget t =
     Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
-    if t.curcount > t.maxcount
-    then (Print.print ["forget",1] (fun p-> p "forget: curcount=%d, increment=%f, threshold=%f => let's forget!" t.curcount t.incrmt t.thrshld);
+    if (t.curcount > 0) && (t.curcount mod t.maxcount == 0)
+    then (Print.print ["forget",1] (fun p-> p "forget: %d/%d constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount t.incrmt t.thrshld);
           let my_new_t = { t with var2cons = VarMap.empty;
                                   cons2var = CMap.empty;
                                   curcount = 0 } in
           let my_new_t = CMap.fold forgetone t.cons2var my_new_t in
-          Print.print ["forget",0] (fun p->p "forget: %d/%d constraints remaining so far" my_new_t.curcount t.totcount);
-          CMap.iter testprint t.cons2var;
-          forget { my_new_t with totcount = t.totcount;
-                                 incrmt   = t.incrmt *. t.decay;
-                                 thrshld  = t.thrshld *. t.decay })
+          Print.print ["forget",0] (fun p->p "forget: now %d/%d constraints, increment=%f, threshold=%f" my_new_t.curcount t.totcount my_new_t.incrmt my_new_t.thrshld);
+          { my_new_t with incrmt   = t.incrmt *. t.decay;
+                          thrshld  = t.thrshld *. t.decay })
     else t
    
 end

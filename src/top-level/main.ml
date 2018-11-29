@@ -53,8 +53,8 @@ let options =
     ("-keeplemmas", Clear forgetlemmas, "does not forget any lemma");
     ("-lemmasincrmt",  String(fun s-> 
                            lemmasincrmt := float_of_string s), "sets the lemmas increment factor (default 1.1)");
-    ("-lemmasmax",  String(fun s-> 
-                        lemmasmax := int_of_string s), "sets the max lemma count (default 1000)");
+    ("-lemmasstep",  String(fun s-> 
+                        lemmasstep := int_of_string s), "sets the step for lemma forgetting (default 50)");
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],
