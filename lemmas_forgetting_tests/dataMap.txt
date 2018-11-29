@@ -1,0 +1,2137 @@
+/!\ Not a usable file, but still provides some data
+Number of files : 1
+Number of stepsCount : 250
+Number of stepsIncr : 40
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+***
+MaxCount=4.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+XXX Execution time too long : greater than 40 sec
+***
+MaxCount=8.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+XXX Execution time too long : greater than 40 sec
+***
+MaxCount=12.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 37.311169 14530 389.427626886 383.423399862
+***
+MaxCount=16.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 36.489931 14530 398.192038237 383.423399862
+***
+MaxCount=20.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 36.814596 14530 394.680414257 383.423399862
+***
+MaxCount=24.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 35.844984 14530 405.35657653 383.423399862
+***
+MaxCount=28.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 35.984265 14530 403.787599941 383.423399862
+***
+MaxCount=32.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 36.464616 14530 398.468476948 383.423399862
+***
+MaxCount=36.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 36.265956 14530 400.65123335 383.423399862
+***
+MaxCount=40.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 35.90239 14530 404.70843306 383.423399862
+***
+MaxCount=44.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 35.753531 14530 406.393427267 383.423399862
+***
+MaxCount=48.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 16.305975 14530 891.08440311 383.423399862
+***
+MaxCount=52.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 18.685857 14530 777.59344942 383.423399862
+***
+MaxCount=56.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 11.443587 14530 1269.70677988 383.423399862
+***
+MaxCount=60.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 14.5303 14530 999.979353489 383.423399862
+***
+MaxCount=64.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.941398 14530 1327.98386458 383.423399862
+***
+MaxCount=68.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.5
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.525
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.55
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.575
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.6
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.625
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.65
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.675
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.7
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.725
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.75
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.775
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.8
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.825
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.85
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.875
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.9
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.925
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.95
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.975
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 13.175726 14530 1102.78553151 383.423399862
+***
+MaxCount=72.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.05
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.075
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.1
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.125
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.15
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.175
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.2
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.225
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.25
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.275
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.3
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.325
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.35
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.375
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.4
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.425
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.45
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.475

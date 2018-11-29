@@ -1,0 +1,30 @@
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
+Number of files : 3
+Number of steps : 1000
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+===========================
+Increment=800.0
