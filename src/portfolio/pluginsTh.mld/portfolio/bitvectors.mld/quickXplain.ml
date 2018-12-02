@@ -4,7 +4,7 @@
 (**.ml file**)
 
 
-
+module QuickXplain = struct
 
 
 
@@ -18,6 +18,7 @@ module type PreConstraints = sig
     a positive integer if a > b
     0 if a == b
     a negative integer if a < b *)
+  val equal : t -> t -> bool
   val partialCompare : t -> t -> int option
 
   (* Determine if a set of constraint is consistent (satisfiable) or not *)
@@ -33,6 +34,7 @@ end
 module type Constraints = sig
   (* The type of a constraint *)
   type t
+  val equal : t -> t -> bool
 
   (* Comparison over the constraints. Must be a total order *)
   val compare : t -> t -> int
@@ -48,6 +50,7 @@ end
 
 module MakeTotal (PC : PreConstraints) : Constraints = struct
   type t = PC.t
+  let equal = PC.equal
   let isConsistent = PC.isConsistent
 
   let reprs = ref []
@@ -66,13 +69,13 @@ module MakeTotal (PC : PreConstraints) : Constraints = struct
     aux_find !reprs a b
   let compare (a : t) (b : t) : int = match PC.partialCompare a b with
     | Some i -> i
-    | None   -> match find_reprs a b with
-      |Some ap, true when ap = a -> (-1)
-      |Some bp, true when bp = b -> 1
-      |Some ap, false when ap = a -> reprs := b::!reprs; 1
-      |Some bp, false when bp = b -> reprs := a::!reprs; -1
+    | None   -> (match find_reprs a b with
+      |Some ap, true when PC.equal ap a -> (-1)
+      |Some bp, true when PC.equal bp b -> 1
+      |Some ap, false when PC.equal ap a -> reprs := b::!reprs; 1
+      |Some bp, false when PC.equal bp b -> reprs := a::!reprs; -1
       |None, _ -> reprs := a::b::!reprs; -1
-      |Some _, _ -> failwith "INVALID REPR"
+      |Some _, _ -> failwith "INVALID REPR")
 end
 
 
@@ -85,7 +88,7 @@ module OrderedListSet (C : Constraints) = struct
   type set = C.t list
   let empty = []
   let toSet (a : C.t list) = List.sort C.compare a
-  let is_empty (s : set) = s = []
+  let is_empty (s : set) = match s with |[] -> true |_ -> false
   let union (a : set) (b : set) : set =
     let rec auxUnion _a _b _c = match _a, _b with
       |    [],     [] -> _c
@@ -139,4 +142,7 @@ module Make (C : Constraints) = struct
 
   let quickXplain (b : C.t list) (c : C.t list) : C.t list option = _quickXplain (Set.toSet b) (Set.toSet c)
   
+end
+
+
 end

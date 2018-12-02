@@ -1,7 +1,10 @@
+module type QuickXplain = sig
+
 module type PreConstraints = sig
   (* The type of a constraint *)
   type t
-
+  val equal : t -> t -> bool
+    
   (* A partial comparison
   None if the two elements are not comparable, or follow the same rules as compare:
     a positive integer if a > b
@@ -21,7 +24,8 @@ end
 module type Constraints = sig
   (* The type of a constraint *)
   type t
-
+  val equal : t -> t -> bool
+    
   (* Comparison over the constraints. Must be a total order *)
   val compare : t -> t -> int
 
@@ -47,4 +51,7 @@ module type Make = functor (C : Constraints) -> sig
 
   (* Background Constraints -> Relaxable Constraints -> Preferred Conflict (if it exists) *)
   val quickXplain : C.t list -> C.t list -> C.t list option
+end
+
+
 end

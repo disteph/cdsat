@@ -4,6 +4,8 @@ open General
 open Kernel.Top
 open Kernel.Theories.Bitvectors
 
+open QuickXplain
+
 (* Converts a valuation given by BDD.sat or BDD.allsat in a bitvector of type V.t (constructed by HardCaml)
   valuation: <(bool * var) list> := a list of pair (value, variable) describing an valuation of the variables of a BDD
   RETURNS : <V.t> := bitvector representation of valuation. Unassigned variable are assigned 0 by default
@@ -25,7 +27,7 @@ let valuation_to_bitvector width valuation =
 
 (* type 'a t = BDD.t * 'a list *)
 (* Type of a bitvector range representing all the bitvector that still satisfies the list 'history' of conditions *)
-type 'a t = {width: int; bdd: BDD.t; history: 'a * BDD.t list; pick: V.t}
+type 'a t = {width: int; bdd: BDD.t; history: ('a * BDD.t) list; pick: V.t}
 
 
 let pp fmt {width; bdd} = BDD.pp (fun fmt i -> fprintf fmt "%i" i) fmt bdd
@@ -100,7 +102,7 @@ let update signal condition ({width; bdd; history} as old_range) =
 
 let make_explanation_module (e : 'a update) = match e with
   | Empty l ->
-    module struct
+    (module struct
       type t = 'a * BDD.t
       let data = l
       let isConsistent (l : t list) : bool =
@@ -124,7 +126,7 @@ let make_explanation_module (e : 'a update) = match e with
         |Some ap, true when ap = a -> Some 1
         |Some bp, true when bp = b -> Some -1
         |_, _ -> None
-    end : QuickXplain.PreConstraints
+    end : QuickXplain.PreConstraints)
   | _ -> failwith "Cannot explain non-empty updated range"
 
 
