@@ -270,6 +270,8 @@ module Make(W: Writable) = struct
 
       let suicide _ = () in
 
+      let watched _ = machine state in
+
       let propose ?term _ =
         match Domain.info state.domains with
         | None ->
@@ -287,7 +289,7 @@ module Make(W: Writable) = struct
           [sassign,1.0]
       in
 
-      SlotMachine { add; share; clone; suicide; propose }
+      SlotMachine { add; share; clone; watched; suicide; propose }
 
     let init = machine { kernel = K.init;
                          fixed  = K.Model.empty;

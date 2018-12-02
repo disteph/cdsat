@@ -21,8 +21,9 @@ module Make(W: Writable) = struct
       let share tset = K.share tset state |> wrap in
       let propose ?term int = [] in
       let clone () = machine state in
+      let watched _ = machine state in
       let suicide _ = () in
-      SlotMachine{ add; share; propose; clone; suicide }
+      SlotMachine{ add; share; propose; clone; watched; suicide }
     in
     {
       PluginTh.init  = machine K.init;

@@ -38,6 +38,7 @@ module Make(W: Writable) = struct
       in
 
       let suicide _ = () in
+      let watched _ = machine state in
       let propose ?term _ =
         let tset = K.wondering state in
         if TSet.is_empty tset
@@ -46,7 +47,7 @@ module Make(W: Writable) = struct
           let term = TSet.choose tset in
           [SAssign.boolassign term,1.0]
       in
-      SlotMachine {add; share; clone; suicide; propose }
+      SlotMachine {add; share; clone; watched; suicide; propose }
 
     in
     { PluginTh.init = machine K.init;

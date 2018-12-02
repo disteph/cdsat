@@ -1,4 +1,8 @@
+open Top
+open Terms
 open Parser
+open Multiary
+
        
 let latexescaped = function
   | '%' | '{' | '}' as c -> "\\"^Char.escaped c
@@ -23,49 +27,44 @@ let rec sort ~decsorts (Sort(s,l)) =
   | s when List.mem [%eq:string] s decsorts -> User s
   | s -> raise (ParsingError("Cannot understand "^s^" as a sort: not declared"))
 
-
-open Multiary
-
-(* val multiary  : symbol -> (symbol -> 'a list -> 'a) -> ((('a list->'a list) -> 'a list -> 'a) option) *)
-let multiary =
-  let open Top.Symbols in
-  function
-  | And | Or | Plus | Times | ITE _ -> Some r_assoc
-  | Eq _ | NEq _ -> Some pairwise
-  | _ -> None
-
-let symbol ~decsorts symb sorts =
-  let open Top.Symbols in
-  let open Top.Sorts in
-  match symb, sorts with
-  | "true", []    -> True
-  | "false", []   -> False
-  | "not", [Prop] -> Neg
-  | "and", [Prop;Prop] -> And
-  | "or", [Prop;Prop]  -> Or
-  | "imp", [Prop;Prop] | "=>", [Prop;Prop] -> Imp
-  | "xor", [Prop;Prop] -> Xor
-  | "<=>", [Prop;Prop] -> Eq Top.Sorts.Prop
-  | "=", [s1;s2] | "==", [s1;s2] | "eq", [s1;s2]
-    when Top.Sorts.equal s1 s2 -> Eq s1
-  | "!=", [s1;s2] | "<>", [s1;s2] | "neq", [s1;s2] | "distinct", [s1;s2]
-    when Top.Sorts.equal s1 s2 -> NEq s1
-  | "ite", [Prop;s1;s2]
-    when Top.Sorts.equal s1 s2 -> ITE s1
-  | "+", [Rat;Rat] -> Plus
-  | "-", [Rat;Rat] -> Minus
-  | "-", [Rat]     -> Op
-  | "*", [Rat;Rat] -> Times
-  | "/", [Rat;Rat] -> Divide
-  | ">", [Rat;Rat] -> Gt
-  | "<", [Rat;Rat] -> Lt
-  | ">=", [Rat;Rat] -> Ge 
-  | "<=", [Rat;Rat] -> Le
-  | "select", [Array(i1,v1);i2] when Top.Sorts.equal i1 i2 -> Select{indices=i1;values=v1}
+       
+let symbol ~decsorts bc symb l =
+  let lsorts = List.map Terms.TermB.get_sort l in
+  let open Symbols in
+  let open Sorts in
+  match symb, lsorts with
+  | "true", _    -> exact bc True []
+  | "false", _   -> exact bc False []
+  | "not", _ -> exact bc Neg l
+  | "and", _ -> trythese [exact bc True; singleton; r_assoc bc And] l
+  | "or", _  -> trythese [exact bc False; singleton; r_assoc bc Or] l
+  | "imp", _ | "=>", _ -> trythese [singleton; r_assoc bc Imp] l
+  | "xor", _ -> exact bc Xor l
+  | "<=>", _ -> pairwise bc (Eq Prop) l
+  | "=", s1::_
+  | "==", s1::_
+  | "eq", s1::_ -> pairwise bc (Eq s1) l
+  | "!=", s1::_
+  | "<>", s1::_
+  | "neq", s1::_
+  | "distinct", s1::_  -> pairwise bc (NEq s1) l
+  | "ite", Prop::s1::_ -> r_assoc bc (ITE s1) l
+  | "+", [Rat;Rat] -> r_assoc bc Plus l
+  | "-", [Rat;Rat] -> exact bc Minus l
+  | "-", [Rat]     -> exact bc Op l
+  | "*", [Rat;Rat] -> r_assoc bc Times l
+  | "/", [Rat;Rat] -> exact bc Divide l
+  | ">", [Rat;Rat] -> exact bc Gt l
+  | "<", [Rat;Rat] -> exact bc Lt l
+  | ">=", [Rat;Rat] -> exact bc Ge l
+  | "<=", [Rat;Rat] -> exact bc Le l
+  | "select", [Array(i1,v1);i2] when Top.Sorts.equal i1 i2
+    -> exact bc (Select{indices=i1;values=v1}) l
   | "store",  [Array(i1,v1);i2;v2]
-     when Top.Sorts.equal i1 i2 && Top.Sorts.equal v1 v2 -> Store{indices=i1;values=v1}
-  | s, [] -> (try CstRat(Q.of_string s) with _ ->
+    when Top.Sorts.equal i1 i2 && Top.Sorts.equal v1 v2
+    -> exact bc (Store{indices=i1;values=v1}) l
+  | s, [] -> (try exact bc (CstRat(Q.of_string s)) l with _ ->
       raise (ParsingError("Cannot understand symbol function "^s^" (no argument)")))
   | s, _ ->
-    let sorts = List.fold (fun s sofar -> sofar^(Top.Sorts.show s)) sorts "" in
+    let sorts = List.fold (fun s sofar -> sofar^(Top.Sorts.show s)) lsorts "" in
     raise (ParsingError("Cannot understand symbol function "^s^" with argument sorts "^sorts))

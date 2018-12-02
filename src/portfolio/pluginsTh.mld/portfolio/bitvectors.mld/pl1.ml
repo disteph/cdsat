@@ -42,7 +42,9 @@ module Make(W: Writable) = struct
 
       let propose ?term _ = [] in
 
-      SlotMachine { add; share; clone; suicide; propose }
+      let watched _ = machine state in
+
+      SlotMachine { add; share; clone; suicide; watched; propose }
 
     let init = machine { kernel = K.init;
                          domains = Domain.empty;

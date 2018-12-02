@@ -1,9 +1,10 @@
 open Parser
+open Top
 
 val latexescaped : char -> string
        
-val sort      : decsorts:string list -> sort -> Top.Sorts.t
+val sort   : decsorts:string list -> sort -> Sorts.t
 
-val multiary  : Top.Symbols.t -> 'a Multiary.multiary option
-    
-val symbol    : decsorts:string list -> string -> Top.Sorts.t list -> Top.Symbols.t
+val symbol : decsorts:string list
+  -> (Symbols.t -> Terms.TermB.t list -> Terms.TermB.t)
+  -> string -> Terms.TermB.t list -> Terms.TermB.t

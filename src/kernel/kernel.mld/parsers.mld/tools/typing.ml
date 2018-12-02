@@ -1,42 +1,7 @@
 open General
 open Top
-open Basic
 open Parser
 open Multiary
-
-exception TypingError of string
-
-let rec mapdbl l1 l2 = match l1,l2 with
-  | (a1::l1'),(a2::l2') -> let (l,l')= mapdbl l1' l2' in ((a1 a2)::l,l')
-  | l,[] -> ([],l)
-  | [],_ -> raise (MultiaryError "MultiaryError: not enough arguments for symbol's arity")
-
-
-let one_step interp sym args =
-  let output,input = Symbols.arity sym in
-  let combo,rest   = mapdbl args input in
-  let f expsort =
-    if Sorts.equal expsort output  then interp sym combo
-    else
-      begin
-        Print.print ["typing",1] (fun p->
-            p "\nWarning: symbol %a's output sort %a does not match output sort %a\n"
-              Symbols.pp sym
-              Sorts.pp output
-              Sorts.pp output);
-        raise (TypingError "TypingError: symbol's output sort does not match expected sort")
-      end
-  in f::rest
-
-let symb interp sym args =
-  match Parse.multiary sym with 
-  | None     -> singleton (one_step interp sym args)
-  | Some mul -> 
-    try singleton (one_step interp sym args)
-    with
-      MultiaryError _ | TypingError _ ->
-      mul (one_step interp) sym args
-
 
 module ForParsing = struct
   open Terms
@@ -56,22 +21,12 @@ let forParser
       ~decsorts
   =
   let parseSort = Parse.sort ~decsorts in
-  let parseSymb = Parse.symbol ~decsorts in
   (module struct
      
      type t = I.t
 
-     let sigsymb s l =
-       let lsorts = List.map Terms.TermB.get_sort l in
-       let symb = parseSymb s lsorts in
-       I.bC symb l
-     (* try symb I.bC sym l expsort with
-        | MultiaryError msg
-        | TypingError msg
-        -> Print.print ["typing",1] (fun p->
-        "\nWarning: could not understand string %s as a specific (well-typed) signature symbol (now trying other ones) because:\n%s\n" s msg);
-       raise (TypingError ("TypingError: cannot understand string "^s^" as a (well-typed) signature symbol")) *)
-       
+     let sigsymb s l = Parse.symbol ~decsorts I.bC s l
+
      let decsymb s ((decsort:sort),(decarg:sort list)) =
        let arit = (parseSort decsort, List.map parseSort decarg) in
        I.bC (Symbols.User(s,arit))

@@ -55,19 +55,19 @@ module Make
       | KillYourself _ -> return()
       | WatchThis { reply_to; constr }
         ->
-        let aux = function None -> reply_to | Some _ -> failwith "clients" in
+        Print.print ["egraph",1] (fun p-> p "E-graph: Watching stuff in %a" Constraint.pp constr);
+        let aux = function None -> reply_to | Some _ -> failwith "Constraint is already registered" in
         let clients = Clients.add constr aux clients in
+        let state   = watchthis constr state in
         loop_read state clients ports
       | TheoryAsk{ reply_to; node }
         -> let ans, state = ask node state in
-        begin
-          match ans with
-          | None -> loop_read state clients ports
-          | Some(normal_form, values, forbidden) ->
-            Deferred.all_unit
-              [ Lib.write reply_to (Infos{ node; normal_form; values; forbidden });
-                loop_read state clients ports ]
-        end
+        match ans with
+        | None -> loop_read state clients ports
+        | Some(normal_form, values, forbidden) ->
+          Deferred.all_unit
+            [ Lib.write reply_to (Infos{ node; normal_form; values; forbidden });
+              loop_read state clients ports ]
     in
     Lib.read
       ~onkill:(fun ()->return(Print.print ["egraph",2] (fun p-> p "E-graph dies")))
@@ -107,7 +107,7 @@ module Make
 
     | Detect c ->
       let port = Clients.find c clients in
-      let clients = Clients.remove c clients in
+      (* let clients = Clients.remove c clients in *)
       Deferred.all_unit
         [ Lib.write port (WatchFailed c) ;
           loop_read state clients ports ]

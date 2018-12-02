@@ -288,6 +288,8 @@ module Make(W:Writable) = struct
                                   
       let clone () = machine state in
 
+      let watched _ = machine state in
+
       let suicide baset =
         scores := BaMap.union_poly (fun _ () v -> v +. !bump_value)
                     (fun _ -> BaMap.empty)
@@ -324,7 +326,7 @@ module Make(W:Writable) = struct
               p "bool: waiting for master to catch up");
           []
       in
-      SlotMachine { add; share; clone; suicide; propose }
+      SlotMachine { add; share; clone; suicide; watched; propose }
 
                   
     let init = machine { kernel = K.init;
