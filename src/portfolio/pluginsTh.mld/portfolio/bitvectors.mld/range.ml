@@ -103,7 +103,8 @@ let update signal condition ({width; bdd; history} as old_range) =
 let make_explanation_module (e : 'a update) = match e with
   | Empty l ->
     (module struct
-      type t = 'a * BDD.t
+       type t = 'a * BDD.t
+       let equal (a:t) (b:t) = a==b
       let data = l
       let isConsistent (l : t list) : bool =
         let rec aux_consistent (l : t list) (acc : BDD.t) = match l with
