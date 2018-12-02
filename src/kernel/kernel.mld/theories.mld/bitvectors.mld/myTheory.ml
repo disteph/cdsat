@@ -14,30 +14,6 @@ open Sassigns
 open Theory
     
 type sign = unit
-  
-(* This is the module for constant bitvectors *)
-module CstBV = HardCaml.Bits.Comb.ArraybitsNativeint
-              
-module V = struct
-  include CstBV
-
-  (* Predicate "is true ?" *)
-  let isT a = [%eq:nativeint array * int] (a ==: vdd) vdd
-  let equal a b = isT(a ==: b)
-  let compare a b = if equal a b then 0
-                    else if isT(a <=: b) then 1 else -1
-  (* hash function only uses the lowest 16 bits: to be refined later? *)
-  let hash a = CstBV.to_int(CstBV.select a 16 0) 
-  let hash_fold_t = Hash.hash2fold hash
-  let pp fmt a =
-    let rec aux fmt = function
-      | [] -> ()
-      | t::q -> fprintf fmt "%s%a" (if t then "1" else "0") aux q
-    in
-    aux fmt (List.map isT (CstBV.bits a))
-  let show = Print.stringOf pp
-  let name = "BV"
-end
               
 (* We are using the above as values *)
 let vkey  = Values.Key.make(module V)
@@ -102,6 +78,8 @@ module T = struct
                uni = Assign.union }
 
     (* evaluation of a term *)
+    (* Returns the valueation (bool) AND the part of the model with was used for the valuation
+      For instance, if G |- e1 == e2, find the subpart of G which suffice for e1 == e2 *)
     let term_eval_by by valuation term =
       let rec aux term =
         match Term.reveal term with
@@ -116,6 +94,7 @@ module T = struct
           V.constb s, by.cst
         | _ -> let v = valuation term in
           v, by.sgl term v
+          (**TODO: other operation than concatenation/extraction/constant are unknown for now**)
       in aux term
 
     (* Exception that we raise if we cannot evaluate a bitvector formula *)
