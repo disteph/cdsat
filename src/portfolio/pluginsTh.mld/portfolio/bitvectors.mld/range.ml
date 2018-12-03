@@ -25,7 +25,6 @@ let valuation_to_bitvector width valuation =
       valuation) (* sorted in increasing order *)
     )
 
-(* type 'a t = BDD.t * 'a list *)
 (* Type of a bitvector range representing all the bitvector that still satisfies the list 'history' of conditions *)
 type 'a t = {width: int; bdd: BDD.t; history: ('a * BDD.t) list; pick: V.t}
 
@@ -100,18 +99,18 @@ let update signal condition ({width; bdd; history} as old_range) =
 
 
 
-let make_explanation_module (e : 'a update) = match e with
+let make_explanation_module (type a) (e : a update) = match e with
   | Empty l ->
     (module struct
-       type t = 'a * BDD.t
-       let equal (a:t) (b:t) = a==b
+      type t = a * BDD.t
+      let equal (a:t) (b:t) = a==b
       let data = l
-      let isConsistent (l : t list) : bool =
-        let rec aux_consistent (l : t list) (acc : BDD.t) = match l with
+      let isConsistent (lst : t list) : bool =
+        let rec aux_consistent (lst : t list) (acc : BDD.t) = match lst with
           | [] -> acc
           | (condition, bdd)::t -> aux_consistent t (BDD.dand acc bdd)
         in
-        not (BDD.is_false (aux_consistent l BDD.dtrue))
+        not (BDD.is_false (aux_consistent lst BDD.dtrue))
       
       (* Compares the two conditions. The preferred (smaller) condition is the one
       the most deep down the data list, i.e. the conditions coming from the earliest choices during
@@ -120,14 +119,14 @@ let make_explanation_module (e : 'a update) = match e with
       let partialCompare (a : t) (b : t) : int option =
         let rec aux lst a b = match lst with
           |[] -> None, false
-          |h::t when a = h -> Some a, List.exists (fun x -> x = b) t
-          |h::t when b = h -> Some b, List.exists (fun x -> x = a) t
+          |h::t when equal a h -> Some a, List.exists (equal b) t
+          |h::t when equal b h -> Some b, List.exists (equal a) t
           |h::t -> aux t a b
         in match aux data a b with
-        |Some ap, true when ap = a -> Some 1
-        |Some bp, true when bp = b -> Some -1
+        |Some ap, true when equal ap a -> Some 1
+        |Some bp, true when equal bp b -> Some (-1)
         |_, _ -> None
-    end : QuickXplain.PreConstraints)
+    end : QuickXplain.PreConstraints with type t = a*BDD.t)
   | _ -> failwith "Cannot explain non-empty updated range"
 
 
@@ -143,7 +142,8 @@ let make_explanation_module (e : 'a update) = match e with
   That is because the BDDs of the constraints that were given to "update" are saved within the "history" member of
   the type 'a t to improve computation, but this supposes that the constraints remain the same and therefor that
   the valuation is complete*)
-let find_explanation (e : 'a update) = match e with
-  | Empty l -> let module M = QuickXplain.Make (QuickXplain.MakeTotal (make_explanation_module e)) in
+let find_explanation (type a) (e : a update) = match e with
+  | Empty l -> let (module Arg)=make_explanation_module e in
+               let module M = QuickXplain.Make (QuickXplain.MakeTotal (Arg)) in
         M.quickXplain [] l
   | _ -> failwith "Cannot explain non-empty updated range"

@@ -1,5 +1,3 @@
-module type QuickXplain = sig
-
 module type PreConstraints = sig
   (* The type of a constraint *)
   type t
@@ -38,8 +36,8 @@ end
                         
 
 (* Linearize a partial order into a total order, preserving the type and consistency check of the constraints module *)
-module type MakeTotal  = functor (PC : PreConstraints) -> Constraints
-  with type t := PC.t
+module MakeTotal (PC : PreConstraints) : Constraints
+  with type t = PC.t
 
 
 (* Create a module implementing the QuickXplain algorithm
@@ -47,11 +45,8 @@ onto the constraints type, order and comparison checker passed a module argument
 
 
 see Junker, U. QuickXPlain : Preferred Explanations and Relaxations for Over-Constrained Problems, for details *)
-module type Make = functor (C : Constraints) -> sig
+module Make (C : Constraints) : sig
 
   (* Background Constraints -> Relaxable Constraints -> Preferred Conflict (if it exists) *)
   val quickXplain : C.t list -> C.t list -> C.t list option
-end
-
-
 end

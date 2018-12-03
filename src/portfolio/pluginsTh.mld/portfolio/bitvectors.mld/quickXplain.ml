@@ -4,8 +4,6 @@
 (**.ml file**)
 
 
-module QuickXplain = struct
-
 
 
 (* Module describing constraints and a partial order on them *)
@@ -48,7 +46,7 @@ end
 
 
 
-module MakeTotal (PC : PreConstraints) : Constraints = struct
+module MakeTotal (PC : PreConstraints) = struct
   type t = PC.t
   let equal = PC.equal
   let isConsistent = PC.isConsistent
@@ -144,5 +142,3 @@ module Make (C : Constraints) = struct
   
 end
 
-
-end
