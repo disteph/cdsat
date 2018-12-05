@@ -93,6 +93,12 @@ module Make(C : Config) : sig
      watch another variable" instead. *)
   val fix  : Var.t -> t -> t
 
+  (* restore constraint whowatcheswhat
+
+     transfers constraint from the recycle bin to the current list *)
+                             
+  val restore : Constraint.t -> t -> t * float option
+
   (* addconstraint constraint ~watched whowatcheswhat
 
      adds constraint to the datastructure whowatcheswhat, watching watched *)

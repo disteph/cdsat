@@ -87,19 +87,9 @@ module Make (C : Config) = struct
 
   let flush state = { state with todo = Pqueue.empty() }
 
-  (* Putting a constraint in the recycle bin *)
-
-  let recycle c watched t =
-    { t with rcyclbin = CMap.add c (fun _ -> watched) t.rcyclbin }
-
-  let recycled_score c t =
-    try let watched = CMap.find c t.rcyclbin in
-        Some watched.score
-    with Not_found -> None
-               
   (* Adding or updating a constraint once we know the variables it will watch *)
 
-  let addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) newwatched t =
+  let rec addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) ?(norestore=false) newwatched t =
     (* Those that are really old *)
     let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really new *)
@@ -124,16 +114,33 @@ module Make (C : Config) = struct
       VarMap.add var varwatch var2cons
     in
     let var2cons = VarSet.fold aux reallynew var2cons in
-    let rcyclbin, oldscore = match recycled_score c t with
-        None   -> t.rcyclbin, 0.
-      | Some s -> (Print.print ["forget",2] (fun p-> p "recycled score %f,  threshold=%f" s t.thrshld); (CMap.remove c t.rcyclbin, s)) in
+    let t, oldscore = if norestore
+                      then t, None
+                      else restore c t in
+    let oldscore = match oldscore with
+        None   -> 0.
+      | Some s -> s in
     let newscore = oldscore +. (match score with
                                   None   -> t.incrmt
                                 | Some s -> s) in
     let m_newwatched = MetaVarSet.init newwatched newscore in
-    { t with newly; var2cons; rcyclbin;
+    { t with newly; var2cons;
              cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var }
 
+  and restore c t =
+    let restoreone score c (v:MetaVarSet.t) (r, t) =
+      if v.score == score
+      then let t = addconstraint_ c ~score:(Some v.score) ~norestore:true v.varset t in
+           r + 1, { t with rcyclbin = CMap.remove c t.rcyclbin;
+                           curcount = t.curcount + 1 }
+      else r, t
+    in
+    try let watched = CMap.find c t.rcyclbin in
+        let restored, t = CMap.fold (restoreone watched.score) t.rcyclbin (0, t) in
+        Print.print ["forget",1] (fun p-> p "forget: restored %d constraints" restored);
+        t, Some watched.score
+    with Not_found -> t, None
+                             
   (* Adding or updating a constraint before we know the variables to watch *)
       
   let treat_one fixed ?howmany c t =
@@ -196,6 +203,12 @@ module Make (C : Config) = struct
     then { t with todo = Pqueue.push (VarMap.find var t.var2cons) t.todo }
     else t
 
+  
+  (* Putting a constraint in the recycle bin *)
+
+  let recycle c watched t =
+    { t with rcyclbin = CMap.add c (fun _ -> watched) t.rcyclbin }                                        
+
   (* Incrementing the score of a constraint *)
   let incrscore constr t =
     let v = CMap.find constr t.cons2var in
@@ -223,7 +236,7 @@ module Make (C : Config) = struct
 
   let forget t =
     Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
-    if (t.curcount > 0) && (t.curcount mod t.maxcount == 0)
+    if (t.totcount > 0) && (t.totcount mod t.maxcount == 0)
     then (Print.print ["forget",1] (fun p-> p "forget: %d/%d constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount t.incrmt t.thrshld);
           let my_new_t = { t with var2cons = VarMap.empty;
                                   cons2var = CMap.empty;
