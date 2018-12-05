@@ -89,7 +89,13 @@ module Make (C : Config) = struct
 
   (* Adding or updating a constraint once we know the variables it will watch *)
 
-  let rec addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) ?(norestore=false) newwatched t =
+  let restore c t =
+    try (let score = Some (CMap.find c t.rcyclbin).score in
+         Print.print ["forget",1] (fun p-> p "forget: restore %a" Constraint.pp c);
+        score)
+    with Not_found -> None
+
+  let addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) newwatched t =
     (* Those that are really old *)
     let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really new *)
@@ -114,32 +120,14 @@ module Make (C : Config) = struct
       VarMap.add var varwatch var2cons
     in
     let var2cons = VarSet.fold aux reallynew var2cons in
-    let t, oldscore = if norestore
-                      then t, None
-                      else restore c t in
-    let oldscore = match oldscore with
-        None   -> 0.
-      | Some s -> s in
-    let newscore = oldscore +. (match score with
-                                  None   -> t.incrmt
-                                | Some s -> s) in
+    let rcyclbin, newscore = match restore c t with
+        Some o -> (CMap.remove c t.rcyclbin), o +. t.incrmt
+      | None   -> t.rcyclbin, (match score with
+                                 None   -> 0.
+                               | Some s -> s) in
     let m_newwatched = MetaVarSet.init newwatched newscore in
-    { t with newly; var2cons;
+    { t with newly; var2cons; rcyclbin;
              cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var }
-
-  and restore c t =
-    let restoreone score c (v:MetaVarSet.t) (r, t) =
-      if v.score == score
-      then let t = addconstraint_ c ~score:(Some v.score) ~norestore:true v.varset t in
-           r + 1, { t with rcyclbin = CMap.remove c t.rcyclbin;
-                           curcount = t.curcount + 1 }
-      else r, t
-    in
-    try let watched = CMap.find c t.rcyclbin in
-        let restored, t = CMap.fold (restoreone watched.score) t.rcyclbin (0, t) in
-        Print.print ["forget",1] (fun p-> p "forget: restored %d constraints" restored);
-        t, Some watched.score
-    with Not_found -> t, None
                              
   (* Adding or updating a constraint before we know the variables to watch *)
       
@@ -227,6 +215,7 @@ module Make (C : Config) = struct
 
   (* Lemma-forgetting *)
   let forgetone constr (v:MetaVarSet.t) new_t =
+    Print.print ["score",0] (fun p-> p "%f" v.score);
     if v.score > new_t.thrshld 
     then let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
          { my_new_t with curcount = new_t.curcount + 1 }
@@ -237,12 +226,13 @@ module Make (C : Config) = struct
   let forget t =
     Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
     if (t.totcount > 0) && (t.totcount mod t.maxcount == 0)
-    then (Print.print ["forget",1] (fun p-> p "forget: %d/%d constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount t.incrmt t.thrshld);
+    then ( Print.print ["score",0] (fun p->p "score: forget!");
+           Print.print ["forget",1] (fun p-> p "forget: %d/%d [%d] constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount (CMap.fold forgetcount t.cons2var 0) t.incrmt t.thrshld);
           let my_new_t = { t with var2cons = VarMap.empty;
                                   cons2var = CMap.empty;
                                   curcount = 0 } in
           let my_new_t = CMap.fold forgetone t.cons2var my_new_t in
-          Print.print ["forget",0] (fun p->p "forget: now %d/%d constraints, increment=%f, threshold=%f" my_new_t.curcount t.totcount my_new_t.incrmt my_new_t.thrshld);
+          Print.print ["forget",0] (fun p->p "forget: now %d/%d [%d] constraints, increment=%f, threshold=%f" my_new_t.curcount t.totcount (CMap.fold forgetcount my_new_t.cons2var 0) my_new_t.incrmt my_new_t.thrshld);
           { my_new_t with incrmt   = t.incrmt *. t.decay;
                           thrshld  = t.thrshld *. t.decay })
     else t

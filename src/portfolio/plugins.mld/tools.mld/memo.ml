@@ -251,12 +251,12 @@ module Make(WB : WhiteBoardExt) = struct
                  (Print.print ["memo",2] (fun p->
                       p "Memo: %a already known" BAssign.pp flipped);
                   aux watch)
-               else
-                 (Print.print ["memo",0] (fun p->
-                      p "Memo: useful propagation %a, score %f" WB.pp newmsg (P.getscore constr watch));
+               else begin
+                   Print.print ["memo",0] (fun p->
+                       p "Memo: useful propagation %a, score %f"  WB.pp newmsg (P.getscore constr watch));
                   watchref := P.incrscore constr watch;
-                  UP newmsg)
-
+                  UP newmsg
+                 end
       in
       aux !watchref
         
