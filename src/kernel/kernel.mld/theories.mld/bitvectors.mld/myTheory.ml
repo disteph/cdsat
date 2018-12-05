@@ -1,11 +1,9 @@
 open Format
        
 open General
-open Patricia
-open Patricia_tools
+open Monads
 
 open Top
-open Basic
 open Messages
 open Terms
 open Values
@@ -14,7 +12,9 @@ open Sassigns
 open Theory
     
 type sign = unit
-              
+
+module V = Bv_value
+  
 (* We are using the above as values *)
 let vkey  = Values.Key.make(module V)
 let vinj  = Value.inj vkey
@@ -23,25 +23,14 @@ let vproj = Value.proj vkey
 (* We are using VarSets (sets of variables) as alternative term representations *)
 module TS = Termstructures.VarSet.BV
 
-module Arg = struct
-  include Term
-  include TypesFromHConsed(Term)
-  include EmptyInfo
-  type values = V.t
-end
-
-module VMap = struct
-  include Map.MakeNH(Arg)
-  let pp_pair fmt (term,v) = pp_sassign Term.pp V.pp fmt (SAssign(term,Values.NonBoolean v))
-  let pp = print_in_fmt ~wrap:("{","}") pp_pair
-end
+type valuation = Eq.MyTheory.sign Eq.Valuation.signed
 
 module type API = sig
   type state
   val init: state
-  val term_eval : (Term.t -> V.t) -> Term.t -> V.t
-  val form_eval : (Term.t -> V.t) -> Term.t -> bool
-  val eval : state -> Term.t -> (sign, straight) message
+  (* val term_eval : (Term.t -> V.t) -> Term.t -> V.t
+   * val form_eval : (Term.t -> V.t) -> Term.t -> bool *)
+  val eval : valuation -> Term.t -> (sign, straight) message * int
 end
 
 module T = struct
@@ -50,102 +39,110 @@ module T = struct
   type nonrec sign = sign
   type api = (module API)
   let name = "BV"
+  let proj  = Terms.proj dskey
 
-  module Make(W : Writable) : API = struct
-
-    let vinj  = Value.inj vkey
-    let vproj = Value.proj vkey
-    let proj  = Terms.proj dskey
+  module Make(W : Writable) (* : API *) = struct
 
     (* First, we implement evaluation functions for bitvector terms and predicates *)
-
-    (* Datastructure that we use for the by-product of evaluation *)
-    type 'a eval = { cst : 'a;                  (* by-product for a constant bitvector *)
-                     sgl : Term.t -> V.t -> 'a; (* by-product for a variable with a value *)
-                     uni : 'a -> 'a -> 'a }     (* by-product for a binary operation *)
-
-    (* datastructure to use when we don't want any by-product *)
-    let noby = { cst = ();
-                 sgl = (fun _ _ -> ());
-                 uni = fun () () -> () }
-
-    (* datastructure to use when the by-product is the assignements used for evaluation *)
-    let by = { cst = Assign.empty;
-               sgl = (fun term v ->
-                   (term, Values.NonBoolean(vinj v))
-                   |> SAssign.build
-                   |> Assign.singleton);
-               uni = Assign.union }
-
-    (* evaluation of a term *)
-    (* Returns the valueation (bool) AND the part of the model with was used for the valuation
-      For instance, if G |- e1 == e2, find the subpart of G which suffice for e1 == e2 *)
-    let term_eval_by by valuation term =
-      let rec aux term =
-        match Term.reveal term with
-        | Terms.C(Symbols.Extract{hi;lo},[a]) ->
-          let a,a' = aux a in
-          V.select_e a hi lo, a'
-        | Terms.C(Symbols.Conc _,[a;b]) ->
-          let a,a' = aux a in
-          let b,b' = aux b in
-          V.(a @: b), by.uni a' b'
-        | Terms.C(Symbols.CstBV s,[]) ->
-          V.constb s, by.cst
-        | _ -> let v = valuation term in
-          v, by.sgl term v
-          (**TODO: other operation than concatenation/extraction/constant are unknown for now**)
-      in aux term
 
     (* Exception that we raise if we cannot evaluate a bitvector formula *)
     exception CannotEval of string
 
-    (* evaluation of an atomic predicate *)
-    let form_eval_by by valuation form =
-      let term_eval = term_eval_by by valuation in
-      match Term.reveal form with
-      | Terms.C(Symbols.Eq(Sorts.BV _),[a;b]) ->
-        let a,a' = term_eval a in
-        let b,b' = term_eval b in
-        V.equal a b, by.uni a' b'
-      | Terms.C(Symbols.NEq(Sorts.BV _),[a;b]) ->
-        let a,a' = term_eval a in
-        let b,b' = term_eval b in
-        not(V.equal a b), by.uni a' b'
-      | _ -> raise(CannotEval(Print.stringOf Term.pp form))
+    module Eval(M: sig
+        include Monad
+        val var : (CValue.t * (Assign.t*int) Lazy.t) -> V.t t
+      end) = struct
 
+      include Monads.Make_Let(M)
 
-    (* Evaluation without by-products *)
-    let term_eval valuation = term_eval_by noby valuation >> fst
-    let form_eval valuation = form_eval_by noby valuation >> fst
+      (* evaluation of a term *)
+      (*TODO: Semantics to be checked!!!*)
+      
+      let term_eval valuation term =
+        let open Symbols in
+        let open Terms in
+        let valuation = Eq.Valuation.reveal valuation in
+        let rec aux term =
+          match Term.reveal term with
+          | C(BVextract{hi;lo},[a]) -> let%map a = aux a in V.select_e a hi lo
+          | C(BVconc _,[a;b]) -> let%map a = aux a and b = aux b in V.(a @: b)
+          | C(BVcst v,[])     -> M.return v
+          | C(BVnot v,[a])    -> let%map a = aux a in V.( ~: a)
+          | C(BVneg v,[a])    -> let%map a = aux a in V.negate a
+          | C(BVand _,[a;b])  -> let%map a = aux a and b = aux b in V.(a &&: b)
+          | C(BVor  _,[a;b])  -> let%map a = aux a and b = aux b in V.(a ||: b)
+          | C(BVxor _,[a;b])  -> let%map a = aux a and b = aux b in V.(a ^: b)
+          | C(BVadd _,[a;b])  -> let%map a = aux a and b = aux b in V.(a +: b)
+          | C(BVmul _,[a;b])  -> let%map a = aux a and b = aux b in V.(a *: b)
+          | _ -> Eq.Valuation.find term valuation |> M.var
+        in aux term
+
+      (* evaluation of an atomic predicate *)
+      let form_eval valuation ?(truthvalue=true) form =
+        let open Symbols in
+        let open Terms in
+        let term_eval = term_eval valuation in
+        let result b v = if b then V.isT v else not(V.isT v) in
+        match Term.reveal form with
+
+        | Terms.C(Symbols.Eq(Sorts.BV _),[a;b])  ->
+          let%map a = term_eval a and b = term_eval b in
+          result truthvalue V.(a ==: b)
+
+        | Terms.C(Symbols.NEq(Sorts.BV _),[a;b]) ->
+          let%map a = term_eval a and b = term_eval b in
+          result (not truthvalue) V.(a ==: b)
+
+        | Terms.C(Symbols.BVult _,[a;b]) ->
+          let%map a = term_eval a and b = term_eval b in
+          result truthvalue V.(a <: b)
+
+        | _ -> raise(CannotEval(Format.stringOf Term.pp form))
+
+    end
+
+    module Simpl = struct
+      module M = struct
+        include IdMon
+        let var (v,_) =
+          match CValue.proj vkey v with
+          | Some(Values(NonBoolean v)) -> v
+          | _ -> failwith "Egraph lied"
+      end
+      include Eval(M)
+    end
+
+    module Msg = struct
+      module M = struct
+        include StateMonad(struct type t = Assign.t*int end)
+        let var (v,l) (assign0,i0) =
+          match CValue.proj vkey v with
+          | Some(Values(NonBoolean v)) ->
+            let assign, i = Lazy.force l in
+            v, (Assign.union assign assign0, max i i0)
+          | _ -> failwith "Egraph lied"
+      end
+      include Eval(M)
+    end
 
     (* States of the algorithm *)
     type state = { seen        : Assign.t;
-                   valuation   : VMap.t;
                    constraints : Term.t list }
 
     (* Initial state *)
     let init = { seen        = Assign.empty;
-                 valuation   = VMap.empty;
                  constraints = [] }
 
-    (* Evaluation function for a formula, given the state of the algorithm.
+    (* Evaluation function for a formula, given a valuation.
        Either raises an exception CannotEval,
        or produces a message Propa(assign,boolassign), where
        boolassign is the Boolean assignment saying if the formula evaluates to true or false
        assign are the assignments that were used in the evaluation *)
-    let eval state term =
-      let f t = 
-        if VMap.mem t state.valuation then VMap.find t state.valuation
-        else raise (CannotEval(Term.show t))
-      in
+    let eval valuation term =
       match Term.get_sort term with
       | Sorts.Prop ->
-        let b,assign = form_eval_by by f term
-        in straight () assign (term,Values.Boolean b)
-      (* | Sorts.BV _ -> *)
-      (*    let v,assign = term_eval_by f by term *)
-      (*    in Values.NonBoolean v, assign  *)
+        let b,(assign,i) = Msg.form_eval valuation term (Assign.empty,0) in
+        straight () assign (term,Values.Boolean b), i
       | s -> raise (CannotEval(Format.toString(fun p ->
           p "I do not know sort %a" Sorts.pp s)))
 

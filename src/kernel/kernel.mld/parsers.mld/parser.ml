@@ -22,8 +22,9 @@ For instance:
   Sort("Prop",[])
   Sort("Array",["Prop","Prop"])
 *)
-                            
-type sort = Sort of string*(sort list)
+
+type ident = string * string list
+type sort  = Sort of ident*(sort list)
 
 (* Type of functions used to type-check and interpret an untyped AST.
 - For symbols declared in the signature (sigsymb), we have to understand
@@ -35,10 +36,10 @@ the strings being their sorts. *)
 
 module type InterpretType = sig
   type t
-  val sigsymb : string                     -> t list -> t
+  val sigsymb : ident                     -> t list -> t
   val decsymb : string->(sort*(sort list)) -> t list -> t
-  val boundsymb : int -> sort                        -> t
-  val quantif : bool -> sort list          -> t      -> t
+  val boundsymb : int -> sort                       -> t
+  val quantif : bool -> sort list         -> t      -> t
 end
 
 module type Type = sig

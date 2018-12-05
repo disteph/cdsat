@@ -11,7 +11,7 @@ let equal a b = isT(a ==: b)
 let compare a b = if equal a b then 0
                   else if isT(a <=: b) then 1 else -1
 (* hash function only uses the lowest 16 bits: to be refined later? *)
-let hash a = CstBV.to_int(CstBV.select a 16 0) 
+let hash a = CstBV.to_int a (* (CstBV.select a 16 0)  *)
 let hash_fold_t = Hash.hash2fold hash
 let pp fmt a =
   let rec aux fmt = function

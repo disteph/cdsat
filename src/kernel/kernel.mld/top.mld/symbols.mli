@@ -26,12 +26,29 @@ type t =
   | Diff of {indices:Sorts.t;values:Sorts.t}
 
   (* BitVectors *)
-  (* Extraction of the bits from lo to hi (both included), out of a bitvector of length len *)
-  | Extract of { hi:int; lo:int; length:int }
-  (* Concatenation of 2 bitvectors of lengths n1 and n2 *)
-  | Conc of int*int
-  (* BitVector constants, represented as binary strings such as 0110010110 *)
-  | CstBV of string
-               [@@deriving eq, show, hash, ord]
+  | BVextract of { hi:int; lo:int; length:int } (* extraction *)
+  | BVconc of int*int (* concatenation *)
+
+  | BVcst of Bv_value.t (* constants *)
+
+  (* bitwise operations *)
+  | BVnot of int
+  | BVand of int
+  | BVor  of int
+  | BVxor of int
+
+  (* arithmetic operations *)
+  | BVneg of int     (* 2^m - x *)
+  (* next operation takes 2 bv of same width, output in the same width *)
+  | BVadd of int (* addition *)
+  | BVmul of int (* multiplication *)
+  | BVudiv of int (* division *)
+  | BVurem of int (* remainder of division *)
+  | BVshl of int (* shift left *)
+  | BVshr of int (* shift right *)
+  (* produces a Boolean *)
+  | BVult of int (* unsigned less than *)
+
+[@@deriving eq, show, hash, ord]
                
 val arity : t -> arity

@@ -4,9 +4,9 @@ open General
 open Kernel.Top
 open Kernel.Theories.Bitvectors
 
-(* Converts a valuation given by BDD.sat or BDD.allsat in a bitvector of type V.t (constructed by HardCaml)
+(* Converts a valuation given by BDD.sat or BDD.allsat in a bitvector of type Bv_value.t (constructed by HardCaml)
   valuation: <(bool * var) list> := a list of pair (value, variable) describing an valuation of the variables of a BDD
-  RETURNS : <V.t> := bitvector representation of valuation. Unassigned variable are assigned 0 by default
+  RETURNS : <Bv_value.t> := bitvector representation of valuation. Unassigned variable are assigned 0 by default
   *)
 let valuation_to_bitvector width valuation =
   let construct_list width pair_list =
@@ -17,7 +17,7 @@ let valuation_to_bitvector width valuation =
     in
     aux pair_list 0 []
   in
-  V.constibl (
+  Bv_value.constibl (
     construct_list width (List.sort
       (fun (lvalue, lvar) (rvalue, rvar) -> lvar - rvar)
       valuation) (* sorted in increasing order *)
@@ -25,7 +25,7 @@ let valuation_to_bitvector width valuation =
 
 (* type 'a t = BDD.t * 'a list *)
 (* Type of a bitvector range representing all the bitvector that still satisfies the list 'history' of conditions *)
-type 'a t = {width: int; bdd: BDD.t; history: 'a list; pick: V.t}
+type 'a t = {width: int; bdd: BDD.t; history: 'a list; pick: Bv_value.t}
 
 
 let pp fmt {width; bdd} = BDD.pp (fun fmt i -> fprintf fmt "%i" i) fmt bdd
@@ -36,21 +36,21 @@ let init n = {width = n; bdd = BDD.dtrue; history =[]; pick = valuation_to_bitve
 
 
 
- (* Gives an element  (of type V.t) in the bitvector range
+ (* Gives an element  (of type Bv_value.t) in the bitvector range
   {pick} : subset of <'a t> := the bitvector range to choose an element from
-  RETURNS : <V.t> := a bitvector in the range
+  RETURNS : <Bv_value.t> := a bitvector in the range
  *)
 let pick {pick} = pick
 
 (* Test if the bitvector is in the bitvector range
-  bitvector : <V.t> := the bitvector to test membership on
+  bitvector : <Bv_value.t> := the bitvector to test membership on
   {width; bdd} : subset of <'a t> := the bitvector to test membership of
   RETURNS : bool := true if the bitvectir belongs to the range, false otherwise
 
 *)
 let mem bitvector {width; bdd} =
-let one = V.consti 1 1 in
-let bitArray = Array.of_list (List.map (fun w -> V.equal w one) (V.bits bitvector)) in
+let one = Bv_value.consti 1 1 in
+let bitArray = Array.of_list (List.map (fun w -> Bv_value.equal w one) (Bv_value.bits bitvector)) in
   let rec iter_bdd tree flip = match BDD.inspect tree with
     | BDD.False -> if flip then true else false
     | BDD.True -> if flip then false else true
@@ -63,7 +63,7 @@ let bitArray = Array.of_list (List.map (fun w -> V.equal w one) (V.bits bitvecto
 (* type for an update of the range, distinguishing empty range, singleton range and other range *)
 type 'a update =
   | Range of 'a t
-  | Singleton of V.t
+  | Singleton of Bv_value.t
   | Empty of 'a list
 
 (* Update the range to also satisfies a new condition 

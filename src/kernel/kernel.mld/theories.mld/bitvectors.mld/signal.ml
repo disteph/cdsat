@@ -57,10 +57,9 @@ let (^:) = Array.map2 BDD.xor
 
 let bit i v = v.(Array.length v -i -1)
 
-let isT a = (width a == 1)&&(BDD.is_true a.(0))
+let isSyntacticT a = (width a == 1)&&(BDD.is_true a.(0))
 
-let cast v = 
-  const (V.to_string v)
+let cast v = const (Top.Bv_value.to_string v)
 
 let id n =
   let rec revid b i = 

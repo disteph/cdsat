@@ -1,7 +1,7 @@
 open General
 open Top
 open Parser
-open Multiary
+open TypingBase
 
 module ForParsing = struct
   open Terms

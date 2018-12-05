@@ -50,7 +50,8 @@ true: debug, optimize(3), unbox_closures
                                  package(hardcaml),\
                                  package(mlbdd)
 
-<src/kernel/**/*.ml{,i,y}>     : package(psyche_kernel_lib)
+<src/kernel/**/*.ml{,i,y}>     : package(psyche_kernel_lib),\
+                                 package(hardcaml)
 
 <src/portfolio/**/*.ml{,i,y}>  : thread,\
                                  package(async),\

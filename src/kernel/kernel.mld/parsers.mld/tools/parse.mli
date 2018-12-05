@@ -7,4 +7,4 @@ val sort   : decsorts:string list -> sort -> Sorts.t
 
 val symbol : decsorts:string list
   -> (Symbols.t -> Terms.TermB.t list -> Terms.TermB.t)
-  -> string -> Terms.TermB.t list -> Terms.TermB.t
+  -> ident -> Terms.TermB.t list -> Terms.TermB.t

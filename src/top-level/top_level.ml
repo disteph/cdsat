@@ -23,6 +23,8 @@ let run parser input =
   print_endline(Format.toString (fun p->
       p "Parsed with parser %a" Kernel.Parsers.Register.pp parser));
 
+  Print.print ["top",1] (fun p-> p "Parsed this\n%a" Assign.pp K.problem);
+  
   (* Getting the result for the run *)
 
   let result =
@@ -76,7 +78,7 @@ let run parser input =
       PFlags.decwidth := 0;
       let timer = Timer.newtimer "Global timer" in
       Timer.start timer;
-      let answer = K.answer(P.solve K.problem) in
+      let answer = K.problem |> P.solve |> K.answer in
       Timer.stop timer;
       print_endline("Global time: "^string_of_float(Timer.watch timer));
       print_endline("Total number of decisions: "^string_of_int !PFlags.decnumb);
@@ -136,7 +138,7 @@ let parseNrun input =
               p "Parser %a could not parse input, because \n%s"
                 Kernel.Parsers.Register.pp parser s);
           trying other_parsers
-        | Kernel.Parsers.Multiary.TypingError s ->
+        | Kernel.Parsers.TypingBase.TypingError s ->
           Print.print ["top",1] (fun p->
               p "Parser %a could not type input, because \n%s"
                 Kernel.Parsers.Register.pp parser s);

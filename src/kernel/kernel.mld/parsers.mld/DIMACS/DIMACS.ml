@@ -62,14 +62,14 @@ let parse (type t) l interpreter =
 
   (* parse a literals from boolean (for sign) and string *)
   let generate_atom (b,var) = 
-    let v = I.decsymb var (Sort("prop",[]),[]) [] in
-      if b then v else I.sigsymb "not" [v]
+    let v = I.decsymb var (Sort(("prop",[]),[]),[]) [] in
+      if b then v else I.sigsymb ("not",[]) [v]
   in
 
   (* parse a clause from list of literal descriptions *)
   let generate_clause = function
-    | [] -> I.sigsymb "false" []
-    | l  -> I.sigsymb "or" (List.map generate_atom l)
+    | [] -> I.sigsymb ("false",[]) []
+    | l  -> I.sigsymb ("or",[]) (List.map generate_atom l)
   in
 
   List.map generate_clause l,

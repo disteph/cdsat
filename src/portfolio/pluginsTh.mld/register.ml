@@ -10,7 +10,8 @@ let all_pluginTh : (module Type) list =
   [ (module Bool.Pl1); 
     (module Arrays.Pl1);
     (module LRA.Pl1);
-    (module IfThenElse.Pl1) ]
+    (module IfThenElse.Pl1);
+    (module Bitvectors.Pl1) ]
   
 module Buildable = struct
   type ('a,_) t = Buildable : ('api -> 'sign pluginTh) -> ('sign*'api,_) t [@@unboxed]

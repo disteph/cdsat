@@ -4,8 +4,11 @@ include HardCaml.Transform.CombBaseGates
 
 val bit : int -> t -> BDD.t
 
-val isT : t -> bool
+(* Do not use, rather use isT and isF of Circuit *)
+val isSyntacticT : t -> bool
 
-val cast : V.t -> t
+(* injects a bitvector value as a constant signal *)
+val cast : Top.Bv_value.t -> t
 
+(* identity signal of a given width *)
 val id : int -> t

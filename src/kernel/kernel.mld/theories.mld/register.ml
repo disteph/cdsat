@@ -53,6 +53,7 @@ let parse = function
   | "Arrays"     -> Handlers.Handler Arrays.MyTheory.hdl
   | "IfThenElse" -> Handlers.Handler IfThenElse.MyTheory.hdl
   | "bool"       -> Handlers.Handler Bool.MyTheory.hdl
+  | "BV"         -> Handlers.Handler Bitvectors.MyTheory.hdl
   | s -> raise (NotFound ("Theory "^s^" does not exist; see -help"))
 
 let get_no l = List.fold (parse >> HandlersMap.remove) l (all_theories())

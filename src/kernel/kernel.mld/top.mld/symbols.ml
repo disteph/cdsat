@@ -30,10 +30,29 @@ type t =
   | Diff of {indices:Sorts.t;values:Sorts.t}
 
   (* BitVectors *)
-  | Extract of { hi:int; lo:int; length:int }
-  | Conc of int*int
-  | CstBV of Stringhashed.t
-               [@@deriving eq, hash, ord]
+  | BVextract of { hi:int; lo:int; length:int } (* extraction *)
+  | BVconc of int*int (* concatenation *)
+
+  | BVcst of Bv_value.t (* constants *)
+
+  (* bitwise operations *)
+  | BVnot of int
+  | BVand of int
+  | BVor  of int
+  | BVxor of int
+
+  (* arithmetic operations *)
+  | BVneg of int     (* 2^m - x *)
+  (* next operation takes 2 bv of same width, output in the same width *)
+  | BVadd of int (* addition *)
+  | BVmul of int (* multiplication *)
+  | BVudiv of int (* division *)
+  | BVurem of int (* remainder of division *)
+  | BVshl of int (* shift left *)
+  | BVshr of int (* shift right *)
+  (* produces a Boolean *)
+  | BVult of int (* unsigned less than *)
+[@@deriving eq, hash, ord]
 
 let arity = function
   | User(_,ar)                        -> ar
@@ -49,9 +68,21 @@ let arity = function
   | Select{indices;values}            -> values, [Sorts.Array(indices,values);indices]
   | Store{indices;values}             -> Sorts.Array(indices,values), [Sorts.Array(indices,values); indices; values]
   | Diff{indices;values}              -> indices, [Sorts.Array(indices,values); Sorts.Array(indices,values);]
-  | Extract{hi;lo;length}             -> Sorts.BV (Compare.max [%ord:int] (hi-lo+1) 0), [Sorts.BV length]
-  | Conc(l1,l2)                       -> Sorts.BV(l1+l2), [Sorts.BV l1; Sorts.BV l2]
-  | CstBV s                           -> Sorts.BV(String.length s), []
+  | BVextract{hi;lo;length}           -> Sorts.BV (Compare.max [%ord:int] (hi-lo+1) 0), [Sorts.BV length]
+  | BVconc(l1,l2)                     -> Sorts.BV(l1+l2), [Sorts.BV l1; Sorts.BV l2]
+  | BVcst v                           -> Sorts.BV(Bv_value.width v), []
+  | BVnot i
+  | BVneg i                           -> Sorts.BV i, [Sorts.BV i]
+  | BVand i     
+  | BVor i
+  | BVxor i
+  | BVadd i
+  | BVmul i
+  | BVudiv i
+  | BVurem i
+  | BVshl i
+  | BVshr i                        -> Sorts.BV i, [Sorts.BV i;Sorts.BV i]
+  | BVult i                        -> Sorts.Prop, [Sorts.BV i;Sorts.BV i]
 
 
 let print_in_fmt_latex fmt = function
@@ -81,10 +112,22 @@ let print_in_fmt_latex fmt = function
   | Select _    -> fprintf fmt "\\mbox{\\small select}"
   | Store _     -> fprintf fmt "\\mbox{\\small store}"
   | Diff _      -> fprintf fmt "\\mbox{\\small diff}"
-  | Extract{hi;lo} when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
-  | Extract{hi;lo} -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
-  | Conc(l1,l2)    -> fprintf fmt "\\circl"
-  | CstBV s        -> fprintf fmt "%s" s
+  | BVextract{hi;lo} when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
+  | BVextract{hi;lo} -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
+  | BVconc(l1,l2)    -> fprintf fmt "\\circl"
+  | BVcst v     -> Bv_value.pp fmt v
+  | BVnot _     -> fprintf fmt "~:"
+  | BVneg _     -> fprintf fmt "op:"
+  | BVand _     -> fprintf fmt "∧:"
+  | BVor _      -> fprintf fmt "∨:"
+  | BVxor _     -> fprintf fmt "⊻:"
+  | BVadd _     -> fprintf fmt "+:"
+  | BVmul _     -> fprintf fmt "×:"
+  | BVudiv _    -> fprintf fmt "÷:"
+  | BVurem _    -> fprintf fmt "urem:"
+  | BVshl _     -> fprintf fmt "<<:"
+  | BVshr _     -> fprintf fmt ">>:"
+  | BVult _     -> fprintf fmt "<:"
 
 let print_in_fmt_utf8 fmt = function
   | User(f,ar)  -> fprintf fmt "%s" f
@@ -113,10 +156,22 @@ let print_in_fmt_utf8 fmt = function
   | Select _    -> fprintf fmt "select"
   | Store _     -> fprintf fmt "store"
   | Diff _      -> fprintf fmt "diff"
-  | Extract{hi;lo} when hi = lo -> fprintf fmt "ex[%i]" hi
-  | Extract{hi;lo} -> fprintf fmt "ex[%i:%i]" hi lo
-  | Conc(l1,l2)    -> fprintf fmt "⚬"
-  | CstBV s        -> fprintf fmt "%s" s
+  | BVextract{hi;lo} when hi = lo -> fprintf fmt "ex[%i]" hi
+  | BVextract{hi;lo} -> fprintf fmt "ex[%i:%i]" hi lo
+  | BVconc(l1,l2)    -> fprintf fmt "⚬"
+  | BVcst v     -> Bv_value.pp fmt v
+  | BVnot _     -> fprintf fmt "~:"
+  | BVneg _     -> fprintf fmt "op:"
+  | BVand _     -> fprintf fmt "∧:"
+  | BVor _      -> fprintf fmt "∨:"
+  | BVxor _     -> fprintf fmt "⊻:"
+  | BVadd _     -> fprintf fmt "+:"
+  | BVmul _     -> fprintf fmt "×:"
+  | BVudiv _    -> fprintf fmt "÷:"
+  | BVurem _    -> fprintf fmt "urem:"
+  | BVshl _     -> fprintf fmt "<<:"
+  | BVshr _     -> fprintf fmt ">>:"
+  | BVult _     -> fprintf fmt "<:"
 
 let pp fmt = match !Dump.display with
   | Dump.Latex -> print_in_fmt_latex fmt
