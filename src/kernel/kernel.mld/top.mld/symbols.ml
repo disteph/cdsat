@@ -112,8 +112,8 @@ let print_in_fmt_latex fmt = function
   | Select _    -> fprintf fmt "\\mbox{\\small select}"
   | Store _     -> fprintf fmt "\\mbox{\\small store}"
   | Diff _      -> fprintf fmt "\\mbox{\\small diff}"
-  | BVextract{hi;lo} when hi = lo -> fprintf fmt "\\mbox{\\small extract}_{%i}" hi
-  | BVextract{hi;lo} -> fprintf fmt "\\mbox{\\small extract}_{%i:%i}" hi lo
+  | BVextract{hi;lo} when hi = lo -> fprintf fmt "\\mbox{\\small bit}_{%i}" hi
+  | BVextract{hi;lo} -> fprintf fmt "\\mbox{\\small bits}_{%i:%i}" hi lo
   | BVconc(l1,l2)    -> fprintf fmt "\\circl"
   | BVcst v     -> Bv_value.pp fmt v
   | BVnot _     -> fprintf fmt "~:"
@@ -156,8 +156,8 @@ let print_in_fmt_utf8 fmt = function
   | Select _    -> fprintf fmt "select"
   | Store _     -> fprintf fmt "store"
   | Diff _      -> fprintf fmt "diff"
-  | BVextract{hi;lo} when hi = lo -> fprintf fmt "ex[%i]" hi
-  | BVextract{hi;lo} -> fprintf fmt "ex[%i:%i]" hi lo
+  | BVextract{hi;lo} when hi = lo -> fprintf fmt "bit[%i]" hi
+  | BVextract{hi;lo} -> fprintf fmt "bits[%i:%i]" hi lo
   | BVconc(l1,l2)    -> fprintf fmt "⚬"
   | BVcst v     -> Bv_value.pp fmt v
   | BVnot _     -> fprintf fmt "~:"

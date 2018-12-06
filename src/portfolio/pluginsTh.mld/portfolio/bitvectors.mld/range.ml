@@ -4,6 +4,8 @@ open General
 open Kernel.Top
 open Kernel.Theories.Bitvectors
 
+open QuickXplain
+
 (* Converts a valuation given by BDD.sat or BDD.allsat in a bitvector of type Bv_value.t (constructed by HardCaml)
   valuation: <(bool * var) list> := a list of pair (value, variable) describing an valuation of the variables of a BDD
   RETURNS : <Bv_value.t> := bitvector representation of valuation. Unassigned variable are assigned 0 by default
@@ -23,10 +25,8 @@ let valuation_to_bitvector width valuation =
       valuation) (* sorted in increasing order *)
     )
 
-(* type 'a t = BDD.t * 'a list *)
 (* Type of a bitvector range representing all the bitvector that still satisfies the list 'history' of conditions *)
-type 'a t = {width: int; bdd: BDD.t; history: 'a list; pick: Bv_value.t}
-
+type 'a t = {width: int; bdd: BDD.t; history: ('a * BDD.t) list; pick: Bv_value.t}
 
 let pp fmt {width; bdd} = BDD.pp (fun fmt i -> fprintf fmt "%i" i) fmt bdd
 let show r = Print.stringOf pp r
@@ -64,7 +64,7 @@ let bitArray = Array.of_list (List.map (fun w -> Bv_value.equal w one) (Bv_value
 type 'a update =
   | Range of 'a t
   | Singleton of Bv_value.t
-  | Empty of 'a list
+  | Empty of ('a * BDD.t) list
 
 (* Update the range to also satisfies a new condition 
   signal : <Signal.t> := the bitvector of length 1 representing the constraints imposed by the condition
@@ -86,11 +86,63 @@ let update signal condition ({width; bdd; history} as old_range) =
     | BDD.BTrue, _ -> (false, var)::val_acc, false
     | _, _ -> find_valuation tl false ((false, var)::val_acc)
   in
-  let new_bdd = BDD.dand bdd (Signal.bit 0 signal) in
-  if BDD.is_false new_bdd then Empty (condition::history) else
+  let new_constraint = Signal.bit 0 signal in
+  let new_bdd = BDD.dand bdd new_constraint in
+  if BDD.is_false new_bdd then Empty ((condition, new_constraint)::history) else
   if BDD.equal bdd new_bdd then Range old_range else
   let valuation, uniqueness = find_valuation new_bdd true [] in
   let pick = valuation_to_bitvector width valuation in
   if uniqueness
     then Singleton pick
-    else Range {width = width; bdd = new_bdd; history = condition::history; pick}
+    else Range {width = width; bdd = new_bdd; history = (condition, new_constraint)::history; pick}
+
+
+
+let make_explanation_module (type a) (e : a update) = match e with
+  | Empty l ->
+    (module struct
+      type t = a * BDD.t
+      let equal (a:t) (b:t) = a==b
+      let data = l
+      let isConsistent (lst : t list) : bool =
+        let rec aux_consistent (lst : t list) (acc : BDD.t) = match lst with
+          | [] -> acc
+          | (condition, bdd)::t -> aux_consistent t (BDD.dand acc bdd)
+        in
+        not (BDD.is_false (aux_consistent lst BDD.dtrue))
+      
+      (* Compares the two conditions. The preferred (smaller) condition is the one
+      the most deep down the data list, i.e. the conditions coming from the earliest choices during
+      tree searching 
+      If either of the two condition is not found, they are considered not comparable *)
+      let partialCompare (a : t) (b : t) : int option =
+        let rec aux lst a b = match lst with
+          |[] -> None, false
+          |h::t when equal a h -> Some a, List.exists (equal b) t
+          |h::t when equal b h -> Some b, List.exists (equal a) t
+          |h::t -> aux t a b
+        in match aux data a b with
+        |Some ap, true when equal ap a -> Some 1
+        |Some bp, true when equal bp b -> Some (-1)
+        |_, _ -> None
+    end : QuickXplain.PreConstraints with type t = a*BDD.t)
+  | _ -> failwith "Cannot explain non-empty updated range"
+
+
+(* Find a preferred conflict on an update of type Empty by using the QuickXplain algorithm
+  That is, it finds a subset of the ('a * BDD.t) list of the Empty update that is still inconsistent
+  and by favoring the earliest conditions.
+  e : <Empty of ('a * BDD.t) list> of type update := the empty range to explain
+  RETURNS <('a * BDD.t) list> a subset of the list of e that still makes the range empty, but
+        with preferred constraints only
+        
+  NOTE: the subset found is valid only with the full valuation
+  that gave the constraints that rendered the range empty (through update).
+  That is because the BDDs of the constraints that were given to "update" are saved within the "history" member of
+  the type 'a t to improve computation, but this supposes that the constraints remain the same and therefor that
+  the valuation is complete*)
+let find_explanation (type a) (e : a update) = match e with
+  | Empty l -> let (module Arg)=make_explanation_module e in
+               let module M = QuickXplain.Make (QuickXplain.MakeTotal (Arg)) in
+        M.quickXplain [] l
+  | _ -> failwith "Cannot explain non-empty updated range"

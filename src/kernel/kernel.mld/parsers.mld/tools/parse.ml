@@ -87,7 +87,6 @@ let symbol ~decsorts bc (symb,param) l =
       try exact bc (CstRat(Q.of_string s)) l with _ ->
       try 
         let sub = String.sub s 2 ((String.length s)-2) in
-        print_endline sub;
         exact bc (BVcst(Bv_value.constb sub)) l
       with _ ->
         raise (ParsingError("Cannot understand symbol function "^s^" (no argument)"))
