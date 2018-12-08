@@ -136,7 +136,7 @@ module Make (C : Config) = struct
     (* c is constraint for which we want to pick watched vars *)
     (* Here are the vars currently watched by c *)
     let m_oldwatched = CMap.find c t.cons2var in
-    let oldwatched = m_oldwatched.varset in
+    let oldscore, oldwatched = m_oldwatched.score, m_oldwatched.varset in
     (* Same thing as a list *)
     let watchedlist = VarSet.elements oldwatched in
     (* How many do we need to watch outside fixed? *)
@@ -150,8 +150,9 @@ module Make (C : Config) = struct
     if List.length varlist < number then Some(c',varlist), t
     else
       let varset = VarSet.of_list varlist in
-      let t = { t with cons2var = CMap.remove c t.cons2var }
-      in None, addconstraint_ c' ~oldwatched varset t
+      let t = { t with cons2var = CMap.remove c t.cons2var } in
+      let score = Some oldscore
+      in None, addconstraint_ c' ~oldwatched ~score varset t
 
   (* Now we say what to do with a set cset of constraints
      that need to update their watch list.
@@ -215,10 +216,10 @@ module Make (C : Config) = struct
 
   (* Lemma-forgetting *)
   let forgetone constr (v:MetaVarSet.t) new_t =
-    Print.print ["score",0] (fun p-> p "%f" v.score);
     if v.score > new_t.thrshld 
-    then let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
-         { my_new_t with curcount = new_t.curcount + 1 }
+    then (let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
+         Print.print ["score",0] (fun p-> p "%f > %f" v.score new_t.thrshld);
+         { my_new_t with curcount = new_t.curcount + 1 })
     else recycle constr v new_t
 
   let forgetcount constr _ newc = newc + 1
