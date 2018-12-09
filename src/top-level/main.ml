@@ -52,9 +52,11 @@ let options =
                          bool_decay := float_of_string s), "sets the VSIDS decay factor (default 1.3)");
     ("-keeplemmas", Clear forgetlemmas, "does not forget any lemma");
     ("-lemmasincrmt",  String(fun s-> 
-                           lemmasincrmt := float_of_string s), "sets the lemmas increment factor (default 1.1)");
+                           lemmasincrmt := float_of_string s), "sets the increment factor for lemma forgetting (default 1.1)");
     ("-lemmasstep",  String(fun s-> 
-                        lemmasstep := int_of_string s), "sets the step for lemma forgetting (default 50)");
+                         lemmasstep := int_of_string s), "sets the step for lemma forgetting (default 50)");
+    ("-lemmasdecay",  String(fun s-> 
+                           lemmasdecay := float_of_string s), "sets the decay factor factor for lemma forgetting (default 1.01)");
     ("-debug",       Tuple[
                          Set_string dtag;
                          Int(fun i-> dtags:=(!dtag,i,false)::!dtags)],

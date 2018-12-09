@@ -81,7 +81,7 @@ module Make (C : Config) = struct
                curcount = 0;
                totcount = 0;
                maxcount = !PFlags.lemmasstep;
-               decay    = 1.01;
+               decay    = !PFlags.lemmasdecay;
                thrshld  = 1.;
                incrmt   = !PFlags.lemmasincrmt;
              }
@@ -221,7 +221,7 @@ module Make (C : Config) = struct
 
   (* Lemma-forgetting *)
   let pi t n =
-    (1. +. (log (1. +. float_of_int n)) *. (!PFlags.lemmasincrmt -. 1.))
+    ((1. +. float_of_int n) ** (!PFlags.lemmasincrmt -. 1.))
       *. t.incrmt /. !PFlags.lemmasincrmt
     
   let forgetone constr (v:MetaVarSet.t) new_t =
