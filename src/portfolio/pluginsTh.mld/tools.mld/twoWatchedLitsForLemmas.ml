@@ -31,9 +31,10 @@ module Make (C : Config) = struct
   end
                     
   module MetaVarSet = struct
-    type t = { mutable score : float;
+    type t = { mutable score: float;
+               mutable count: int;
                varset: VarSet.t }
-    let init varset score = { score; varset }
+    let init varset ?(count=0) score = { score; varset; count }
   end
 
   open Patricia
@@ -90,12 +91,12 @@ module Make (C : Config) = struct
   (* Adding or updating a constraint once we know the variables it will watch *)
 
   let restore c t =
-    try (let score = Some (CMap.find c t.rcyclbin).score in
+    try (let m_varset = Some (CMap.find c t.rcyclbin) in
          Print.print ["forget",1] (fun p-> p "forget: restore %a" Constraint.pp c);
-        score)
+        m_varset)
     with Not_found -> None
 
-  let addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) newwatched t =
+  let addconstraint_ c ?(oldwatched=VarSet.empty) ?(score=None) ?(count=None) newwatched t =
     (* Those that are really old *)
     let reallyold = VarSet.diff oldwatched newwatched in
     (* Those that are really new *)
@@ -121,11 +122,12 @@ module Make (C : Config) = struct
     in
     let var2cons = VarSet.fold aux reallynew var2cons in
     let rcyclbin, newscore = match restore c t with
-        Some o -> (CMap.remove c t.rcyclbin), o +. t.incrmt
+        Some o -> (CMap.remove c t.rcyclbin), o.score +. t.incrmt
       | None   -> t.rcyclbin, (match score with
                                  None   -> 0.
                                | Some s -> s) in
-    let m_newwatched = MetaVarSet.init newwatched newscore in
+    let newcount = match count with None -> 0 | Some c -> c in
+    let m_newwatched = MetaVarSet.init newwatched ~count:newcount newscore in
     { t with newly; var2cons; rcyclbin;
              cons2var = CMap.add c (fun _ -> m_newwatched) t.cons2var }
                              
@@ -135,8 +137,8 @@ module Make (C : Config) = struct
     Print.print ["watch",1] (fun p-> p "watch: changing watch list for %a" Constraint.pp c);
     (* c is constraint for which we want to pick watched vars *)
     (* Here are the vars currently watched by c *)
-    let m_oldwatched = CMap.find c t.cons2var in
-    let oldscore, oldwatched = m_oldwatched.score, m_oldwatched.varset in
+    let m_ow = CMap.find c t.cons2var in
+    let oldwatched, oldscore, oldcount = m_ow.varset, m_ow.score, m_ow.count in
     (* Same thing as a list *)
     let watchedlist = VarSet.elements oldwatched in
     (* How many do we need to watch outside fixed? *)
@@ -151,8 +153,8 @@ module Make (C : Config) = struct
     else
       let varset = VarSet.of_list varlist in
       let t = { t with cons2var = CMap.remove c t.cons2var } in
-      let score = Some oldscore
-      in None, addconstraint_ c' ~oldwatched ~score varset t
+      let score, count = Some oldscore, Some oldcount
+      in None, addconstraint_ c' ~oldwatched ~score ~count varset t
 
   (* Now we say what to do with a set cset of constraints
      that need to update their watch list.
@@ -198,12 +200,15 @@ module Make (C : Config) = struct
   let recycle c watched t =
     { t with rcyclbin = CMap.add c (fun _ -> watched) t.rcyclbin }                                        
 
-  (* Incrementing the score of a constraint *)
+  (* Incrementing the count of a constraint *)
   let incrscore constr t =
     let v = CMap.find constr t.cons2var in
-    v.score <- v.score +. t.incrmt;
+    v.count <- v.count + 1;
     {t with cons2var = CMap.add constr (fun _ -> v) t.cons2var}
 
+  let getcount constr t =
+    (CMap.find constr t.cons2var).count
+                                 
   let getscore constr t =
     (CMap.find constr t.cons2var).score
 
@@ -215,7 +220,13 @@ module Make (C : Config) = struct
              totcount = t.totcount + 1}
 
   (* Lemma-forgetting *)
+  let pi t n =
+    (1. +. (log (1. +. float_of_int n)) *. (!PFlags.lemmasincrmt -. 1.))
+      *. t.incrmt /. !PFlags.lemmasincrmt
+    
   let forgetone constr (v:MetaVarSet.t) new_t =
+    v.score <- v.score +. pi new_t (v.count);
+    Print.print ["score", 1] (fun p->p "%u -> %f" v.count (pi new_t (v.count)));
     if v.score > new_t.thrshld 
     then (let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
          Print.print ["score",0] (fun p-> p "%f > %f" v.score new_t.thrshld);
