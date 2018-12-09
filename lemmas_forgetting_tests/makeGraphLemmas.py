@@ -62,7 +62,7 @@ def parseFile(file):
         
 
 #The file to be read
-fileRead = "dataMap5.txt"
+fileRead = "dataMap_multitests/dataMapbf0432-007.cnf"
 fichier = open("lemmas_forgetting_tests/"+fileRead, "r")
 
 parsing = parseFile(fichier)

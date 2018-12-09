@@ -53,18 +53,18 @@ def popen_timeout(command, timeout):
 #nbFiles = (nbFiles.stdout.read()).decode("utf-8").split("\n")
 #nbFiles = len(nbFiles)-1
 
-fileWrite = "dataMap6.txt"
+fileWrite = "dataMap12.txt"
 fichier = open("lemmas_forgetting_tests/"+fileWrite, "a")
 
-startCount = 800
+startCount = 75
 endCount = 1200
-stepsCount = 9
+stepsCount = 16
 
 startIncr = 1.05
 endIncr = 2.
 stepsIncr = 20
 
-timeout = 40
+timeout = 20
 
 nbFirstTry = 5
 firstTryextraction=[]

@@ -1,0 +1,2919 @@
+With argument keeplemmas - execution time : 10.8263148
+Number of files : 1
+Number of stepsCount : 47
+Number of stepsIncr : 20
+File name / Execution time / Number of decisions / Decisions per second / Options per decision
+***
+MaxCount=50.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.211838 14530 1422.85845114 383.423399862
+***
+MaxCount=75.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.117401 14530 1436.13957774 383.423399862
+***
+MaxCount=100.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.100077 14530 1438.60289382 383.423399862
+***
+MaxCount=125.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.147192 14530 1431.92323551 383.423399862
+***
+MaxCount=150.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.178201 14530 1427.56072512 383.423399862
+***
+MaxCount=175.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.006634 14530 1452.03671884 383.423399862
+***
+MaxCount=200.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.078723 14530 1441.65089169 383.423399862
+***
+MaxCount=225.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.174404 14530 1428.0934785 383.423399862
+***
+MaxCount=250.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 9.980853 14530 1455.78739613 383.423399862
+***
+MaxCount=275.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.089858 14530 1440.05990966 383.423399862
+***
+MaxCount=300.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.096002 14530 1439.18355008 383.423399862
+***
+MaxCount=325.0
+===========================
+Increment=1.025
+dubois100.cnf 37.902499 60185 1587.89002277 378.092215668
+===========================
+Increment=1.07631578947
+dubois100.cnf 37.976107 60185 1584.81226104 378.092215668
+===========================
+Increment=1.12763157895
+dubois100.cnf 37.714601 60185 1595.80105328 378.092215668
+===========================
+Increment=1.17894736842
+dubois100.cnf 37.828694 60185 1590.98804733 378.092215668
+===========================
+Increment=1.23026315789
+dubois100.cnf 37.495659 60185 1605.11914193 378.092215668
+===========================
+Increment=1.28157894737
+dubois100.cnf 37.71076 60185 1595.96359235 378.092215668
+===========================
+Increment=1.33289473684
+dubois100.cnf 37.738966 60185 1594.77077353 378.092215668
+===========================
+Increment=1.38421052632
+dubois100.cnf 37.877338 60185 1588.94481972 378.092215668
+===========================
+Increment=1.43552631579
+dubois100.cnf 37.570448 60185 1601.92393767 378.092215668
+===========================
+Increment=1.48684210526
+dubois100.cnf 37.588019 60185 1601.17509784 378.092215668
+===========================
+Increment=1.53815789474
+dubois100.cnf 38.052859 60185 1581.61572039 378.092215668
+===========================
+Increment=1.58947368421
+dubois100.cnf 37.789367 60185 1592.64377199 378.092215668
+===========================
+Increment=1.64078947368
+dubois100.cnf 37.375655 60185 1610.27278318 378.092215668
+===========================
+Increment=1.69210526316
+dubois100.cnf 37.588254 60185 1601.16508737 378.092215668
+===========================
+Increment=1.74342105263
+dubois100.cnf 37.779111 60185 1593.07613141 378.092215668
+===========================
+Increment=1.79473684211
+dubois100.cnf 37.41342 60185 1608.6473784 378.092215668
+===========================
+Increment=1.84605263158
+dubois100.cnf 37.965755 60185 1585.24438668 378.092215668
+===========================
+Increment=1.89736842105
+dubois100.cnf 37.850438 60185 1590.07406995 378.092215668
+===========================
+Increment=1.94868421053
+dubois100.cnf 37.505619 60185 1604.69288615 378.092215668
+===========================
+Increment=2.0
+dubois100.cnf 10.111621 14530 1436.96050317 383.423399862
+***
+MaxCount=350.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.027198 14530 1449.05884974 383.423399862
+***
+MaxCount=375.0
+===========================
+Increment=1.025
+dubois100.cnf 37.350827 59640 1596.75179347 379.290610329
+===========================
+Increment=1.07631578947
+dubois100.cnf 37.34729 59640 1596.90301492 379.290610329
+===========================
+Increment=1.12763157895
+dubois100.cnf 37.386348 59640 1595.23470974 379.290610329
+===========================
+Increment=1.17894736842
+dubois100.cnf 37.403454 59640 1594.50514918 379.290610329
+===========================
+Increment=1.23026315789
+dubois100.cnf 37.702939 59640 1581.83954837 379.290610329
+===========================
+Increment=1.28157894737
+dubois100.cnf 37.760974 59640 1579.40841251 379.290610329
+===========================
+Increment=1.33289473684
+dubois100.cnf 36.994316 59640 1612.13955138 379.290610329
+===========================
+Increment=1.38421052632
+dubois100.cnf 37.195938 59640 1603.40088748 379.290610329
+===========================
+Increment=1.43552631579
+dubois100.cnf 37.29999 59640 1598.92804261 379.290610329
+===========================
+Increment=1.48684210526
+dubois100.cnf 37.605375 59640 1585.94349877 379.290610329
+===========================
+Increment=1.53815789474
+dubois100.cnf 37.14915 59640 1605.42031244 379.290610329
+===========================
+Increment=1.58947368421
+dubois100.cnf 37.180553 59640 1604.06436128 379.290610329
+===========================
+Increment=1.64078947368
+dubois100.cnf 37.534252 59640 1588.94867547 379.290610329
+===========================
+Increment=1.69210526316
+dubois100.cnf 37.3924 59640 1594.97651929 379.290610329
+===========================
+Increment=1.74342105263
+dubois100.cnf 37.211646 59640 1602.72405042 379.290610329
+===========================
+Increment=1.79473684211
+dubois100.cnf 37.220124 59640 1602.35898193 379.290610329
+===========================
+Increment=1.84605263158
+dubois100.cnf 37.295239 59640 1599.13172832 379.290610329
+===========================
+Increment=1.89736842105
+dubois100.cnf 37.337847 59640 1597.30688275 379.290610329
+===========================
+Increment=1.94868421053
+dubois100.cnf 37.66714 59640 1583.34293498 379.290610329
+===========================
+Increment=2.0
+dubois100.cnf 10.175784 14530 1427.89980605 383.423399862
+***
+MaxCount=400.0
+===========================
+Increment=1.025
+dubois100.cnf 39.018933 62396 1599.1211241 381.018270402
+===========================
+Increment=1.07631578947
+dubois100.cnf 38.763319 62396 1609.66608664 381.018270402
+===========================
+Increment=1.12763157895
+dubois100.cnf 39.096627 62396 1595.94330222 381.018270402
+===========================
+Increment=1.17894736842
+dubois100.cnf 39.108317 62396 1595.46625338 381.018270402
+===========================
+Increment=1.23026315789
+dubois100.cnf 39.227022 62396 1590.63820853 381.018270402
+===========================
+Increment=1.28157894737
+dubois100.cnf 38.910301 62396 1603.58564176 381.018270402
+===========================
+Increment=1.33289473684
+dubois100.cnf 38.690954 62396 1612.67669957 381.018270402
+===========================
+Increment=1.38421052632
+dubois100.cnf 38.889922 62396 1604.42594871 381.018270402
+===========================
+Increment=1.43552631579
+dubois100.cnf 38.96873 62396 1601.18125482 381.018270402
+===========================
+Increment=1.48684210526
+dubois100.cnf 39.037155 62396 1598.37467664 381.018270402
+===========================
+Increment=1.53815789474
+dubois100.cnf 38.990331 62396 1600.29418576 381.018270402
+===========================
+Increment=1.58947368421
+dubois100.cnf 38.867839 62396 1605.3375131 381.018270402
+===========================
+Increment=1.64078947368
+dubois100.cnf 39.091603 62396 1596.1484107 381.018270402
+===========================
+Increment=1.69210526316
+dubois100.cnf 38.853352 62396 1605.936085 381.018270402
+===========================
+Increment=1.74342105263
+dubois100.cnf 38.967917 62396 1601.21466077 381.018270402
+===========================
+Increment=1.79473684211
+dubois100.cnf 38.937094 62396 1602.48219859 381.018270402
+===========================
+Increment=1.84605263158
+dubois100.cnf 38.786613 62396 1608.69937264 381.018270402
+===========================
+Increment=1.89736842105
+dubois100.cnf 39.196828 62396 1591.86350487 381.018270402
+===========================
+Increment=1.94868421053
+dubois100.cnf 38.999053 62396 1599.93628563 381.018270402
+===========================
+Increment=2.0
+dubois100.cnf 10.21331 14530 1422.65338074 383.423399862
+***
+MaxCount=425.0
+===========================
+Increment=1.025
+dubois100.cnf 37.745659 60297 1597.45521995 382.02212382
+===========================
+Increment=1.07631578947
+dubois100.cnf 37.586638 60297 1604.2137102 382.02212382
+===========================
+Increment=1.12763157895
+dubois100.cnf 37.766624 60297 1596.56844096 382.02212382
+===========================
+Increment=1.17894736842
+dubois100.cnf 37.298176 60297 1616.62060901 382.02212382
+===========================
+Increment=1.23026315789
+dubois100.cnf 37.412811 60297 1611.66719069 382.02212382
+===========================
+Increment=1.28157894737
+dubois100.cnf 37.645034 60297 1601.72521029 382.02212382
+===========================
+Increment=1.33289473684
+dubois100.cnf 37.50033 60297 1607.90585043 382.02212382
+===========================
+Increment=1.38421052632
+dubois100.cnf 37.457902 60297 1609.72710111 382.02212382
+===========================
+Increment=1.43552631579
+dubois100.cnf 37.702473 60297 1599.28501242 382.02212382
+===========================
+Increment=1.48684210526
+dubois100.cnf 37.26105 60297 1618.23137029 382.02212382
+===========================
+Increment=1.53815789474
+dubois100.cnf 37.301253 60297 1616.48725312 382.02212382
+===========================
+Increment=1.58947368421
+dubois100.cnf 37.361521 60297 1613.87969189 382.02212382
+===========================
+Increment=1.64078947368
+dubois100.cnf 37.642042 60297 1601.85252437 382.02212382
+===========================
+Increment=1.69210526316
+dubois100.cnf 37.412897 60297 1611.66348599 382.02212382
+===========================
+Increment=1.74342105263
+dubois100.cnf 37.660916 60297 1601.04974611 382.02212382
+===========================
+Increment=1.79473684211
+dubois100.cnf 37.219596 60297 1620.03370483 382.02212382
+===========================
+Increment=1.84605263158
+dubois100.cnf 37.424389 60297 1611.16858848 382.02212382
+===========================
+Increment=1.89736842105
+dubois100.cnf 37.652112 60297 1601.42411135 382.02212382
+===========================
+Increment=1.94868421053
+dubois100.cnf 37.65609 60297 1601.25493645 382.02212382
+===========================
+Increment=2.0
+dubois100.cnf 10.210334 14530 1423.06804067 383.423399862
+***
+MaxCount=450.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 10.138339 14530 1433.17361947 383.423399862
+***
+MaxCount=475.0
+===========================
+Increment=1.025
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.07631578947
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.12763157895
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.17894736842
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.23026315789
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.28157894737
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.33289473684
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.38421052632
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.43552631579
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.48684210526
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.53815789474
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.58947368421
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.64078947368
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.69210526316
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.74342105263
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.79473684211
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.84605263158
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.89736842105
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=1.94868421053
+XXX Execution time too long : greater than 40 sec
+===========================
+Increment=2.0
+dubois100.cnf 9.971593 14530 1457.1392956 383.423399862
+***
+MaxCount=500.0
+===========================
+Increment=1.025
+dubois100.cnf 31.16857 48836 1566.83479544 380.788967155
+===========================
+Increment=1.07631578947
+dubois100.cnf 31.213447 48836 1564.58208541 380.788967155
+===========================
+Increment=1.12763157895
+dubois100.cnf 31.222765 48836 1564.11515764 380.788967155
+===========================
+Increment=1.17894736842
+dubois100.cnf 30.916903 48836 1579.58900347 380.788967155
+===========================
+Increment=1.23026315789
+dubois100.cnf 31.128094 48836 1568.87215774 380.788967155
+===========================
+Increment=1.28157894737
+dubois100.cnf 31.23074 48836 1563.71574929 380.788967155
+===========================
+Increment=1.33289473684
+dubois100.cnf 31.246806 48836 1562.91174208 380.788967155
+===========================
+Increment=1.38421052632
+dubois100.cnf 31.262058 48836 1562.14923534 380.788967155
+===========================
+Increment=1.43552631579
+dubois100.cnf 30.899485 48836 1580.47941576 380.788967155
+===========================
+Increment=1.48684210526
+dubois100.cnf 31.240526 48836 1563.22592008 380.788967155
+===========================
+Increment=1.53815789474
+dubois100.cnf 30.87934 48836 1581.51048565 380.788967155
+===========================
+Increment=1.58947368421
+dubois100.cnf 30.880891 48836 1581.43105392 380.788967155
+===========================
+Increment=1.64078947368
+dubois100.cnf 30.936854 48836 1578.57033556 380.788967155
+===========================
+Increment=1.69210526316
+dubois100.cnf 31.018073 48836 1574.43694197 380.788967155
+===========================
+Increment=1.74342105263
+dubois100.cnf 30.844767 48836 1583.28315464 380.788967155
+===========================
+Increment=1.79473684211
+dubois100.cnf 30.99352 48836 1575.68420754 380.788967155
+===========================
+Increment=1.84605263158
+dubois100.cnf 31.089075 48836 1570.84120386 380.788967155
+===========================
+Increment=1.89736842105
+dubois100.cnf 31.292315 48836 1560.63877025 380.788967155
+===========================
+Increment=1.94868421053
+dubois100.cnf 31.049947 48836 1572.82072011 380.788967155
+===========================
+Increment=2.0
+dubois100.cnf 10.15278 14530 1431.13511767 383.423399862
+***
+MaxCount=525.0
+===========================
+Increment=1.025
+dubois100.cnf 32.809761 51198 1560.45025747 381.840735966
+===========================
+Increment=1.07631578947
+dubois100.cnf 32.670255 51198 1567.11357166 381.840735966
+===========================
+Increment=1.12763157895
+dubois100.cnf 32.581635 51198 1571.37602211 381.840735966
+===========================
+Increment=1.17894736842
+dubois100.cnf 32.499977 51198 1575.32419177 381.840735966
+===========================
+Increment=1.23026315789
+dubois100.cnf 32.5278 51198 1573.97672145 381.840735966
+===========================
+Increment=1.28157894737
+dubois100.cnf 32.539328 51198 1573.41909458 381.840735966
+===========================
+Increment=1.33289473684
+dubois100.cnf 32.737863 51198 1563.87727568 381.840735966
+===========================
+Increment=1.38421052632
+dubois100.cnf 32.446367 51198 1577.92704496 381.840735966
+===========================
+Increment=1.43552631579
+dubois100.cnf 32.617432 51198 1569.65146735 381.840735966
+===========================
+Increment=1.48684210526
+dubois100.cnf 32.39581 51198 1580.38956272 381.840735966
+===========================
+Increment=1.53815789474
+dubois100.cnf 32.913315 51198 1555.54066796 381.840735966
+===========================
+Increment=1.58947368421
+dubois100.cnf 32.725527 51198 1564.4667846 381.840735966
+===========================
+Increment=1.64078947368
+dubois100.cnf 32.643162 51198 1568.41423634 381.840735966
+===========================
+Increment=1.69210526316
+dubois100.cnf 32.822024 51198 1559.86724036 381.840735966
+===========================
+Increment=1.74342105263
+dubois100.cnf 32.572389 51198 1571.82207298 381.840735966
+===========================
+Increment=1.79473684211
+dubois100.cnf 32.674241 51198 1566.92239615 381.840735966
+===========================
+Increment=1.84605263158
+dubois100.cnf 32.821188 51198 1559.90697229 381.840735966
+===========================
+Increment=1.89736842105
+dubois100.cnf 32.612492 51198 1569.8892314 381.840735966
+===========================
+Increment=1.94868421053
+dubois100.cnf 32.347541 51198 1582.74782 381.840735966
+===========================
+Increment=2.0
+dubois100.cnf 10.232291 14530 1420.01434478 383.423399862
+***
+MaxCount=550.0
+===========================
+Increment=1.025
+dubois100.cnf 37.852462 58516 1545.89680323 379.483320801
+===========================
+Increment=1.07631578947
+dubois100.cnf 37.736889 58516 1550.63126693 379.483320801
+===========================
+Increment=1.12763157895
+dubois100.cnf 37.580038 58516 1557.1032685 379.483320801
+===========================
+Increment=1.17894736842
+dubois100.cnf 37.822641 58516 1547.11565488 379.483320801
+===========================
+Increment=1.23026315789
+dubois100.cnf 37.547692 58516 1558.44465753 379.483320801
+===========================
+Increment=1.28157894737
+dubois100.cnf 37.485893 58516 1561.01389928 379.483320801
+===========================
+Increment=1.33289473684
+dubois100.cnf 37.744681 58516 1550.3111551 379.483320801
+===========================
+Increment=1.38421052632
+dubois100.cnf 37.782039 58516 1548.77824355 379.483320801
+===========================
+Increment=1.43552631579
+dubois100.cnf 37.605171 58516 1556.06259575 379.483320801
+===========================
+Increment=1.48684210526
+dubois100.cnf 37.548273 58516 1558.42054307 379.483320801
+===========================
+Increment=1.53815789474
+dubois100.cnf 37.786324 58516 1548.60261083 379.483320801
+===========================
+Increment=1.58947368421
+dubois100.cnf 37.495993 58516 1560.59342128 379.483320801
+===========================
+Increment=1.64078947368
+dubois100.cnf 37.39525 58516 1564.79766815 379.483320801
+===========================
+Increment=1.69210526316
+dubois100.cnf 37.841901 58516 1546.32823547 379.483320801
+===========================
+Increment=1.74342105263
+dubois100.cnf 37.925434 58516 1542.92235654 379.483320801
+===========================
+Increment=1.79473684211
+dubois100.cnf 37.523511 58516 1559.44895455 379.483320801
+===========================
+Increment=1.84605263158
+dubois100.cnf 37.663116 58516 1553.66858122 379.483320801
+===========================
+Increment=1.89736842105
+dubois100.cnf 37.802534 58516 1547.93855883 379.483320801
+===========================
+Increment=1.94868421053
+dubois100.cnf 37.55262 58516 1558.2401441 379.483320801
+===========================
+Increment=2.0
+dubois100.cnf 10.038782 14530 1447.38674473 383.423399862
+***
+MaxCount=575.0
+===========================
+Increment=1.025
+dubois100.cnf 29.6757 45585 1536.10529827 378.651310738
+===========================
+Increment=1.07631578947
+dubois100.cnf 29.445573 45585 1548.11047488 378.651310738
+===========================
+Increment=1.12763157895
+dubois100.cnf 29.631198 45585 1538.41231799 378.651310738
+===========================
+Increment=1.17894736842
+dubois100.cnf 29.452062 45585 1547.76938878 378.651310738
+===========================
+Increment=1.23026315789
+dubois100.cnf 29.552088 45585 1542.53059885 378.651310738
+===========================
+Increment=1.28157894737
+dubois100.cnf 29.563322 45585 1541.94444048 378.651310738
+===========================
+Increment=1.33289473684
+dubois100.cnf 29.638109 45585 1538.05359175 378.651310738
+===========================
+Increment=1.38421052632
+dubois100.cnf 29.526952 45585 1543.84373978 378.651310738
+===========================
+Increment=1.43552631579
+dubois100.cnf 29.846339 45585 1527.32299931 378.651310738
+===========================
+Increment=1.48684210526
+dubois100.cnf 29.444354 45585 1548.17456685 378.651310738
+===========================
+Increment=1.53815789474
+dubois100.cnf 29.620625 45585 1538.96145 378.651310738
+===========================
+Increment=1.58947368421
+dubois100.cnf 29.386596 45585 1551.2174326 378.651310738
+===========================
+Increment=1.64078947368
+dubois100.cnf 29.575936 45585 1541.2868083 378.651310738
+===========================
+Increment=1.69210526316
+dubois100.cnf 29.698842 45585 1534.90833077 378.651310738
+===========================
+Increment=1.74342105263
+dubois100.cnf 29.766203 45585 1531.43482896 378.651310738
+===========================
+Increment=1.79473684211
+dubois100.cnf 29.635715 45585 1538.17783711 378.651310738
+===========================
+Increment=1.84605263158
+dubois100.cnf 29.517971 45585 1544.31346247 378.651310738
+===========================
+Increment=1.89736842105
+dubois100.cnf 29.617365 45585 1539.13084435 378.651310738
+===========================
+Increment=1.94868421053
+dubois100.cnf 29.556157 45585 1542.31823846 378.651310738
+===========================
+Increment=2.0
+dubois100.cnf 10.134723 14530 1433.68496603 383.423399862
+***
+MaxCount=600.0
+===========================
+Increment=1.025
+dubois100.cnf 30.397728 47298 1555.97155156 380.909721341
+===========================
+Increment=1.07631578947
+dubois100.cnf 30.575845 47298 1546.90737083 380.909721341
+===========================
+Increment=1.12763157895
+dubois100.cnf 30.576834 47298 1546.85733651 380.909721341
+===========================
+Increment=1.17894736842
+dubois100.cnf 30.495062 47298 1551.00520865 380.909721341
+===========================
+Increment=1.23026315789
+dubois100.cnf 30.316625 47298 1560.13408485 380.909721341
+===========================
+Increment=1.28157894737
+dubois100.cnf 30.329034 47298 1559.49576238 380.909721341
+===========================
+Increment=1.33289473684
+dubois100.cnf 30.378933 47298 1556.93420832 380.909721341
+===========================
+Increment=1.38421052632
+dubois100.cnf 30.258524 47298 1563.12978121 380.909721341
+===========================
+Increment=1.43552631579
+dubois100.cnf 30.232973 47298 1564.45083982 380.909721341
+===========================
+Increment=1.48684210526
+dubois100.cnf 30.273469 47298 1562.35811628 380.909721341
+===========================
+Increment=1.53815789474
+dubois100.cnf 30.212539 47298 1565.50894316 380.909721341
+===========================
+Increment=1.58947368421
+dubois100.cnf 30.374927 47298 1557.13954473 380.909721341
+===========================
+Increment=1.64078947368
+dubois100.cnf 30.242723 47298 1563.946474 380.909721341
+===========================
+Increment=1.69210526316
+dubois100.cnf 30.43117 47298 1554.26163371 380.909721341
+===========================
+Increment=1.74342105263
+dubois100.cnf 30.339911 47298 1558.93667585 380.909721341
+===========================
+Increment=1.79473684211
+dubois100.cnf 30.427171 47298 1554.46590812 380.909721341
+===========================
+Increment=1.84605263158
+dubois100.cnf 30.443919 47298 1553.61075557 380.909721341
+===========================
+Increment=1.89736842105
+dubois100.cnf 30.614091 47298 1544.97482875 380.909721341
+===========================
+Increment=1.94868421053
+dubois100.cnf 30.437102 47298 1553.95871788 380.909721341
+===========================
+Increment=2.0
+dubois100.cnf 10.151078 14530 1431.37507169 383.423399862
+***
+MaxCount=625.0
+===========================
+Increment=1.025
+dubois100.cnf 32.670581 50609 1549.06948242 376.758718805
+===========================
+Increment=1.07631578947
+dubois100.cnf 32.997068 50609 1533.74233129 376.758718805
+===========================
+Increment=1.12763157895
+dubois100.cnf 32.862644 50609 1540.01607418 376.758718805
+===========================
+Increment=1.17894736842
+dubois100.cnf 32.819418 50609 1542.04440798 376.758718805
+===========================
+Increment=1.23026315789
+dubois100.cnf 32.842663 50609 1540.95299763 376.758718805
+===========================
+Increment=1.28157894737
+dubois100.cnf 32.656697 50609 1549.72806956 376.758718805
+===========================
+Increment=1.33289473684
+dubois100.cnf 32.699486 50609 1547.70016874 376.758718805
+===========================
+Increment=1.38421052632
+dubois100.cnf 32.904301 50609 1538.06640658 376.758718805
+===========================
+Increment=1.43552631579
+dubois100.cnf 32.816634 50609 1542.17522736 376.758718805
+===========================
+Increment=1.48684210526
+dubois100.cnf 32.466045 50609 1558.82861617 376.758718805
+===========================
+Increment=1.53815789474
+dubois100.cnf 32.549923 50609 1554.81166576 376.758718805
+===========================
+Increment=1.58947368421
+dubois100.cnf 32.598221 50609 1552.5080341 376.758718805
+===========================
+Increment=1.64078947368
+dubois100.cnf 32.81331 50609 1542.33145026 376.758718805
+===========================
+Increment=1.69210526316
+dubois100.cnf 32.91633 50609 1537.50433296 376.758718805
+===========================
+Increment=1.74342105263
+dubois100.cnf 32.808194 50609 1542.57195626 376.758718805
+===========================
+Increment=1.79473684211
+dubois100.cnf 33.012837 50609 1533.00971983 376.758718805
+===========================
+Increment=1.84605263158
+dubois100.cnf 32.726459 50609 1546.42456124 376.758718805
+===========================
+Increment=1.89736842105
+dubois100.cnf 32.899452 50609 1538.29309984 376.758718805
+===========================
+Increment=1.94868421053
+dubois100.cnf 32.561987 50609 1554.23561836 376.758718805
+===========================
+Increment=2.0
+dubois100.cnf 10.048351 14530 1446.00840476 383.423399862
+***
+MaxCount=650.0
+===========================
+Increment=1.025
+dubois100.cnf 33.50881 51447 1535.32757505 377.496102785
+===========================
+Increment=1.07631578947
+dubois100.cnf 33.502168 51447 1535.63196268 377.496102785
+===========================
+Increment=1.12763157895
+dubois100.cnf 33.079272 51447 1555.26397316 377.496102785
+===========================
+Increment=1.17894736842
+dubois100.cnf 33.18003 51447 1550.54109354 377.496102785
+===========================
+Increment=1.23026315789
+dubois100.cnf 33.425171 51447 1539.16938824 377.496102785
+===========================
+Increment=1.28157894737
+dubois100.cnf 33.57352 51447 1532.3683665 377.496102785
+===========================
+Increment=1.33289473684
+dubois100.cnf 33.219659 51447 1548.69139385 377.496102785
+===========================
+Increment=1.38421052632
+dubois100.cnf 33.171091 51447 1550.9589359 377.496102785
+===========================
+Increment=1.43552631579
+dubois100.cnf 33.257167 51447 1546.94475329 377.496102785
+===========================
+Increment=1.48684210526
+dubois100.cnf 33.126252 51447 1553.05828139 377.496102785
+===========================
+Increment=1.53815789474
+dubois100.cnf 33.429293 51447 1538.97960091 377.496102785
+===========================
+Increment=1.58947368421
+dubois100.cnf 33.407863 51447 1539.96680362 377.496102785
+===========================
+Increment=1.64078947368
+dubois100.cnf 33.316564 51447 1544.18684952 377.496102785
+===========================
+Increment=1.69210526316
+dubois100.cnf 33.160257 51447 1551.46565963 377.496102785
+===========================
+Increment=1.74342105263
+dubois100.cnf 33.340366 51447 1543.08444004 377.496102785
+===========================
+Increment=1.79473684211
+dubois100.cnf 33.488628 51447 1536.2528438 377.496102785
+===========================
+Increment=1.84605263158
+dubois100.cnf 33.239868 51447 1547.74982861 377.496102785
+===========================
+Increment=1.89736842105
+dubois100.cnf 33.172999 51447 1550.86972993 377.496102785
+===========================
+Increment=1.94868421053
+dubois100.cnf 33.479546 51447 1536.66958327 377.496102785
+===========================
+Increment=2.0
+dubois100.cnf 10.084816 14530 1440.77988136 383.423399862
+***
+MaxCount=675.0
+===========================
+Increment=1.025
+dubois100.cnf 28.02429 43257 1543.5538242 376.149293756
+===========================
+Increment=1.07631578947
+dubois100.cnf 28.227758 43257 1532.42776135 376.149293756
+===========================
+Increment=1.12763157895
+dubois100.cnf 28.222931 43257 1532.68985422 376.149293756
+===========================
+Increment=1.17894736842
+dubois100.cnf 28.271268 43257 1530.06932692 376.149293756
+===========================
+Increment=1.23026315789
+dubois100.cnf 27.994948 43257 1545.17165026 376.149293756
+===========================
+Increment=1.28157894737
+dubois100.cnf 27.999192 43257 1544.93743962 376.149293756
+===========================
+Increment=1.33289473684
+dubois100.cnf 27.971565 43257 1546.4633459 376.149293756
+===========================
+Increment=1.38421052632
+dubois100.cnf 28.075635 43257 1540.73095764 376.149293756
+===========================
+Increment=1.43552631579
+dubois100.cnf 27.92379 43257 1549.10920043 376.149293756
+===========================
+Increment=1.48684210526
+dubois100.cnf 28.081811 43257 1540.39210648 376.149293756
+===========================
+Increment=1.53815789474
+dubois100.cnf 28.10647 43257 1539.04065505 376.149293756
+===========================
+Increment=1.58947368421
+dubois100.cnf 28.168128 43257 1535.67180609 376.149293756
+===========================
+Increment=1.64078947368
+dubois100.cnf 28.338915 43257 1526.41694292 376.149293756
+===========================
+Increment=1.69210526316
+dubois100.cnf 28.284869 43257 1529.33358115 376.149293756
+===========================
+Increment=1.74342105263
+dubois100.cnf 28.204597 43257 1533.68615761 376.149293756
+===========================
+Increment=1.79473684211
+dubois100.cnf 28.193336 43257 1534.2987435 376.149293756
+===========================
+Increment=1.84605263158
+dubois100.cnf 28.294906 43257 1528.79108346 376.149293756
+===========================
+Increment=1.89736842105
+dubois100.cnf 28.035525 43257 1542.93525803 376.149293756
+===========================
+Increment=1.94868421053
+dubois100.cnf 27.989492 43257 1545.47285103 376.149293756
+===========================
+Increment=2.0
+dubois100.cnf 10.226838 14530 1420.77150337 383.423399862
+***
+MaxCount=700.0
+===========================
+Increment=1.025
+dubois100.cnf 28.883778 43766 1515.24499323 378.248914683
+===========================
+Increment=1.07631578947
+dubois100.cnf 28.549819 43766 1532.96943844 378.248914683
+===========================
+Increment=1.12763157895
+dubois100.cnf 29.033491 43766 1507.43153829 378.248914683
+===========================
+Increment=1.17894736842
+dubois100.cnf 28.947054 43766 1511.93278598 378.248914683
+===========================
+Increment=1.23026315789
+dubois100.cnf 28.839847 43766 1517.5531271 378.248914683
+===========================
+Increment=1.28157894737
+dubois100.cnf 28.89498 43766 1514.65756336 378.248914683
+===========================
+Increment=1.33289473684
+dubois100.cnf 28.928756 43766 1512.88911283 378.248914683
+===========================
+Increment=1.38421052632
+dubois100.cnf 28.798306 43766 1519.74216817 378.248914683
+===========================
+Increment=1.43552631579
+dubois100.cnf 28.619664 43766 1529.22829562 378.248914683
+===========================
+Increment=1.48684210526
+dubois100.cnf 28.752495 43766 1522.16355485 378.248914683
+===========================
+Increment=1.53815789474
+dubois100.cnf 28.701751 43766 1524.85470312 378.248914683
+===========================
+Increment=1.58947368421
+dubois100.cnf 28.901924 43766 1514.29365048 378.248914683
+===========================
+Increment=1.64078947368
+dubois100.cnf 28.87476 43766 1515.71822588 378.248914683
+===========================
+Increment=1.69210526316
+dubois100.cnf 28.855164 43766 1516.7475742 378.248914683
+===========================
+Increment=1.74342105263
+dubois100.cnf 28.905791 43766 1514.09106916 378.248914683
+===========================
+Increment=1.79473684211
+dubois100.cnf 28.663068 43766 1526.91261103 378.248914683
+===========================
+Increment=1.84605263158
+dubois100.cnf 28.52618 43766 1534.23977553 378.248914683
+===========================
+Increment=1.89736842105
+dubois100.cnf 28.912164 43766 1513.75732373 378.248914683
+===========================
+Increment=1.94868421053
+dubois100.cnf 28.815537 43766 1518.8333988 378.248914683
+===========================
+Increment=2.0
+dubois100.cnf 10.134191 14530 1433.76022812 383.423399862
+***
+MaxCount=725.0
+===========================
+Increment=1.025
+dubois100.cnf 22.600818 33905 1500.16694086 378.190296416
+===========================
+Increment=1.07631578947
+dubois100.cnf 22.291486 33905 1520.9842897 378.190296416
+===========================
+Increment=1.12763157895
+dubois100.cnf 22.460256 33905 1509.55536749 378.190296416
+===========================
+Increment=1.17894736842
+dubois100.cnf 22.367235 33905 1515.83331601 378.190296416
+===========================
+Increment=1.23026315789
+dubois100.cnf 22.513524 33905 1505.98369229 378.190296416
+===========================
+Increment=1.28157894737
+dubois100.cnf 22.396538 33905 1513.85004236 378.190296416
+===========================
+Increment=1.33289473684
+dubois100.cnf 22.478417 33905 1508.33575158 378.190296416
+===========================
+Increment=1.38421052632
+dubois100.cnf 22.417518 33905 1512.43326759 378.190296416
+===========================
+Increment=1.43552631579
+dubois100.cnf 22.382369 33905 1514.8083744 378.190296416
+===========================
+Increment=1.48684210526
+dubois100.cnf 22.548443 33905 1503.65149381 378.190296416
+===========================
+Increment=1.53815789474
+dubois100.cnf 22.40573 33905 1513.22898205 378.190296416
+===========================
+Increment=1.58947368421
+dubois100.cnf 22.614722 33905 1499.24460712 378.190296416
+===========================
+Increment=1.64078947368
+dubois100.cnf 22.282336 33905 1521.60886543 378.190296416
+===========================
+Increment=1.69210526316
+dubois100.cnf 22.536326 33905 1504.45995501 378.190296416
+===========================
+Increment=1.74342105263
+dubois100.cnf 22.417677 33905 1512.42254048 378.190296416
+===========================
+Increment=1.79473684211
+dubois100.cnf 22.446164 33905 1510.50308641 378.190296416
+===========================
+Increment=1.84605263158
+dubois100.cnf 22.330688 33905 1518.31416927 378.190296416
+===========================
+Increment=1.89736842105
+dubois100.cnf 22.552381 33905 1503.38893264 378.190296416
+===========================
+Increment=1.94868421053
+dubois100.cnf 22.421158 33905 1512.18772911 378.190296416
+===========================
+Increment=2.0
+dubois100.cnf 10.120001 14530 1435.77060911 383.423399862
+***
+MaxCount=750.0
+===========================
+Increment=1.025
+dubois100.cnf 23.07179 35027 1518.17435925 378.406029634
+===========================
+Increment=1.07631578947
+dubois100.cnf 23.031444 35027 1520.83386521 378.406029634
+===========================
+Increment=1.12763157895
+dubois100.cnf 23.138007 35027 1513.82960512 378.406029634
+===========================
+Increment=1.17894736842
+dubois100.cnf 22.903935 35027 1529.30053286 378.406029634
+===========================
+Increment=1.23026315789
+dubois100.cnf 23.03679 35027 1520.48093506 378.406029634
+===========================
+Increment=1.28157894737
+dubois100.cnf 22.956469 35027 1525.80085378 378.406029634
+===========================
+Increment=1.33289473684
+dubois100.cnf 22.847324 35027 1533.08982706 378.406029634
+===========================
+Increment=1.38421052632
+dubois100.cnf 23.08646 35027 1517.20965449 378.406029634
+===========================
+Increment=1.43552631579
+dubois100.cnf 23.014118 35027 1521.97881318 378.406029634
+===========================
+Increment=1.48684210526
+dubois100.cnf 22.976877 35027 1524.44564159 378.406029634
+===========================
+Increment=1.53815789474
+dubois100.cnf 22.949297 35027 1526.27768946 378.406029634
+===========================
+Increment=1.58947368421
+dubois100.cnf 22.973006 35027 1524.7025139 378.406029634
+===========================
+Increment=1.64078947368
+dubois100.cnf 23.00115 35027 1522.83690163 378.406029634
+===========================
+Increment=1.69210526316
+dubois100.cnf 23.168648 35027 1511.82753521 378.406029634
+===========================
+Increment=1.74342105263
+dubois100.cnf 23.064658 35027 1518.6438056 378.406029634
+===========================
+Increment=1.79473684211
+dubois100.cnf 23.13523 35027 1514.01131521 378.406029634
+===========================
+Increment=1.84605263158
+dubois100.cnf 23.046298 35027 1519.85364417 378.406029634
+===========================
+Increment=1.89736842105
+dubois100.cnf 22.953488 35027 1525.99901157 378.406029634
+===========================
+Increment=1.94868421053
+dubois100.cnf 22.915654 35027 1528.51845293 378.406029634
+===========================
+Increment=2.0
+dubois100.cnf 10.092209 14530 1439.72444487 383.423399862
+***
+MaxCount=775.0
+===========================
+Increment=1.025
+dubois100.cnf 19.530891 29723 1521.84557274 373.729906133
+===========================
+Increment=1.07631578947
+dubois100.cnf 19.482538 29723 1525.62258572 373.729906133
+===========================
+Increment=1.12763157895
+dubois100.cnf 19.64544 29723 1512.97196703 373.729906133
+===========================
+Increment=1.17894736842
+dubois100.cnf 19.530097 29723 1521.90744368 373.729906133
+===========================
+Increment=1.23026315789
+dubois100.cnf 19.587173 29723 1517.4726848 373.729906133
+===========================
+Increment=1.28157894737
+dubois100.cnf 19.416653 29723 1530.79936073 373.729906133
+===========================
+Increment=1.33289473684
+dubois100.cnf 19.60964 29723 1515.73409813 373.729906133
+===========================
+Increment=1.38421052632
+dubois100.cnf 19.716413 29723 1507.52573503 373.729906133
+===========================
+Increment=1.43552631579
+dubois100.cnf 19.506132 29723 1523.77724092 373.729906133
+===========================
+Increment=1.48684210526
+dubois100.cnf 19.566213 29723 1519.09825371 373.729906133
+===========================
+Increment=1.53815789474
+dubois100.cnf 19.563871 29723 1519.28010566 373.729906133
+===========================
+Increment=1.58947368421
+dubois100.cnf 19.578519 29723 1518.14343056 373.729906133
+===========================
+Increment=1.64078947368
+dubois100.cnf 19.386195 29723 1533.20442717 373.729906133
+===========================
+Increment=1.69210526316
+dubois100.cnf 19.468807 29723 1526.69857994 373.729906133
+===========================
+Increment=1.74342105263
+dubois100.cnf 19.52711 29723 1522.14024502 373.729906133
+===========================
+Increment=1.79473684211
+dubois100.cnf 19.417831 29723 1530.70649343 373.729906133
+===========================
+Increment=1.84605263158
+dubois100.cnf 19.679647 29723 1510.34213164 373.729906133
+===========================
+Increment=1.89736842105
+dubois100.cnf 19.444814 29723 1528.58237677 373.729906133
+===========================
+Increment=1.94868421053
+dubois100.cnf 19.394296 29723 1532.56400748 373.729906133
+===========================
+Increment=2.0
+dubois100.cnf 10.199093 14530 1424.63648483 383.423399862
+***
+MaxCount=800.0
+===========================
+Increment=1.025
+dubois100.cnf 21.117146 32325 1530.74662646 375.24671307
+===========================
+Increment=1.07631578947
+dubois100.cnf 21.287345 32325 1518.50782707 375.24671307
+===========================
+Increment=1.12763157895
+dubois100.cnf 21.359049 32325 1513.41007739 375.24671307
+===========================
+Increment=1.17894736842
+dubois100.cnf 21.148835 32325 1528.45298571 375.24671307
+===========================
+Increment=1.23026315789
+dubois100.cnf 20.990541 32325 1539.97936499 375.24671307
+===========================
+Increment=1.28157894737
+dubois100.cnf 21.101056 32325 1531.91385303 375.24671307
+===========================
+Increment=1.33289473684
+dubois100.cnf 21.293879 32325 1518.04187485 375.24671307
+===========================
+Increment=1.38421052632
+dubois100.cnf 21.064232 32325 1534.59190917 375.24671307
+===========================
+Increment=1.43552631579
+dubois100.cnf 21.077669 32325 1533.61360784 375.24671307
+===========================
+Increment=1.48684210526
+dubois100.cnf 21.217554 32325 1523.50266199 375.24671307
+===========================
+Increment=1.53815789474
+dubois100.cnf 21.441316 32325 1507.60335793 375.24671307
+===========================
+Increment=1.58947368421
+dubois100.cnf 21.11808 32325 1530.67892536 375.24671307
+===========================
+Increment=1.64078947368
+dubois100.cnf 21.208402 32325 1524.16009466 375.24671307
+===========================
+Increment=1.69210526316
+dubois100.cnf 21.320677 32325 1516.13384509 375.24671307
+===========================
+Increment=1.74342105263
+dubois100.cnf 21.033368 32325 1536.84374276 375.24671307
+===========================
+Increment=1.79473684211
+dubois100.cnf 21.290307 32325 1518.29656566 375.24671307
+===========================
+Increment=1.84605263158
+dubois100.cnf 21.233269 32325 1522.37509919 375.24671307
+===========================
+Increment=1.89736842105
+dubois100.cnf 21.2258 32325 1522.91079724 375.24671307
+===========================
+Increment=1.94868421053
+dubois100.cnf 21.277202 32325 1519.23171101 375.24671307
+===========================
+Increment=2.0
+dubois100.cnf 10.137093 14530 1433.34977789 383.423399862
+***
+MaxCount=825.0
+===========================
+Increment=1.025
+dubois100.cnf 15.688668 24282 1547.74133789 372.725722758
+===========================
+Increment=1.07631578947
+dubois100.cnf 15.839009 24282 1533.05045789 372.725722758
+===========================
+Increment=1.12763157895
+dubois100.cnf 15.822257 24282 1534.67359303 372.725722758
+===========================
+Increment=1.17894736842
+dubois100.cnf 15.826828 24282 1534.23035873 372.725722758
+===========================
+Increment=1.23026315789
+dubois100.cnf 15.734367 24282 1543.24606767 372.725722758
+===========================
+Increment=1.28157894737
+dubois100.cnf 15.672958 24282 1549.29273721 372.725722758
+===========================
+Increment=1.33289473684
+dubois100.cnf 15.761493 24282 1540.59009511 372.725722758
+===========================
+Increment=1.38421052632
+dubois100.cnf 15.842731 24282 1532.69029184 372.725722758
+===========================
+Increment=1.43552631579
+dubois100.cnf 15.958169 24282 1521.6031363 372.725722758
+===========================
+Increment=1.48684210526
+dubois100.cnf 15.638729 24282 1552.68372513 372.725722758
+===========================
+Increment=1.53815789474
+dubois100.cnf 15.901504 24282 1527.02536817 372.725722758
+===========================
+Increment=1.58947368421
+dubois100.cnf 15.885426 24282 1528.57090518 372.725722758
+===========================
+Increment=1.64078947368
+dubois100.cnf 15.778694 24282 1538.91063481 372.725722758
+===========================
+Increment=1.69210526316
+dubois100.cnf 15.824627 24282 1534.44375024 372.725722758
+===========================
+Increment=1.74342105263
+dubois100.cnf 15.955294 24282 1521.87731545 372.725722758
+===========================
+Increment=1.79473684211
+dubois100.cnf 15.611762 24282 1555.36575564 372.725722758
+===========================
+Increment=1.84605263158
+dubois100.cnf 15.980493 24282 1519.47752801 372.725722758
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.00526 24282 1517.12624475 372.725722758
+===========================
+Increment=1.94868421053
+dubois100.cnf 15.931605 24282 1524.14022316 372.725722758
+===========================
+Increment=2.0
+dubois100.cnf 10.042676 14530 1446.82552738 383.423399862
+***
+MaxCount=850.0
+===========================
+Increment=1.025
+dubois100.cnf 16.115337 24770 1537.04511423 374.679370206
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.298165 24770 1519.80299623 374.679370206
+===========================
+Increment=1.12763157895
+dubois100.cnf 16.376945 24770 1512.49210399 374.679370206
+===========================
+Increment=1.17894736842
+dubois100.cnf 16.424105 24770 1508.14915029 374.679370206
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.156958 24770 1533.08562169 374.679370206
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.41235 24770 1509.22933035 374.679370206
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.202146 24770 1528.80982556 374.679370206
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.184142 24770 1530.51054545 374.679370206
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.290035 24770 1520.56149665 374.679370206
+===========================
+Increment=1.48684210526
+dubois100.cnf 16.306104 24770 1519.06304535 374.679370206
+===========================
+Increment=1.53815789474
+dubois100.cnf 16.379802 24770 1512.22829189 374.679370206
+===========================
+Increment=1.58947368421
+dubois100.cnf 16.342746 24770 1515.65716068 374.679370206
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.410209 24770 1509.42623583 374.679370206
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.178827 24770 1531.01334231 374.679370206
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.351036 24770 1514.8887202 374.679370206
+===========================
+Increment=1.79473684211
+dubois100.cnf 16.350463 24770 1514.94180929 374.679370206
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.244316 24770 1524.84105825 374.679370206
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.363021 24770 1513.77914873 374.679370206
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.14176 24770 1534.52907242 374.679370206
+===========================
+Increment=2.0
+dubois100.cnf 10.207901 14530 1423.40722152 383.423399862
+***
+MaxCount=875.0
+===========================
+Increment=1.025
+dubois100.cnf 16.105399 24430 1516.88263048 375.090380679
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.185289 24430 1509.39535278 375.090380679
+===========================
+Increment=1.12763157895
+dubois100.cnf 15.96127 24430 1530.57996012 375.090380679
+===========================
+Increment=1.17894736842
+dubois100.cnf 15.938503 24430 1532.76628301 375.090380679
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.066465 24430 1520.55850494 375.090380679
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.100255 24430 1517.36727151 375.090380679
+===========================
+Increment=1.33289473684
+dubois100.cnf 15.982267 24430 1528.56913228 375.090380679
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.120489 24430 1515.46271332 375.090380679
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.101431 24430 1517.25644758 375.090380679
+===========================
+Increment=1.48684210526
+dubois100.cnf 15.953841 24430 1531.29268369 375.090380679
+===========================
+Increment=1.53815789474
+dubois100.cnf 15.916894 24430 1534.84718815 375.090380679
+===========================
+Increment=1.58947368421
+dubois100.cnf 15.858119 24430 1540.53579747 375.090380679
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.064202 24430 1520.77270941 375.090380679
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.144726 24430 1513.18765026 375.090380679
+===========================
+Increment=1.74342105263
+dubois100.cnf 15.992118 24430 1527.62754752 375.090380679
+===========================
+Increment=1.79473684211
+dubois100.cnf 15.985636 24430 1528.24698373 375.090380679
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.123666 24430 1515.16410722 375.090380679
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.143351 24430 1513.31653509 375.090380679
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.159457 24430 1511.80822474 375.090380679
+===========================
+Increment=2.0
+dubois100.cnf 10.132648 14530 1433.97856118 383.423399862
+***
+MaxCount=900.0
+===========================
+Increment=1.025
+dubois100.cnf 15.883708 24488 1541.70550101 376.081999347
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.016784 24488 1528.8961879 376.081999347
+===========================
+Increment=1.12763157895
+dubois100.cnf 15.917104 24488 1538.4708173 376.081999347
+===========================
+Increment=1.17894736842
+dubois100.cnf 15.873061 24488 1542.73961399 376.081999347
+===========================
+Increment=1.23026315789
+dubois100.cnf 15.916672 24488 1538.51257348 376.081999347
+===========================
+Increment=1.28157894737
+dubois100.cnf 15.954505 24488 1534.86429068 376.081999347
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.026215 24488 1527.99647328 376.081999347
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.038341 24488 1526.84121132 376.081999347
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.008244 24488 1529.71181599 376.081999347
+===========================
+Increment=1.48684210526
+dubois100.cnf 16.033205 24488 1527.33031231 376.081999347
+===========================
+Increment=1.53815789474
+dubois100.cnf 15.947032 24488 1535.58354934 376.081999347
+===========================
+Increment=1.58947368421
+dubois100.cnf 15.923082 24488 1537.89322946 376.081999347
+===========================
+Increment=1.64078947368
+dubois100.cnf 15.969351 24488 1533.43739517 376.081999347
+===========================
+Increment=1.69210526316
+dubois100.cnf 15.811671 24488 1548.72941639 376.081999347
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.02956 24488 1527.67761561 376.081999347
+===========================
+Increment=1.79473684211
+dubois100.cnf 15.889217 24488 1541.17097148 376.081999347
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.05069 24488 1525.66649783 376.081999347
+===========================
+Increment=1.89736842105
+dubois100.cnf 15.804788 24488 1549.4038895 376.081999347
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.018405 24488 1528.74146958 376.081999347
+===========================
+Increment=2.0
+dubois100.cnf 10.254274 14530 1416.97013362 383.423399862
+***
+MaxCount=925.0
+===========================
+Increment=1.025
+dubois100.cnf 16.229006 24604 1516.05095223 376.311494066
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.090878 24604 1529.06510136 376.311494066
+===========================
+Increment=1.12763157895
+dubois100.cnf 16.095685 24604 1528.60844382 376.311494066
+===========================
+Increment=1.17894736842
+dubois100.cnf 16.319844 24604 1507.61245022 376.311494066
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.085959 24604 1529.53268127 376.311494066
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.215985 24604 1517.26830038 376.311494066
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.237988 24604 1515.21235266 376.311494066
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.308435 24604 1508.66714065 376.311494066
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.325168 24604 1507.1207843 376.311494066
+===========================
+Increment=1.48684210526
+dubois100.cnf 15.985355 24604 1539.1588113 376.311494066
+===========================
+Increment=1.53815789474
+dubois100.cnf 16.180605 24604 1520.58591134 376.311494066
+===========================
+Increment=1.58947368421
+dubois100.cnf 16.216268 24604 1517.24182161 376.311494066
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.286979 24604 1510.65461557 376.311494066
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.008135 24604 1536.96854755 376.311494066
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.28599 24604 1510.74635315 376.311494066
+===========================
+Increment=1.79473684211
+dubois100.cnf 16.007804 24604 1537.00032809 376.311494066
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.051023 24604 1532.86179953 376.311494066
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.169282 24604 1521.65074491 376.311494066
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.144957 24604 1523.94335891 376.311494066
+===========================
+Increment=2.0
+dubois100.cnf 10.293021 14530 1411.6360979 383.423399862
+***
+MaxCount=950.0
+===========================
+Increment=1.025
+dubois100.cnf 17.512716 26074 1488.8610082 376.567538544
+===========================
+Increment=1.07631578947
+dubois100.cnf 17.555274 26074 1485.25166853 376.567538544
+===========================
+Increment=1.12763157895
+dubois100.cnf 17.36745 26074 1501.31424014 376.567538544
+===========================
+Increment=1.17894736842
+dubois100.cnf 17.341739 26074 1503.54010056 376.567538544
+===========================
+Increment=1.23026315789
+dubois100.cnf 17.35755 26074 1502.17052522 376.567538544
+===========================
+Increment=1.28157894737
+dubois100.cnf 17.492659 26074 1490.56812918 376.567538544
+===========================
+Increment=1.33289473684
+dubois100.cnf 17.452998 26074 1493.95536515 376.567538544
+===========================
+Increment=1.38421052632
+dubois100.cnf 17.434922 26074 1495.5042529 376.567538544
+===========================
+Increment=1.43552631579
+dubois100.cnf 17.502198 26074 1489.75574382 376.567538544
+===========================
+Increment=1.48684210526
+dubois100.cnf 17.427859 26074 1496.1103369 376.567538544
+===========================
+Increment=1.53815789474
+dubois100.cnf 17.51254 26074 1488.87597116 376.567538544
+===========================
+Increment=1.58947368421
+dubois100.cnf 17.408963 26074 1497.73424184 376.567538544
+===========================
+Increment=1.64078947368
+dubois100.cnf 17.303137 26074 1506.89438568 376.567538544
+===========================
+Increment=1.69210526316
+dubois100.cnf 17.577769 26074 1483.35093037 376.567538544
+===========================
+Increment=1.74342105263
+dubois100.cnf 17.469997 26074 1492.50168732 376.567538544
+===========================
+Increment=1.79473684211
+dubois100.cnf 17.399866 26074 1498.51728743 376.567538544
+===========================
+Increment=1.84605263158
+dubois100.cnf 17.50158 26074 1489.80834873 376.567538544
+===========================
+Increment=1.89736842105
+dubois100.cnf 17.333948 26074 1504.21588896 376.567538544
+===========================
+Increment=1.94868421053
+dubois100.cnf 17.52041 26074 1488.20718237 376.567538544
+===========================
+Increment=2.0
+dubois100.cnf 10.126436 14530 1434.85822653 383.423399862
+***
+MaxCount=975.0
+===========================
+Increment=1.025
+dubois100.cnf 17.249823 25800 1495.66752076 379.537286822
+===========================
+Increment=1.07631578947
+dubois100.cnf 17.284547 25800 1492.66278139 379.537286822
+===========================
+Increment=1.12763157895
+dubois100.cnf 17.163841 25800 1503.16004442 379.537286822
+===========================
+Increment=1.17894736842
+dubois100.cnf 17.225603 25800 1497.77049895 379.537286822
+===========================
+Increment=1.23026315789
+dubois100.cnf 17.121583 25800 1506.87001313 379.537286822
+===========================
+Increment=1.28157894737
+dubois100.cnf 17.174025 25800 1502.26868774 379.537286822
+===========================
+Increment=1.33289473684
+dubois100.cnf 17.111317 25800 1507.77406555 379.537286822
+===========================
+Increment=1.38421052632
+dubois100.cnf 17.280442 25800 1493.01736611 379.537286822
+===========================
+Increment=1.43552631579
+dubois100.cnf 17.201357 25800 1499.88166631 379.537286822
+===========================
+Increment=1.48684210526
+dubois100.cnf 17.16125 25800 1503.38699104 379.537286822
+===========================
+Increment=1.53815789474
+dubois100.cnf 17.3225 25800 1489.39240872 379.537286822
+===========================
+Increment=1.58947368421
+dubois100.cnf 17.207875 25800 1499.31354104 379.537286822
+===========================
+Increment=1.64078947368
+dubois100.cnf 17.192797 25800 1500.62843178 379.537286822
+===========================
+Increment=1.69210526316
+dubois100.cnf 17.371208 25800 1485.21622676 379.537286822
+===========================
+Increment=1.74342105263
+dubois100.cnf 17.089196 25800 1509.725794 379.537286822
+===========================
+Increment=1.79473684211
+dubois100.cnf 17.150258 25800 1504.3505468 379.537286822
+===========================
+Increment=1.84605263158
+dubois100.cnf 17.352204 25800 1486.84282412 379.537286822
+===========================
+Increment=1.89736842105
+dubois100.cnf 17.119643 25800 1507.04077182 379.537286822
+===========================
+Increment=1.94868421053
+dubois100.cnf 17.320818 25800 1489.5370415 379.537286822
+===========================
+Increment=2.0
+dubois100.cnf 10.094057 14530 1439.46086296 383.423399862
+***
+MaxCount=1000.0
+===========================
+Increment=1.025
+dubois100.cnf 17.287299 26052 1507.00233738 381.136573008
+===========================
+Increment=1.07631578947
+dubois100.cnf 17.23252 26052 1511.79281962 381.136573008
+===========================
+Increment=1.12763157895
+dubois100.cnf 17.325854 26052 1503.64882447 381.136573008
+===========================
+Increment=1.17894736842
+dubois100.cnf 17.266614 26052 1508.80769096 381.136573008
+===========================
+Increment=1.23026315789
+dubois100.cnf 17.272313 26052 1508.30985983 381.136573008
+===========================
+Increment=1.28157894737
+dubois100.cnf 17.311052 26052 1504.93453546 381.136573008
+===========================
+Increment=1.33289473684
+dubois100.cnf 17.193717 26052 1515.20465296 381.136573008
+===========================
+Increment=1.38421052632
+dubois100.cnf 17.078783 26052 1525.40142936 381.136573008
+===========================
+Increment=1.43552631579
+dubois100.cnf 17.370558 26052 1499.779109 381.136573008
+===========================
+Increment=1.48684210526
+dubois100.cnf 17.132299 26052 1520.63654738 381.136573008
+===========================
+Increment=1.53815789474
+dubois100.cnf 17.347511 26052 1501.77163744 381.136573008
+===========================
+Increment=1.58947368421
+dubois100.cnf 17.17795 26052 1516.59540283 381.136573008
+===========================
+Increment=1.64078947368
+dubois100.cnf 17.259136 26052 1509.46142379 381.136573008
+===========================
+Increment=1.69210526316
+dubois100.cnf 17.251277 26052 1510.14907476 381.136573008
+===========================
+Increment=1.74342105263
+dubois100.cnf 17.06458 26052 1526.67103439 381.136573008
+===========================
+Increment=1.79473684211
+dubois100.cnf 17.207244 26052 1514.01351663 381.136573008
+===========================
+Increment=1.84605263158
+dubois100.cnf 17.288139 26052 1506.92911481 381.136573008
+===========================
+Increment=1.89736842105
+dubois100.cnf 17.362796 26052 1500.44958197 381.136573008
+===========================
+Increment=1.94868421053
+dubois100.cnf 17.277855 26052 1507.82605827 381.136573008
+===========================
+Increment=2.0
+dubois100.cnf 10.111197 14530 1437.02076025 383.423399862
+***
+MaxCount=1025.0
+===========================
+Increment=1.025
+dubois100.cnf 17.717344 26392 1489.61379313 380.468020612
+===========================
+Increment=1.07631578947
+dubois100.cnf 17.668593 26392 1493.72392018 380.468020612
+===========================
+Increment=1.12763157895
+dubois100.cnf 17.615654 26392 1498.21289633 380.468020612
+===========================
+Increment=1.17894736842
+dubois100.cnf 17.6503 26392 1495.27203504 380.468020612
+===========================
+Increment=1.23026315789
+dubois100.cnf 17.539309 26392 1504.73430852 380.468020612
+===========================
+Increment=1.28157894737
+dubois100.cnf 17.64954 26392 1495.33642237 380.468020612
+===========================
+Increment=1.33289473684
+dubois100.cnf 17.603054 26392 1499.28529447 380.468020612
+===========================
+Increment=1.38421052632
+dubois100.cnf 17.627038 26392 1497.24531144 380.468020612
+===========================
+Increment=1.43552631579
+dubois100.cnf 17.446687 26392 1512.72273068 380.468020612
+===========================
+Increment=1.48684210526
+dubois100.cnf 17.568606 26392 1502.22504848 380.468020612
+===========================
+Increment=1.53815789474
+dubois100.cnf 17.630932 26392 1496.91462709 380.468020612
+===========================
+Increment=1.58947368421
+dubois100.cnf 17.488706 26392 1509.08820813 380.468020612
+===========================
+Increment=1.64078947368
+dubois100.cnf 17.701569 26392 1490.94128323 380.468020612
+===========================
+Increment=1.69210526316
+dubois100.cnf 17.595645 26392 1499.91659868 380.468020612
+===========================
+Increment=1.74342105263
+dubois100.cnf 17.618097 26392 1498.00514778 380.468020612
+===========================
+Increment=1.79473684211
+dubois100.cnf 17.605362 26392 1499.08874353 380.468020612
+===========================
+Increment=1.84605263158
+dubois100.cnf 17.463931 26392 1511.22905834 380.468020612
+===========================
+Increment=1.89736842105
+dubois100.cnf 17.711979 26392 1490.06500064 380.468020612
+===========================
+Increment=1.94868421053
+dubois100.cnf 17.648133 26392 1495.45563828 380.468020612
+===========================
+Increment=2.0
+dubois100.cnf 10.149117 14530 1431.65164024 383.423399862
+***
+MaxCount=1050.0
+===========================
+Increment=1.025
+dubois100.cnf 16.744295 24954 1490.29863604 379.462210467
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.875361 24954 1478.72392182 379.462210467
+===========================
+Increment=1.12763157895
+dubois100.cnf 16.661445 24954 1497.7092323 379.462210467
+===========================
+Increment=1.17894736842
+dubois100.cnf 16.803527 24954 1485.04537172 379.462210467
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.746047 24954 1490.14271846 379.462210467
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.884387 24954 1477.93343045 379.462210467
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.769258 24954 1488.08015238 379.462210467
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.938806 24954 1473.18530007 379.462210467
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.771086 24954 1487.91795594 379.462210467
+===========================
+Increment=1.48684210526
+dubois100.cnf 16.764565 24954 1488.49671912 379.462210467
+===========================
+Increment=1.53815789474
+dubois100.cnf 16.868826 24954 1479.29678094 379.462210467
+===========================
+Increment=1.58947368421
+dubois100.cnf 16.803055 24954 1485.08708684 379.462210467
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.866506 24954 1479.50025927 379.462210467
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.815249 24954 1484.01013865 379.462210467
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.78258 24954 1486.89891542 379.462210467
+===========================
+Increment=1.79473684211
+dubois100.cnf 16.794766 24954 1485.82004655 379.462210467
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.669777 24954 1496.96063721 379.462210467
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.787087 24954 1486.49971255 379.462210467
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.797047 24954 1485.61827564 379.462210467
+===========================
+Increment=2.0
+dubois100.cnf 10.088701 14530 1440.2250597 383.423399862
+***
+MaxCount=1075.0
+===========================
+Increment=1.025
+dubois100.cnf 16.832866 25200 1497.07126523 382.716111111
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.844383 25200 1496.04767358 382.716111111
+===========================
+Increment=1.12763157895
+dubois100.cnf 16.918861 25200 1489.46196792 382.716111111
+===========================
+Increment=1.17894736842
+dubois100.cnf 16.771136 25200 1502.58157825 382.716111111
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.975216 25200 1484.51719259 382.716111111
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.84202 25200 1496.2575748 382.716111111
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.905136 25200 1490.67123743 382.716111111
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.78891 25200 1500.99083264 382.716111111
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.802738 25200 1499.75557555 382.716111111
+===========================
+Increment=1.48684210526
+dubois100.cnf 16.77381 25200 1502.34204394 382.716111111
+===========================
+Increment=1.53815789474
+dubois100.cnf 16.659704 25200 1512.63191711 382.716111111
+===========================
+Increment=1.58947368421
+dubois100.cnf 16.945827 25200 1487.09177782 382.716111111
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.783914 25200 1501.43762653 382.716111111
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.733 25200 1506.00609574 382.716111111
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.796405 25200 1500.32105084 382.716111111
+===========================
+Increment=1.79473684211
+dubois100.cnf 16.872374 25200 1493.56575429 382.716111111
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.916983 25200 1489.62731712 382.716111111
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.677334 25200 1511.03287852 382.716111111
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.822344 25200 1498.00764983 382.716111111
+===========================
+Increment=2.0
+dubois100.cnf 10.062514 14530 1443.97314627 383.423399862
+***
+MaxCount=1100.0
+===========================
+Increment=1.025
+dubois100.cnf 16.733516 24959 1491.55742284 382.816458993
+===========================
+Increment=1.07631578947
+dubois100.cnf 16.675935 24959 1496.70768086 382.816458993
+===========================
+Increment=1.12763157895
+dubois100.cnf 16.889634 24959 1477.77032942 382.816458993
+===========================
+Increment=1.17894736842
+dubois100.cnf 16.652416 24959 1498.82155238 382.816458993
+===========================
+Increment=1.23026315789
+dubois100.cnf 16.803136 24959 1485.37749144 382.816458993
+===========================
+Increment=1.28157894737
+dubois100.cnf 16.674118 24959 1496.87077901 382.816458993
+===========================
+Increment=1.33289473684
+dubois100.cnf 16.741693 24959 1490.82891438 382.816458993
+===========================
+Increment=1.38421052632
+dubois100.cnf 16.739949 24959 1490.98423179 382.816458993
+===========================
+Increment=1.43552631579
+dubois100.cnf 16.645592 24959 1499.43600684 382.816458993
+===========================
+Increment=1.48684210526
+dubois100.cnf 16.850509 24959 1481.20154709 382.816458993
+===========================
+Increment=1.53815789474
+dubois100.cnf 16.769569 24959 1488.35071432 382.816458993
+===========================
+Increment=1.58947368421
+dubois100.cnf 16.789294 24959 1486.6021168 382.816458993
+===========================
+Increment=1.64078947368
+dubois100.cnf 16.660243 24959 1498.11740441 382.816458993
+===========================
+Increment=1.69210526316
+dubois100.cnf 16.663287 24959 1497.84373275 382.816458993
+===========================
+Increment=1.74342105263
+dubois100.cnf 16.809891 24959 1484.78059733 382.816458993
+===========================
+Increment=1.79473684211
+dubois100.cnf 16.64958 24959 1499.07685359 382.816458993
+===========================
+Increment=1.84605263158
+dubois100.cnf 16.675555 24959 1496.7417876 382.816458993
+===========================
+Increment=1.89736842105
+dubois100.cnf 16.63664 24959 1500.2428375 382.816458993
+===========================
+Increment=1.94868421053
+dubois100.cnf 16.764647 24959 1488.78768518 382.816458993
+===========================
+Increment=2.0
+dubois100.cnf 10.100692 14530 1438.51530172 383.423399862
+***
+MaxCount=1125.0
+===========================
+Increment=1.025
+dubois100.cnf 10.228389 14530 1420.55606215 383.423399862
+===========================
+Increment=1.07631578947
+dubois100.cnf 10.139916 14530 1432.95072661 383.423399862
+===========================
+Increment=1.12763157895
+dubois100.cnf 10.182646 14530 1426.93755631 383.423399862
+===========================
+Increment=1.17894736842
+dubois100.cnf 10.247174 14530 1417.95191533 383.423399862
+===========================
+Increment=1.23026315789
+dubois100.cnf 10.091754 14530 1439.78935674 383.423399862
+===========================
+Increment=1.28157894737
+dubois100.cnf 10.089946 14530 1440.0473501 383.423399862
+===========================
+Increment=1.33289473684
+dubois100.cnf 10.244843 14530 1418.27454066 383.423399862
+===========================
+Increment=1.38421052632
+dubois100.cnf 10.11455 14530 1436.54438408 383.423399862
+===========================
+Increment=1.43552631579
+dubois100.cnf 10.122816 14530 1435.37134331 383.423399862
+===========================
+Increment=1.48684210526
+dubois100.cnf 10.163672 14530 1429.60142752 383.423399862
+===========================
+Increment=1.53815789474
+dubois100.cnf 10.075558 14530 1442.10375247 383.423399862
+===========================
+Increment=1.58947368421
+dubois100.cnf 10.21843 14530 1421.94055251 383.423399862
+===========================
+Increment=1.64078947368
+dubois100.cnf 10.114997 14530 1436.48090059 383.423399862
+===========================
+Increment=1.69210526316
+dubois100.cnf 10.084544 14530 1440.81874203 383.423399862
+===========================
+Increment=1.74342105263
+dubois100.cnf 10.220372 14530 1421.67036581 383.423399862
+===========================
+Increment=1.79473684211
+dubois100.cnf 10.133666 14530 1433.83450767 383.423399862
+===========================
+Increment=1.84605263158
+dubois100.cnf 10.061181 14530 1444.16445743 383.423399862
+===========================
+Increment=1.89736842105
+dubois100.cnf 10.174703 14530 1428.05151168 383.423399862
+===========================
+Increment=1.94868421053
+dubois100.cnf 10.141744 14530 1432.69244422 383.423399862
+===========================
+Increment=2.0
+dubois100.cnf 10.251329 14530 1417.37720056 383.423399862
+***
+MaxCount=1150.0
+===========================
+Increment=1.025
+dubois100.cnf 10.167217 14530 1429.10296889 383.423399862
+===========================
+Increment=1.07631578947
+dubois100.cnf 10.172622 14530 1428.34364631 383.423399862
+===========================
+Increment=1.12763157895
+dubois100.cnf 10.227032 14530 1420.74455228 383.423399862
+===========================
+Increment=1.17894736842
+dubois100.cnf 10.134888 14530 1433.66162507 383.423399862
+===========================
+Increment=1.23026315789
+dubois100.cnf 10.131719 14530 1434.11004589 383.423399862
+===========================
+Increment=1.28157894737
+dubois100.cnf 10.168671 14530 1428.89862402 383.423399862
+===========================
+Increment=1.33289473684
+dubois100.cnf 10.17443 14530 1428.08982911 383.423399862
+===========================
+Increment=1.38421052632
+dubois100.cnf 10.029859 14530 1448.6744031 383.423399862
+===========================
+Increment=1.43552631579
+dubois100.cnf 10.232538 14530 1419.98006751 383.423399862
+===========================
+Increment=1.48684210526
+dubois100.cnf 10.08556 14530 1440.67359671 383.423399862
+===========================
+Increment=1.53815789474
+dubois100.cnf 10.131391 14530 1434.15647466 383.423399862
+===========================
+Increment=1.58947368421
+dubois100.cnf 10.163732 14530 1429.59298809 383.423399862
+===========================
+Increment=1.64078947368
+dubois100.cnf 10.137461 14530 1433.29774586 383.423399862
+===========================
+Increment=1.69210526316
+dubois100.cnf 10.170859 14530 1428.59123305 383.423399862
+===========================
+Increment=1.74342105263
+dubois100.cnf 10.185894 14530 1426.48254537 383.423399862
+===========================
+Increment=1.79473684211
+dubois100.cnf 10.12338 14530 1435.29137502 383.423399862
+===========================
+Increment=1.84605263158
+dubois100.cnf 10.141497 14530 1432.72733799 383.423399862
+===========================
+Increment=1.89736842105
+dubois100.cnf 10.066598 14530 1443.38732907 383.423399862
+===========================
+Increment=1.94868421053
+dubois100.cnf 10.158169 14530 1430.37588762 383.423399862
+===========================
+Increment=2.0
+dubois100.cnf 10.014562 14530 1450.88721803 383.423399862
+***
+MaxCount=1175.0
+===========================
+Increment=1.025
+dubois100.cnf 10.207999 14530 1423.39355637 383.423399862
+===========================
+Increment=1.07631578947
+dubois100.cnf 10.232106 14530 1420.04001913 383.423399862
+===========================
+Increment=1.12763157895
+dubois100.cnf 10.206481 14530 1423.60525631 383.423399862
+===========================
+Increment=1.17894736842
+dubois100.cnf 10.127209 14530 1434.7487052 383.423399862
+===========================
+Increment=1.23026315789
+dubois100.cnf 10.127812 14530 1434.66328166 383.423399862
+===========================
+Increment=1.28157894737
+dubois100.cnf 10.138172 14530 1433.19722727 383.423399862
+===========================
+Increment=1.33289473684
+dubois100.cnf 10.185742 14530 1426.50383251 383.423399862
+===========================
+Increment=1.38421052632
+dubois100.cnf 10.226619 14530 1420.80192877 383.423399862
+===========================
+Increment=1.43552631579
+dubois100.cnf 10.10682 14530 1437.64309644 383.423399862
+===========================
+Increment=1.48684210526
+dubois100.cnf 10.172841 14530 1428.31289706 383.423399862
+===========================
+Increment=1.53815789474
+dubois100.cnf 10.201441 14530 1424.30858542 383.423399862
+===========================
+Increment=1.58947368421
+dubois100.cnf 10.13175 14530 1434.10565796 383.423399862
+===========================
+Increment=1.64078947368
+dubois100.cnf 10.147024 14530 1431.94694326 383.423399862
+===========================
+Increment=1.69210526316
+dubois100.cnf 10.09535 14530 1439.27649859 383.423399862
+===========================
+Increment=1.74342105263
+dubois100.cnf 10.087033 14530 1440.46321649 383.423399862
+===========================
+Increment=1.79473684211
+dubois100.cnf 10.23823 14530 1419.19062182 383.423399862
+===========================
+Increment=1.84605263158
+dubois100.cnf 10.216508 14530 1422.20805778 383.423399862
+===========================
+Increment=1.89736842105
+dubois100.cnf 10.181253 14530 1427.13279004 383.423399862
+===========================
+Increment=1.94868421053
+dubois100.cnf 10.058288 14530 1444.57983307 383.423399862
+===========================
+Increment=2.0
+dubois100.cnf 10.144669 14530 1432.27935776 383.423399862
+***
+MaxCount=1200.0
+===========================
+Increment=1.025
+dubois100.cnf 10.237233 14530 1419.32883622 383.423399862
+===========================
+Increment=1.07631578947
+dubois100.cnf 10.11055 14530 1437.11271889 383.423399862
+===========================
+Increment=1.12763157895
+dubois100.cnf 10.076389 14530 1441.98482214 383.423399862
+===========================
+Increment=1.17894736842
+dubois100.cnf 10.194967 14530 1425.21304875 383.423399862
+===========================
+Increment=1.23026315789
+dubois100.cnf 10.197162 14530 1424.90626313 383.423399862
+===========================
+Increment=1.28157894737
+dubois100.cnf 10.171992 14530 1428.43211045 383.423399862
+===========================
+Increment=1.33289473684
+dubois100.cnf 10.113815 14530 1436.64878189 383.423399862
+===========================
+Increment=1.38421052632
+dubois100.cnf 10.176872 14530 1427.7471506 383.423399862
+===========================
+Increment=1.43552631579
+dubois100.cnf 10.224116 14530 1421.14976004 383.423399862
+===========================
+Increment=1.48684210526
+dubois100.cnf 10.114206 14530 1436.59324321 383.423399862
+===========================
+Increment=1.53815789474
+dubois100.cnf 10.166488 14530 1429.2054444 383.423399862
+===========================
+Increment=1.58947368421
+dubois100.cnf 10.199674 14530 1424.55533383 383.423399862
+===========================
+Increment=1.64078947368
+dubois100.cnf 10.052661 14530 1445.38843994 383.423399862
+===========================
+Increment=1.69210526316
+dubois100.cnf 10.067564 14530 1443.24883358 383.423399862
+===========================
+Increment=1.74342105263
+dubois100.cnf 10.196563 14530 1424.98996966 383.423399862
+===========================
+Increment=1.79473684211
+dubois100.cnf 10.190365 14530 1425.85667932 383.423399862
+===========================
+Increment=1.84605263158
+dubois100.cnf 10.181715 14530 1427.06803323 383.423399862
+===========================
+Increment=1.89736842105
+dubois100.cnf 10.200047 14530 1424.50324003 383.423399862
+===========================
+Increment=1.94868421053
+dubois100.cnf 10.032678 14530 1448.26735195 383.423399862
+===========================
+Increment=2.0
+dubois100.cnf 10.169422 14530 1428.79310152 383.423399862
