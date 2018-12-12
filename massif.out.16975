@@ -1,0 +1,1465 @@
+desc: (none)
+cmd: ./main.native -lemmasmax 2000 tests/DIMACS/UNSAT/dubois100.cnf
+time_unit: i
+#-----------
+snapshot=0
+#-----------
+time=0
+mem_heap_B=0
+mem_heap_extra_B=0
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=1
+#-----------
+time=312472
+mem_heap_B=16
+mem_heap_extra_B=8
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=2
+#-----------
+time=335626
+mem_heap_B=7280
+mem_heap_extra_B=3640
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=3
+#-----------
+time=355201
+mem_heap_B=2107648
+mem_heap_extra_B=5256
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=4
+#-----------
+time=3456356
+mem_heap_B=2107664
+mem_heap_extra_B=5264
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=5
+#-----------
+time=3491214
+mem_heap_B=4241728
+mem_heap_extra_B=5304
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=6
+#-----------
+time=3515444
+mem_heap_B=8178016
+mem_heap_extra_B=5312
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=7
+#-----------
+time=3560736
+mem_heap_B=8194400
+mem_heap_extra_B=5320
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=8
+#-----------
+time=3623729
+mem_heap_B=8259936
+mem_heap_extra_B=5328
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=9
+#-----------
+time=3733357
+mem_heap_B=8259936
+mem_heap_extra_B=5328
+mem_stacks_B=0
+heap_tree=detailed
+n5: 8259936 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n1: 3936288 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2107712 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 10560 in 5 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n1: 98304 0x151FF0D: caml_stat_calloc_noexc (memory.c:915)
+  n0: 98304 in 2 places, all below massif's threshold (1.00%)
+ n0: 16384 in 1 place, below massif's threshold (1.00%)
+#-----------
+snapshot=10
+#-----------
+time=3768091
+mem_heap_B=8227208
+mem_heap_extra_B=5336
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=11
+#-----------
+time=3791670
+mem_heap_B=9217179
+mem_heap_extra_B=5477
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=12
+#-----------
+time=3810531
+mem_heap_B=9217508
+mem_heap_extra_B=5556
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=13
+#-----------
+time=4083539
+mem_heap_B=9217594
+mem_heap_extra_B=5590
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=14
+#-----------
+time=4090746
+mem_heap_B=9225823
+mem_heap_extra_B=5617
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=15
+#-----------
+time=4513759
+mem_heap_B=9225798
+mem_heap_extra_B=5626
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=16
+#-----------
+time=4514954
+mem_heap_B=9225797
+mem_heap_extra_B=5627
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=17
+#-----------
+time=4655579
+mem_heap_B=9225781
+mem_heap_extra_B=5627
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=18
+#-----------
+time=4656876
+mem_heap_B=9225781
+mem_heap_extra_B=5635
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=19
+#-----------
+time=4734904
+mem_heap_B=9754165
+mem_heap_extra_B=5651
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=20
+#-----------
+time=4735720
+mem_heap_B=9754885
+mem_heap_extra_B=5659
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=21
+#-----------
+time=4822048
+mem_heap_B=9755605
+mem_heap_extra_B=5659
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=22
+#-----------
+time=4925241
+mem_heap_B=9757045
+mem_heap_extra_B=5659
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=23
+#-----------
+time=4959070
+mem_heap_B=9757081
+mem_heap_extra_B=5679
+mem_stacks_B=0
+heap_tree=detailed
+n5: 9757081 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n1: 3936288 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n3: 2305448 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n2: 196872 0x15253C0: caml_open_descriptor_in (io.c:70)
+   n1: 131248 0x1525C17: caml_ml_open_descriptor_out (io.c:95)
+    n0: 131248 in 2 places, all below massif's threshold (1.00%)
+   n0: 65624 in 1 place, below massif's threshold (1.00%)
+  n0: 11424 in 13 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1320960 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n1: 528384 0x152F9F8: do_set (minor_gc.h:98)
+   n1: 528384 0x152FC8D: caml_ephe_set_data (weak.c:216)
+    n1: 528384 0x14F3034: camlStdlib__ephemeron__set_data_1471 (obj.ml:108)
+     n1: 528384 0x14956D7: camlSexplib0__Sexp_conv__loop_600 (sexp_conv.ml:125)
+      n1: 528384 0x12827BB: camlCore_kernel__Source_code_position__entry (hash_queue.ml:232)
+       n1: 528384 0xE6A2D7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 528384 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+         n1: 528384 0x151A8F3: caml_startup_common (startup.c:157)
+          n1: 528384 0x151A949: caml_startup (startup.c:162)
+           n0: 528384 0xE690EA: main (main.c:44)
+ n0: 93137 in 8 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=24
+#-----------
+time=5149972
+mem_heap_B=9759977
+mem_heap_extra_B=5687
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=25
+#-----------
+time=5178159
+mem_heap_B=9759990
+mem_heap_extra_B=5698
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=26
+#-----------
+time=5178813
+mem_heap_B=9759990
+mem_heap_extra_B=5698
+mem_stacks_B=0
+heap_tree=detailed
+n5: 9759990 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n1: 3936288 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n3: 2305464 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n2: 196872 0x15253C0: caml_open_descriptor_in (io.c:70)
+   n1: 131248 0x1525C17: caml_ml_open_descriptor_out (io.c:95)
+    n0: 131248 in 2 places, all below massif's threshold (1.00%)
+   n0: 65624 in 1 place, below massif's threshold (1.00%)
+  n0: 11440 in 13 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1320960 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n1: 528384 0x152F9F8: do_set (minor_gc.h:98)
+   n1: 528384 0x152FC8D: caml_ephe_set_data (weak.c:216)
+    n1: 528384 0x14F3034: camlStdlib__ephemeron__set_data_1471 (obj.ml:108)
+     n1: 528384 0x14956D7: camlSexplib0__Sexp_conv__loop_600 (sexp_conv.ml:125)
+      n1: 528384 0x12827BB: camlCore_kernel__Source_code_position__entry (hash_queue.ml:232)
+       n1: 528384 0xE6A2D7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 528384 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+         n1: 528384 0x151A8F3: caml_startup_common (startup.c:157)
+          n1: 528384 0x151A949: caml_startup (startup.c:162)
+           n0: 528384 0xE690EA: main (main.c:44)
+ n0: 96030 in 8 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=27
+#-----------
+time=5899610
+mem_heap_B=9759992
+mem_heap_extra_B=5696
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=28
+#-----------
+time=9440941
+mem_heap_B=10024169
+mem_heap_extra_B=5695
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=29
+#-----------
+time=9449653
+mem_heap_B=10024169
+mem_heap_extra_B=5703
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=30
+#-----------
+time=9477267
+mem_heap_B=10024209
+mem_heap_extra_B=5719
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=31
+#-----------
+time=9550189
+mem_heap_B=10024215
+mem_heap_extra_B=5737
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=32
+#-----------
+time=9550845
+mem_heap_B=10024215
+mem_heap_extra_B=5737
+mem_stacks_B=0
+heap_tree=detailed
+n5: 10024215 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n1: 3936288 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n3: 2305504 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n2: 196872 0x15253C0: caml_open_descriptor_in (io.c:70)
+   n1: 131248 0x1525C17: caml_ml_open_descriptor_out (io.c:95)
+    n0: 131248 in 2 places, all below massif's threshold (1.00%)
+   n0: 65624 in 1 place, below massif's threshold (1.00%)
+  n0: 11480 in 14 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n3: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n1: 528384 0x152F9F8: do_set (minor_gc.h:98)
+   n1: 528384 0x152FC8D: caml_ephe_set_data (weak.c:216)
+    n1: 528384 0x14F3034: camlStdlib__ephemeron__set_data_1471 (obj.ml:108)
+     n1: 528384 0x14956D7: camlSexplib0__Sexp_conv__loop_600 (sexp_conv.ml:125)
+      n1: 528384 0x12827BB: camlCore_kernel__Source_code_position__entry (hash_queue.ml:232)
+       n1: 528384 0xE6A2D7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 528384 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+         n1: 528384 0x151A8F3: caml_startup_common (startup.c:157)
+          n1: 528384 0x151A949: caml_startup (startup.c:162)
+           n0: 528384 0xE690EA: main (main.c:44)
+  n1: 264192 0x151FBA0: caml_modify (minor_gc.h:87)
+   n1: 264192 0x1416B61: camlPpx_inline_test_lib__Runtime__set_lib_and_partition_2093 (runtime.ml:458)
+    n1: 264192 0x10DAE32: camlCore__Syslog__entry (syslog.ml:1)
+     n1: 264192 0xE6ABE7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 264192 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 264192 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 264192 0x151A949: caml_startup (startup.c:162)
+         n0: 264192 0xE690EA: main (main.c:44)
+ n0: 96023 in 8 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=33
+#-----------
+time=9715516
+mem_heap_B=10024254
+mem_heap_extra_B=5730
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=34
+#-----------
+time=9731843
+mem_heap_B=10024335
+mem_heap_extra_B=5777
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=35
+#-----------
+time=9812623
+mem_heap_B=10024335
+mem_heap_extra_B=5793
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=36
+#-----------
+time=9837201
+mem_heap_B=10024421
+mem_heap_extra_B=5859
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=37
+#-----------
+time=9873757
+mem_heap_B=10024421
+mem_heap_extra_B=5867
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=38
+#-----------
+time=9887906
+mem_heap_B=10024493
+mem_heap_extra_B=6075
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=39
+#-----------
+time=11003936
+mem_heap_B=25130581
+mem_heap_extra_B=10099
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=40
+#-----------
+time=11087872
+mem_heap_B=25261653
+mem_heap_extra_B=10107
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=41
+#-----------
+time=11301966
+mem_heap_B=25261653
+mem_heap_extra_B=10107
+mem_stacks_B=0
+heap_tree=detailed
+n5: 25261653 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 19042368 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 15106080 0x1520319: expand_heap (memory.c:384)
+   n1: 15106080 0x152050E: caml_alloc_shr (memory.c:494)
+    n1: 15106080 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305715 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208563 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n3: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n1: 528384 0x152F9F8: do_set (minor_gc.h:98)
+   n1: 528384 0x152FC8D: caml_ephe_set_data (weak.c:216)
+    n1: 528384 0x14F3034: camlStdlib__ephemeron__set_data_1471 (obj.ml:108)
+     n1: 528384 0x14956D7: camlSexplib0__Sexp_conv__loop_600 (sexp_conv.ml:125)
+      n1: 528384 0x12827BB: camlCore_kernel__Source_code_position__entry (hash_queue.ml:232)
+       n1: 528384 0xE6A2D7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 528384 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+         n1: 528384 0x151A8F3: caml_startup_common (startup.c:157)
+          n1: 528384 0x151A949: caml_startup (startup.c:162)
+           n0: 528384 0xE690EA: main (main.c:44)
+  n1: 264192 0x151FBA0: caml_modify (minor_gc.h:87)
+   n1: 264192 0x1416B61: camlPpx_inline_test_lib__Runtime__set_lib_and_partition_2093 (runtime.ml:458)
+    n1: 264192 0x10DAE32: camlCore__Syslog__entry (syslog.ml:1)
+     n1: 264192 0xE6ABE7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 264192 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 264192 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 264192 0x151A949: caml_startup (startup.c:162)
+         n0: 264192 0xE690EA: main (main.c:44)
+ n0: 227170 in 10 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=42
+#-----------
+time=30595817
+mem_heap_B=39638645
+mem_heap_extra_B=14107
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=43
+#-----------
+time=30697932
+mem_heap_B=39900789
+mem_heap_extra_B=14115
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=44
+#-----------
+time=31124268
+mem_heap_B=39900789
+mem_heap_extra_B=14115
+mem_stacks_B=0
+heap_tree=detailed
+n5: 39900789 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 33484896 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 29548608 0x1520319: expand_heap (memory.c:384)
+   n1: 29548608 0x152050E: caml_alloc_shr (memory.c:494)
+    n2: 29548608 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305715 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208563 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n3: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n1: 528384 0x152F9F8: do_set (minor_gc.h:98)
+   n1: 528384 0x152FC8D: caml_ephe_set_data (weak.c:216)
+    n1: 528384 0x14F3034: camlStdlib__ephemeron__set_data_1471 (obj.ml:108)
+     n1: 528384 0x14956D7: camlSexplib0__Sexp_conv__loop_600 (sexp_conv.ml:125)
+      n1: 528384 0x12827BB: camlCore_kernel__Source_code_position__entry (hash_queue.ml:232)
+       n1: 528384 0xE6A2D7: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 528384 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+         n1: 528384 0x151A8F3: caml_startup_common (startup.c:157)
+          n1: 528384 0x151A949: caml_startup (startup.c:162)
+           n0: 528384 0xE690EA: main (main.c:44)
+  n0: 264192 in 1 place, below massif's threshold (1.00%)
+ n0: 423778 in 10 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=45
+#-----------
+time=47827628
+mem_heap_B=54212245
+mem_heap_extra_B=18115
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=46
+#-----------
+time=53316335
+mem_heap_B=54212293
+mem_heap_extra_B=18123
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=47
+#-----------
+time=53335722
+mem_heap_B=54215405
+mem_heap_extra_B=18147
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=48
+#-----------
+time=53373115
+mem_heap_B=54248173
+mem_heap_extra_B=18155
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=49
+#-----------
+time=53382093
+mem_heap_B=54381326
+mem_heap_extra_B=18186
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=50
+#-----------
+time=53382428
+mem_heap_B=54381326
+mem_heap_extra_B=18186
+mem_stacks_B=0
+heap_tree=detailed
+n5: 54381326 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 47927424 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 43991136 0x1520319: expand_heap (memory.c:384)
+   n2: 43991136 0x152050E: caml_alloc_shr (memory.c:494)
+    n2: 29548608 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n1: 14442528 0x152FA92: caml_ephe_create (weak.c:74)
+     n1: 14442528 0xF23675: camlKernel__Theories__Bitvectors__BDD__entry (weak.ml:20)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305755 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208603 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n0: 792576 in 2 places, all below massif's threshold (1.00%)
+ n0: 461747 in 11 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=51
+#-----------
+time=53383267
+mem_heap_B=54381293
+mem_heap_extra_B=18163
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=52
+#-----------
+time=53387881
+mem_heap_B=54381366
+mem_heap_extra_B=18202
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=53
+#-----------
+time=53388836
+mem_heap_B=54446990
+mem_heap_extra_B=18218
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=54
+#-----------
+time=65464626
+mem_heap_B=54463414
+mem_heap_extra_B=18234
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=55
+#-----------
+time=130107246
+mem_heap_B=54463462
+mem_heap_extra_B=18242
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=56
+#-----------
+time=130108808
+mem_heap_B=54463606
+mem_heap_extra_B=18274
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=57
+#-----------
+time=130119083
+mem_heap_B=54463974
+mem_heap_extra_B=18290
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=58
+#-----------
+time=130123162
+mem_heap_B=54464246
+mem_heap_extra_B=18298
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=59
+#-----------
+time=130145054
+mem_heap_B=54464286
+mem_heap_extra_B=18314
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=60
+#-----------
+time=130145730
+mem_heap_B=54464486
+mem_heap_extra_B=18346
+mem_stacks_B=0
+heap_tree=detailed
+n5: 54464486 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 47927424 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 43991136 0x1520319: expand_heap (memory.c:384)
+   n2: 43991136 0x152050E: caml_alloc_shr (memory.c:494)
+    n2: 29548608 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n1: 14442528 0x152FA92: caml_ephe_create (weak.c:74)
+     n1: 14442528 0xF23675: camlKernel__Theories__Bitvectors__BDD__entry (weak.ml:20)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2371459 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 274307 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n0: 792576 in 2 places, all below massif's threshold (1.00%)
+ n0: 479203 in 14 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=61
+#-----------
+time=130151884
+mem_heap_B=54464894
+mem_heap_extra_B=18378
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=62
+#-----------
+time=130152560
+mem_heap_B=54465094
+mem_heap_extra_B=18410
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=63
+#-----------
+time=130319711
+mem_heap_B=54473654
+mem_heap_extra_B=18434
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=64
+#-----------
+time=136108181
+mem_heap_B=54473606
+mem_heap_extra_B=18426
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=65
+#-----------
+time=136109695
+mem_heap_B=54473566
+mem_heap_extra_B=18410
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=66
+#-----------
+time=188793675
+mem_heap_B=54473606
+mem_heap_extra_B=18426
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=67
+#-----------
+time=318908741
+mem_heap_B=54506470
+mem_heap_extra_B=18442
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=68
+#-----------
+time=320765429
+mem_heap_B=54572006
+mem_heap_extra_B=18442
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=69
+#-----------
+time=589151556
+mem_heap_B=54571966
+mem_heap_extra_B=18426
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=70
+#-----------
+time=839212182
+mem_heap_B=61698917
+mem_heap_extra_B=22395
+mem_stacks_B=0
+heap_tree=detailed
+n5: 61698917 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 55120032 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 51183744 0x1520319: expand_heap (memory.c:384)
+   n3: 51183744 0x152050E: caml_alloc_shr (memory.c:494)
+    n2: 29548608 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n1: 14442528 0x152FA92: caml_ephe_create (weak.c:74)
+     n1: 14442528 0xF23675: camlKernel__Theories__Bitvectors__BDD__entry (weak.ml:20)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n1: 7192608 0x151EDCA: caml_oldify_one (minor_gc.c:199)
+     n1: 7192608 0x151EF14: caml_oldify_mopup (minor_gc.c:301)
+      n1: 7192608 0x151F0FE: caml_empty_minor_heap (minor_gc.c:358)
+       n1: 7192608 0x151F614: caml_gc_dispatch (minor_gc.c:446)
+        n1: 7192608 0x151C089: caml_garbage_collection (signals_asm.c:78)
+         n1: 7192608 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+          n1: 7192608 0x14B4C56: camlStdlib__set__of_list_1482 (set.ml:140)
+           n1: 7192608 0xE84590: camlPluginsTh__Tools__TwoWatchedLits__treat_one_2298 (twoWatchedLits.ml:116)
+            n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+             n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+              n1: 7192608 0xE84EEC: camlPluginsTh__Tools__TwoWatchedLits__next_11966 (twoWatchedLits.ml:140)
+               n1: 7192608 0xE8EDE3: camlPluginsTh__Bool__Pl1__speak_2441 (pl1.ml:98)
+                n1: 7192608 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+                 n1: 7192608 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                  n1: 7192608 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                   n1: 7192608 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                    n1: 7192608 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                     n1: 7192608 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                      n1: 7192608 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                       n1: 7192608 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                        n1: 7192608 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                         n1: 7192608 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                          n1: 7192608 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                           n1: 7192608 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                            n1: 7192608 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                             n1: 7192608 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                              n0: 7192608 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305875 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208723 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n0: 792576 in 2 places, all below massif's threshold (1.00%)
+ n0: 586610 in 14 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=71
+#-----------
+time=1370240030
+mem_heap_B=69968773
+mem_heap_extra_B=26403
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=72
+#-----------
+time=1370316562
+mem_heap_B=70493061
+mem_heap_extra_B=26411
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=73
+#-----------
+time=1371168607
+mem_heap_B=70493061
+mem_heap_extra_B=26411
+mem_stacks_B=0
+heap_tree=peak
+n6: 70493061 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 63389888 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 59453600 0x1520319: expand_heap (memory.c:384)
+   n3: 59453600 0x152050E: caml_alloc_shr (memory.c:494)
+    n2: 29548608 0x1524C34: caml_make_vect (array.c:341)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n2: 15462464 0x151EDCA: caml_oldify_one (minor_gc.c:199)
+     n1: 8269856 0x151EF58: caml_oldify_mopup (minor_gc.c:306)
+      n1: 8269856 0x151F0FE: caml_empty_minor_heap (minor_gc.c:358)
+       n1: 8269856 0x151F614: caml_gc_dispatch (minor_gc.c:446)
+        n1: 8269856 0x151C089: caml_garbage_collection (signals_asm.c:78)
+         n1: 8269856 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+          n1: 8269856 0xF3E7DE: camlKernel__Theories__Eq__MyTheory__add_3142 (messages.ml:33)
+           n1: 8269856 0xEB0812: camlPlugins__Tools__EgraphWorker__aux_125 (egraphWorker.ml:48)
+            n1: 8269856 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+             n1: 8269856 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+              n1: 8269856 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+               n1: 8269856 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                n1: 8269856 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                 n1: 8269856 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                  n1: 8269856 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                   n1: 8269856 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                    n1: 8269856 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                     n1: 8269856 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                      n1: 8269856 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                       n1: 8269856 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                        n1: 8269856 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                         n1: 8269856 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                          n0: 8269856 0x52C06B8: start_thread (pthread_create.c:333)
+     n1: 7192608 0x151EF14: caml_oldify_mopup (minor_gc.c:301)
+      n1: 7192608 0x151F0FE: caml_empty_minor_heap (minor_gc.c:358)
+       n1: 7192608 0x151F614: caml_gc_dispatch (minor_gc.c:446)
+        n1: 7192608 0x151C089: caml_garbage_collection (signals_asm.c:78)
+         n1: 7192608 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+          n1: 7192608 0x14B4C56: camlStdlib__set__of_list_1482 (set.ml:140)
+           n1: 7192608 0xE84590: camlPluginsTh__Tools__TwoWatchedLits__treat_one_2298 (twoWatchedLits.ml:116)
+            n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+             n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+              n1: 7192608 0xE84EEC: camlPluginsTh__Tools__TwoWatchedLits__next_11966 (twoWatchedLits.ml:140)
+               n1: 7192608 0xE8EDE3: camlPluginsTh__Bool__Pl1__speak_2441 (pl1.ml:98)
+                n1: 7192608 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+                 n1: 7192608 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                  n1: 7192608 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                   n1: 7192608 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                    n1: 7192608 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                     n1: 7192608 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                      n1: 7192608 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                       n1: 7192608 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                        n1: 7192608 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                         n1: 7192608 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                          n1: 7192608 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                           n1: 7192608 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                            n1: 7192608 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                             n1: 7192608 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                              n0: 7192608 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+    n1: 14442528 0x152FA92: caml_ephe_create (weak.c:74)
+     n1: 14442528 0xF23675: camlKernel__Theories__Bitvectors__BDD__entry (weak.ml:20)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305875 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208723 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n1: 792576 0x1532D18: caml_alloc_custom (minor_gc.h:112)
+   n1: 792576 0x1525BFB: caml_ml_open_descriptor_in (io.c:457)
+    n1: 792576 0x14A1D68: camlStdlib__entry (stdlib.ml:299)
+     n1: 792576 0xE69217: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 792576 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 792576 0x151A8F3: caml_startup_common (startup.c:157)
+        n1: 792576 0x151A949: caml_startup (startup.c:162)
+         n0: 792576 0xE690EA: main (main.c:44)
+  n0: 792576 in 2 places, all below massif's threshold (1.00%)
+ n2: 786432 0x151FF0D: caml_stat_calloc_noexc (memory.c:915)
+  n1: 786432 0x15200EE: caml_page_table_modify (memory.c:135)
+   n2: 786432 0x15201FF: caml_page_table_add (memory.c:226)
+    n1: 786432 0x152025A: caml_add_to_heap (memory.c:340)
+     n1: 786432 0x15203F9: expand_heap (memory.c:416)
+      n1: 786432 0x152050E: caml_alloc_shr (memory.c:494)
+       n0: 786432 in 2 places, all below massif's threshold (1.00%)
+    n0: 0 in 1 place, below massif's threshold (1.00%)
+  n0: 0 in 1 place, below massif's threshold (1.00%)
+ n0: 324466 in 13 places, all below massif's threshold (1.00%)
+#-----------
+snapshot=74
+#-----------
+time=1431750791
+mem_heap_B=70361989
+mem_heap_extra_B=26403
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=75
+#-----------
+time=2897622398
+mem_heap_B=79872933
+mem_heap_extra_B=30411
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=76
+#-----------
+time=3495431301
+mem_heap_B=80135077
+mem_heap_extra_B=30411
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=77
+#-----------
+time=7765915552
+mem_heap_B=91071429
+mem_heap_extra_B=34419
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=78
+#-----------
+time=8819742472
+mem_heap_B=103646181
+mem_heap_extra_B=38427
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=79
+#-----------
+time=9802109466
+mem_heap_B=104170469
+mem_heap_extra_B=38427
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=80
+#-----------
+time=24183936021
+mem_heap_B=118633477
+mem_heap_extra_B=42435
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=81
+#-----------
+time=30561818300
+mem_heap_B=135263269
+mem_heap_extra_B=46443
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=82
+#-----------
+time=31847169666
+mem_heap_B=136311845
+mem_heap_extra_B=46443
+mem_stacks_B=0
+heap_tree=empty
+#-----------
+snapshot=83
+#-----------
+time=50032921532
+mem_heap_B=136311885
+mem_heap_extra_B=46459
+mem_stacks_B=0
+heap_tree=detailed
+n6: 136311885 (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+ n2: 127504736 0x151FD38: caml_alloc_for_heap (memory.c:798)
+  n1: 123568448 0x1520319: expand_heap (memory.c:384)
+   n3: 123568448 0x152050E: caml_alloc_shr (memory.c:494)
+    n3: 68264096 0x1524C34: caml_make_vect (array.c:341)
+     n1: 38715488 0x14DA0F8: camlStdlib__hashtbl__resize_445 (hashtbl.ml:126)
+      n3: 38715488 0xF03355: camlKernel__Top__Sassigns__branch_11042 (hCons.ml:89)
+       n1: 16629792 0xF65436: camlKernel__Combo__anon_fn$5bsrc$2flib$2fgeneral$2emld$2fpatricia$2eml$3a297$2c24$2d$2d70$5d_7200 (patricia.ml:297)
+        n1: 16629792 0xF65436: camlKernel__Combo__anon_fn$5bsrc$2flib$2fgeneral$2emld$2fpatricia$2eml$3a297$2c24$2d$2d70$5d_7200 (patricia.ml:297)
+         n1: 16629792 0xF63C7C: camlKernel__Combo__resolve_330 (patricia.ml:383)
+          n1: 16629792 0xEAAF20: camlPlugins__Tools__Trail__aux_4658 (trail.ml:297)
+           n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+            n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+             n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+              n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+               n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                 n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                  n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                   n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                    n1: 16629792 0xEAAF8A: camlPlugins__Tools__Trail__aux_4658 (trail.ml:299)
+                     n1: 16629792 0xECB60D: camlPlugins__Concur__Master__anon_fn$5bsrc$2fportfolio$2fplugins$2emld$2fportfolio$2fconcur$2emld$2fmaster$2eml$3a124$2c4$2d$2d6487$5d_6475 (master.ml:185)
+                      n1: 16629792 0x11E597F: camlAsync_kernel__Deferred0__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_214 (deferred0.ml:61)
+                       n1: 16629792 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                        n1: 16629792 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                         n1: 16629792 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                          n1: 16629792 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                           n1: 16629792 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                            n1: 16629792 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                             n1: 16629792 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                              n0: 16629792 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+       n1: 12574752 0xE90EA3: camlPluginsTh__Bool__Pl1__anon_fn$5bsrc$2fportfolio$2fpluginsTh$2emld$2fportfolio$2fbool$2emld$2fpl1$2eml$3a145$2c14$2d$2d7517$5d_3089 (patricia.ml:149)
+        n1: 12574752 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+         n1: 12574752 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+          n1: 12574752 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+           n1: 12574752 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+            n1: 12574752 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+             n1: 12574752 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+              n1: 12574752 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+               n1: 12574752 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                n1: 12574752 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                 n1: 12574752 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                  n1: 12574752 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                   n1: 12574752 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                    n1: 12574752 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                     n1: 12574752 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                      n1: 12574752 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                       n0: 12574752 0x52C06B8: start_thread (pthread_create.c:333)
+       n1: 9510944 0xF03856: camlKernel__Top__Sassigns__rmv_11452 (patricia.ml:150)
+        n1: 9510944 0xE90EA3: camlPluginsTh__Bool__Pl1__anon_fn$5bsrc$2fportfolio$2fpluginsTh$2emld$2fportfolio$2fbool$2emld$2fpl1$2eml$3a145$2c14$2d$2d7517$5d_3089 (patricia.ml:149)
+         n1: 9510944 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+          n1: 9510944 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+           n1: 9510944 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+            n1: 9510944 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+             n1: 9510944 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+              n1: 9510944 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+               n1: 9510944 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                n1: 9510944 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                 n1: 9510944 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                  n1: 9510944 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                   n1: 9510944 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                    n1: 9510944 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                     n1: 9510944 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                      n1: 9510944 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                       n1: 9510944 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                        n0: 9510944 0x52C06B8: start_thread (pthread_create.c:333)
+     n1: 15106080 0xF235B6: camlKernel__Theories__Bitvectors__BDD__entry (hashtbl.ml:81)
+      n1: 15106080 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 15106080 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 15106080 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 15106080 0x151A949: caml_startup (startup.c:162)
+          n0: 15106080 0xE690EA: main (main.c:44)
+     n1: 14442528 0xF23654: camlKernel__Theories__Bitvectors__BDD__entry (MLBDD.ml:37)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+    n2: 40861824 0x151EDCA: caml_oldify_one (minor_gc.c:199)
+     n1: 21655616 0x151EF14: caml_oldify_mopup (minor_gc.c:301)
+      n1: 21655616 0x151F0FE: caml_empty_minor_heap (minor_gc.c:358)
+       n1: 21655616 0x151F614: caml_gc_dispatch (minor_gc.c:446)
+        n1: 21655616 0x151C089: caml_garbage_collection (signals_asm.c:78)
+         n2: 21655616 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+          n1: 14463008 0x103F6C5: camlGeneral__Patricia__make_combine_1196 (patricia.ml:288)
+           n1: 14463008 0xF17E07: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:305)
+            n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+             n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+              n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+               n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+                n1: 14463008 0xF45224: camlKernel__Theories__Bool__Basis__anon_fn$5bsrc$2fkernel$2fkernel$2emld$2ftheories$2emld$2fbool$2emld$2fbasis$2eml$3a161$2c10$2d$2d869$5d_1254 (basis.ml:166)
+                 n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+                  n1: 14463008 0xF1837B: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:323)
+                   n1: 14463008 0xF45224: camlKernel__Theories__Bool__Basis__anon_fn$5bsrc$2fkernel$2fkernel$2emld$2ftheories$2emld$2fbool$2emld$2fbasis$2eml$3a161$2c10$2d$2d869$5d_1254 (basis.ml:166)
+                    n1: 14463008 0xF17F41: camlKernel__Termstructures__Clauses__fold2_trans_5574 (patricia.ml:341)
+                     n1: 14463008 0xF45224: camlKernel__Theories__Bool__Basis__anon_fn$5bsrc$2fkernel$2fkernel$2emld$2ftheories$2emld$2fbool$2emld$2fbasis$2eml$3a161$2c10$2d$2d869$5d_1254 (basis.ml:166)
+                      n1: 14463008 0xF45224: camlKernel__Theories__Bool__Basis__anon_fn$5bsrc$2fkernel$2fkernel$2emld$2ftheories$2emld$2fbool$2emld$2fbasis$2eml$3a161$2c10$2d$2d869$5d_1254 (basis.ml:166)
+                       n1: 14463008 0xF45518: camlKernel__Theories__Bool__Basis__simplify_1357 (patricia.ml:303)
+                        n1: 14463008 0xE84499: camlPluginsTh__Tools__TwoWatchedLits__treat_one_2298 (twoWatchedLits.ml:112)
+                         n1: 14463008 0xE84EEC: camlPluginsTh__Tools__TwoWatchedLits__next_11966 (twoWatchedLits.ml:140)
+                          n1: 14463008 0xE8EDE3: camlPluginsTh__Bool__Pl1__speak_2441 (pl1.ml:98)
+                           n1: 14463008 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+                            n1: 14463008 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                             n1: 14463008 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                              n0: 14463008 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+          n1: 7192608 0x14B4C56: camlStdlib__set__of_list_1482 (set.ml:140)
+           n1: 7192608 0xE84590: camlPluginsTh__Tools__TwoWatchedLits__treat_one_2298 (twoWatchedLits.ml:116)
+            n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+             n1: 7192608 0x103F292: camlGeneral__Patricia__aux_9014 (patricia.ml:233)
+              n1: 7192608 0xE84EEC: camlPluginsTh__Tools__TwoWatchedLits__next_11966 (twoWatchedLits.ml:140)
+               n1: 7192608 0xE8EDE3: camlPluginsTh__Bool__Pl1__speak_2441 (pl1.ml:98)
+                n1: 7192608 0xEB50BD: camlPlugins__Tools__Worker__aux_129 (worker.ml:43)
+                 n1: 7192608 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                  n1: 7192608 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                   n1: 7192608 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                    n1: 7192608 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                     n1: 7192608 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                      n1: 7192608 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                       n1: 7192608 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                        n1: 7192608 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                         n1: 7192608 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                          n1: 7192608 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                           n1: 7192608 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                            n1: 7192608 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                             n1: 7192608 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                              n0: 7192608 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+     n1: 19206208 0x151EF58: caml_oldify_mopup (minor_gc.c:306)
+      n1: 19206208 0x151F0FE: caml_empty_minor_heap (minor_gc.c:358)
+       n1: 19206208 0x151F614: caml_gc_dispatch (minor_gc.c:446)
+        n1: 19206208 0x151C089: caml_garbage_collection (signals_asm.c:78)
+         n2: 19206208 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+          n1: 10936352 0x103F6BE: camlGeneral__Patricia__make_combine_1196 (patricia.ml:288)
+           n1: 10936352 0x103FA0F: camlGeneral__Patricia__fold2_trans_9755 (patricia.ml:305)
+            n1: 10936352 0x103FB4F: camlGeneral__Patricia__fold2_trans_9755 (patricia.ml:341)
+             n1: 10936352 0x103FB4F: camlGeneral__Patricia__fold2_trans_9755 (patricia.ml:341)
+              n1: 10936352 0xEBD3DA: camlPlugins__Tools__Memo__pick_another_649 (memo.ml:147)
+               n1: 10936352 0xE7F535: camlPluginsTh__Tools__TwoWatchedLitsForLemmas__treat_one_2713 (twoWatchedLitsForLemmas.ml:140)
+                n1: 10936352 0xE801CB: camlPluginsTh__Tools__TwoWatchedLitsForLemmas__next_14093 (twoWatchedLitsForLemmas.ml:166)
+                 n1: 10936352 0xEBEB6C: camlPlugins__Tools__Memo__aux_15391 (memo.ml:205)
+                  n1: 10936352 0xEC19F5: camlPlugins__Tools__Memo__aux_1750 (memo.ml:203)
+                   n1: 10936352 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                    n1: 10936352 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                     n1: 10936352 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                      n1: 10936352 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                       n1: 10936352 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                        n1: 10936352 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                         n1: 10936352 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                          n1: 10936352 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                           n1: 10936352 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                            n1: 10936352 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                             n1: 10936352 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                              n0: 10936352 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+          n1: 8269856 0xF3E7DE: camlKernel__Theories__Eq__MyTheory__add_3142 (messages.ml:33)
+           n1: 8269856 0xEB0812: camlPlugins__Tools__EgraphWorker__aux_125 (egraphWorker.ml:48)
+            n1: 8269856 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+             n1: 8269856 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+              n1: 8269856 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+               n1: 8269856 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                n1: 8269856 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                 n1: 8269856 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                  n1: 8269856 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                   n1: 8269856 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                    n1: 8269856 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                     n1: 8269856 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                      n1: 8269856 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                       n1: 8269856 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                        n1: 8269856 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                         n1: 8269856 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                          n0: 8269856 0x52C06B8: start_thread (pthread_create.c:333)
+    n1: 14442528 0x152FA92: caml_ephe_create (weak.c:74)
+     n1: 14442528 0xF23675: camlKernel__Theories__Bitvectors__BDD__entry (weak.ml:20)
+      n1: 14442528 0xE6B617: caml_program (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+       n1: 14442528 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+        n1: 14442528 0x151A8F3: caml_startup_common (startup.c:157)
+         n1: 14442528 0x151A949: caml_startup (startup.c:162)
+          n0: 14442528 0xE690EA: main (main.c:44)
+  n1: 3936288 0x151E880: caml_init_major_heap (major_gc.c:874)
+   n1: 3936288 0x152D126: caml_init_gc (gc_ctrl.c:603)
+    n1: 3936288 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 3936288 0x151A949: caml_startup (startup.c:162)
+      n0: 3936288 0xE690EA: main (main.c:44)
+ n2: 2305875 0x151FDD7: caml_stat_alloc (memory.c:856)
+  n1: 2097152 0x151AF30: init_frame_descriptors (roots.c:142)
+   n1: 2097152 0x151A733: caml_startup_common (startup.c:128)
+    n1: 2097152 0x151A949: caml_startup (startup.c:162)
+     n0: 2097152 0xE690EA: main (main.c:44)
+  n0: 208723 in 16 places, all below massif's threshold (1.00%)
+ n1: 2101248 0x151FC95: caml_stat_alloc_aligned_noexc (memory.c:798)
+  n1: 2101248 0x151F3DA: caml_set_minor_heap_size (minor_gc.c:150)
+   n1: 2101248 0x152D0FD: caml_init_gc (gc_ctrl.c:599)
+    n1: 2101248 0x151A77A: caml_startup_common (startup.c:135)
+     n1: 2101248 0x151A949: caml_startup (startup.c:162)
+      n0: 2101248 0xE690EA: main (main.c:44)
+ n2: 2097152 0x151D64A: realloc_gray_vals (major_gc.c:131)
+  n1: 2097152 0x151D87C: mark_slice (major_gc.c:293)
+   n1: 2097152 0x151E5A8: caml_major_collection_slice (major_gc.c:783)
+    n1: 2097152 0x151C089: caml_garbage_collection (signals_asm.c:78)
+     n2: 2097152 0x1536C9A: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+      n1: 2097152 0x14B5F66: camlStdlib__map__bal_57 (map.ml:113)
+       n1: 2097152 0x14B218E: camlStdlib__set__fold_866 (set.ml:348)
+        n1: 2097152 0xE7EE88: camlPluginsTh__Tools__TwoWatchedLitsForLemmas__addconstraint__inner_2528 (twoWatchedLitsForLemmas.ml:113)
+         n1: 2097152 0x103F182: camlGeneral__Patricia__aux_8947 (patricia.ml:233)
+          n1: 2097152 0x103F182: camlGeneral__Patricia__aux_8947 (patricia.ml:233)
+           n1: 2097152 0x103F210: camlGeneral__Patricia__aux_1078 (patricia.ml:233)
+            n1: 2097152 0xE81510: camlPluginsTh__Tools__TwoWatchedLitsForLemmas__forget_4174 (twoWatchedLitsForLemmas.ml:210)
+             n1: 2097152 0xEBE250: camlPlugins__Tools__Memo__add_4577 (memo.ml:188)
+              n1: 2097152 0xEC1CA6: camlPlugins__Tools__Memo__aux_1750 (memo.ml:268)
+               n1: 2097152 0xEAB4EF: camlPlugins__Tools__Lib__anon_fn$5bsrc$2fdeferred0$2eml$3a61$2c9$2d$2d71$5d_10751 (lib.ml:23)
+                n1: 2097152 0x11D0059: camlAsync_kernel__Job_queue__run_jobs_1815 (job_queue.ml:159)
+                 n1: 2097152 0x11E0412: camlAsync_kernel__Scheduler1__run_jobs_7094 (scheduler1.ml:323)
+                  n1: 2097152 0x11F4F5C: camlAsync_kernel__Scheduler__run_jobs_1073 (scheduler.ml:179)
+                   n1: 2097152 0x11F4DC3: camlAsync_kernel__Scheduler__run_cycle_996 (scheduler.ml:187)
+                    n1: 2097152 0x1070CA7: camlAsync_unix__Raw_scheduler__have_lock_do_cycle_7515 (raw_scheduler.ml:648)
+                     n1: 2097152 0x10720BD: camlAsync_unix__Raw_scheduler__loop_8438 (raw_scheduler.ml:852)
+                      n1: 2097152 0x10716BF: camlAsync_unix__Raw_scheduler__be_the_scheduler_inner_7898 (raw_scheduler.ml:856)
+                       n1: 2097152 0x10B8863: camlAsync_unix__Thread_safe__anon_fn$5bsrc$2fthread_safe$2eml$3a70$2c48$2d$2d140$5d_450 (thread_safe.ml:72)
+                        n1: 2097152 0x14309B7: camlBase__Exn__handle_uncaught_aux_472 (exn.ml:113)
+                         n1: 2097152 0x1176E30: camlCore__Core_thread__f_151 (core_thread.ml:12)
+                          n1: 2097152 0x1497B17: camlThread__anon_fn$5bthread$2eml$3a37$2c4$2d$2d146$5d_55 (thread.ml:39)
+                           n1: 2097152 0x1536E7C: ??? (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                            n1: 2097152 0x151295D: caml_thread_start (in /media/cauchy/DATA/Documents/Polytechnique/3A/S1/INF551/cdsat/_build/src/top-level/main.native)
+                             n0: 2097152 0x52C06B8: start_thread (pthread_create.c:333)
+      n0: 0 in 3 places, all below massif's threshold (1.00%)
+  n0: 0 in 2 places, all below massif's threshold (1.00%)
+ n1: 1585152 0x151EB2D: alloc_generic_table (minor_gc.c:90)
+  n0: 1585152 in 3 places, all below massif's threshold (1.00%)
+ n0: 717722 in 13 places, all below massif's threshold (1.00%)

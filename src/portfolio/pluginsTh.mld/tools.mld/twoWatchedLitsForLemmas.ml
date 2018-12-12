@@ -235,7 +235,7 @@ module Make (C : Config) = struct
 
   let forgetcount constr _ newc = newc + 1
 
-  let forget t =
+  let forget t = Print.print ["lemmasQuantity", 0] (fun p-> p "Number of lemmas so far : %d" t.totcount); 
     Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
     if (t.totcount > 0) && (t.totcount mod t.maxcount == 0)
     then ( Print.print ["score",0] (fun p->p "score: forget!");

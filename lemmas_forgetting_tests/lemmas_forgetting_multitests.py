@@ -6,6 +6,7 @@ import os
 import subprocess
 import numpy as np
 import re
+import math
 from time import sleep
 
 
@@ -29,17 +30,33 @@ def parse(line, n):
     tableline = line.split("===========================\n")
     result = []
     for i in range(n) :
+        #print(tableline)
         result.append(parseblock(tableline[i+1]))
     return result;
 
 def parseblock(block):
     tableBlock = block.split("\n")
+    #print(tableBlock)
     nameFile = tableBlock[0].split(" ")[-1].split("/")[-1]
     time = tableBlock[3].split(" ")[-1]
     nbDec = tableBlock[4].split(" ")[-1]
     Decpersec = tableBlock[5].split(" ")[-1]
     OptionsPerDec = tableBlock[6].split(" ")[-1]
     return time+" "+nbDec+" "+Decpersec+" "+OptionsPerDec
+
+def getLemmasQuantity(fileentry) :
+    print("Getting number of lemmas without forgetting them")
+    x=subprocess.Popen(["./main.native", "-lemmasstep", "1000000", "-debug", "lemmasQuantity", "0", "unsat_tests/"+fileentry], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    for i in range(4) :
+        x.stdout.readline()
+    line1=x.stdout.readline().decode("utf-8")
+    line2=x.stdout.readline().decode("utf-8")
+    while (line2.split(" ")[0]=="Number") :
+        line1=line2
+        line2=x.stdout.readline().decode("utf-8")
+    return int(line1.split(" : ")[-1])
+     
+
 
 # Comes from https://www.gungorbudak.com/blog/2015/08/30/simple-way-of-pythons-subprocesspopen/
 def popen_timeout(command, timeout):
@@ -59,7 +76,7 @@ def getVarsClauses(fileentry) :
     for line in fileToRead :
         if line[0]=='p' :
             lineTable=re.compile("\s{0,}").split(line)
-            print(lineTable)
+            #print(lineTable)
             result.append(lineTable[2])
             result.append(lineTable[3])
     fileToRead.close()
@@ -75,19 +92,30 @@ def main(fileentry, fileWrite):
     #nbFiles = (nbFiles.stdout.read()).decode("utf-8").split("\n")
     #nbFiles = len(nbFiles)-1
     
-    fichier = open("lemmas_forgetting_tests/dataMap_multitests_withDecay/"+fileWrite+"tessssssst", "a")
+    fichier = open("lemmas_forgetting_tests/dataMap_bddTests/"+fileWrite, "a")
     
-    startCount = 50
-    endCount = 800
-    stepsCount = 16
     
-    startIncr = 1.1
-    endIncr = 2.
-    stepsIncr = 10
+    nbLemmas = getLemmasQuantity(fileentry)
     
-    startDecay = 1.02
-    endDecay = 1.1
-    stepsDecay = 5
+    #startCount = 50
+    #endCount = 800
+    #stepsCount = 16
+    
+    #startIncr = 1.1
+    #endIncr = 2.
+    #stepsIncr = 10
+    
+    #startDecay = 1.02
+    #endDecay = 1.1
+    #stepsDecay = 5
+    
+    
+    #linspaceIncr = np.linspace(startIncr, endIncr, stepsIncr)
+    #linspaceDecay = np.linspace(startDecay, endDecay, stepsDecay)
+    
+    stepArray=[int(math.exp(((9-i)*math.log(nbLemmas/25)+i*math.log(nbLemmas))/9.)) for i in range(10)]
+    decayArray=[0.02, 0.05, 0.1, 0.25, 0.5]
+    incrArray =[math.exp(((9-i)*math.log(1/math.log(nbLemmas))+i*math.log(36))/9.) for i in range(10)]
     
     nbVarClauses = getVarsClauses(fileentry)
     nbVar=nbVarClauses[0]
@@ -110,37 +138,44 @@ def main(fileentry, fileWrite):
     
     timeout=int(3*moyenne)+1
     
-    linspaceIncr = np.linspace(startIncr, endIncr, stepsIncr)
-    linspaceDecay = np.linspace(startDecay, endDecay, stepsDecay)
     fichier.write("File "+fileentry+"\n")
     fichier.write("Number of variables="+str(nbVar)+"\n")
     fichier.write("Number of clauses="+str(nbClauses)+"\n")
     fichier.write("With argument keeplemmas - execution time : "+str(moyenne)+"\n")
-    fichier.write("Number of files : "+str(1)+"\nNumber of stepsCount : "+str(stepsCount)+"\nNumber of stepsIncr : "+str(stepsIncr)+"\nNumber of stepsDecay : "+str(stepsDecay)+"\n")
+    fichier.write("Number of lemmas : "+str(nbLemmas)+"\n")
+    fichier.write("Number of stepsCount : 10\nNumber of stepsIncr : 10\nNumber of stepsDecay : 5\n")
     
-    fichier.write("File name / Execution time / Number of decisions / Decisions per second / Options per decision\n")
-    
-    for i in np.linspace(startCount, endCount, stepsCount) :
-        print ("StepMaxCount: "+str(int(((i-startCount)/(endCount-startCount))*stepsCount-0.00001)+1)+" over "+str(stepsCount)+"\n********")
+    fichier.write("Execution time / Number of decisions / Decisions per second / Options per decision\n")
+    iStep =0
+    for i in stepArray :
+        iStep=iStep+1
+        print ("StepMaxCount: "+str(iStep)+" over "+str(len(stepArray))+"\n********")
         fichier.write("***\n")
-        fichier.write("MaxCount="+str(i)+"\n")
-        for k in linspaceDecay :
-            print("Decay step "+str(1+int(stepsDecay*(k-1.)/(endDecay-1.)-0.000001))+" over "+str(stepsDecay)+"\n")
+        fichier.write("MaxCount="+str(max(i, 1))+"\n")
+        kStep=0
+        for k in decayArray :
+            kStep=kStep+1
+            decayParam=1+k
+            print("Decay step "+str(kStep)+" over "+str(len(decayArray))+"\n")
             fichier.write("@@@\n")
-            fichier.write("Decay="+str(k)+"\n")
-            for j in linspaceIncr : 
-                print ("StepIncr: "+str(int(((j-startIncr)/(endIncr-startIncr))*stepsIncr-0.00001)+1)+" over "+str(stepsIncr))
+            fichier.write("Decay="+str(decayParam)+"\n")
+            jStep=0
+            for j in incrArray : 
+                jStep=jStep+1
+                incrParam=j*k+1
+                print ("StepIncr: "+str(jStep)+" over "+str(len(incrArray)))
                 fichier.write("===========================\n")
-                fichier.write("Increment="+str(j)+"\n")
-                x=popen_timeout(["./main.native", "-lemmasstep", str(int(i)), "-lemmasincrmt", str(int(j)), "-lemmasdecay", str(k),  "unsat_tests/"+fileentry], timeout)
+                fichier.write("Increment="+str(incrParam)+"\n")
+                #print("Command "+"./main.native "+ "-lemmasstep "+ str(int(max(i, 1)))+ " -lemmasincrmt "+ str(incrParam)+ " -lemmasdecay "+ str(decayParam),  " unsat_tests/"+fileentry)
+                x=popen_timeout(["./main.native", "-lemmasstep", str(int(max(i, 1))), "-lemmasincrmt", str(incrParam), "-lemmasdecay", str(decayParam),  "unsat_tests/"+fileentry], timeout)
                 if (x!=False) :
                     line = x.stdout.read().decode("utf-8")
+                    #print(line)
                     ex = parse(line, 1)
                     for l in range(0, len(ex)) :
                         fichier.write(ex[l]+"\n")
                 else :
                     fichier.write("XXX Execution time too long : greater than "+str(timeout)+" sec\n")
-            print("")
     
     
     fichier.close()
@@ -152,7 +187,7 @@ filesTests = y.split("\n")
 i=1
 for fileentry in filesTests :
     print("File  "+str(i)+" over "+str(len(filesTests)))
-    if fileentry != "" and fileentry!=" ":
+    if fileentry != "" and fileentry!=" " and i>2:
         main(fileentry, "dataMap"+fileentry+".txt")
     print('\n\n')
     i=i+1
