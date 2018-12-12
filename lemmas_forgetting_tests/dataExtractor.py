@@ -390,6 +390,8 @@ def Speedup2(filesArray) :
     
     X=np.array(Xlist)
     Y=np.array(Ylist)
+    print(Xlist)
+    print(Ylist)
     
     plt.figure(8)
     plt.scatter(X, Y)
@@ -699,7 +701,7 @@ def Speedup4(filesArray) :
     Ylist = []
 
     lemmasincrmt=1.0067651012568015
-    lemmasdecay=1.01
+    lemmasdecay=1.02
     lemmasstepReg = RegressionStepsFixeddecayFixedincrmt(filesArray, 0, 1)[-1]
     lemmasdecayReg = RegressionDecay(filesArray)[-1]
     lemmasincrmtReg = RegressionIncrementFixeddecay(filesArray, 0)[-1]
@@ -733,6 +735,9 @@ def Speedup4(filesArray) :
     
     X=np.array(Xlist)
     Y=np.array(Ylist)
+    
+    print(X)
+    print(Y)
     
     plt.figure(16)
     plt.scatter(X, Y)
