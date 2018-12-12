@@ -226,25 +226,20 @@ module Make (C : Config) = struct
     
   let forgetone constr (v:MetaVarSet.t) new_t =
     v.score <- v.score +. pi new_t (v.count);
-    Print.print ["score", 1] (fun p->p "%u -> %f" v.count (pi new_t (v.count)));
     if v.score > new_t.thrshld 
     then (let my_new_t = addconstraint_ constr v.varset ~score:(Some v.score) new_t in
-         Print.print ["score",0] (fun p-> p "%f > %f" v.score new_t.thrshld);
          { my_new_t with curcount = new_t.curcount + 1 })
     else recycle constr v new_t
-
-  let forgetcount constr _ newc = newc + 1
 
   let forget t =
     Print.print ["forget",2] (fun p-> p "forget: %d constraints memoized" t.curcount);
     if (t.totcount > 0) && (t.totcount mod t.maxcount == 0)
-    then ( Print.print ["score",0] (fun p->p "score: forget!");
-           Print.print ["forget",1] (fun p-> p "forget: %d/%d [%d] constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount (CMap.fold forgetcount t.cons2var 0) t.incrmt t.thrshld);
+    then ( Print.print ["forget",1] (fun p-> p "forget: %d/%d constraints, increment=%f, threshold=%f => let's forget!" t.curcount t.totcount t.incrmt t.thrshld);
           let my_new_t = { t with var2cons = VarMap.empty;
                                   cons2var = CMap.empty;
                                   curcount = 0 } in
           let my_new_t = CMap.fold forgetone t.cons2var my_new_t in
-          Print.print ["forget",0] (fun p->p "forget: now %d/%d [%d] constraints, increment=%f, threshold=%f" my_new_t.curcount t.totcount (CMap.fold forgetcount my_new_t.cons2var 0) my_new_t.incrmt my_new_t.thrshld);
+          Print.print ["forget",0] (fun p->p "forget: now %d/%d constraints, increment=%f, threshold=%f" my_new_t.curcount t.totcount  my_new_t.incrmt my_new_t.thrshld);
           { my_new_t with incrmt   = t.incrmt *. t.decay;
                           thrshld  = t.thrshld *. t.decay })
     else t
