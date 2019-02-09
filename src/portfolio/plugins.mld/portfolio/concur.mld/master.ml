@@ -192,7 +192,6 @@ module Make(WB4M: WhiteBoard4Master) = struct
       | Propa(tset,Unsat) -> 
         Print.print ["concur",2] (fun p -> p "Treating from buffer:\n %a" pp thmsg);
         (* A theory found a proof. We stop and close all pipes. *)
-        (* let g = Let_syntax.bind in *)
         incr PFlags.conflictnumb;
         let%map ans = T.analyse state.trail thmsg (H.suicide state.hub) in
         H.kill state.hub;
@@ -207,8 +206,8 @@ module Make(WB4M: WhiteBoard4Master) = struct
             let messages = Pqueue.push (Say(WBE.unsat thmsg)) (Pqueue.empty()) in
             master_loop current { state with messages }
           | Some(trail,level) ->
-            (* A theory deduced a boolean assignment newa from assignment
-               old. We broadcast it to all theories *)
+            (* The assignment could be added to the trail.
+               We broadcast it to all theories *)
             let assign  = Assign.add sassign current.assign in
             let current = sat_init assign ~sharing:current.sharing in
             let state   = { state with
@@ -221,10 +220,11 @@ module Make(WB4M: WhiteBoard4Master) = struct
         end
 
       | Sat {assign; sharing} -> 
-        (* A theory found a counter-model newtset. If it is the
-              same as the current one, then it means the theory has stamped the
-              model for which we were collecting stamps. If not, now
-              all other theories need to stamp newtset. *)
+        (* Theory T can build a T-model endorsing assign and any equalities
+           imposed between the terms in sharing. If {assign; sharing} are the
+           same as the current ones, then it means the theory has stamped the
+           model for which we were collecting stamps. If not, now all other
+           theories need to stamp {assign; sharing}. *)
 
         match sat thmsg current with
         | Done(assign,sharing) as sat_ans ->
@@ -232,15 +232,16 @@ module Make(WB4M: WhiteBoard4Master) = struct
               p "All theories were fine with model %a sharing %a"
                 Assign.pp assign
                 TSet.pp sharing);
-          (* rest being empty means that all theories have
-             stamped the assignment consset as being consistent with them,
-             so we can finish, closing all pipes *)
+          (* All theories have stamped {assign; sharing} as being
+             consistent with them, so we can finish, closing all pipes *)
           H.kill state.hub;
           return(Case2 sat_ans)
 
         | Share toshare ->
           Print.print ["concur",2] (fun p ->
               p "New variables to share: %a" TSet.pp toshare);
+          (* Theory T has found some new variables to share.
+             Everybody needs to see them. *)
           let sharing = TSet.union toshare current.sharing in
           let current = sat_init current.assign ~sharing in
           let state   = { state with
@@ -254,9 +255,9 @@ module Make(WB4M: WhiteBoard4Master) = struct
         | GoOn current ->
           Print.print ["concur",2] (fun p ->
               p " still waiting for %a" HandlersMap.pp current.left);
-          (* some theories still haven't stamped that assignment
+          (* some theories still haven't stamped {assign; sharing}
              as being consistent with them,
-             so we read what the theories have to tell us *)
+             so we keep on collecting each theory's stamp *)
           master_loop current state
 
         | NoModelMatch assign_ref ->

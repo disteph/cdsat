@@ -125,14 +125,6 @@ module T = struct
       include Eval(M)
     end
 
-    (* States of the algorithm *)
-    type state = { seen        : Assign.t;
-                   constraints : Term.t list }
-
-    (* Initial state *)
-    let init = { seen        = Assign.empty;
-                 constraints = [] }
-
     (* Evaluation function for a formula, given a valuation.
        Either raises an exception CannotEval,
        or produces a message Propa(assign,boolassign), where
@@ -146,6 +138,26 @@ module T = struct
       | s -> raise (CannotEval(Format.toString(fun p ->
           p "I do not know sort %a" Sorts.pp s)))
 
+    (* States of the algorithm *)
+    type state = { seen      : Assign.t;
+                   sharing   : TSet.t;
+                   myvars    : TSet.t Lazy.t;
+                   constraints : SAssign.t list }
+
+    (* Initial state *)
+    let init = { seen      = Assign.empty;
+                 sharing   = TSet.empty;
+                 myvars    = lazy TSet.empty;
+                 constraints = [] }
+
+
+    let sat valuation state =
+      let rec aux = function
+        | [] -> { state with constraints=[] },
+                Some(sat () state.seen ~sharing:state.sharing ~myvars:state.myvars)
+        | c::constraints ->
+          
+    
   end
 
   let make (module W : Writable) : api = (module Make(W))

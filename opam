@@ -6,7 +6,7 @@ authors: "Stephane Graham-Lengrand <stephane.graham-lengrand@sri.com>"
 license: "CeCILL-C"
 homepage: "https://github.com/disteph/cdsat"
 bug-reports: "https://github.com/disteph/cdsat/issues"
-description: "CDSAT prover based on the CDSAT system (JAR-2019)"
+synopsis: "CDSAT prover based on the CDSAT system (JAR-2019)"
 depends: [
   "ocaml"
   "oasis"
