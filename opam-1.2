@@ -1,14 +1,20 @@
-opam-version: "2.0"
+opam-version: "1.2"
 name: "cdsat-libs"
 version: "1.0"
 maintainer: "Stephane Graham-Lengrand <stephane.graham-lengrand@sri.com>"
 authors: "Stephane Graham-Lengrand <stephane.graham-lengrand@sri.com>"
-license: "CeCILL-C"
 homepage: "https://github.com/disteph/cdsat"
 bug-reports: "https://github.com/disteph/cdsat/issues"
-description: "CDSAT prover based on the CDSAT system (JAR-2019)"
+license: "CeCILL-C"
+dev-repo: "https://github.com/disteph/cdsat.git"
+build: [
+  ["oasis" "setup"]
+  ["make" "libs"]
+]
+remove: [
+  ["make" "uninstall_libs"]
+]
 depends: [
-  "ocaml"
   "oasis"
   "zarith"
   "mld"
@@ -19,10 +25,3 @@ depends: [
   "ppx_deriving"
   "ocamlfind" {build}
 ]
-build: [
-  ["oasis" "setup"]
-  [make "libs"]
-]
-install: ["echo" "No install available"]
-remove: [make "uninstall_libs"]
-dev-repo: "git+https://github.com/disteph/cdsat.git"
